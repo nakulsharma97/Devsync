@@ -1,1 +1,0 @@
-import{n as t}from"./index-eTd2bZqu.js";const n={async create(e){return(await t.post("/projects",e)).data.data},async getAll(){return(await t.get("/projects")).data.data},async getById(e){return(await t.get(`/projects/${e}`)).data.data},async update(e,a){return(await t.put(`/projects/${e}`,a)).data.data},async delete(e){await t.delete(`/projects/${e}`)}};export{n as p};

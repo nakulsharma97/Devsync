@@ -7,6 +7,10 @@ import com.devsync.entity.Team;
 import com.devsync.entity.TeamApplication;
 import com.devsync.entity.User;
 import com.devsync.service.TeamService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -18,11 +22,13 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/teams")
 @RequiredArgsConstructor
+@Tag(name = "Teams", description = "Team collaboration and applications")
 public class TeamController {
 
     private final TeamService teamService;
 
     @PostMapping
+    @Operation(summary = "Create a team", description = "Creates a new team looking for collaborators")
     public ResponseEntity<ApiResponse<Team>> createTeam(
             @AuthenticationPrincipal User user,
             @Valid @RequestBody TeamRequest request) {
@@ -32,18 +38,23 @@ public class TeamController {
     }
 
     @GetMapping
+    @Operation(summary = "Get open teams", description = "Returns all teams currently looking for members")
     public ResponseEntity<ApiResponse<List<Team>>> getOpenTeams() {
         List<Team> teams = teamService.getOpenTeams();
         return ResponseEntity.ok(ApiResponse.success(teams));
     }
 
     @GetMapping("/{id}")
+    @Operation(summary = "Get team by ID", description = "Returns a single team by its ID")
+    @ApiResponse(responseCode = "404", description = "Team not found")
     public ResponseEntity<ApiResponse<Team>> getTeam(@PathVariable Long id) {
         Team team = teamService.getTeamById(id);
         return ResponseEntity.ok(ApiResponse.success(team));
     }
 
     @PostMapping("/{teamId}/apply")
+    @Operation(summary = "Apply to team", description = "Submits an application to join a team")
+    @ApiResponse(responseCode = "400", description = "Already applied to this team")
     public ResponseEntity<ApiResponse<TeamApplication>> apply(
             @PathVariable Long teamId,
             @AuthenticationPrincipal User user,
@@ -54,6 +65,8 @@ public class TeamController {
     }
 
     @GetMapping("/{teamId}/applications")
+    @Operation(summary = "Get team applications", description = "Returns all applications for a team (owner only)")
+    @ApiResponse(responseCode = "403", description = "Only the team owner can view applications")
     public ResponseEntity<ApiResponse<List<TeamApplication>>> getApplications(
             @PathVariable Long teamId,
             @AuthenticationPrincipal User user) {
@@ -62,6 +75,7 @@ public class TeamController {
     }
 
     @PostMapping("/applications/{applicationId}/accept")
+    @Operation(summary = "Accept application", description = "Accepts a team application (owner only)")
     public ResponseEntity<ApiResponse<TeamApplication>> acceptApplication(
             @PathVariable Long applicationId,
             @AuthenticationPrincipal User user) {
@@ -70,6 +84,7 @@ public class TeamController {
     }
 
     @PostMapping("/applications/{applicationId}/reject")
+    @Operation(summary = "Reject application", description = "Rejects a team application (owner only)")
     public ResponseEntity<ApiResponse<TeamApplication>> rejectApplication(
             @PathVariable Long applicationId,
             @AuthenticationPrincipal User user) {

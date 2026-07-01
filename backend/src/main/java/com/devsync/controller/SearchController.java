@@ -7,6 +7,8 @@ import com.devsync.entity.User;
 import com.devsync.service.ProjectService;
 import com.devsync.service.UserService;
 import com.devsync.service.BookmarkService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -18,6 +20,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/search")
 @RequiredArgsConstructor
+@Tag(name = "Search", description = "Global search across users, projects, and bookmarks")
 public class SearchController {
 
     private final UserService userService;
@@ -25,6 +28,7 @@ public class SearchController {
     private final BookmarkService bookmarkService;
 
     @GetMapping
+    @Operation(summary = "Global search", description = "Searches across developers, projects, and bookmarks matching the query")
     public ResponseEntity<ApiResponse<Map<String, Object>>> search(
             @RequestParam String q,
             @AuthenticationPrincipal User user) {
