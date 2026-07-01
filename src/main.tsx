@@ -7,6 +7,7 @@ import { ConvexReactClient } from "convex/react";
 import { StrictMode, useEffect, lazy, Suspense } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter, Route, Routes, useLocation } from "react-router";
+import { ThemeProvider } from "next-themes";
 import "./index.css";
 import "./types/global.d.ts";
 
@@ -67,43 +68,45 @@ createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <VlyToolbar />
     <InstrumentationProvider>
-      <ConvexAuthProvider client={convex}>
-        <BrowserRouter>
-          <RouteSyncer />
-          <AuthProvider>
-            <Suspense fallback={<RouteLoading />}>
-              <Routes>
-                {/* Public routes */}
-                <Route path="/" element={<Landing />} />
-                <Route path="/auth" element={<AuthPage redirectAfterAuth="/dashboard" />} />
-                
-                {/* Protected dashboard routes */}
-                <Route
-                  element={
-                    <ProtectedRoute>
-                      <DashboardLayout />
-                    </ProtectedRoute>
-                  }
-                >
-                  <Route path="/dashboard" element={<Dashboard />} />
-                  <Route path="/profile" element={<Profile />} />
-                  <Route path="/projects" element={<Projects />} />
-                  <Route path="/feed" element={<Feed />} />
-                  <Route path="/teams" element={<Teams />} />
-                  <Route path="/notifications" element={<Notifications />} />
-                  <Route path="/bookmarks" element={<Bookmarks />} />
-                  <Route path="/search" element={<SearchPage />} />
-                  <Route path="/settings" element={<Settings />} />
-                </Route>
-                
-                {/* Catch-all */}
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </Suspense>
-          </AuthProvider>
-          <Toaster />
-        </BrowserRouter>
-      </ConvexAuthProvider>
+      <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+        <ConvexAuthProvider client={convex}>
+          <BrowserRouter>
+            <RouteSyncer />
+            <AuthProvider>
+              <Suspense fallback={<RouteLoading />}>
+                <Routes>
+                  {/* Public routes */}
+                  <Route path="/" element={<Landing />} />
+                  <Route path="/auth" element={<AuthPage redirectAfterAuth="/dashboard" />} />
+                  
+                  {/* Protected dashboard routes */}
+                  <Route
+                    element={
+                      <ProtectedRoute>
+                        <DashboardLayout />
+                      </ProtectedRoute>
+                    }
+                  >
+                    <Route path="/dashboard" element={<Dashboard />} />
+                    <Route path="/profile" element={<Profile />} />
+                    <Route path="/projects" element={<Projects />} />
+                    <Route path="/feed" element={<Feed />} />
+                    <Route path="/teams" element={<Teams />} />
+                    <Route path="/notifications" element={<Notifications />} />
+                    <Route path="/bookmarks" element={<Bookmarks />} />
+                    <Route path="/search" element={<SearchPage />} />
+                    <Route path="/settings" element={<Settings />} />
+                  </Route>
+                  
+                  {/* Catch-all */}
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </Suspense>
+            </AuthProvider>
+            <Toaster />
+          </BrowserRouter>
+        </ConvexAuthProvider>
+      </ThemeProvider>
     </InstrumentationProvider>
   </StrictMode>,
 );
