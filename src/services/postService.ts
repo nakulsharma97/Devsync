@@ -12,7 +12,8 @@ export interface CommentRequest {
 
 export interface Post {
   id: number;
-  userId: number;
+  userId?: number;
+  user?: { id: number; fullName?: string; email?: string };
   content: string;
   imageUrl: string;
   postType: string;
@@ -22,8 +23,10 @@ export interface Post {
 
 export interface Comment {
   id: number;
-  userId: number;
-  postId: number;
+  userId?: number;
+  user?: { id: number; fullName?: string; email?: string };
+  postId?: number;
+  post?: { id: number };
   content: string;
   createdAt: string;
 }

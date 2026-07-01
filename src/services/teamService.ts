@@ -13,7 +13,8 @@ export interface ApplyTeamRequest {
 
 export interface Team {
   id: number;
-  ownerId: number;
+  ownerId?: number;
+  owner?: { id: number; fullName?: string; email?: string };
   title: string;
   description: string;
   rolesNeeded: string[];
@@ -24,8 +25,10 @@ export interface Team {
 
 export interface TeamApplication {
   id: number;
-  teamId: number;
-  applicantId: number;
+  teamId?: number;
+  team?: { id: number; title?: string };
+  applicantId?: number;
+  applicant?: { id: number; fullName?: string; email?: string };
   roleApplied: string;
   message: string;
   status: "PENDING" | "ACCEPTED" | "REJECTED";

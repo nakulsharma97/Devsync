@@ -12,7 +12,8 @@ export interface ProjectRequest {
 
 export interface Project {
   id: number;
-  userId: number;
+  userId?: number;
+  user?: { id: number; fullName?: string; email?: string };
   title: string;
   description: string;
   techStack: string;

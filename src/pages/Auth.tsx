@@ -15,7 +15,8 @@ import {
 } from "@/components/ui/input-otp";
 
 import { useAuth } from "@/hooks/use-auth";
-import { ArrowRight, Code2, Loader2, Mail, UserX } from "lucide-react";
+import { useDevSyncAuth } from "@/contexts/AuthContext";
+import { ArrowRight, Code2, Loader2, Mail, UserX, KeyRound } from "lucide-react";
 import { motion } from "framer-motion";
 import { Suspense, useEffect, useState } from "react";
 import { useNavigate } from "react-router";
@@ -24,20 +25,42 @@ interface AuthProps {
   redirectAfterAuth?: string;
 }
 
+type AuthMode = "convex-email" | "convex-otp" | "devsync-login" | "devsync-register";
+
 function Auth({ redirectAfterAuth }: AuthProps = {}) {
   const { isLoading: authLoading, isAuthenticated, signIn } = useAuth();
+  const {
+    isLoading: devSyncLoading,
+    isAuthenticated: devSyncAuthenticated,
+    login: devSyncLogin,
+    register: devSyncRegister,
+  } = useDevSyncAuth();
   const navigate = useNavigate();
-  const [step, setStep] = useState<"signIn" | { email: string }>("signIn");
+  const [mode, setMode] = useState<AuthMode>("convex-email");
   const [otp, setOtp] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // DevSync form state
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [username, setUsername] = useState("");
+
+  // Redirect when authenticated
   useEffect(() => {
     if (!authLoading && isAuthenticated) {
       const redirect = redirectAfterAuth || "/";
       navigate(redirect);
     }
   }, [authLoading, isAuthenticated, navigate, redirectAfterAuth]);
+
+  useEffect(() => {
+    if (!devSyncLoading && devSyncAuthenticated) {
+      const redirect = redirectAfterAuth || "/dashboard";
+      navigate(redirect);
+    }
+  }, [devSyncLoading, devSyncAuthenticated, navigate, redirectAfterAuth]);
 
   const handleEmailSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -46,7 +69,7 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
     try {
       const formData = new FormData(event.currentTarget);
       await signIn("email-otp", formData);
-      setStep({ email: formData.get("email") as string });
+      setMode("convex-otp");
       setIsLoading(false);
     } catch (error) {
       console.error("Email sign-in error:", error);
@@ -94,6 +117,32 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
     }
   };
 
+  const handleDevSyncLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setError(null);
+    try {
+      await devSyncLogin(email, password);
+      // useDevSyncAuth handles the redirect via useEffect
+    } catch (err: any) {
+      setError(err.message || "Login failed. Please check your credentials.");
+      setIsLoading(false);
+    }
+  };
+
+  const handleDevSyncRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setError(null);
+    try {
+      await devSyncRegister(email, password, fullName, username);
+      // useDevSyncAuth handles the redirect via useEffect
+    } catch (err: any) {
+      setError(err.message || "Registration failed. Please try again.");
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-background">
       {/* Minimal header */}
@@ -118,7 +167,8 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
           className="w-full max-w-sm"
         >
           <Card className="border border-border shadow-none">
-            {step === "signIn" ? (
+            {/* Convex Email Step */}
+            {mode === "convex-email" && (
               <>
                 <CardHeader className="text-center pb-4">
                   <div className="flex justify-center mb-3">
@@ -127,10 +177,10 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
                     </div>
                   </div>
                   <CardTitle className="text-lg font-semibold tracking-tight">
-                    Sign in
+                    Get Started
                   </CardTitle>
                   <CardDescription className="text-sm">
-                    Enter your email to get started
+                    Enter your email to log in or sign up
                   </CardDescription>
                 </CardHeader>
                 <form onSubmit={handleEmailSubmit}>
@@ -172,7 +222,7 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
                       Continue as guest
                     </Button>
                   </CardContent>
-                  <CardFooter className="border-t border-border pt-4">
+                  <CardFooter className="border-t border-border pt-4 flex-col gap-3">
                     <Button
                       type="submit"
                       className="w-full h-10 text-sm"
@@ -187,24 +237,36 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
                         </>
                       )}
                     </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      className="w-full h-9 text-xs font-normal text-muted-foreground"
+                      onClick={() => {
+                        setError(null);
+                        setMode("devsync-login");
+                      }}
+                    >
+                      <KeyRound className="mr-1.5 h-3.5 w-3.5" />
+                      Sign in with DevSync account
+                    </Button>
                   </CardFooter>
                 </form>
               </>
-            ) : (
+            )}
+
+            {/* Convex OTP Step */}
+            {mode === "convex-otp" && (
               <>
                 <CardHeader className="text-center pb-4">
                   <CardTitle className="text-lg font-semibold tracking-tight">
                     Check your email
                   </CardTitle>
                   <CardDescription className="text-sm">
-                    We've sent a code to {step.email}
+                    We've sent a code to your email
                   </CardDescription>
                 </CardHeader>
                 <form onSubmit={handleOtpSubmit}>
                   <CardContent className="pb-4">
-                    <input type="hidden" name="email" value={step.email} />
-                    <input type="hidden" name="code" value={otp} />
-
                     <div className="flex justify-center">
                       <InputOTP
                         value={otp}
@@ -220,9 +282,7 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
                             const form = (e.target as HTMLElement).closest(
                               "form",
                             );
-                            if (form) {
-                              form.requestSubmit();
-                            }
+                            if (form) form.requestSubmit();
                           }
                         }}
                       >
@@ -243,7 +303,7 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
                       <Button
                         variant="link"
                         className="p-0 h-auto text-xs"
-                        onClick={() => setStep("signIn")}
+                        onClick={() => setMode("convex-email")}
                       >
                         Try again
                       </Button>
@@ -270,12 +330,178 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
                     <Button
                       type="button"
                       variant="ghost"
-                      onClick={() => setStep("signIn")}
+                      onClick={() => setMode("convex-email")}
                       disabled={isLoading}
                       className="w-full h-9 text-xs font-normal text-muted-foreground"
                     >
                       Use a different email
                     </Button>
+                  </CardFooter>
+                </form>
+              </>
+            )}
+
+            {/* DevSync JWT Login */}
+            {mode === "devsync-login" && (
+              <>
+                <CardHeader className="text-center pb-4">
+                  <div className="flex justify-center mb-3">
+                    <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center">
+                      <KeyRound className="w-5 h-5 text-foreground" />
+                    </div>
+                  </div>
+                  <CardTitle className="text-lg font-semibold tracking-tight">
+                    Sign in
+                  </CardTitle>
+                  <CardDescription className="text-sm">
+                    Sign in with your DevSync account
+                  </CardDescription>
+                </CardHeader>
+                <form onSubmit={handleDevSyncLogin}>
+                  <CardContent className="pb-4 space-y-3">
+                    <Input
+                      type="email"
+                      placeholder="Email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="h-10 text-sm"
+                      required
+                    />
+                    <Input
+                      type="password"
+                      placeholder="Password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="h-10 text-sm"
+                      required
+                    />
+                    {error && (
+                      <p className="text-xs text-destructive">{error}</p>
+                    )}
+                  </CardContent>
+                  <CardFooter className="border-t border-border pt-4 flex-col gap-3">
+                    <Button
+                      type="submit"
+                      className="w-full h-10 text-sm"
+                      disabled={isLoading}
+                    >
+                      {isLoading ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <>
+                          Sign in
+                          <ArrowRight className="ml-1.5 h-4 w-4" />
+                        </>
+                      )}
+                    </Button>
+                    <div className="flex gap-3 text-xs">
+                      <button
+                        type="button"
+                        className="text-muted-foreground hover:text-foreground transition-colors"
+                        onClick={() => {
+                          setError(null);
+                          setMode("devsync-register");
+                        }}
+                      >
+                        Create account
+                      </button>
+                      <span className="text-muted-foreground">·</span>
+                      <button
+                        type="button"
+                        className="text-muted-foreground hover:text-foreground transition-colors"
+                        onClick={() => {
+                          setError(null);
+                          setMode("convex-email");
+                        }}
+                      >
+                        Back to email login
+                      </button>
+                    </div>
+                  </CardFooter>
+                </form>
+              </>
+            )}
+
+            {/* DevSync JWT Register */}
+            {mode === "devsync-register" && (
+              <>
+                <CardHeader className="text-center pb-4">
+                  <div className="flex justify-center mb-3">
+                    <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center">
+                      <KeyRound className="w-5 h-5 text-foreground" />
+                    </div>
+                  </div>
+                  <CardTitle className="text-lg font-semibold tracking-tight">
+                    Create account
+                  </CardTitle>
+                  <CardDescription className="text-sm">
+                    Join the developer community
+                  </CardDescription>
+                </CardHeader>
+                <form onSubmit={handleDevSyncRegister}>
+                  <CardContent className="pb-4 space-y-3">
+                    <Input
+                      type="text"
+                      placeholder="Full name"
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
+                      className="h-10 text-sm"
+                      required
+                    />
+                    <Input
+                      type="text"
+                      placeholder="Username"
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                      className="h-10 text-sm"
+                      required
+                    />
+                    <Input
+                      type="email"
+                      placeholder="Email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="h-10 text-sm"
+                      required
+                    />
+                    <Input
+                      type="password"
+                      placeholder="Password (min 6 characters)"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="h-10 text-sm"
+                      required
+                      minLength={6}
+                    />
+                    {error && (
+                      <p className="text-xs text-destructive">{error}</p>
+                    )}
+                  </CardContent>
+                  <CardFooter className="border-t border-border pt-4 flex-col gap-3">
+                    <Button
+                      type="submit"
+                      className="w-full h-10 text-sm"
+                      disabled={isLoading}
+                    >
+                      {isLoading ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <>
+                          Create account
+                          <ArrowRight className="ml-1.5 h-4 w-4" />
+                        </>
+                      )}
+                    </Button>
+                    <button
+                      type="button"
+                      className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                      onClick={() => {
+                        setError(null);
+                        setMode("devsync-login");
+                      }}
+                    >
+                      Already have an account? Sign in
+                    </button>
                   </CardFooter>
                 </form>
               </>

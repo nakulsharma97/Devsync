@@ -2,13 +2,15 @@ import api from "./api";
 
 export interface Notification {
   id: number;
-  userId: number;
+  userId?: number;
+  user?: { id: number };
   senderName: string;
   senderAvatar: string;
   type: "LIKE" | "COMMENT" | "CONNECTION" | "TEAM_INVITE";
   referenceId: number;
   message: string;
   read: boolean;
+  isRead?: boolean;
   createdAt: string;
 }
 

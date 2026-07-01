@@ -11,7 +11,8 @@ export interface BookmarkRequest {
 
 export interface Bookmark {
   id: number;
-  userId: number;
+  userId?: number;
+  user?: { id: number };
   repoName: string;
   repoUrl: string;
   description: string;
