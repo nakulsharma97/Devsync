@@ -1,5 +1,6 @@
 package com.devsync.entity;
 
+import com.devsync.enums.ApplicationStatus;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -32,8 +33,9 @@ public class TeamApplication {
     @Column(columnDefinition = "TEXT")
     private String message;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private String status; // PENDING, ACCEPTED, REJECTED
+    private ApplicationStatus status;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -41,6 +43,6 @@ public class TeamApplication {
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
-        if (status == null) status = "PENDING";
+        if (status == null) status = ApplicationStatus.PENDING;
     }
 }
