@@ -86,9 +86,11 @@ jobs:
         run: echo "Frontend build: ${{ needs.frontend-build.result }}"
       - name: Final status
         run: |
+          echo "Backend tests: ${{ needs.backend-tests.result }}"
+          echo "Frontend build: ${{ needs.frontend-build.result }}"
           if [ "${{ needs.backend-tests.result }}" = "success" ] && [ "${{ needs.frontend-build.result }}" = "success" ]; then
-            echo "✅ All checks passed"
+            echo "All checks passed"
           else
-            echo "❌ Some checks failed"
+            echo "Some checks failed"
             exit 1
           fi
