@@ -13,178 +13,85 @@ export default function SearchPage() {
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<TabKey>("developers");
 
-  useEffect(() => {
-    const timer = setTimeout(() => setDebouncedQuery(query), 300);
-    return () => clearTimeout(timer);
-  }, [query]);
+  useEffect(() => { const t = setTimeout(() => setDebouncedQuery(query), 300); return () => clearTimeout(t); }, [query]);
 
   const doSearch = useCallback(async () => {
-    if (!debouncedQuery.trim()) {
-      setResults(null);
-      return;
-    }
+    if (!debouncedQuery.trim()) { setResults(null); return; }
     setLoading(true);
-    try {
-      const data = await searchService.search(debouncedQuery);
-      setResults(data);
-    } catch {
-      setResults({ developers: [], projects: [], bookmarks: [] });
-    } finally {
-      setLoading(false);
-    }
+    try { setResults(await searchService.search(debouncedQuery)); }
+    catch { setResults({ developers: [], projects: [], bookmarks: [] }); }
+    finally { setLoading(false); }
   }, [debouncedQuery]);
 
-  useEffect(() => {
-    doSearch();
-  }, [doSearch]);
+  useEffect(() => { doSearch(); }, [doSearch]);
 
   const tabs: { key: TabKey; label: string; icon: React.ReactNode }[] = [
-    {
-      key: "developers",
-      label: "Developers",
-      icon: <Users className="w-3.5 h-3.5" />,
-    },
-    {
-      key: "projects",
-      label: "Projects",
-      icon: <FolderGit2 className="w-3.5 h-3.5" />,
-    },
-    {
-      key: "bookmarks",
-      label: "Repositories",
-      icon: <Bookmark className="w-3.5 h-3.5" />,
-    },
+    { key: "developers", label: "Developers", icon: <Users className="w-3.5 h-3.5" /> },
+    { key: "projects", label: "Projects", icon: <FolderGit2 className="w-3.5 h-3.5" /> },
+    { key: "bookmarks", label: "Repositories", icon: <Bookmark className="w-3.5 h-3.5" /> },
   ];
 
-  const tabCount = results
-    ? results.developers.length +
-      results.projects.length +
-      results.bookmarks.length
-    : 0;
-
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-    >
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }}>
       <div className="mb-6">
-        <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-          Search
-        </h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Find developers, projects, and repositories
-        </p>
+        <h1 className="text-2xl font-bold tracking-tight text-foreground">Search</h1>
+        <p className="mt-1 text-sm text-muted-foreground">Find developers, projects, and repositories</p>
       </div>
 
-      {/* Search Input */}
       <div className="relative mb-6">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-        <Input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search developers, projects, repos..."
-          className="text-sm pl-9 h-10"
-          autoFocus
-        />
+        <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search developers, projects, repos..." className="text-sm pl-9 h-10 bg-background" autoFocus />
       </div>
 
-      {/* Tabs */}
       {results && (
-        <div className="flex items-center gap-1 mb-6 border-b border-border">
+        <div className="flex items-center gap-1 mb-6 border-b border-border/50">
           {tabs.map((tab) => {
-            const count =
-              tab.key === "developers"
-                ? results.developers.length
-                : tab.key === "projects"
-                  ? results.projects.length
-                  : results.bookmarks.length;
+            const count = tab.key === "developers" ? results.developers.length : tab.key === "projects" ? results.projects.length : results.bookmarks.length;
             return (
-              <button
-                key={tab.key}
-                onClick={() => setActiveTab(tab.key)}
+              <button key={tab.key} onClick={() => setActiveTab(tab.key)}
                 className={`flex items-center gap-1.5 px-3 py-2.5 text-xs border-b-2 transition-colors ${
-                  activeTab === tab.key
-                    ? "border-foreground text-foreground"
-                    : "border-transparent text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                {tab.icon}
-                {tab.label}
-                <span className="ml-1 text-[10px] text-muted-foreground">
-                  ({count})
-                </span>
+                  activeTab === tab.key ? "border-accent text-accent" : "border-transparent text-muted-foreground hover:text-foreground"
+                }`}>
+                {tab.icon} {tab.label} <span className="ml-1 text-[10px] text-muted-foreground">({count})</span>
               </button>
             );
           })}
         </div>
       )}
 
-      {/* Loading */}
       {loading && (
         <div className="space-y-3">
           {[1, 2, 3].map((i) => (
-            <div
-              key={i}
-              className="border border-border rounded-lg p-4 animate-pulse"
-            >
-              <div className="h-3 bg-secondary rounded w-1/3 mb-2" />
-              <div className="h-2 bg-secondary rounded w-2/3" />
+            <div key={i} className="border border-border/50 rounded-xl p-4 animate-pulse bg-card">
+              <div className="h-3 bg-muted rounded w-1/3 mb-2" /><div className="h-3 bg-muted rounded w-2/3" />
             </div>
           ))}
         </div>
       )}
 
-      {/* No query */}
-      {!query && (
-        <div className="border border-border rounded-lg p-12 flex flex-col items-center text-center gap-3">
-          <Search className="w-8 h-8 text-muted-foreground" />
-          <h3 className="text-sm font-semibold text-foreground">
-            Search the community
-          </h3>
-          <p className="text-sm text-muted-foreground max-w-xs">
-            Find developers, projects, and bookmarked repositories across
-            DevSync.
-          </p>
+      {!query && !loading && (
+        <div className="border border-border/50 rounded-xl p-12 flex flex-col items-center text-center gap-4 bg-card">
+          <div className="w-12 h-12 rounded-2xl bg-accent/10 flex items-center justify-center ring-1 ring-accent/20"><Search className="w-6 h-6 text-accent" /></div>
+          <div><h3 className="text-sm font-semibold text-foreground">Search the community</h3><p className="text-sm text-muted-foreground mt-1">Find developers, projects, and bookmarked repositories across DevSync.</p></div>
         </div>
       )}
 
-      {/* No results */}
-      {query && !loading && tabCount === 0 && (
-        <div className="border border-border rounded-lg p-12 flex flex-col items-center text-center gap-3">
-          <Search className="w-8 h-8 text-muted-foreground" />
-          <h3 className="text-sm font-semibold text-foreground">
-            No results found
-          </h3>
-          <p className="text-sm text-muted-foreground">
-            No matches for "{query}". Try a different search term.
-          </p>
+      {query && !loading && results && results.developers.length + results.projects.length + results.bookmarks.length === 0 && (
+        <div className="border border-border/50 rounded-xl p-12 flex flex-col items-center text-center gap-4 bg-card">
+          <div className="w-12 h-12 rounded-2xl bg-accent/10 flex items-center justify-center ring-1 ring-accent/20"><Search className="w-6 h-6 text-accent" /></div>
+          <div><h3 className="text-sm font-semibold text-foreground">No results found</h3><p className="text-sm text-muted-foreground mt-1">No matches for "{query}". Try a different search term.</p></div>
         </div>
       )}
 
-      {/* Results - Developers */}
       {results && activeTab === "developers" && results.developers.length > 0 && (
         <div className="space-y-2">
           {results.developers.map((dev: any) => (
-            <div
-              key={dev.id}
-              className="border border-border rounded-lg p-4 flex items-center gap-3"
-            >
-              <div className="w-9 h-9 rounded-full bg-secondary flex items-center justify-center shrink-0">
-                {dev.avatarUrl ? (
-                  <img
-                    src={dev.avatarUrl}
-                    alt=""
-                    className="w-9 h-9 rounded-full object-cover"
-                  />
-                ) : (
-                  <User className="w-4 h-4 text-muted-foreground" />
-                )}
+            <div key={dev.id} className="border border-border/50 rounded-xl p-4 flex items-center gap-3 bg-card hover:border-accent/20 transition-colors">
+              <div className="w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center ring-1 ring-accent/20 shrink-0">
+                {dev.avatarUrl ? <img src={dev.avatarUrl} alt="" className="w-10 h-10 rounded-full object-cover" /> : <User className="w-4 h-4 text-accent" />}
               </div>
               <div className="min-w-0">
-                <p className="text-sm font-medium text-foreground">
-                  {dev.fullName || dev.username}
-                </p>
+                <p className="text-sm font-medium text-foreground">{dev.fullName || dev.username}</p>
                 <p className="text-xs text-muted-foreground">@{dev.username}</p>
               </div>
             </div>
@@ -192,31 +99,23 @@ export default function SearchPage() {
         </div>
       )}
 
-      {/* Results - Projects */}
       {results && activeTab === "projects" && results.projects.length > 0 && (
         <div className="grid sm:grid-cols-2 gap-3">
           {results.projects.map((project: any) => (
-            <div key={project.id} className="border border-border rounded-lg p-4">
-              <h3 className="text-sm font-medium text-foreground">
-                {project.title}
-              </h3>
-              <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                {project.description}
-              </p>
+            <div key={project.id} className="border border-border/50 rounded-xl p-4 bg-card hover:border-accent/20 transition-colors">
+              <h3 className="text-sm font-medium text-foreground">{project.title}</h3>
+              <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{project.description}</p>
             </div>
           ))}
         </div>
       )}
 
-      {/* Results - Bookmarks */}
       {results && activeTab === "bookmarks" && results.bookmarks.length > 0 && (
         <div className="grid sm:grid-cols-2 gap-3">
           {results.bookmarks.map((b: any) => (
-            <div key={b.id} className="border border-border rounded-lg p-4">
-              <h3 className="text-sm font-medium text-foreground">
-                {b.repoName}
-              </h3>
-              <p className="text-xs text-muted-foreground mt-1">{b.owner}</p>
+            <div key={b.id} className="border border-border/50 rounded-xl p-4 bg-card hover:border-accent/20 transition-colors">
+              <h3 className="text-sm font-medium text-foreground">{b.repoName}</h3>
+              {b.owner && <p className="text-xs text-muted-foreground mt-1">{b.owner}</p>}
             </div>
           ))}
         </div>
