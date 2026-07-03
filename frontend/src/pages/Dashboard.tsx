@@ -1,6 +1,6 @@
 import { useDevSyncAuth } from "@/contexts/AuthContext";
 import { motion } from "framer-motion";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import {
   FolderGit2,
@@ -12,7 +12,17 @@ import {
   Database,
   Server,
   Activity,
+  BarChart3,
 } from "lucide-react";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip as RechartsTooltip,
+  ResponsiveContainer,
+  CartesianGrid,
+} from "recharts";
 import { projectService } from "@/services/projectService";
 import {
   checkHealth,
@@ -46,6 +56,9 @@ export default function Dashboard() {
   const [recentProjects, setRecentProjects] = useState<any[]>([]);
   const [health, setHealth] = useState<HealthStatus | null>(null);
   const [metrics, setMetrics] = useState<SystemMetrics | null>(null);
+  const [metricHistory, setMetricHistory] = useState<
+    Array<{ time: string; memoryPercent: number; cpuPercent: number | null }>
+  >([]);
 
   useEffect(() => {
     (async () => {
@@ -67,6 +80,28 @@ export default function Dashboard() {
         ]);
         setHealth(healthData);
         setMetrics(metricsData);
+
+        // Accumulate metric history for charts
+        if (metricsData) {
+          const memoryPercent =
+            metricsData.memoryMax > 0
+              ? Math.round((metricsData.memoryUsed / metricsData.memoryMax) * 100)
+              : 0;
+          const cpuPercent =
+            metricsData.cpuUsage !== null
+              ? Math.round(metricsData.cpuUsage * 100)
+              : null;
+          const now = new Date();
+          const timeLabel = `${now.getHours().toString().padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}`;
+
+          setMetricHistory((prev) => {
+            const next = [
+              ...prev,
+              { time: timeLabel, memoryPercent, cpuPercent },
+            ];
+            return next.length > 20 ? next.slice(next.length - 20) : next;
+          });
+        }
       } catch {
         setHealth({ status: "DOWN" });
         setMetrics(null);
@@ -250,6 +285,82 @@ export default function Dashboard() {
               </div>
               <p className="text-sm font-bold text-foreground">{formatUptime(metrics.uptime)}</p>
               <p className="text-[10px] text-muted-foreground mt-0.5">Since last restart</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Metrics History Chart */}
+      {metricHistory.length > 1 && (
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <BarChart3 className="w-4 h-4 text-muted-foreground" />
+              <h2 className="text-sm font-semibold text-foreground">Metrics History</h2>
+            </div>
+            <span className="text-[10px] text-muted-foreground">Last ~10 min</span>
+          </div>
+          <div className="bg-card border border-border/50 rounded-xl p-4">
+            <ResponsiveContainer width="100%" height={200}>
+              <LineChart data={metricHistory}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis
+                  dataKey="time"
+                  tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+                  axisLine={{ stroke: "hsl(var(--border))" }}
+                  tickLine={false}
+                  interval="preserveStartEnd"
+                />
+                <YAxis
+                  tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+                  axisLine={false}
+                  tickLine={false}
+                  domain={[0, 100]}
+                  tickFormatter={(v) => `${v}%`}
+                  width={36}
+                />
+                <RechartsTooltip
+                  contentStyle={{
+                    background: "hsl(var(--popover))",
+                    border: "1px solid hsl(var(--border))",
+                    borderRadius: "8px",
+                    fontSize: "12px",
+                  }}
+                  formatter={(value: number, name: string) => [
+                    `${value}%`,
+                    name === "memoryPercent" ? "Memory" : "CPU",
+                  ]}
+                  labelFormatter={(label) => `Time: ${label}`}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="memoryPercent"
+                  stroke="hsl(var(--accent))"
+                  strokeWidth={2}
+                  dot={false}
+                  activeDot={{ r: 3, fill: "hsl(var(--accent))" }}
+                  isAnimationActive={false}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="cpuPercent"
+                  stroke="#f59e0b"
+                  strokeWidth={2}
+                  dot={false}
+                  activeDot={{ r: 3, fill: "#f59e0b" }}
+                  isAnimationActive={false}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+            <div className="flex items-center gap-4 mt-3 pt-3 border-t border-border/50">
+              <div className="flex items-center gap-1.5">
+                <span className="w-3 h-0.5 rounded bg-accent" />
+                <span className="text-[10px] text-muted-foreground">Memory</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="w-3 h-0.5 rounded bg-amber-500" />
+                <span className="text-[10px] text-muted-foreground">CPU</span>
+              </div>
             </div>
           </div>
         </div>
