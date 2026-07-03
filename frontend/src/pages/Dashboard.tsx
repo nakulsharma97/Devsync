@@ -58,8 +58,10 @@ export default function Dashboard() {
     return () => clearInterval(interval);
   }, []);
 
-  const dbStatus = health?.components?.db?.status ?? (apiStatus === "UP" ? "UP" : null);
   const apiStatus = health?.status ?? null;
+  const dbStatus = health?.components?.db?.status ??
+    (apiStatus === "DOWN" ? "DOWN" :
+     apiStatus === "UP" ? "UP" : null);
 
   const statCards = [
     { icon: FolderGit2, label: "Projects", value: stats.projects, href: "/projects", color: "text-accent" },
