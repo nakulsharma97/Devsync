@@ -13,6 +13,9 @@ export default defineConfig({
     },
   },
   build: {
+    // Output to root dist/ so Freebuff preview can serve it
+    outDir: "../dist",
+    emptyOutDir: true,
     // Enable source maps for better debugging (disable in production if needed)
     sourcemap: false,
     // Optimize chunk splitting
