@@ -16,8 +16,8 @@ import {
 
 import { useAuth } from "@/hooks/use-auth";
 import { useDevSyncAuth } from "@/contexts/AuthContext";
-import { ArrowRight, Code2, Loader2, Mail, UserX, KeyRound } from "lucide-react";
-import { motion } from "framer-motion";
+import { ArrowRight, Code2, Loader2, Mail, UserX, KeyRound, Sparkles } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Suspense, useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 
@@ -79,111 +79,185 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
-      <div className="px-6 py-5">
-        <button onClick={() => navigate("/")} className="flex items-center gap-2.5 text-muted-foreground hover:text-foreground transition-colors">
-          <div className="w-7 h-7 rounded-lg bg-foreground flex items-center justify-center"><Code2 className="w-4 h-4 text-background" /></div>
+    <div className="min-h-screen flex flex-col relative overflow-hidden">
+      {/* Animated gradient background */}
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute inset-0 bg-gradient-to-br from-accent/[0.05] via-background to-purple-500/[0.05]" />
+        <div className="absolute top-1/4 -left-32 w-96 h-96 bg-accent/10 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '8s' }} />
+        <div className="absolute bottom-1/4 -right-32 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '10s' }} />
+      </div>
+
+      <div className="relative z-10 px-6 py-5">
+        <button onClick={() => navigate("/")} className="flex items-center gap-2.5 text-muted-foreground hover:text-foreground transition-colors group">
+          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-accent to-accent/70 flex items-center justify-center transition-transform duration-200 group-hover:scale-105">
+            <Code2 className="w-4 h-4 text-white" />
+          </div>
           <span className="text-sm font-semibold tracking-tight">DevSync</span>
         </button>
       </div>
-      <div className="flex-1 flex items-center justify-center px-4 pb-20">
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }} className="w-full max-w-sm">
-          <Card className="border border-border/50 shadow-sm">
-            {mode === "convex-email" && (
-              <>
-                <CardHeader className="text-center pb-4">
-                  <div className="flex justify-center mb-3"><div className="w-12 h-12 rounded-2xl bg-accent/10 flex items-center justify-center ring-1 ring-accent/20"><Code2 className="w-6 h-6 text-accent" /></div></div>
-                  <CardTitle className="text-lg font-semibold tracking-tight">Get Started</CardTitle>
-                  <CardDescription className="text-sm">Enter your email to log in or sign up</CardDescription>
-                </CardHeader>
-                <form onSubmit={handleEmailSubmit}>
-                  <CardContent className="pb-4">
-                    <div className="relative">
-                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input name="email" placeholder="name@example.com" type="email" className="pl-9 h-10 text-sm bg-background" disabled={isLoading} required />
-                    </div>
-                    {error && <p className="mt-2 text-xs text-destructive">{error}</p>}
-                    <div className="relative my-5"><div className="absolute inset-0 flex items-center"><span className="w-full border-t border-border/50" /></div><div className="relative flex justify-center text-xs"><span className="bg-card px-2 text-muted-foreground">or</span></div></div>
-                    <Button type="button" variant="outline" className="w-full h-10 text-sm font-normal" onClick={handleGuestLogin} disabled={isLoading}><UserX className="mr-2 h-4 w-4" /> Continue as guest</Button>
-                  </CardContent>
-                  <CardFooter className="border-t border-border/50 pt-4 flex-col gap-3">
-                    <Button type="submit" className="w-full h-10 text-sm shadow-sm" disabled={isLoading}>{isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Continue with email <ArrowRight className="ml-1.5 h-4 w-4" /></>}</Button>
-                    <Button type="button" variant="ghost" className="w-full h-9 text-xs font-normal text-muted-foreground" onClick={() => { setError(null); setMode("devsync-login"); }}><KeyRound className="mr-1.5 h-3.5 w-3.5" /> Sign in with DevSync account</Button>
-                  </CardFooter>
-                </form>
-              </>
-            )}
-            {mode === "convex-otp" && (
-              <>
-                <CardHeader className="text-center pb-4">
-                  <CardTitle className="text-lg font-semibold tracking-tight">Check your email</CardTitle>
-                  <CardDescription className="text-sm">We've sent a code to your email</CardDescription>
-                </CardHeader>
-                <form onSubmit={handleOtpSubmit}>
-                  <CardContent className="pb-4">
-                    <div className="flex justify-center"><InputOTP value={otp} onChange={setOtp} maxLength={6} disabled={isLoading} onKeyDown={(e) => { if (e.key === "Enter" && otp.length === 6 && !isLoading) (e.target as HTMLElement).closest("form")?.requestSubmit(); }}><InputOTPGroup>{Array.from({ length: 6 }).map((_, i) => (<InputOTPSlot key={i} index={i} />))}</InputOTPGroup></InputOTP></div>
-                    {error && <p className="mt-3 text-xs text-destructive text-center">{error}</p>}
-                    <p className="text-xs text-muted-foreground text-center mt-4">Didn't receive a code? <Button variant="link" className="p-0 h-auto text-xs" onClick={() => setMode("convex-email")}>Try again</Button></p>
-                  </CardContent>
-                  <CardFooter className="border-t border-border/50 pt-4 flex-col gap-2">
-                    <Button type="submit" className="w-full h-10 text-sm shadow-sm" disabled={isLoading || otp.length !== 6}>{isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Verifying...</> : <>Verify code <ArrowRight className="ml-1.5 h-4 w-4" /></>}</Button>
-                    <Button type="button" variant="ghost" onClick={() => setMode("convex-email")} disabled={isLoading} className="w-full h-9 text-xs font-normal text-muted-foreground">Use a different email</Button>
-                  </CardFooter>
-                </form>
-              </>
-            )}
-            {mode === "devsync-login" && (
-              <>
-                <CardHeader className="text-center pb-4">
-                  <div className="flex justify-center mb-3"><div className="w-12 h-12 rounded-2xl bg-accent/10 flex items-center justify-center ring-1 ring-accent/20"><KeyRound className="w-6 h-6 text-accent" /></div></div>
-                  <CardTitle className="text-lg font-semibold tracking-tight">Sign in</CardTitle>
-                  <CardDescription className="text-sm">Sign in with your DevSync account</CardDescription>
-                </CardHeader>
-                <form onSubmit={handleDevSyncLogin}>
-                  <CardContent className="pb-4 space-y-3">
-                    <Input type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} className="h-10 text-sm bg-background" required />
-                    <Input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} className="h-10 text-sm bg-background" required />
-                    {error && <p className="text-xs text-destructive">{error}</p>}
-                  </CardContent>
-                  <CardFooter className="border-t border-border/50 pt-4 flex-col gap-3">
-                    <Button type="submit" className="w-full h-10 text-sm shadow-sm" disabled={isLoading}>{isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Sign in <ArrowRight className="ml-1.5 h-4 w-4" /></>}</Button>
-                    <div className="flex gap-3 text-xs">
-                      <button type="button" className="text-muted-foreground hover:text-foreground transition-colors" onClick={() => { setError(null); setMode("devsync-register"); }}>Create account</button>
-                      <span className="text-muted-foreground">·</span>
-                      <button type="button" className="text-muted-foreground hover:text-foreground transition-colors" onClick={() => { setError(null); setMode("convex-email"); }}>Back to email login</button>
-                    </div>
-                  </CardFooter>
-                </form>
-              </>
-            )}
-            {mode === "devsync-register" && (
-              <>
-                <CardHeader className="text-center pb-4">
-                  <div className="flex justify-center mb-3"><div className="w-12 h-12 rounded-2xl bg-accent/10 flex items-center justify-center ring-1 ring-accent/20"><KeyRound className="w-6 h-6 text-accent" /></div></div>
-                  <CardTitle className="text-lg font-semibold tracking-tight">Create account</CardTitle>
-                  <CardDescription className="text-sm">Join the developer community</CardDescription>
-                </CardHeader>
-                <form onSubmit={handleDevSyncRegister}>
-                  <CardContent className="pb-4 space-y-3">
-                    <Input type="text" placeholder="Full name" value={fullName} onChange={(e) => setFullName(e.target.value)} className="h-10 text-sm bg-background" required />
-                    <Input type="text" placeholder="Username" value={username} onChange={(e) => setUsername(e.target.value)} className="h-10 text-sm bg-background" required />
-                    <Input type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} className="h-10 text-sm bg-background" required />
-                    <Input type="password" placeholder="Password (min 6 characters)" value={password} onChange={(e) => setPassword(e.target.value)} className="h-10 text-sm bg-background" required minLength={6} />
-                    {error && <p className="text-xs text-destructive">{error}</p>}
-                  </CardContent>
-                  <CardFooter className="border-t border-border/50 pt-4 flex-col gap-3">
-                    <Button type="submit" className="w-full h-10 text-sm shadow-sm" disabled={isLoading}>{isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Create account <ArrowRight className="ml-1.5 h-4 w-4" /></>}</Button>
-                    <button type="button" className="text-xs text-muted-foreground hover:text-foreground transition-colors" onClick={() => { setError(null); setMode("devsync-login"); }}>Already have an account? Sign in</button>
-                  </CardFooter>
-                </form>
-              </>
-            )}
+
+      <div className="flex-1 flex items-center justify-center px-4 pb-20 relative z-10">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+          className="w-full max-w-sm"
+        >
+          <Card className="border border-border/40 shadow-xl shadow-accent/5 backdrop-blur-sm bg-card/95">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={mode}
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+              >
+                {mode === "convex-email" && (
+                  <>
+                    <CardHeader className="text-center pb-4">
+                      <div className="flex justify-center mb-3">
+                        <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-accent/20 to-accent/5 flex items-center justify-center ring-1 ring-accent/20 shadow-sm">
+                          <Code2 className="w-7 h-7 text-accent" />
+                        </div>
+                      </div>
+                      <CardTitle className="text-xl font-bold tracking-tight">Get Started</CardTitle>
+                      <CardDescription className="text-sm">Enter your email to log in or sign up</CardDescription>
+                    </CardHeader>
+                    <form onSubmit={handleEmailSubmit}>
+                      <CardContent className="pb-4">
+                        <div className="relative">
+                          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <Input name="email" placeholder="name@example.com" type="email" className="pl-9 h-10 text-sm bg-background/50 focus:bg-background transition-colors" disabled={isLoading} required />
+                        </div>
+                        {error && <motion.p initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} className="mt-2 text-xs text-destructive">{error}</motion.p>}
+                        <div className="relative my-5">
+                          <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-border/40" /></div>
+                          <div className="relative flex justify-center text-xs"><span className="bg-card px-3 text-muted-foreground">or</span></div>
+                        </div>
+                        <Button type="button" variant="outline" className="w-full h-10 text-sm font-normal border-border/50 hover:bg-accent/5" onClick={handleGuestLogin} disabled={isLoading}>
+                          <UserX className="mr-2 h-4 w-4" /> Continue as guest
+                        </Button>
+                      </CardContent>
+                      <CardFooter className="border-t border-border/40 pt-4 flex-col gap-3">
+                        <Button type="submit" className="w-full h-10 text-sm shadow-md bg-gradient-to-r from-accent to-accent/90 text-white hover:from-accent/90 hover:to-accent transition-all duration-200" disabled={isLoading}>
+                          {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Continue with email <ArrowRight className="ml-1.5 h-4 w-4" /></>}
+                        </Button>
+                        <Button type="button" variant="ghost" className="w-full h-9 text-xs font-normal text-muted-foreground hover:text-foreground" onClick={() => { setError(null); setMode("devsync-login"); }}>
+                          <KeyRound className="mr-1.5 h-3.5 w-3.5" /> Sign in with DevSync account
+                        </Button>
+                      </CardFooter>
+                    </form>
+                  </>
+                )}
+
+                {mode === "convex-otp" && (
+                  <>
+                    <CardHeader className="text-center pb-4">
+                      <div className="flex justify-center mb-3">
+                        <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-accent/20 to-accent/5 flex items-center justify-center ring-1 ring-accent/20 shadow-sm">
+                          <Mail className="w-7 h-7 text-accent" />
+                        </div>
+                      </div>
+                      <CardTitle className="text-xl font-bold tracking-tight">Check your email</CardTitle>
+                      <CardDescription className="text-sm">We've sent a code to your email</CardDescription>
+                    </CardHeader>
+                    <form onSubmit={handleOtpSubmit}>
+                      <CardContent className="pb-4">
+                        <div className="flex justify-center">
+                          <InputOTP value={otp} onChange={setOtp} maxLength={6} disabled={isLoading} onKeyDown={(e) => { if (e.key === "Enter" && otp.length === 6 && !isLoading) (e.target as HTMLElement).closest("form")?.requestSubmit(); }}>
+                            <InputOTPGroup>
+                              {Array.from({ length: 6 }).map((_, i) => (<InputOTPSlot key={i} index={i} />))}
+                            </InputOTPGroup>
+                          </InputOTP>
+                        </div>
+                        {error && <motion.p initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} className="mt-3 text-xs text-destructive text-center">{error}</motion.p>}
+                        <p className="text-xs text-muted-foreground text-center mt-4">
+                          Didn't receive a code?{" "}
+                          <Button variant="link" className="p-0 h-auto text-xs text-accent" onClick={() => setMode("convex-email")}>Try again</Button>
+                        </p>
+                      </CardContent>
+                      <CardFooter className="border-t border-border/40 pt-4 flex-col gap-2">
+                        <Button type="submit" className="w-full h-10 text-sm shadow-md bg-gradient-to-r from-accent to-accent/90 text-white" disabled={isLoading || otp.length !== 6}>
+                          {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Verifying...</> : <>Verify code <ArrowRight className="ml-1.5 h-4 w-4" /></>}
+                        </Button>
+                        <Button type="button" variant="ghost" onClick={() => setMode("convex-email")} disabled={isLoading} className="w-full h-9 text-xs font-normal text-muted-foreground hover:text-foreground">
+                          Use a different email
+                        </Button>
+                      </CardFooter>
+                    </form>
+                  </>
+                )}
+
+                {mode === "devsync-login" && (
+                  <>
+                    <CardHeader className="text-center pb-4">
+                      <div className="flex justify-center mb-3">
+                        <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-accent/20 to-accent/5 flex items-center justify-center ring-1 ring-accent/20 shadow-sm">
+                          <KeyRound className="w-7 h-7 text-accent" />
+                        </div>
+                      </div>
+                      <CardTitle className="text-xl font-bold tracking-tight">Welcome back</CardTitle>
+                      <CardDescription className="text-sm">Sign in with your DevSync account</CardDescription>
+                    </CardHeader>
+                    <form onSubmit={handleDevSyncLogin}>
+                      <CardContent className="pb-4 space-y-3">
+                        <Input type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} className="h-10 text-sm bg-background/50 focus:bg-background transition-colors" required />
+                        <Input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} className="h-10 text-sm bg-background/50 focus:bg-background transition-colors" required />
+                        {error && <motion.p initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} className="text-xs text-destructive">{error}</motion.p>}
+                      </CardContent>
+                      <CardFooter className="border-t border-border/40 pt-4 flex-col gap-3">
+                        <Button type="submit" className="w-full h-10 text-sm shadow-md bg-gradient-to-r from-accent to-accent/90 text-white hover:from-accent/90 hover:to-accent" disabled={isLoading}>
+                          {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Sign in <ArrowRight className="ml-1.5 h-4 w-4" /></>}
+                        </Button>
+                        <div className="flex gap-3 text-xs">
+                          <button type="button" className="text-muted-foreground hover:text-foreground transition-colors underline underline-offset-2" onClick={() => { setError(null); setMode("devsync-register"); }}>Create account</button>
+                          <span className="text-muted-foreground">·</span>
+                          <button type="button" className="text-muted-foreground hover:text-foreground transition-colors underline underline-offset-2" onClick={() => { setError(null); setMode("convex-email"); }}>Back to email login</button>
+                        </div>
+                      </CardFooter>
+                    </form>
+                  </>
+                )}
+
+                {mode === "devsync-register" && (
+                  <>
+                    <CardHeader className="text-center pb-4">
+                      <div className="flex justify-center mb-3">
+                        <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-accent/20 to-accent/5 flex items-center justify-center ring-1 ring-accent/20 shadow-sm">
+                          <Sparkles className="w-7 h-7 text-accent" />
+                        </div>
+                      </div>
+                      <CardTitle className="text-xl font-bold tracking-tight">Join DevSync</CardTitle>
+                      <CardDescription className="text-sm">Create your developer account</CardDescription>
+                    </CardHeader>
+                    <form onSubmit={handleDevSyncRegister}>
+                      <CardContent className="pb-4 space-y-3">
+                        <Input type="text" placeholder="Full name" value={fullName} onChange={(e) => setFullName(e.target.value)} className="h-10 text-sm bg-background/50 focus:bg-background transition-colors" required />
+                        <Input type="text" placeholder="Username" value={username} onChange={(e) => setUsername(e.target.value)} className="h-10 text-sm bg-background/50 focus:bg-background transition-colors" required />
+                        <Input type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} className="h-10 text-sm bg-background/50 focus:bg-background transition-colors" required />
+                        <Input type="password" placeholder="Password (min 6 characters)" value={password} onChange={(e) => setPassword(e.target.value)} className="h-10 text-sm bg-background/50 focus:bg-background transition-colors" required minLength={6} />
+                        {error && <motion.p initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} className="text-xs text-destructive">{error}</motion.p>}
+                      </CardContent>
+                      <CardFooter className="border-t border-border/40 pt-4 flex-col gap-3">
+                        <Button type="submit" className="w-full h-10 text-sm shadow-md bg-gradient-to-r from-accent to-accent/90 text-white hover:from-accent/90 hover:to-accent" disabled={isLoading}>
+                          {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Create account <ArrowRight className="ml-1.5 h-4 w-4" /></>}
+                        </Button>
+                        <button type="button" className="text-xs text-muted-foreground hover:text-foreground transition-colors underline underline-offset-2" onClick={() => { setError(null); setMode("devsync-login"); }}>
+                          Already have an account? Sign in
+                        </button>
+                      </CardFooter>
+                    </form>
+                  </>
+                )}
+              </motion.div>
+            </AnimatePresence>
           </Card>
         </motion.div>
       </div>
     </div>
   );
 }
+
 export default function AuthPage(props: AuthProps) {
   return <Suspense><Auth {...props} /></Suspense>;
 }

@@ -26,11 +26,11 @@ const navItems = [
 
 export function Sidebar() {
   return (
-    <aside className="fixed left-0 top-0 bottom-0 w-56 border-r border-border/50 bg-sidebar z-40 flex flex-col">
+    <aside className="fixed left-0 top-0 bottom-0 w-56 border-r border-border/30 bg-sidebar z-40 flex flex-col">
       {/* Logo */}
-      <div className="h-14 flex items-center gap-2.5 px-5 border-b border-border/50">
-        <div className="w-7 h-7 rounded-lg bg-foreground flex items-center justify-center shrink-0 shadow-sm">
-          <Code2 className="w-4 h-4 text-background" />
+      <div className="h-14 flex items-center gap-2.5 px-5 border-b border-border/30">
+        <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-accent to-accent/70 flex items-center justify-center shrink-0 shadow-sm">
+          <Code2 className="w-4 h-4 text-white" />
         </div>
         <span className="text-sm font-semibold tracking-tight">DevSync</span>
       </div>
@@ -42,22 +42,33 @@ export function Sidebar() {
             key={item.to}
             to={item.to}
             className={({ isActive }) =>
-              `flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-200 ${
+              `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 group ${
                 isActive
-                  ? "bg-accent/10 text-accent font-medium shadow-sm"
-                  : "text-muted-foreground hover:text-foreground hover:bg-accent/5"
+                  ? "bg-gradient-to-r from-accent/15 to-accent/5 text-accent font-medium shadow-sm border border-accent/20"
+                  : "text-muted-foreground hover:text-foreground hover:bg-accent/5 border border-transparent"
               }`
             }
           >
-            <item.icon className={`w-4 h-4 shrink-0 transition-colors duration-200`} />
-            <span>{item.label}</span>
+            {({ isActive }) => (
+              <>
+                <div className={`w-4 h-4 shrink-0 transition-all duration-200 ${
+                  isActive ? "text-accent" : "text-muted-foreground group-hover:text-foreground"
+                }`}>
+                  <item.icon className="w-4 h-4" />
+                </div>
+                <span>{item.label}</span>
+                {isActive && (
+                  <span className="ml-auto w-1.5 h-1.5 rounded-full bg-accent shadow-sm shadow-accent/50" />
+                )}
+              </>
+            )}
           </NavLink>
         ))}
       </nav>
 
       {/* Footer */}
-      <div className="px-5 py-3 border-t border-border/50">
-        <span className="text-[10px] text-muted-foreground/60">
+      <div className="px-5 py-3 border-t border-border/30">
+        <span className="text-[10px] text-muted-foreground/50">
           &copy; {new Date().getFullYear()} DevSync
         </span>
       </div>
