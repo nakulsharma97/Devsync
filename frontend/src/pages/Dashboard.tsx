@@ -14,7 +14,14 @@ import {
   Activity,
 } from "lucide-react";
 import { projectService } from "@/services/projectService";
-import { checkHealth, type HealthStatus } from "@/services/api";
+import {
+  checkHealth,
+  fetchMetrics,
+  formatBytes,
+  formatUptime,
+  type HealthStatus,
+  type SystemMetrics,
+} from "@/services/api";
 import {
   Tooltip,
   TooltipContent,
@@ -38,6 +45,7 @@ export default function Dashboard() {
   });
   const [recentProjects, setRecentProjects] = useState<any[]>([]);
   const [health, setHealth] = useState<HealthStatus | null>(null);
+  const [metrics, setMetrics] = useState<SystemMetrics | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -49,13 +57,19 @@ export default function Dashboard() {
     })();
   }, []);
 
-  // Poll backend health every 30 seconds
+  // Poll backend health and metrics every 30 seconds
   useEffect(() => {
     const poll = async () => {
       try {
-        setHealth(await checkHealth());
+        const [healthData, metricsData] = await Promise.all([
+          checkHealth(),
+          fetchMetrics(),
+        ]);
+        setHealth(healthData);
+        setMetrics(metricsData);
       } catch {
         setHealth({ status: "DOWN" });
+        setMetrics(null);
       }
     };
     poll();
@@ -158,6 +172,88 @@ export default function Dashboard() {
           </motion.button>
         ))}
       </div>
+
+      {/* System Metrics */}
+      {metrics && (
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-sm font-semibold text-foreground">System Metrics</h2>
+            <span className="text-[10px] text-muted-foreground">Updates every 30s</span>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {/* Memory */}
+            <div className="bg-card border border-border/50 rounded-xl p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-7 h-7 rounded-lg bg-accent/10 flex items-center justify-center ring-1 ring-accent/20">
+                  <Database className="w-3.5 h-3.5 text-accent" />
+                </div>
+                <span className="text-xs font-medium text-foreground">Memory</span>
+              </div>
+              <p className="text-sm font-bold text-foreground">{formatBytes(metrics.memoryUsed)}</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">
+                of {formatBytes(metrics.memoryMax)}
+              </p>
+              {metrics.memoryMax > 0 && (
+                <div className="mt-2 h-1.5 rounded-full bg-muted overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-accent transition-all duration-500"
+                    style={{ width: `${Math.min(100, (metrics.memoryUsed / metrics.memoryMax) * 100)}%` }}
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* CPU */}
+            <div className="bg-card border border-border/50 rounded-xl p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-7 h-7 rounded-lg bg-accent/10 flex items-center justify-center ring-1 ring-accent/20">
+                  <TrendingUp className="w-3.5 h-3.5 text-accent" />
+                </div>
+                <span className="text-xs font-medium text-foreground">CPU</span>
+              </div>
+              <p className="text-sm font-bold text-foreground">
+                {metrics.cpuUsage !== null ? `${(metrics.cpuUsage * 100).toFixed(1)}%` : "--"}
+              </p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">System usage</p>
+              {metrics.cpuUsage !== null && (
+                <div className="mt-2 h-1.5 rounded-full bg-muted overflow-hidden">
+                  <div
+                    className="h-full rounded-full transition-all duration-500"
+                    style={{
+                      width: `${Math.min(100, metrics.cpuUsage * 100)}%`,
+                      backgroundColor: metrics.cpuUsage > 0.7 ? "#ef4444" : metrics.cpuUsage > 0.4 ? "#f59e0b" : "hsl(var(--accent))",
+                    }}
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Threads */}
+            <div className="bg-card border border-border/50 rounded-xl p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-7 h-7 rounded-lg bg-accent/10 flex items-center justify-center ring-1 ring-accent/20">
+                  <Activity className="w-3.5 h-3.5 text-accent" />
+                </div>
+                <span className="text-xs font-medium text-foreground">Threads</span>
+              </div>
+              <p className="text-sm font-bold text-foreground">{metrics.threads}</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">Live threads</p>
+            </div>
+
+            {/* Uptime */}
+            <div className="bg-card border border-border/50 rounded-xl p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-7 h-7 rounded-lg bg-accent/10 flex items-center justify-center ring-1 ring-accent/20">
+                  <Server className="w-3.5 h-3.5 text-accent" />
+                </div>
+                <span className="text-xs font-medium text-foreground">Uptime</span>
+              </div>
+              <p className="text-sm font-bold text-foreground">{formatUptime(metrics.uptime)}</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">Since last restart</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Recent Projects */}
       <div className="mb-8">
