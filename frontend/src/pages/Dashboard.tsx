@@ -13,6 +13,7 @@ import {
   Server,
   Activity,
   BarChart3,
+  Sparkles,
 } from "lucide-react";
 import {
   LineChart,
@@ -126,9 +127,13 @@ export default function Dashboard() {
   ];
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }}>
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }} className="relative">
+      {/* Subtle background decoration */}
+      <div className="absolute -top-20 -right-20 w-72 h-72 bg-gradient-to-bl from-accent/[0.03] to-transparent rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute -bottom-20 -left-20 w-72 h-72 bg-gradient-to-tr from-purple-500/[0.02] to-transparent rounded-full blur-3xl pointer-events-none" />
+
       {/* Welcome */}
-      <div className="mb-10">
+      <div className="mb-10 relative">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-foreground">Dashboard</h1>
@@ -189,7 +194,7 @@ export default function Dashboard() {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-8">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-8 relative">
         {statCards.map((stat, i) => (
           <motion.button
             key={stat.label}
@@ -197,12 +202,13 @@ export default function Dashboard() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.04 }}
             onClick={() => stat.href !== "#" && navigate(stat.href)}
-            className="bg-card border border-border/50 rounded-xl p-5 flex flex-col items-center text-center gap-2 transition-all duration-200 hover:border-accent/30 hover:shadow-sm hover:bg-accent/5"
+            className="group relative bg-card border border-border/50 rounded-xl p-5 flex flex-col items-center text-center gap-2 transition-all duration-300 hover:border-accent/30 hover:shadow-lg hover:shadow-accent/5 hover:-translate-y-0.5 overflow-hidden"
           >
-            <div className="w-9 h-9 rounded-xl bg-accent/10 flex items-center justify-center ring-1 ring-accent/20">
+            <div className="absolute inset-0 bg-gradient-to-br from-accent/[0.03] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-accent/15 to-accent/5 flex items-center justify-center ring-1 ring-accent/20 group-hover:ring-accent/30 group-hover:scale-105 transition-all duration-200">
               <stat.icon className={`w-4.5 h-4.5 ${stat.color}`} />
             </div>
-            <span className="text-xl font-bold text-foreground">{stat.value}</span>
+            <span className="text-xl font-bold text-foreground group-hover:text-accent transition-colors duration-200">{stat.value}</span>
             <span className="text-xs text-muted-foreground">{stat.label}</span>
           </motion.button>
         ))}
@@ -212,19 +218,25 @@ export default function Dashboard() {
       {metrics && (
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-semibold text-foreground">System Metrics</h2>
-            <span className="text-[10px] text-muted-foreground">Updates every 30s</span>
+            <div className="flex items-center gap-2">
+              <div className="w-5 h-5 rounded-md bg-accent/10 flex items-center justify-center">
+                <BarChart3 className="w-3 h-3 text-accent" />
+              </div>
+              <h2 className="text-sm font-semibold text-foreground">System Metrics</h2>
+            </div>
+            <span className="text-[10px] text-muted-foreground/60">Updates every 30s</span>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {/* Memory */}
-            <div className="bg-card border border-border/50 rounded-xl p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-7 h-7 rounded-lg bg-accent/10 flex items-center justify-center ring-1 ring-accent/20">
+            <div className="group relative bg-card border border-border/50 rounded-xl p-4 transition-all duration-300 hover:border-accent/30 hover:shadow-md hover:shadow-accent/5 overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-br from-accent/[0.02] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+              <div className="flex items-center gap-2 mb-2 relative">
+                <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-accent/15 to-accent/5 flex items-center justify-center ring-1 ring-accent/20 group-hover:ring-accent/30 transition-all duration-200">
                   <Database className="w-3.5 h-3.5 text-accent" />
                 </div>
                 <span className="text-xs font-medium text-foreground">Memory</span>
               </div>
-              <p className="text-sm font-bold text-foreground">{formatBytes(metrics.memoryUsed)}</p>
+              <p className="text-sm font-bold text-foreground group-hover:text-accent transition-colors duration-200">{formatBytes(metrics.memoryUsed)}</p>
               <p className="text-[10px] text-muted-foreground mt-0.5">
                 of {formatBytes(metrics.memoryMax)}
               </p>
@@ -239,14 +251,15 @@ export default function Dashboard() {
             </div>
 
             {/* CPU */}
-            <div className="bg-card border border-border/50 rounded-xl p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-7 h-7 rounded-lg bg-accent/10 flex items-center justify-center ring-1 ring-accent/20">
+            <div className="group relative bg-card border border-border/50 rounded-xl p-4 transition-all duration-300 hover:border-accent/30 hover:shadow-md hover:shadow-accent/5 overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-br from-accent/[0.02] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+              <div className="flex items-center gap-2 mb-2 relative">
+                <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-accent/15 to-accent/5 flex items-center justify-center ring-1 ring-accent/20 group-hover:ring-accent/30 transition-all duration-200">
                   <TrendingUp className="w-3.5 h-3.5 text-accent" />
                 </div>
                 <span className="text-xs font-medium text-foreground">CPU</span>
               </div>
-              <p className="text-sm font-bold text-foreground">
+              <p className="text-sm font-bold text-foreground group-hover:text-accent transition-colors duration-200">
                 {metrics.cpuUsage !== null ? `${(metrics.cpuUsage * 100).toFixed(1)}%` : "--"}
               </p>
               <p className="text-[10px] text-muted-foreground mt-0.5">System usage</p>
@@ -256,7 +269,7 @@ export default function Dashboard() {
                     className="h-full rounded-full transition-all duration-500"
                     style={{
                       width: `${Math.min(100, metrics.cpuUsage * 100)}%`,
-                      backgroundColor: metrics.cpuUsage > 0.7 ? "#ef4444" : metrics.cpuUsage > 0.4 ? "#f59e0b" : "hsl(var(--accent))",
+                      backgroundColor: metrics.cpuUsage > 0.7 ? "#ef4444" : metrics.cpuUsage > 0.4 ? "#f59e0b" : "var(--accent)",
                     }}
                   />
                 </div>
@@ -264,26 +277,28 @@ export default function Dashboard() {
             </div>
 
             {/* Threads */}
-            <div className="bg-card border border-border/50 rounded-xl p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-7 h-7 rounded-lg bg-accent/10 flex items-center justify-center ring-1 ring-accent/20">
+            <div className="group relative bg-card border border-border/50 rounded-xl p-4 transition-all duration-300 hover:border-accent/30 hover:shadow-md hover:shadow-accent/5 overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-br from-accent/[0.02] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+              <div className="flex items-center gap-2 mb-2 relative">
+                <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-accent/15 to-accent/5 flex items-center justify-center ring-1 ring-accent/20 group-hover:ring-accent/30 transition-all duration-200">
                   <Activity className="w-3.5 h-3.5 text-accent" />
                 </div>
                 <span className="text-xs font-medium text-foreground">Threads</span>
               </div>
-              <p className="text-sm font-bold text-foreground">{metrics.threads}</p>
+              <p className="text-sm font-bold text-foreground group-hover:text-accent transition-colors duration-200">{metrics.threads}</p>
               <p className="text-[10px] text-muted-foreground mt-0.5">Live threads</p>
             </div>
 
             {/* Uptime */}
-            <div className="bg-card border border-border/50 rounded-xl p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-7 h-7 rounded-lg bg-accent/10 flex items-center justify-center ring-1 ring-accent/20">
+            <div className="group relative bg-card border border-border/50 rounded-xl p-4 transition-all duration-300 hover:border-accent/30 hover:shadow-md hover:shadow-accent/5 overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-br from-accent/[0.02] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+              <div className="flex items-center gap-2 mb-2 relative">
+                <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-accent/15 to-accent/5 flex items-center justify-center ring-1 ring-accent/20 group-hover:ring-accent/30 transition-all duration-200">
                   <Server className="w-3.5 h-3.5 text-accent" />
                 </div>
                 <span className="text-xs font-medium text-foreground">Uptime</span>
               </div>
-              <p className="text-sm font-bold text-foreground">{formatUptime(metrics.uptime)}</p>
+              <p className="text-sm font-bold text-foreground group-hover:text-accent transition-colors duration-200">{formatUptime(metrics.uptime)}</p>
               <p className="text-[10px] text-muted-foreground mt-0.5">Since last restart</p>
             </div>
           </div>
@@ -369,15 +384,21 @@ export default function Dashboard() {
       {/* Recent Projects */}
       <div className="mb-8">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-sm font-semibold text-foreground">Recent Projects</h2>
+          <div className="flex items-center gap-2">
+            <div className="w-5 h-5 rounded-md bg-accent/10 flex items-center justify-center">
+              <FolderGit2 className="w-3 h-3 text-accent" />
+            </div>
+            <h2 className="text-sm font-semibold text-foreground">Recent Projects</h2>
+          </div>
           <button onClick={() => navigate("/projects")}
             className="text-xs text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-1">
             View all <ArrowRight className="w-3 h-3" />
           </button>
         </div>
         {recentProjects.length === 0 ? (
-          <div className="border border-border/50 rounded-xl p-8 flex items-center justify-center bg-card">
-            <p className="text-sm text-muted-foreground">
+          <div className="border border-border/50 rounded-xl p-10 flex items-center justify-center bg-card relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-br from-accent/[0.02] to-transparent pointer-events-none" />
+            <p className="text-sm text-muted-foreground relative">
               No projects yet.{" "}
               <button onClick={() => navigate("/projects")}
                 className="text-accent underline underline-offset-2 hover:no-underline">
@@ -389,14 +410,15 @@ export default function Dashboard() {
           <div className="grid sm:grid-cols-2 gap-3">
             {recentProjects.map((project) => (
               <div key={project.id}
-                className="border border-border/50 rounded-xl p-4 hover:border-accent/30 transition-all duration-200 cursor-pointer bg-card hover:shadow-sm hover:bg-accent/5"
+                className="group relative border border-border/50 rounded-xl p-4 transition-all duration-300 cursor-pointer bg-card hover:border-accent/30 hover:shadow-lg hover:shadow-accent/5 hover:-translate-y-0.5 overflow-hidden"
                 onClick={() => navigate(`/projects/${project.id}`)}>
-                <h3 className="text-sm font-medium text-foreground mb-1">{project.title}</h3>
-                <p className="text-xs text-muted-foreground line-clamp-2">{project.description}</p>
+                <div className="absolute inset-0 bg-gradient-to-br from-accent/[0.03] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+                <h3 className="text-sm font-medium text-foreground mb-1 relative group-hover:text-accent transition-colors duration-200">{project.title}</h3>
+                <p className="text-xs text-muted-foreground line-clamp-2 relative">{project.description}</p>
                 {project.techStack && (
-                  <div className="flex gap-1.5 mt-2 flex-wrap">
+                  <div className="flex gap-1.5 mt-2 flex-wrap relative">
                     {project.techStack.split(",").map((t: string) => (
-                      <span key={t.trim()} className="text-[10px] px-1.5 py-0.5 rounded-md bg-accent/10 text-accent">
+                      <span key={t.trim()} className="text-[10px] px-1.5 py-0.5 rounded-md bg-gradient-to-r from-accent/15 to-accent/5 text-accent border border-accent/20">
                         {t.trim()}
                       </span>
                     ))}
@@ -410,7 +432,12 @@ export default function Dashboard() {
 
       {/* Quick Actions */}
       <div>
-        <h2 className="text-sm font-semibold text-foreground mb-4">Quick Actions</h2>
+        <div className="flex items-center gap-2 mb-4">
+          <div className="w-5 h-5 rounded-md bg-accent/10 flex items-center justify-center">
+            <Sparkles className="w-3 h-3 text-accent" />
+          </div>
+          <h2 className="text-sm font-semibold text-foreground">Quick Actions</h2>
+        </div>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {[
             { label: "Create a project", href: "/projects" },
@@ -418,9 +445,10 @@ export default function Dashboard() {
             { label: "Find a team", href: "/teams" },
           ].map((action) => (
             <button key={action.label} onClick={() => navigate(action.href)}
-              className="bg-card border border-border/50 rounded-xl px-4 py-3.5 text-sm text-foreground hover:border-accent/30 transition-all duration-200 text-left hover:shadow-sm hover:bg-accent/5 inline-flex items-center justify-between group">
-              {action.label}
-              <ArrowRight className="w-3.5 h-3.5 text-muted-foreground group-hover:text-accent transition-colors" />
+              className="group relative bg-card border border-border/50 rounded-xl px-4 py-3.5 text-sm text-foreground hover:border-accent/30 transition-all duration-300 text-left hover:shadow-lg hover:shadow-accent/5 hover:-translate-y-0.5 inline-flex items-center justify-between overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-br from-accent/[0.03] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+              <span className="relative group-hover:text-accent transition-colors duration-200">{action.label}</span>
+              <ArrowRight className="w-3.5 h-3.5 text-muted-foreground group-hover:text-accent transition-colors relative" />
             </button>
           ))}
         </div>
