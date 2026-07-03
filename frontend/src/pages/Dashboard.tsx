@@ -15,6 +15,11 @@ import {
 } from "lucide-react";
 import { projectService } from "@/services/projectService";
 import { checkHealth, type HealthStatus } from "@/services/api";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface DashboardStats {
   projects: number;
@@ -89,21 +94,43 @@ export default function Dashboard() {
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
               <Server className="w-3.5 h-3.5" />
               <span>API</span>
-              <span
-                className={`inline-block w-2 h-2 rounded-full ${
-                  apiStatus === "UP" ? "bg-green-500" : apiStatus === "DOWN" ? "bg-red-500" : "bg-muted-foreground/30 animate-pulse"
-                }`}
-              />
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span
+                    className={`inline-block w-2 h-2 rounded-full cursor-pointer ${
+                      apiStatus === "UP" ? "bg-green-500" : apiStatus === "DOWN" ? "bg-red-500" : "bg-muted-foreground/30 animate-pulse"
+                    }`}
+                  />
+                </TooltipTrigger>
+                <TooltipContent side="bottom">
+                  {apiStatus === "UP"
+                    ? "API is healthy"
+                    : apiStatus === "DOWN"
+                    ? "API is unreachable"
+                    : "Checking API status..."}
+                </TooltipContent>
+              </Tooltip>
             </div>
             {/* Database Status */}
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
               <Database className="w-3.5 h-3.5" />
               <span>DB</span>
-              <span
-                className={`inline-block w-2 h-2 rounded-full ${
-                  dbStatus === "UP" ? "bg-green-500" : dbStatus === "DOWN" ? "bg-red-500" : apiStatus === "DOWN" ? "bg-red-500" : "bg-muted-foreground/30 animate-pulse"
-                }`}
-              />
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span
+                    className={`inline-block w-2 h-2 rounded-full cursor-pointer ${
+                      dbStatus === "UP" ? "bg-green-500" : dbStatus === "DOWN" ? "bg-red-500" : apiStatus === "DOWN" ? "bg-red-500" : "bg-muted-foreground/30 animate-pulse"
+                    }`}
+                  />
+                </TooltipTrigger>
+                <TooltipContent side="bottom">
+                  {dbStatus === "UP"
+                    ? "Database is connected"
+                    : dbStatus === "DOWN"
+                    ? "Database connection failed"
+                    : "Checking database status..."}
+                </TooltipContent>
+              </Tooltip>
             </div>
             {health && (
               <Activity className="w-3 h-3 text-muted-foreground/50" />
