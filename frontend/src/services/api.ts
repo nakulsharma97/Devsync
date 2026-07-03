@@ -60,4 +60,15 @@ export const getAuthToken = (): string | null => {
   return localStorage.getItem("devsync_token");
 };
 
+// Health check
+export interface HealthStatus {
+  status: string;
+  components?: Record<string, { status: string }>;
+}
+
+export const checkHealth = async (): Promise<HealthStatus> => {
+  const { data } = await api.get<HealthStatus>("/actuator/health");
+  return data;
+};
+
 export default api;

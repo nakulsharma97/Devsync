@@ -9,8 +9,12 @@ import {
   Bookmark,
   TrendingUp,
   ArrowRight,
+  Database,
+  Server,
+  Activity,
 } from "lucide-react";
 import { projectService } from "@/services/projectService";
+import { checkHealth, type HealthStatus } from "@/services/api";
 
 interface DashboardStats {
   projects: number;
@@ -28,6 +32,7 @@ export default function Dashboard() {
     projects: 0, posts: 0, teams: 0, bookmarks: 0, repos: 0, connections: 0,
   });
   const [recentProjects, setRecentProjects] = useState<any[]>([]);
+  const [health, setHealth] = useState<HealthStatus | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -38,6 +43,23 @@ export default function Dashboard() {
       } catch { /* API not available */ }
     })();
   }, []);
+
+  // Poll backend health every 30 seconds
+  useEffect(() => {
+    const poll = async () => {
+      try {
+        setHealth(await checkHealth());
+      } catch {
+        setHealth({ status: "DOWN" });
+      }
+    };
+    poll();
+    const interval = setInterval(poll, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const dbStatus = health?.components?.db?.status ?? (apiStatus === "UP" ? "UP" : null);
+  const apiStatus = health?.status ?? null;
 
   const statCards = [
     { icon: FolderGit2, label: "Projects", value: stats.projects, href: "/projects", color: "text-accent" },
@@ -51,10 +73,41 @@ export default function Dashboard() {
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }}>
       {/* Welcome */}
       <div className="mb-10">
-        <h1 className="text-2xl font-bold tracking-tight text-foreground">Dashboard</h1>
-        <p className="mt-1.5 text-sm text-muted-foreground">
-          Welcome back, <span className="text-foreground font-medium">{user?.fullName || "Developer"}</span>.
-        </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight text-foreground">Dashboard</h1>
+            <p className="mt-1.5 text-sm text-muted-foreground">
+              Welcome back, <span className="text-foreground font-medium">{user?.fullName || "Developer"}</span>.
+            </p>
+          </div>
+
+          {/* Health Status Indicator */}
+          <div className="flex items-center gap-3">
+            {/* API Status */}
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Server className="w-3.5 h-3.5" />
+              <span>API</span>
+              <span
+                className={`inline-block w-2 h-2 rounded-full ${
+                  apiStatus === "UP" ? "bg-green-500" : apiStatus === "DOWN" ? "bg-red-500" : "bg-muted-foreground/30 animate-pulse"
+                }`}
+              />
+            </div>
+            {/* Database Status */}
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Database className="w-3.5 h-3.5" />
+              <span>DB</span>
+              <span
+                className={`inline-block w-2 h-2 rounded-full ${
+                  dbStatus === "UP" ? "bg-green-500" : dbStatus === "DOWN" ? "bg-red-500" : apiStatus === "DOWN" ? "bg-red-500" : "bg-muted-foreground/30 animate-pulse"
+                }`}
+              />
+            </div>
+            {health && (
+              <Activity className="w-3 h-3 text-muted-foreground/50" />
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Stats Grid */}
