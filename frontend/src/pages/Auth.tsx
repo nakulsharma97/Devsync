@@ -39,6 +39,7 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [username, setUsername] = useState("");
+  const [resendCooldown, setResendCooldown] = useState(0);
 
   useEffect(() => {
     if (!authLoading && isAuthenticated) navigate(redirectAfterAuth || "/dashboard");
@@ -47,6 +48,18 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
   useEffect(() => {
     if (!devSyncLoading && devSyncAuthenticated) navigate(redirectAfterAuth || "/dashboard");
   }, [devSyncLoading, devSyncAuthenticated, navigate, redirectAfterAuth]);
+
+  // Resend cooldown countdown
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const timer = setInterval(() => setResendCooldown((prev) => prev - 1), 1000);
+    return () => clearInterval(timer);
+  }, [resendCooldown]);
+
+  // Start cooldown when entering OTP mode
+  useEffect(() => {
+    if (mode === "convex-otp") setResendCooldown(30);
+  }, [mode]);
 
   const handleEmailSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault(); setIsLoading(true); setError(null);
@@ -174,7 +187,14 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
                         {error && <motion.p initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} className="mt-3 text-xs text-destructive text-center">{error}</motion.p>}
                         <p className="text-xs text-muted-foreground text-center mt-4">
                           Didn't receive a code?{" "}
-                          <Button variant="link" className="p-0 h-auto text-xs text-accent" onClick={() => setMode("convex-email")}>Try again</Button>
+                          <Button
+                            variant="link"
+                            className={`p-0 h-auto text-xs ${resendCooldown > 0 ? "text-muted-foreground cursor-not-allowed" : "text-accent"}`}
+                            disabled={resendCooldown > 0}
+                            onClick={() => { setMode("convex-email"); setError(null); }}
+                          >
+                            {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : "Try again"}
+                          </Button>
                         </p>
                       </CardContent>
                       <CardFooter className="border-t border-border/40 pt-4 flex-col gap-2">
