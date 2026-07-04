@@ -17,7 +17,7 @@ import {
 import { useAuth } from "@/hooks/use-auth";
 import { useDevSyncAuth } from "@/contexts/AuthContext";
 import { ArrowRight, Code2, Loader2, Mail, UserX, KeyRound, Sparkles } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { Suspense, useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 
@@ -87,14 +87,21 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
     catch (e) {
       console.error("OTP Submit - Error:", e);
       setError(e instanceof Error ? e.message : "The verification code you entered is incorrect.");
-      setIsLoading(false); setOtp("");
+      setOtp("");
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleGuestLogin = async () => {
     setIsLoading(true); setError(null);
     try { await signIn("anonymous"); navigate(redirectAfterAuth || "/dashboard"); }
-    catch (error) { setError(`Failed to sign in as guest: ${error instanceof Error ? error.message : "Unknown error"}`); setIsLoading(false); }
+    catch (error) {
+      console.error("Guest login - Error:", error);
+      setError(`Failed to sign in as guest: ${error instanceof Error ? error.message : "Unknown error"}`);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleDevSyncLogin = async (e: React.FormEvent) => {
@@ -106,6 +113,7 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
     catch (err: any) {
       console.error("DevSync Login - Error:", err);
       setError(err.message || "Login failed.");
+    } finally {
       setIsLoading(false);
     }
   };
@@ -119,6 +127,7 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
     catch (err: any) {
       console.error("DevSync Register - Error:", err);
       setError(err.message || "Registration failed.");
+    } finally {
       setIsLoading(false);
     }
   };
@@ -147,14 +156,11 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
           className="w-full max-w-sm"
-        >
-          <Card className="border border-border/40 shadow-xl shadow-accent/5 backdrop-blur-sm bg-card/95">
-            <AnimatePresence mode="wait">
+        >                  <Card className="border border-border/40 shadow-xl shadow-accent/5 backdrop-blur-sm bg-card/95">
               <motion.div
                 key={mode}
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
                 transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
               >
                 {mode === "convex-email" && (
@@ -303,7 +309,6 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
                   </>
                 )}
               </motion.div>
-            </AnimatePresence>
           </Card>
         </motion.div>
       </div>
