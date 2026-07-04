@@ -164,7 +164,8 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
                     <form onSubmit={handleOtpSubmit}>
                       <CardContent className="pb-4">
                         <div className="flex justify-center">
-                          <InputOTP value={otp} onChange={setOtp} maxLength={6} disabled={isLoading} onKeyDown={(e) => { if (e.key === "Enter" && otp.length === 6 && !isLoading) (e.target as HTMLElement).closest("form")?.requestSubmit(); }}>
+                          <input type="hidden" name="email" value={email} />
+                          <InputOTP name="code" value={otp} onChange={setOtp} maxLength={6} disabled={isLoading} onKeyDown={(e) => { if (e.key === "Enter" && otp.length === 6 && !isLoading) (e.target as HTMLElement).closest("form")?.requestSubmit(); }}>
                             <InputOTPGroup>
                               {Array.from({ length: 6 }).map((_, i) => (<InputOTPSlot key={i} index={i} />))}
                             </InputOTPGroup>
