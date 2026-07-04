@@ -63,7 +63,14 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
 
   const handleEmailSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault(); setIsLoading(true); setError(null);
-    try { const formData = new FormData(event.currentTarget); await signIn("email-otp", formData); setMode("convex-otp"); setIsLoading(false); }
+    try {
+      const formData = new FormData(event.currentTarget);
+      const submittedEmail = formData.get("email") as string;
+      setEmail(submittedEmail);
+      await signIn("email-otp", formData);
+      setMode("convex-otp");
+      setIsLoading(false);
+    }
     catch (error) { setError(error instanceof Error ? error.message : "Failed to send verification code."); setIsLoading(false); }
   };
 
