@@ -7,7 +7,6 @@ import { ConvexReactClient } from "convex/react";
 import { StrictMode, useEffect, lazy, Suspense } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter, Route, Routes, useLocation } from "react-router";
-import { motion } from "framer-motion";
 import { ThemeProvider } from "next-themes";
 import "./index.css";
 import "./types/global.d.ts";
