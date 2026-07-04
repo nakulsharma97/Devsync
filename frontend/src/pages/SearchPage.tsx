@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from "react";
-import { motion } from "framer-motion";
 import { Input } from "@/components/ui/input";
 import { Search, Users, FolderGit2, Bookmark, User } from "lucide-react";
 import { searchService, type SearchResults } from "@/services/searchService";
@@ -32,7 +31,7 @@ export default function SearchPage() {
   ];
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }}>
+    <div>
       <div className="mb-6">
         <h1 className="text-2xl font-bold tracking-tight text-foreground">Search</h1>
         <p className="mt-1 text-sm text-muted-foreground">Find developers, projects, and repositories</p>
@@ -120,6 +119,6 @@ export default function SearchPage() {
           ))}
         </div>
       )}
-    </motion.div>
+    </div>
   );
 }

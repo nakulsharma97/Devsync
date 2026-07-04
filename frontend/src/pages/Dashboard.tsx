@@ -127,7 +127,7 @@ export default function Dashboard() {
   ];
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }} className="relative">
+    <div className="relative">
       {/* Subtle background decoration */}
       <div className="absolute -top-20 -right-20 w-72 h-72 bg-gradient-to-bl from-accent/[0.03] to-transparent rounded-full blur-3xl pointer-events-none" />
       <div className="absolute -bottom-20 -left-20 w-72 h-72 bg-gradient-to-tr from-purple-500/[0.02] to-transparent rounded-full blur-3xl pointer-events-none" />
@@ -453,6 +453,6 @@ export default function Dashboard() {
           ))}
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 }

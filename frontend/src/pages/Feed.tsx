@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from "react";
-import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
@@ -77,7 +76,7 @@ export default function Feed() {
   };
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }}>
+    <div>
       <div className="mb-8">
         <h1 className="text-2xl font-bold tracking-tight text-foreground">Developer Feed</h1>
         <p className="mt-1 text-sm text-muted-foreground">See what others are building</p>
@@ -168,6 +167,6 @@ export default function Feed() {
           </div>
         ))}
       </div>
-    </motion.div>
+    </div>
   );
 }
