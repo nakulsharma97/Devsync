@@ -7,7 +7,7 @@ import { ConvexReactClient } from "convex/react";
 import { StrictMode, useEffect, lazy, Suspense } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter, Route, Routes, useLocation } from "react-router";
-import { AnimatePresence, motion } from "framer-motion";
+import { motion } from "framer-motion";
 import { ThemeProvider } from "next-themes";
 import "./index.css";
 import "./types/global.d.ts";
@@ -68,40 +68,30 @@ function AnimatedRoutes() {
   const location = useLocation();
 
   return (
-    <AnimatePresence mode="wait">
-      <motion.div
-        key={location.pathname}
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -10 }}
-        transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+    <Routes location={location}>
+      <Route path="/" element={<Landing />} />
+      <Route path="/auth" element={<AuthPage redirectAfterAuth="/dashboard" />} />
+      
+      <Route
+        element={
+          <ProtectedRoute>
+            <DashboardLayout />
+          </ProtectedRoute>
+        }
       >
-        <Routes location={location}>
-          <Route path="/" element={<Landing />} />
-          <Route path="/auth" element={<AuthPage redirectAfterAuth="/dashboard" />} />
-          
-          <Route
-            element={
-              <ProtectedRoute>
-                <DashboardLayout />
-              </ProtectedRoute>
-            }
-          >
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/profile" element={<Profile />} />
-            <Route path="/projects" element={<Projects />} />
-            <Route path="/feed" element={<Feed />} />
-            <Route path="/teams" element={<Teams />} />
-            <Route path="/notifications" element={<Notifications />} />
-            <Route path="/bookmarks" element={<Bookmarks />} />
-            <Route path="/search" element={<SearchPage />} />
-            <Route path="/settings" element={<Settings />} />
-          </Route>
-          
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </motion.div>
-    </AnimatePresence>
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/profile" element={<Profile />} />
+        <Route path="/projects" element={<Projects />} />
+        <Route path="/feed" element={<Feed />} />
+        <Route path="/teams" element={<Teams />} />
+        <Route path="/notifications" element={<Notifications />} />
+        <Route path="/bookmarks" element={<Bookmarks />} />
+        <Route path="/search" element={<SearchPage />} />
+        <Route path="/settings" element={<Settings />} />
+      </Route>
+      
+      <Route path="*" element={<NotFound />} />
+    </Routes>
   );
 }
 
