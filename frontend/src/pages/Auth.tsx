@@ -76,8 +76,19 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
 
   const handleOtpSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault(); setIsLoading(true); setError(null);
-    try { const formData = new FormData(event.currentTarget); await signIn("email-otp", formData); navigate(redirectAfterAuth || "/dashboard"); }
-    catch { setError("The verification code you entered is incorrect."); setIsLoading(false); setOtp(""); }
+    try {
+      const formData = new FormData(event.currentTarget);
+      console.log("OTP Submit - FormData entries:", Array.from(formData.entries()));
+      console.log("OTP Submit - email state:", email);
+      console.log("OTP Submit - otp state:", otp);
+      await signIn("email-otp", formData);
+      navigate(redirectAfterAuth || "/dashboard");
+    }
+    catch (e) {
+      console.error("OTP Submit - Error:", e);
+      setError(e instanceof Error ? e.message : "The verification code you entered is incorrect.");
+      setIsLoading(false); setOtp("");
+    }
   };
 
   const handleGuestLogin = async () => {
@@ -88,14 +99,28 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
 
   const handleDevSyncLogin = async (e: React.FormEvent) => {
     e.preventDefault(); setIsLoading(true); setError(null);
-    try { await devSyncLogin(email, password); }
-    catch (err: any) { setError(err.message || "Login failed."); setIsLoading(false); }
+    try {
+      console.log("DevSync Login - email:", email);
+      await devSyncLogin(email, password);
+    }
+    catch (err: any) {
+      console.error("DevSync Login - Error:", err);
+      setError(err.message || "Login failed.");
+      setIsLoading(false);
+    }
   };
 
   const handleDevSyncRegister = async (e: React.FormEvent) => {
     e.preventDefault(); setIsLoading(true); setError(null);
-    try { await devSyncRegister(email, password, fullName, username); }
-    catch (err: any) { setError(err.message || "Registration failed."); setIsLoading(false); }
+    try {
+      console.log("DevSync Register - email:", email, "username:", username, "fullName:", fullName);
+      await devSyncRegister(email, password, fullName, username);
+    }
+    catch (err: any) {
+      console.error("DevSync Register - Error:", err);
+      setError(err.message || "Registration failed.");
+      setIsLoading(false);
+    }
   };
 
   return (
