@@ -17,13 +17,13 @@ export interface User {
   email: string;
   fullName: string;
   username: string;
-  bio: string;
-  avatarUrl: string;
-  bannerUrl: string;
-  location: string;
-  githubUsername: string;
-  linkedinLink: string;
-  portfolioWebsite: string;
+  bio?: string;
+  avatarUrl?: string;
+  bannerUrl?: string;
+  location?: string;
+  githubUsername?: string;
+  linkedinLink?: string;
+  portfolioWebsite?: string;
   role: string;
   createdAt: string;
 }

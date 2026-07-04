@@ -1,7 +1,12 @@
+"use node";
+
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { v } from "convex/values";
 import { action, mutation, query, QueryCtx } from "./_generated/server";
-import { api } from "./_generated/api";
+import { internal as _internal } from "./_generated/api";
+// Break circular type reference: public actions call internal functions
+// in the same broader module through the API object.
+const internal = _internal as any;
 
 // ════════════════════════════════════════════════════════════════
 // Convex Auth (email-otp) - uses the `users` table managed by Convex
@@ -23,7 +28,7 @@ export const currentUser = query({
 export const getCurrentUser = async (ctx: QueryCtx) => {
   const userId = await getAuthUserId(ctx);
   if (userId === null) return null;
-  return await ctx.db.get(userId);
+  return await ctx.db.get(userId as any);
 };
 
 // ════════════════════════════════════════════════════════════════
@@ -42,7 +47,7 @@ export const register = action({
     const { email, password, fullName, username } = args;
 
     // Check for existing account
-    const existing = await ctx.runQuery(api.users.getAccountByEmail, {
+    const existing = await ctx.runQuery(internal.usersInternal.getAccountByEmail, {
       email,
     });
     if (existing) {
@@ -63,7 +68,7 @@ export const register = action({
     const token = crypto.randomBytes(32).toString("hex");
 
     // Store account
-    await ctx.runMutation(api.users.createAccount, {
+    await ctx.runMutation(internal.usersInternal.createAccount, {
       email,
       hashedPassword,
       salt,
@@ -86,7 +91,7 @@ export const login = action({
     const { email, password } = args;
 
     // Find account
-    const account = await ctx.runQuery(api.users.getAccountByEmail, { email });
+    const account = await ctx.runQuery(internal.usersInternal.getAccountByEmail, { email });
     if (!account) {
       throw new Error("No account found with this email address.");
     }
@@ -106,7 +111,7 @@ export const login = action({
 
     // Rotate token
     const token = crypto.randomBytes(32).toString("hex");
-    await ctx.runMutation(api.users.updateAccountToken, {
+    await ctx.runMutation(internal.usersInternal.updateAccountToken, {
       id: account._id,
       token,
     });
@@ -118,55 +123,6 @@ export const login = action({
       role: account.role || "DEVELOPER",
       token,
     };
-  },
-});
-
-// ─── Internal queries & mutations ───
-
-export const getAccountByEmail = query({
-  args: { email: v.string() },
-  handler: async (ctx, args) => {
-    return await ctx.db
-      .query("devsync_accounts")
-      .withIndex("by_email", (q) => q.eq("email", args.email))
-      .unique();
-  },
-});
-
-export const createAccount = mutation({
-  args: {
-    email: v.string(),
-    hashedPassword: v.string(),
-    salt: v.string(),
-    fullName: v.string(),
-    username: v.string(),
-    token: v.string(),
-  },
-  handler: async (ctx, args) => {
-    return await ctx.db.insert("devsync_accounts", {
-      email: args.email,
-      hashedPassword: args.hashedPassword,
-      salt: args.salt,
-      fullName: args.fullName,
-      username: args.username,
-      token: args.token,
-      bio: "",
-      avatarUrl: "",
-      bannerUrl: "",
-      location: "",
-      githubUsername: "",
-      linkedinLink: "",
-      portfolioWebsite: "",
-      role: "DEVELOPER",
-      updatedAt: Date.now(),
-    });
-  },
-});
-
-export const updateAccountToken = mutation({
-  args: { id: v.id("devsync_accounts"), token: v.string() },
-  handler: async (ctx, args) => {
-    await ctx.db.patch(args.id, { token: args.token });
   },
 });
 
