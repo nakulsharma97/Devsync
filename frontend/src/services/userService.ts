@@ -1,4 +1,6 @@
-import api from "./api";
+import { api } from "@/convex/_generated/api";
+import { convexClient } from "@/lib/convexClient";
+import { getAuthToken } from "./api";
 
 export interface UserProfileRequest {
   fullName?: string;
@@ -11,7 +13,7 @@ export interface UserProfileRequest {
 }
 
 export interface User {
-  id: number;
+  id: string;
   email: string;
   fullName: string;
   username: string;
@@ -28,17 +30,35 @@ export interface User {
 
 export const userService = {
   async getCurrentUser(): Promise<User> {
-    const response = await api.get("/users/me");
-    return response.data.data;
+    const token = getAuthToken();
+    if (!token) throw new Error("Not authenticated");
+    const user = await convexClient.query(api.users.getAccountByToken, {
+      token,
+    });
+    if (!user) throw new Error("User not found");
+    return user;
   },
 
   async updateProfile(data: UserProfileRequest): Promise<User> {
-    const response = await api.put("/users/me/profile", data);
-    return response.data.data;
+    const token = getAuthToken();
+    if (!token) throw new Error("Not authenticated");
+    await convexClient.mutation(api.users.updateAccountProfile, {
+      token,
+      ...data,
+    });
+    // Return updated user
+    const updated = await convexClient.query(api.users.getAccountByToken, {
+      token,
+    });
+    if (!updated) throw new Error("User not found");
+    return updated;
   },
 
-  async getUserById(id: number): Promise<User> {
-    const response = await api.get(`/users/${id}`);
-    return response.data.data;
+  async getUserById(id: string): Promise<User> {
+    const user = await convexClient.query(api.users.getAccountById, {
+      accountId: id as any,
+    });
+    if (!user) throw new Error("User not found");
+    return user;
   },
 };

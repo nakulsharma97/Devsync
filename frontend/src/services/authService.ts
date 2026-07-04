@@ -1,4 +1,6 @@
-import api, { setAuthToken } from "./api";
+import { api } from "@/convex/_generated/api";
+import { convexClient } from "@/lib/convexClient";
+import { setAuthToken } from "./api";
 
 export interface LoginRequest {
   email: string;
@@ -13,36 +15,31 @@ export interface RegisterRequest {
 }
 
 export interface AuthResponse {
-  userId: number;
+  userId?: string;
   email: string;
   fullName: string;
   role: string;
   token: string;
 }
 
-export interface ApiResponse<T> {
-  success: boolean;
-  message?: string;
-  data?: T;
-  error?: string;
-}
-
 export const authService = {
   async login(data: LoginRequest): Promise<AuthResponse> {
-    const response = await api.post<ApiResponse<AuthResponse>>("/auth/login", data);
-    if (!response.data.success || !response.data.data) {
-      throw new Error(response.data.error || "Login failed");
+    try {
+      const result = await convexClient.action(api.users.login, data);
+      setAuthToken(result.token);
+      return result;
+    } catch (error: any) {
+      throw new Error(error?.message || "Login failed");
     }
-    setAuthToken(response.data.data.token);
-    return response.data.data;
   },
 
   async register(data: RegisterRequest): Promise<AuthResponse> {
-    const response = await api.post<ApiResponse<AuthResponse>>("/auth/register", data);
-    if (!response.data.success || !response.data.data) {
-      throw new Error(response.data.error || "Registration failed");
+    try {
+      const result = await convexClient.action(api.users.register, data);
+      setAuthToken(result.token);
+      return result;
+    } catch (error: any) {
+      throw new Error(error?.message || "Registration failed");
     }
-    setAuthToken(response.data.data.token);
-    return response.data.data;
   },
 };
