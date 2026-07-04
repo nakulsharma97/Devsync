@@ -14,7 +14,7 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
-export function AuthProvider({ children }: { children: ReactNode }) {
+export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -42,16 +42,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (email: string, password: string) => {
     const response = await authService.login({ email, password });
     if (response.token) {
-      const currentUser = await userService.getCurrentUser();
-      setUser(currentUser);
+      try {
+        const currentUser = await userService.getCurrentUser();
+        setUser(currentUser);
+      } catch (err) {
+        // Token was set but fetching user failed — clean up
+        setAuthToken(null);
+        throw new Error("Login succeeded but failed to load profile.");
+      }
     }
   };
 
   const register = async (email: string, password: string, fullName: string, username: string) => {
     const response = await authService.register({ email, password, fullName, username });
     if (response.token) {
-      const currentUser = await userService.getCurrentUser();
-      setUser(currentUser);
+      try {
+        const currentUser = await userService.getCurrentUser();
+        setUser(currentUser);
+      } catch (err) {
+        setAuthToken(null);
+        throw new Error("Registration succeeded but failed to load profile.");
+      }
     }
   };
 
