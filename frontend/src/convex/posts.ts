@@ -1,8 +1,5 @@
-"use node";
-
 import { v } from "convex/values";
-import { action, mutation, query } from "./_generated/server";
-import { internal } from "./_generated/api";
+import { mutation, query } from "./_generated/server";
 
 // ════════════════════════════════════════════════════════════════
 // Post CRUD
@@ -270,7 +267,7 @@ export const generateUploadUrl = mutation({
 /** Store a file reference after upload (to get the URL) */
 export const storeFile = mutation({
   args: {
-    storageId: v.id("_storage"),
+    storageId: v.string(),
     token: v.string(),
   },
   handler: async (ctx, args) => {

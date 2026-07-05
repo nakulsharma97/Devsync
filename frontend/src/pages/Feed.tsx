@@ -9,15 +9,25 @@ import {
   Send,
   Sparkles,
   Image,
+  Paperclip,
   FileText,
   X,
   Loader2,
   AlertCircle,
+  ImagePlus,
 } from "lucide-react";
 import { postService, type Post, type Comment } from "@/services/postService";
 import { useDevSyncAuth } from "@/contexts/AuthContext";
 
 const ACCEPTED_FILE_TYPES = "image/*,.pdf";
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+
+// Format file size for display
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return bytes + " B";
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
+  return (bytes / (1024 * 1024)).toFixed(1) + " MB";
+}
 
 export default function Feed() {
   const { user } = useDevSyncAuth();
@@ -58,10 +68,25 @@ export default function Feed() {
   // Handle file selection
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] || null;
-    setSelectedFile(file);
     setError(null);
 
     if (file) {
+      // Validate file size
+      if (file.size > MAX_FILE_SIZE) {
+        setError(`File too large. Maximum size is 10MB. Selected file is ${formatFileSize(file.size)}.`);
+        e.target.value = "";
+        return;
+      }
+
+      // Validate file type
+      if (!file.type.startsWith("image/") && file.type !== "application/pdf") {
+        setError("Only image files (PNG, JPG, WebP) and PDFs are supported.");
+        e.target.value = "";
+        return;
+      }
+
+      setSelectedFile(file);
+
       if (file.type.startsWith("image/")) {
         const reader = new FileReader();
         reader.onload = (ev) => setFilePreview(ev.target?.result as string);
@@ -70,6 +95,7 @@ export default function Feed() {
         setFilePreview("pdf");
       }
     } else {
+      setSelectedFile(null);
       setFilePreview(null);
     }
 
@@ -254,14 +280,24 @@ export default function Feed() {
             />
             <label
               htmlFor="file-upload"
-              className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground cursor-pointer transition-colors px-2 py-1 rounded-md hover:bg-accent/5"
+              className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground cursor-pointer transition-colors px-2 py-1 rounded-md hover:bg-accent/5 border border-dashed border-border/40 hover:border-border/80"
             >
-              {selectedFile ? (
+              {uploading ? (
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : selectedFile ? (
+                <Paperclip className="w-3.5 h-3.5" />
               ) : (
-                <Image className="w-3.5 h-3.5" />
+                <ImagePlus className="w-3.5 h-3.5" />
               )}
-              <span>{selectedFile ? "File added" : "Add media"}</span>
+              <span>
+                {uploading
+                  ? "Uploading..."
+                  : selectedFile
+                    ? selectedFile.name.length > 20
+                      ? selectedFile.name.slice(0, 17) + "..."
+                      : selectedFile.name
+                    : "Add media"}
+              </span>
             </label>
           </div>
           <Button

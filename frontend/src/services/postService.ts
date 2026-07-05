@@ -103,13 +103,23 @@ export const postService = {
     const token = getAuthToken();
     if (!token) throw new Error("Not authenticated");
 
+    // Validate file size (max 10MB)
+    const MAX_FILE_SIZE = 10 * 1024 * 1024;
+    if (file.size > MAX_FILE_SIZE) {
+      throw new Error("File too large. Maximum size is 10MB.");
+    }
+
     // Generate upload URL from Convex
     const uploadUrl = await convexClient.mutation(
       api.posts.generateUploadUrl,
       { token }
     );
 
-    // Upload the file
+    if (typeof uploadUrl !== "string" || !uploadUrl) {
+      throw new Error("Failed to get upload URL from server");
+    }
+
+    // Upload the file to Convex storage
     const response = await fetch(uploadUrl, {
       method: "POST",
       headers: { "Content-Type": file.type },
@@ -117,20 +127,35 @@ export const postService = {
     });
 
     if (!response.ok) {
-      throw new Error("Failed to upload file");
+      const errorText = await response.text().catch(() => "Unknown error");
+      throw new Error(`Upload failed (${response.status}): ${errorText}`);
     }
 
-    // Convex upload endpoint returns the storage ID as plain text
-    const storageId = await response.text();
+    // Convex upload endpoint returns JSON: { storageId: "..." }
+    let storageId: string;
+    try {
+      const json = await response.json();
+      storageId = json.storageId;
+      if (!storageId) throw new Error("No storageId in response");
+    } catch {
+      // Fallback: try parsing as plain text (older Convex versions)
+      const text = await response.text();
+      if (!text) throw new Error("Empty response from upload endpoint");
+      storageId = text.trim();
+    }
 
-    // Get the permanent URL
+    // Get the permanent URL from the storage ID
     const url = await convexClient.mutation(api.posts.storeFile, {
-      storageId: storageId as any,
+      storageId,
       token,
     });
 
+    if (!url) {
+      throw new Error("Failed to retrieve file URL from storage");
+    }
+
     return {
-      url: url || "",
+      url,
       fileType: file.type,
     };
   },
