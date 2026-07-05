@@ -1,6 +1,7 @@
 import { useDevSyncAuth } from "@/contexts/AuthContext";
 import { Bell, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 export function Navbar() {
   const { user, logout } = useDevSyncAuth();
@@ -18,17 +19,18 @@ export function Navbar() {
       </div>
 
       {/* Right */}
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-0.5">
+        <ThemeToggle />
         <Button
           variant="ghost"
-          size="icon-sm"
+          size="icon"
           className="relative text-muted-foreground hover:text-foreground hover:bg-accent/5"
         >
           <Bell className="w-4 h-4" />
         </Button>
         <Button
           variant="ghost"
-          size="icon-sm"
+          size="icon"
           onClick={logout}
           className="text-muted-foreground hover:text-destructive hover:bg-destructive/5"
         >

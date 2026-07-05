@@ -120,6 +120,10 @@
     font-feature-settings: "cv02", "cv03", "cv04", "cv11", "salt";
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    transition: background-color 300ms ease, color 300ms ease;
+  }
+  html, .bg-background, .bg-card, .bg-sidebar, .border-border, .text-foreground, .text-muted-foreground {
+    transition: background-color 300ms ease, border-color 300ms ease, color 300ms ease, box-shadow 300ms ease;
   }
   button:not([disabled]),
   [role="button"]:not([disabled]) {
