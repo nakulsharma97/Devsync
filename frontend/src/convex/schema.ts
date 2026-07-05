@@ -24,4 +24,33 @@ export default defineSchema({
   })
     .index("by_email", ["email"])
     .index("by_token", ["token"]),
+
+  devsync_posts: defineTable({
+    userId: v.id("devsync_accounts"),
+    content: v.string(),
+    fileUrl: v.optional(v.string()),
+    fileType: v.optional(v.string()),
+    postType: v.string(),
+    likeCount: v.number(),
+    commentCount: v.number(),
+    updatedAt: v.optional(v.number()),
+  })
+    .index("by_user", ["userId"])
+    .index("by_created", ["_creationTime"]),
+
+  devsync_post_likes: defineTable({
+    postId: v.id("devsync_posts"),
+    userId: v.id("devsync_accounts"),
+  })
+    .index("by_post_user", ["postId", "userId"])
+    .index("by_post", ["postId"]),
+
+  devsync_comments: defineTable({
+    postId: v.id("devsync_posts"),
+    userId: v.id("devsync_accounts"),
+    content: v.string(),
+    updatedAt: v.optional(v.number()),
+  })
+    .index("by_post", ["postId"])
+    .index("by_created", ["_creationTime"]),
 });
