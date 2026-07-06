@@ -30,7 +30,7 @@ type AuthMode = "convex-email" | "convex-otp" | "devsync-login" | "devsync-regis
 
 function Auth({ redirectAfterAuth }: AuthProps = {}) {
   const { isLoading: authLoading, isAuthenticated, signIn } = useAuth();
-  const { isLoading: devSyncLoading, isAuthenticated: devSyncAuthenticated, login: devSyncLogin, register: devSyncRegister } = useDevSyncAuth();
+  const { isLoading: devSyncLoading, isAuthenticated: devSyncAuthenticated, login: devSyncLogin, register: devSyncRegister, refreshUser } = useDevSyncAuth();
   const navigate = useNavigate();
   const [mode, setMode] = useState<AuthMode>("convex-email");
   const [otp, setOtp] = useState("");
@@ -146,6 +146,8 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
       await signIn("email-otp", formData);
       // Auto-create DevSync account so posts/projects work
       await setupDevSyncAccount({ email });
+      // Refresh the AuthContext user state so the Feed shows the user's name
+      await refreshUser();
       navigate(redirectAfterAuth || "/dashboard");
     }
     catch (e) {
@@ -167,6 +169,8 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
         fullName: "Guest " + Math.random().toString(36).slice(2, 6),
         username: guestId,
       });
+      // Refresh the AuthContext user state so the Feed shows the user's name
+      await refreshUser();
       navigate(redirectAfterAuth || "/dashboard");
     }
     catch (error) {
