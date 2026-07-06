@@ -52,6 +52,17 @@ export const api = {
     getAll: $makeRef("bookmarks", "getAll"),
     deleteBookmark: $makeRef("bookmarks", "deleteBookmark"),
   },
+  teams: {
+    create: $makeRef("teams", "create"),
+    getOpen: $makeRef("teams", "getOpen"),
+    apply: $makeRef("teams", "apply"),
+    getApplications: $makeRef("teams", "getApplications"),
+    acceptApplication: $makeRef("teams", "acceptApplication"),
+    rejectApplication: $makeRef("teams", "rejectApplication"),
+  },
+  search: {
+    search: $makeRef("search", "search"),
+  },
 };
 
 export const internal = {

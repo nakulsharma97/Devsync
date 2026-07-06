@@ -13,6 +13,8 @@ import type * as auth from "../auth.js";
 import type * as bookmarks from "../bookmarks.js";
 import type * as posts from "../posts.js";
 import type * as projects from "../projects.js";
+import type * as search from "../search.js";
+import type * as teams from "../teams.js";
 import type * as users from "../users.js";
 import type * as usersInternal from "../usersInternal.js";
 import type { FilterFunction } from "convex/server";
@@ -23,6 +25,8 @@ declare module "convex/server" {
     bookmarks: typeof bookmarks;
     posts: typeof posts;
     projects: typeof projects;
+    search: typeof search;
+    teams: typeof teams;
     users: typeof users;
     usersInternal: typeof usersInternal;
   }

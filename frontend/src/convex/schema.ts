@@ -80,4 +80,28 @@ export default defineSchema({
   })
     .index("by_user", ["userId"])
     .index("by_created", ["_creationTime"]),
+
+  devsync_teams: defineTable({
+    ownerId: v.id("devsync_accounts"),
+    title: v.string(),
+    description: v.optional(v.string()),
+    rolesNeeded: v.optional(v.array(v.string())),
+    open: v.boolean(),
+    updatedAt: v.optional(v.number()),
+  })
+    .index("by_owner", ["ownerId"])
+    .index("by_open", ["open"])
+    .index("by_created", ["_creationTime"]),
+
+  devsync_team_applications: defineTable({
+    teamId: v.id("devsync_teams"),
+    applicantId: v.id("devsync_accounts"),
+    roleApplied: v.optional(v.string()),
+    message: v.optional(v.string()),
+    status: v.string(),
+    updatedAt: v.optional(v.number()),
+  })
+    .index("by_team", ["teamId"])
+    .index("by_applicant", ["applicantId"])
+    .index("by_team_status", ["teamId", "status"]),
 });

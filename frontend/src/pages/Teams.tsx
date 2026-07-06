@@ -12,8 +12,8 @@ export default function Teams() {
   const [teams, setTeams] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
-  const [showApply, setShowApply] = useState<number | null>(null);
-  const [showApplicants, setShowApplicants] = useState<number | null>(null);
+  const [showApply, setShowApply] = useState<string | null>(null);
+  const [showApplicants, setShowApplicants] = useState<string | null>(null);
   const [applications, setApplications] = useState<any[]>([]);
   const [form, setForm] = useState({ title: "", description: "", rolesNeeded: "" });
   const [applyForm, setApplyForm] = useState({ roleApplied: "", message: "" });
@@ -37,23 +37,23 @@ export default function Teams() {
     finally { setCreating(false); }
   };
 
-  const handleApply = async (teamId: number) => {
+  const handleApply = async (teamId: string) => {
     try { await teamService.apply(teamId, applyForm); setShowApply(null); setApplyForm({ roleApplied: "", message: "" }); }
     catch (err) { console.error("Failed to apply:", err); }
   };
 
-  const loadApplications = async (teamId: number) => {
+  const loadApplications = async (teamId: string) => {
     setShowApplicants(teamId);
     try { setApplications(await teamService.getApplications(teamId)); }
     catch { setApplications([]); }
   };
 
-  const handleAccept = async (appId: number) => {
+  const handleAccept = async (appId: string) => {
     try { await teamService.acceptApplication(appId); if (showApplicants) loadApplications(showApplicants); }
     catch (err) { console.error(err); }
   };
 
-  const handleReject = async (appId: number) => {
+  const handleReject = async (appId: string) => {
     try { await teamService.rejectApplication(appId); if (showApplicants) loadApplications(showApplicants); }
     catch (err) { console.error(err); }
   };

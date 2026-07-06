@@ -1,4 +1,6 @@
-import api from "./api";
+import { api } from "@/convex/_generated/api";
+import { convexClient } from "@/lib/convexClient";
+import { getAuthToken } from "./api";
 
 export interface TeamRequest {
   title: string;
@@ -12,9 +14,9 @@ export interface ApplyTeamRequest {
 }
 
 export interface Team {
-  id: number;
-  ownerId?: number;
-  owner?: { id: number; fullName?: string; email?: string };
+  id: string;
+  ownerId?: string;
+  owner?: { id: string; fullName?: string; email?: string };
   title: string;
   description: string;
   rolesNeeded: string[];
@@ -24,50 +26,62 @@ export interface Team {
 }
 
 export interface TeamApplication {
-  id: number;
-  teamId?: number;
-  team?: { id: number; title?: string };
-  applicantId?: number;
-  applicant?: { id: number; fullName?: string; email?: string };
+  id: string;
+  teamId?: string;
+  applicantId?: string;
+  applicant?: { id: string; fullName?: string; email?: string };
   roleApplied: string;
   message: string;
   status: "PENDING" | "ACCEPTED" | "REJECTED";
   createdAt: string;
 }
 
+function getToken(): string {
+  const token = getAuthToken();
+  if (!token) throw new Error("Not authenticated");
+  return token;
+}
+
 export const teamService = {
   async create(data: TeamRequest): Promise<Team> {
-    const response = await api.post("/teams", data);
-    return response.data.data;
+    const token = getToken();
+    return await convexClient.mutation(api.teams.create, { token, ...data });
   },
 
   async getOpen(): Promise<Team[]> {
-    const response = await api.get("/teams");
-    return response.data.data;
+    return await convexClient.query(api.teams.getOpen, {});
   },
 
-  async getById(id: number): Promise<Team> {
-    const response = await api.get(`/teams/${id}`);
-    return response.data.data;
+  async apply(teamId: string, data: ApplyTeamRequest): Promise<TeamApplication> {
+    const token = getToken();
+    return await convexClient.mutation(api.teams.apply, {
+      token,
+      teamId: teamId as any,
+      ...data,
+    });
   },
 
-  async apply(teamId: number, data: ApplyTeamRequest): Promise<TeamApplication> {
-    const response = await api.post(`/teams/${teamId}/apply`, data);
-    return response.data.data;
+  async getApplications(teamId: string): Promise<TeamApplication[]> {
+    const token = getToken();
+    return await convexClient.query(api.teams.getApplications, {
+      token,
+      teamId: teamId as any,
+    });
   },
 
-  async getApplications(teamId: number): Promise<TeamApplication[]> {
-    const response = await api.get(`/teams/${teamId}/applications`);
-    return response.data.data;
+  async acceptApplication(applicationId: string): Promise<void> {
+    const token = getToken();
+    await convexClient.mutation(api.teams.acceptApplication, {
+      token,
+      applicationId: applicationId as any,
+    });
   },
 
-  async acceptApplication(applicationId: number): Promise<TeamApplication> {
-    const response = await api.post(`/teams/applications/${applicationId}/accept`);
-    return response.data.data;
-  },
-
-  async rejectApplication(applicationId: number): Promise<TeamApplication> {
-    const response = await api.post(`/teams/applications/${applicationId}/reject`);
-    return response.data.data;
+  async rejectApplication(applicationId: string): Promise<void> {
+    const token = getToken();
+    await convexClient.mutation(api.teams.rejectApplication, {
+      token,
+      applicationId: applicationId as any,
+    });
   },
 };
