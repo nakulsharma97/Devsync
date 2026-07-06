@@ -10,7 +10,10 @@
 
 /**
  * A utility for referencing Convex functions in your app's API.
+ * Uses Symbol.for("functionName") which is the internal property
+ * that Convex's getFunctionAddress and getFunctionName check for.
  */
+
 const $fnSym = Symbol.for("functionName");
 
 const $makeRef = (module, name) =>
