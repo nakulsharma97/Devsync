@@ -1,1 +1,0 @@
-import{o as t}from"./index-DfhDp_Bt.js";const o={async create(e){return(await t.post("/projects",e)).data.data},async getAll(){return(await t.get("/projects")).data.data},async getById(e){return(await t.get(`/projects/${e}`)).data.data},async update(e,a){return(await t.put(`/projects/${e}`,a)).data.data},async delete(e){await t.delete(`/projects/${e}`)}};export{o as p};
