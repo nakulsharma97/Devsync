@@ -14,6 +14,7 @@ import {
 import { projectService } from "@/services/projectService";
 import { bookmarkService } from "@/services/bookmarkService";
 import { postService } from "@/services/postService";
+import { connectionService } from "@/services/connectionService";
 
 interface DashboardStats {
   projects: number;
@@ -48,6 +49,14 @@ export default function Dashboard() {
           posts: feed.content.length,
         }));
       } catch { /* API not available */ }
+    })();
+
+    // Fetch connections count
+    (async () => {
+      try {
+        const ids = await connectionService.getFollowingIds();
+        setStats((prev) => ({ ...prev, connections: ids.length }));
+      } catch {}
     })();
   }, []);
 

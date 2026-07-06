@@ -11,6 +11,7 @@
 
 import type * as auth from "../auth.js";
 import type * as bookmarks from "../bookmarks.js";
+import type * as connections from "../connections.js";
 import type * as posts from "../posts.js";
 import type * as projects from "../projects.js";
 import type * as search from "../search.js";
@@ -23,6 +24,7 @@ declare module "convex/server" {
   interface Modules {
     auth: typeof auth;
     bookmarks: typeof bookmarks;
+    connections: typeof connections;
     posts: typeof posts;
     projects: typeof projects;
     search: typeof search;

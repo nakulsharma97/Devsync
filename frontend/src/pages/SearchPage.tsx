@@ -1,9 +1,75 @@
 import { useState, useEffect, useCallback } from "react";
 import { Input } from "@/components/ui/input";
-import { Search, Users, FolderGit2, Bookmark, User } from "lucide-react";
+import { Search, Users, FolderGit2, Bookmark, User, UserPlus, UserCheck } from "lucide-react";
 import { searchService, type SearchResults } from "@/services/searchService";
+import { connectionService } from "@/services/connectionService";
+import { useDevSyncAuth } from "@/contexts/AuthContext";
 
 type TabKey = "developers" | "projects" | "bookmarks";
+
+/** Follow button component */
+function FollowButton({ userId }: { userId: string }) {
+  const { user: currentUser } = useDevSyncAuth();
+  const [following, setFollowing] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!currentUser || currentUser.id === userId) return;
+    connectionService.isFollowing(userId).then(setFollowing).catch(() => {});
+  }, [userId, currentUser]);
+
+  if (!currentUser || currentUser.id === userId) return null;
+
+  const handleToggle = async () => {
+    setLoading(true);
+    try {
+      if (following) {
+        await connectionService.unfollow(userId);
+        setFollowing(false);
+      } else {
+        await connectionService.follow(userId);
+        setFollowing(true);
+      }
+    } catch {}
+    finally { setLoading(false); }
+  };
+
+  return (
+    <button
+      onClick={handleToggle}
+      disabled={loading}
+      className={`flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg transition-all shrink-0 ${
+        following
+          ? "bg-accent/10 text-accent border border-accent/20 hover:bg-accent/15"
+          : "bg-accent text-white hover:bg-accent/90 shadow-sm"
+      }`}
+    >
+      {loading ? (
+        <span className="w-3 h-3 border-2 border-current/30 border-t-current rounded-full animate-spin" />
+      ) : following ? (
+        <><UserCheck className="w-3 h-3" /> Following</>
+      ) : (
+        <><UserPlus className="w-3 h-3" /> Follow</>
+      )}
+    </button>
+  );
+}
+
+/** Developer card with follow button */
+function DevUserCard({ dev }: { dev: any }) {
+  return (
+    <div className="border border-border/50 rounded-xl p-4 flex items-center gap-3 bg-card hover:border-accent/20 transition-colors">
+      <div className="w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center ring-1 ring-accent/20 shrink-0">
+        {dev.avatarUrl ? <img src={dev.avatarUrl} alt="" className="w-10 h-10 rounded-full object-cover" /> : <User className="w-4 h-4 text-accent" />}
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-medium text-foreground">{dev.fullName || dev.username}</p>
+        <p className="text-xs text-muted-foreground">@{dev.username}</p>
+      </div>
+      <FollowButton userId={dev.id} />
+    </div>
+  );
+}
 
 export default function SearchPage() {
   const [query, setQuery] = useState("");
@@ -85,15 +151,7 @@ export default function SearchPage() {
       {results && activeTab === "developers" && results.developers.length > 0 && (
         <div className="space-y-2">
           {results.developers.map((dev: any) => (
-            <div key={dev.id} className="border border-border/50 rounded-xl p-4 flex items-center gap-3 bg-card hover:border-accent/20 transition-colors">
-              <div className="w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center ring-1 ring-accent/20 shrink-0">
-                {dev.avatarUrl ? <img src={dev.avatarUrl} alt="" className="w-10 h-10 rounded-full object-cover" /> : <User className="w-4 h-4 text-accent" />}
-              </div>
-              <div className="min-w-0">
-                <p className="text-sm font-medium text-foreground">{dev.fullName || dev.username}</p>
-                <p className="text-xs text-muted-foreground">@{dev.username}</p>
-              </div>
-            </div>
+            <DevUserCard key={dev.id} dev={dev} />
           ))}
         </div>
       )}

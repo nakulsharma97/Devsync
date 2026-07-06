@@ -63,6 +63,14 @@ export const api = {
   search: {
     search: $makeRef("search", "search"),
   },
+  connections: {
+    follow: $makeRef("connections", "follow"),
+    unfollow: $makeRef("connections", "unfollow"),
+    isFollowing: $makeRef("connections", "isFollowing"),
+    getFollowingIds: $makeRef("connections", "getFollowingIds"),
+    getFollowerCount: $makeRef("connections", "getFollowerCount"),
+    getFollowingCount: $makeRef("connections", "getFollowingCount"),
+  },
 };
 
 export const internal = {

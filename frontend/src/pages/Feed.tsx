@@ -15,8 +15,11 @@ import {
   Loader2,
   AlertCircle,
   ImagePlus,
+  Users,
+  Rss,
 } from "lucide-react";
 import { postService, type Post, type Comment } from "@/services/postService";
+import { connectionService } from "@/services/connectionService";
 import { useDevSyncAuth } from "@/contexts/AuthContext";
 
 const ACCEPTED_FILE_TYPES = "image/*,.pdf";
@@ -29,8 +32,11 @@ function formatFileSize(bytes: number): string {
   return (bytes / (1024 * 1024)).toFixed(1) + " MB";
 }
 
+type FeedTab = "all" | "following";
+
 export default function Feed() {
   const { user } = useDevSyncAuth();
+  const [feedTab, setFeedTab] = useState<FeedTab>("all");
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [newContent, setNewContent] = useState("");
@@ -52,14 +58,28 @@ export default function Feed() {
 
   const fetchFeed = useCallback(async () => {
     try {
-      const feed = await postService.getFeed(0, 20);
-      setPosts(feed.content || []);
+      const feed = await postService.getFeed(0, 50);
+      let allPosts = feed.content || [];
+
+      // If on "following" tab, filter by following user IDs
+      if (feedTab === "following" && user?.id) {
+        const followingIds = await connectionService.getFollowingIds();
+        if (followingIds.length > 0) {
+          allPosts = allPosts.filter(
+            (p) => p.user?.id && followingIds.includes(p.user.id),
+          );
+        } else {
+          allPosts = [];
+        }
+      }
+
+      setPosts(allPosts);
     } catch (err: any) {
       console.error("Failed to fetch feed:", err);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [feedTab, user?.id]);
 
   useEffect(() => {
     fetchFeed();
@@ -211,8 +231,34 @@ export default function Feed() {
           Developer Feed
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          See what others are building
+          {feedTab === "following"
+            ? "Posts from people you follow"
+            : "See what others are building"}
         </p>
+      </div>
+
+      {/* Feed Tab Switcher */}
+      <div className="flex items-center gap-1 mb-6 border-b border-border/50">
+        <button
+          onClick={() => setFeedTab("all")}
+          className={`flex items-center gap-1.5 px-3 py-2.5 text-xs border-b-2 transition-colors ${
+            feedTab === "all"
+              ? "border-accent text-accent"
+              : "border-transparent text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <Rss className="w-3.5 h-3.5" /> All Posts
+        </button>
+        <button
+          onClick={() => setFeedTab("following")}
+          className={`flex items-center gap-1.5 px-3 py-2.5 text-xs border-b-2 transition-colors ${
+            feedTab === "following"
+              ? "border-accent text-accent"
+              : "border-transparent text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <Users className="w-3.5 h-3.5" /> Following
+        </button>
       </div>
 
       {/* Create Post */}
@@ -341,15 +387,31 @@ export default function Feed() {
 
       {!loading && posts.length === 0 && (
         <div className="border border-border/50 rounded-xl p-12 flex flex-col items-center text-center gap-4 bg-card">
-          <Sparkles className="w-8 h-8 text-muted-foreground" />
-          <div>
-            <h3 className="text-sm font-semibold text-foreground">
-              No posts yet
-            </h3>
-            <p className="text-sm text-muted-foreground mt-1">
-              Be the first to share something!
-            </p>
-          </div>
+          {feedTab === "following" ? (
+            <>
+              <Users className="w-8 h-8 text-muted-foreground" />
+              <div>
+                <h3 className="text-sm font-semibold text-foreground">
+                  Nothing from followed users yet
+                </h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Search for developers to follow and their posts will appear here.
+                </p>
+              </div>
+            </>
+          ) : (
+            <>
+              <Sparkles className="w-8 h-8 text-muted-foreground" />
+              <div>
+                <h3 className="text-sm font-semibold text-foreground">
+                  No posts yet
+                </h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Be the first to share something!
+                </p>
+              </div>
+            </>
+          )}
         </div>
       )}
 

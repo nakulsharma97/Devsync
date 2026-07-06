@@ -104,4 +104,12 @@ export default defineSchema({
     .index("by_team", ["teamId"])
     .index("by_applicant", ["applicantId"])
     .index("by_team_status", ["teamId", "status"]),
+
+  devsync_connections: defineTable({
+    followerId: v.id("devsync_accounts"),
+    followingId: v.id("devsync_accounts"),
+  })
+    .index("by_follower", ["followerId"])
+    .index("by_following", ["followingId"])
+    .index("by_follower_following", ["followerId", "followingId"]),
 });
