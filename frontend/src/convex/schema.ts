@@ -53,4 +53,19 @@ export default defineSchema({
   })
     .index("by_post", ["postId"])
     .index("by_created", ["_creationTime"]),
+
+  devsync_projects: defineTable({
+    userId: v.id("devsync_accounts"),
+    title: v.string(),
+    description: v.optional(v.string()),
+    techStack: v.optional(v.string()),
+    githubRepo: v.optional(v.string()),
+    liveDemo: v.optional(v.string()),
+    videoDemo: v.optional(v.string()),
+    tags: v.optional(v.array(v.string())),
+    status: v.string(),
+    updatedAt: v.optional(v.number()),
+  })
+    .index("by_user", ["userId"])
+    .index("by_created", ["_creationTime"]),
 });

@@ -40,6 +40,13 @@ export const api = {
     generateUploadUrl: $makeRef("posts", "generateUploadUrl"),
     storeFile: $makeRef("posts", "storeFile"),
   },
+  projects: {
+    create: $makeRef("projects", "create"),
+    getAll: $makeRef("projects", "getAll"),
+    getById: $makeRef("projects", "getById"),
+    update: $makeRef("projects", "update"),
+    deleteProject: $makeRef("projects", "deleteProject"),
+  },
 };
 
 export const internal = {

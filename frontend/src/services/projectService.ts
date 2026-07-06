@@ -1,4 +1,6 @@
-import api from "./api";
+import { api } from "@/convex/_generated/api";
+import { convexClient } from "@/lib/convexClient";
+import { getAuthToken } from "./api";
 
 export interface ProjectRequest {
   title: string;
@@ -11,9 +13,8 @@ export interface ProjectRequest {
 }
 
 export interface Project {
-  id: number;
-  userId?: number;
-  user?: { id: number; fullName?: string; email?: string };
+  id: string;
+  userId?: string;
   title: string;
   description: string;
   techStack: string;
@@ -26,28 +27,48 @@ export interface Project {
   updatedAt: string;
 }
 
+function getToken(): string {
+  const token = getAuthToken();
+  if (!token) throw new Error("Not authenticated");
+  return token;
+}
+
 export const projectService = {
   async create(data: ProjectRequest): Promise<Project> {
-    const response = await api.post("/projects", data);
-    return response.data.data;
+    const token = getToken();
+    return await convexClient.mutation(api.projects.create, {
+      token,
+      ...data,
+    });
   },
 
   async getAll(): Promise<Project[]> {
-    const response = await api.get("/projects");
-    return response.data.data;
+    const token = getToken();
+    return await convexClient.query(api.projects.getAll, { token });
   },
 
-  async getById(id: number): Promise<Project> {
-    const response = await api.get(`/projects/${id}`);
-    return response.data.data;
+  async getById(id: string): Promise<Project> {
+    const token = getToken();
+    return await convexClient.query(api.projects.getById, { token, id: id as any });
   },
 
-  async update(id: number, data: ProjectRequest): Promise<Project> {
-    const response = await api.put(`/projects/${id}`, data);
-    return response.data.data;
+  async update(id: string, data: ProjectRequest): Promise<Project> {
+    const token = getToken();
+    return await convexClient.mutation(api.projects.update, {
+      token,
+      id: id as any,
+      ...data,
+    });
   },
 
-  async delete(id: number): Promise<void> {
-    await api.delete(`/projects/${id}`);
+  async delete(id: string): Promise<void> {
+    const token = getToken();
+    await convexClient.mutation(api.projects.deleteProject, {
+      token,
+      id: id as any,
+    });
   },
 };
+
+// Also export as default for backward compatibility
+export default projectService;

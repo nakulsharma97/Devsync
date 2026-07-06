@@ -35,7 +35,7 @@ export default function Projects() {
     finally { setCreating(false); }
   };
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = async (id: string) => {
     if (!confirm("Delete this project?")) return;
     try { await projectService.delete(id); await fetchProjects(); }
     catch (err) { console.error("Failed to delete project:", err); }
