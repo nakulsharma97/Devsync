@@ -3,8 +3,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Plus, FolderGit2, ExternalLink, Github, Trash2 } from "lucide-react";
+import { Plus, FolderGit2, ExternalLink, Github, Trash2, Send, Check } from "lucide-react";
 import { projectService, type Project, type ProjectRequest } from "@/services/projectService";
+import { postService } from "@/services/postService";
 
 const emptyForm: ProjectRequest = { title: "", description: "", techStack: "", githubRepo: "", liveDemo: "", tags: [] };
 
@@ -116,6 +117,7 @@ export default function Projects() {
                     <ExternalLink className="w-3 h-3" /> Demo
                   </a>
                 )}
+                <ShareButton project={project} />
               </div>
             </div>
           ))}
@@ -165,5 +167,55 @@ export default function Projects() {
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+/** Share a project to the Feed as a post */
+function ShareButton({ project }: { project: Project }) {
+  const [shared, setShared] = useState(false);
+  const [sharing, setSharing] = useState(false);
+
+  const handleShare = async () => {
+    if (shared || sharing) return;
+    setSharing(true);
+    try {
+      let content = `🚀 Just shared my project: **${project.title}**`;
+      if (project.description) {
+        content += `\n\n${project.description.slice(0, 200)}`;
+      }
+      if (project.techStack) {
+        content += `\n\nBuilt with: ${project.techStack}`;
+      }
+      if (project.liveDemo) {
+        content += `\n\n🔗 ${project.liveDemo}`;
+      }
+      await postService.create({ content });
+      setShared(true);
+      setTimeout(() => setShared(false), 3000);
+    } catch (err) {
+      console.error("Failed to share project:", err);
+    } finally {
+      setSharing(false);
+    }
+  };
+
+  return (
+    <button
+      onClick={handleShare}
+      disabled={sharing || shared}
+      className={`text-xs transition-colors inline-flex items-center gap-1 ${
+        shared
+          ? "text-green-500"
+          : "text-muted-foreground hover:text-foreground"
+      }`}
+    >
+      {shared ? (
+        <><Check className="w-3 h-3" /> Shared</>
+      ) : sharing ? (
+        <><Send className="w-3 h-3 animate-pulse" /> Sharing...</>
+      ) : (
+        <><Send className="w-3 h-3" /> Share</>
+      )}
+    </button>
   );
 }

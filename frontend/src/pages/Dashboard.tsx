@@ -14,6 +14,7 @@ import {
   Activity,
   BarChart3,
   Sparkles,
+  Send,
 } from "lucide-react";
 import {
   LineChart,
@@ -25,6 +26,8 @@ import {
   CartesianGrid,
 } from "recharts";
 import { projectService } from "@/services/projectService";
+import { bookmarkService } from "@/services/bookmarkService";
+import { postService } from "@/services/postService";
 import {
   checkHealth,
   fetchMetrics,
@@ -64,9 +67,18 @@ export default function Dashboard() {
   useEffect(() => {
     (async () => {
       try {
-        const projects = await projectService.getAll();
+        const [projects, bookmarks, feed] = await Promise.all([
+          projectService.getAll(),
+          bookmarkService.getAll(),
+          postService.getFeed(0, 20),
+        ]);
         setRecentProjects(projects.slice(0, 4));
-        setStats((prev) => ({ ...prev, projects: projects.length }));
+        setStats((prev) => ({
+          ...prev,
+          projects: projects.length,
+          bookmarks: bookmarks.length,
+          posts: feed.content.length,
+        }));
       } catch { /* API not available */ }
     })();
   }, []);

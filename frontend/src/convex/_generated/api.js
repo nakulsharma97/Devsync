@@ -47,6 +47,11 @@ export const api = {
     update: $makeRef("projects", "update"),
     deleteProject: $makeRef("projects", "deleteProject"),
   },
+  bookmarks: {
+    create: $makeRef("bookmarks", "create"),
+    getAll: $makeRef("bookmarks", "getAll"),
+    deleteBookmark: $makeRef("bookmarks", "deleteBookmark"),
+  },
 };
 
 export const internal = {

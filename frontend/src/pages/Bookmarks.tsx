@@ -30,7 +30,7 @@ export default function Bookmarks() {
     } catch (err) { console.error("Failed to add bookmark:", err); }
   };
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = async (id: string) => {
     try { await bookmarkService.delete(id); setBookmarks((prev) => prev.filter((b) => b.id !== id)); }
     catch (err) { console.error("Failed to delete bookmark:", err); }
   };

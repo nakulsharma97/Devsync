@@ -68,4 +68,16 @@ export default defineSchema({
   })
     .index("by_user", ["userId"])
     .index("by_created", ["_creationTime"]),
+
+  devsync_bookmarks: defineTable({
+    userId: v.id("devsync_accounts"),
+    repoName: v.string(),
+    repoUrl: v.string(),
+    description: v.optional(v.string()),
+    language: v.optional(v.string()),
+    owner: v.optional(v.string()),
+    stars: v.optional(v.number()),
+  })
+    .index("by_user", ["userId"])
+    .index("by_created", ["_creationTime"]),
 });
