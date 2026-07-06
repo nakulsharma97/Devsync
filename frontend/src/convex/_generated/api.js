@@ -11,61 +11,35 @@
 /**
  * A utility for referencing Convex functions in your app's API.
  */
+const $makeRef = (_type, _module, _name) => Object.freeze({ _type, _module, _name });
+
 export const api = {
   auth: {},
   users: {
-    currentUser: { type: "query", module: "users", name: "currentUser" },
-    getAccountByToken: {
-      type: "query",
-      module: "users",
-      name: "getAccountByToken",
-    },
-    getAccountById: {
-      type: "query",
-      module: "users",
-      name: "getAccountById",
-    },
-    updateAccountProfile: {
-      type: "mutation",
-      module: "users",
-      name: "updateAccountProfile",
-    },
-    login: { type: "action", module: "users", name: "login" },
-    register: { type: "action", module: "users", name: "register" },
+    currentUser: $makeRef("query", "users", "currentUser"),
+    getAccountByToken: $makeRef("query", "users", "getAccountByToken"),
+    getAccountById: $makeRef("query", "users", "getAccountById"),
+    updateAccountProfile: $makeRef("mutation", "users", "updateAccountProfile"),
+    login: $makeRef("action", "users", "login"),
+    register: $makeRef("action", "users", "register"),
   },
   posts: {
-    createPost: { type: "mutation", module: "posts", name: "createPost" },
-    getFeed: { type: "query", module: "posts", name: "getFeed" },
-    deletePost: { type: "mutation", module: "posts", name: "deletePost" },
-    toggleLike: { type: "mutation", module: "posts", name: "toggleLike" },
-    hasLiked: { type: "query", module: "posts", name: "hasLiked" },
-    addComment: { type: "mutation", module: "posts", name: "addComment" },
-    getComments: { type: "query", module: "posts", name: "getComments" },
-    generateUploadUrl: {
-      type: "mutation",
-      module: "posts",
-      name: "generateUploadUrl",
-    },
-    storeFile: { type: "mutation", module: "posts", name: "storeFile" },
+    createPost: $makeRef("mutation", "posts", "createPost"),
+    getFeed: $makeRef("query", "posts", "getFeed"),
+    deletePost: $makeRef("mutation", "posts", "deletePost"),
+    toggleLike: $makeRef("mutation", "posts", "toggleLike"),
+    hasLiked: $makeRef("query", "posts", "hasLiked"),
+    addComment: $makeRef("mutation", "posts", "addComment"),
+    getComments: $makeRef("query", "posts", "getComments"),
+    generateUploadUrl: $makeRef("mutation", "posts", "generateUploadUrl"),
+    storeFile: $makeRef("mutation", "posts", "storeFile"),
   },
 };
 
 export const internal = {
   usersInternal: {
-    getAccountByEmail: {
-      type: "query",
-      module: "usersInternal",
-      name: "getAccountByEmail",
-    },
-    createAccount: {
-      type: "mutation",
-      module: "usersInternal",
-      name: "createAccount",
-    },
-    updateAccountToken: {
-      type: "mutation",
-      module: "usersInternal",
-      name: "updateAccountToken",
-    },
+    getAccountByEmail: $makeRef("query", "usersInternal", "getAccountByEmail"),
+    createAccount: $makeRef("mutation", "usersInternal", "createAccount"),
+    updateAccountToken: $makeRef("mutation", "usersInternal", "updateAccountToken"),
   },
 };
