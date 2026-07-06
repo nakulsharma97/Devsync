@@ -14,6 +14,12 @@ import { ThemeProvider } from "next-themes";
 import "./index.css";
 import "./types/global.d.ts";
 
+// Dev-only: expose test utilities on window for console testing
+// Add ?__test=1 to the URL to enable in production/Freebuff preview
+if (import.meta.env.DEV || location.search.includes("__test=1")) {
+  import("./dev/test-project-creation.ts").then((mod) => mod.default());
+}
+
 // DevSync Auth & Layout
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";

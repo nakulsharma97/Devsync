@@ -11,6 +11,7 @@
 
 import type * as auth from "../auth.js";
 import type * as posts from "../posts.js";
+import type * as projects from "../projects.js";
 import type * as users from "../users.js";
 import type * as usersInternal from "../usersInternal.js";
 import type { FilterFunction } from "convex/server";
@@ -19,6 +20,7 @@ declare module "convex/server" {
   interface Modules {
     auth: typeof auth;
     posts: typeof posts;
+    projects: typeof projects;
     users: typeof users;
     usersInternal: typeof usersInternal;
   }
