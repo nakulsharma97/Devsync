@@ -16,6 +16,7 @@ import {
 
 import { useAuth } from "@/hooks/use-auth";
 import { useDevSyncAuth } from "@/contexts/AuthContext";
+import { authService } from "@/services/authService";
 import { ArrowRight, Code2, Loader2, Mail, UserX, KeyRound, Sparkles } from "lucide-react";
 import { motion } from "framer-motion";
 import { Suspense, useEffect, useState } from "react";
@@ -61,6 +62,70 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
     if (mode === "convex-otp") setResendCooldown(30);
   }, [mode]);
 
+  // ── Auto-create DevSync account after Convex Auth sign-in ──
+  // The app has two auth systems:
+  // 1. Convex Auth (email OTP, anonymous) - handles sessions
+  // 2. DevSync Auth (email+password) - uses devsync_accounts table + JWT tokens
+  //
+  // Posts and Projects features authenticate via DevSync Auth (getAuthToken from localStorage).
+  // When a user signs in via Convex Auth, we auto-create a DevSync account so these features work.
+
+  const AUTO_PASSWORD_KEY = "devsync_auto_password";
+
+  /** Generate a deterministic password for auto-created DevSync accounts */
+  function getOrCreateAutoPassword(): string {
+    let pwd = localStorage.getItem(AUTO_PASSWORD_KEY);
+    if (!pwd) {
+      pwd = "auto_" + crypto.randomUUID().slice(0, 16);
+      localStorage.setItem(AUTO_PASSWORD_KEY, pwd);
+    }
+    return pwd;
+  }
+
+  /**
+   * After a Convex Auth login (OTP or anonymous), set up a corresponding
+   * DevSync account so posts, projects, and other DevSync-auth features work.
+   */
+  async function setupDevSyncAccount(opts: {
+    email: string;
+    fullName?: string;
+    username?: string;
+  }): Promise<void> {
+    const pwd = getOrCreateAutoPassword();
+    const name = opts.fullName || opts.email.split("@")[0].replace(/[^a-zA-Z0-9]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()).trim() || "User";
+    const uname = opts.username || opts.email.split("@")[0].replace(/[^a-zA-Z0-9_]/g, "_").toLowerCase() || "user";
+
+    try {
+      // Try logging in first (account may already exist from a previous session)
+      await authService.login({ email: opts.email, password: pwd });
+      console.log("✅ DevSync auto-login succeeded for", opts.email);
+    } catch {
+      // Account doesn't exist — register one
+      try {
+        await authService.register({
+          email: opts.email,
+          password: pwd,
+          fullName: name,
+          username: uname + "_" + Math.random().toString(36).slice(2, 6),
+        });
+        console.log("✅ DevSync auto-registration succeeded for", opts.email);
+      } catch (regErr: any) {
+        // Registration may fail if username is taken — try with more random suffix
+        try {
+          await authService.register({
+            email: opts.email,
+            password: pwd,
+            fullName: name,
+            username: uname + "_" + Date.now().toString(36),
+          });
+          console.log("✅ DevSync auto-registration (retry) succeeded for", opts.email);
+        } catch (err2: any) {
+          console.warn("⚠️ Could not auto-create DevSync account:", err2.message);
+        }
+      }
+    }
+  }
+
   const handleEmailSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault(); setIsLoading(true); setError(null);
     try {
@@ -78,10 +143,9 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
     event.preventDefault(); setIsLoading(true); setError(null);
     try {
       const formData = new FormData(event.currentTarget);
-      console.log("OTP Submit - FormData entries:", Array.from(formData.entries()));
-      console.log("OTP Submit - email state:", email);
-      console.log("OTP Submit - otp state:", otp);
       await signIn("email-otp", formData);
+      // Auto-create DevSync account so posts/projects work
+      await setupDevSyncAccount({ email });
       navigate(redirectAfterAuth || "/dashboard");
     }
     catch (e) {
@@ -95,7 +159,16 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
 
   const handleGuestLogin = async () => {
     setIsLoading(true); setError(null);
-    try { await signIn("anonymous"); navigate(redirectAfterAuth || "/dashboard"); }
+    try {
+      await signIn("anonymous");
+      const guestId = "guest_" + Date.now().toString(36);
+      await setupDevSyncAccount({
+        email: guestId + "@devsync.app",
+        fullName: "Guest " + Math.random().toString(36).slice(2, 6),
+        username: guestId,
+      });
+      navigate(redirectAfterAuth || "/dashboard");
+    }
     catch (error) {
       console.error("Guest login - Error:", error);
       setError(`Failed to sign in as guest: ${error instanceof Error ? error.message : "Unknown error"}`);
