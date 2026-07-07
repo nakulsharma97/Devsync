@@ -1,162 +1,201 @@
 import { useRef, useMemo } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
-import { Float, ContactShadows } from "@react-three/drei";
 import * as THREE from "three";
 
-// ─── Orbiting Glow Ring ───────────────────────────────────────
+// ─── Morphing Torus Knot ──────────────────────────────────────
 
-function OrbitRing({ radius = 2.2, color = "#6366f1", speed = 0.3 }) {
+function MorphingTorus() {
   const meshRef = useRef<THREE.Mesh>(null);
+  const materialRef = useRef<THREE.MeshPhysicalMaterial>(null);
+
+  // Store original positions to morph from
+  const geometryRef = useRef<THREE.BufferGeometry | null>(null);
 
   useFrame((state) => {
-    if (!meshRef.current) return;
-    meshRef.current.rotation.x = Math.PI / 3;
-    meshRef.current.rotation.z += speed * 0.01;
-  });
+    const mesh = meshRef.current;
+    const mat = materialRef.current;
+    if (!mesh || !mat) return;
+    const t = state.clock.elapsedTime;
 
-  return (
-    <mesh ref={meshRef} position={[0, 0.1, 0]}>
-      <ringGeometry args={[radius - 0.02, radius, 64]} />
-      <meshPhysicalMaterial
-        color={color}
-        emissive={color}
-        emissiveIntensity={0.3}
-        transparent
-        opacity={0.25}
-        side={THREE.DoubleSide}
-      />
-    </mesh>
-  );
-}
+    mesh.rotation.x = Math.sin(t * 0.1) * 0.2;
+    mesh.rotation.y = t * 0.15;
+    mesh.rotation.z = Math.sin(t * 0.08) * 0.1;
 
-// ─── Orbiting Dots on Ring ────────────────────────────────────
+    const hue = ((Math.sin(t * 0.05) * 0.5 + 0.5) * 0.15 + 0.65);
+    mat.color = new THREE.Color().setHSL(hue, 0.7, 0.4);
+    mat.emissive = new THREE.Color().setHSL(hue, 0.8, 0.15);
+    mat.emissiveIntensity = 0.3 + Math.sin(t * 0.3) * 0.15;
+    mat.opacity = 0.4 + Math.sin(t * 0.2) * 0.1;
 
-function OrbitDots({ count = 12, radius = 2.2, color = "#a78bfa" }) {
-  const groupRef = useRef<THREE.Group>(null);
-
-  useFrame((state) => {
-    if (!groupRef.current) return;
-    groupRef.current.rotation.x = Math.PI / 3;
-    groupRef.current.rotation.z += 0.02;
-    groupRef.current.rotation.y += 0.005;
-  });
-
-  const dots = useMemo(
-    () =>
-      Array.from({ length: count }, (_, i) => ({
-        angle: (i / count) * Math.PI * 2,
-        speed: 0.5 + Math.random() * 0.5,
-      })),
-    [count],
-  );
-
-  return (
-    <group ref={groupRef} position={[0, 0.1, 0]}>
-      {dots.map((dot, i) => (
-        <mesh
-          key={i}
-          position={[
-            Math.cos(dot.angle) * radius,
-            0,
-            Math.sin(dot.angle) * radius,
-          ]}
-        >
-          <sphereGeometry args={[0.04, 8, 8]} />
-          <meshPhysicalMaterial
-            color={color}
-            emissive={color}
-            emissiveIntensity={1}
-          />
-        </mesh>
-      ))}
-    </group>
-  );
-}
-
-// ─── Secondary Ring (tilted) ──────────────────────────────────
-
-function TiltedRing() {
-  const meshRef = useRef<THREE.Mesh>(null);
-
-  useFrame((state) => {
-    if (!meshRef.current) return;
-    meshRef.current.rotation.x = Math.PI / 2.5;
-    meshRef.current.rotation.y += 0.008;
-  });
-
-  return (
-    <mesh ref={meshRef} position={[0, 0.5, 0]}>
-      <ringGeometry args={[1.5, 1.52, 48]} />
-      <meshPhysicalMaterial
-        color="#8b5cf6"
-        emissive="#8b5cf6"
-        emissiveIntensity={0.2}
-        transparent
-        opacity={0.15}
-        side={THREE.DoubleSide}
-      />
-    </mesh>
-  );
-}
-
-// ─── Code Particles (colored floating symbols) ────────────────
-
-function CodeParticles({ count = 60 }) {
-  const groupRef = useRef<THREE.Group>(null);
-  const data = useMemo(() => {
-    const items: { pos: [number, number, number]; speed: number; phase: number; scale: number }[] = [];
-    for (let i = 0; i < count; i++) {
-      const theta = Math.random() * Math.PI * 2;
-      const phi = Math.random() * Math.PI;
-      const r = 1.5 + Math.random() * 3;
-      items.push({
-        pos: [
-          Math.sin(phi) * Math.cos(theta) * r,
-          Math.sin(phi) * Math.sin(theta) * r * 0.6 + 0.3,
-          Math.cos(phi) * r,
-        ],
-        speed: 0.15 + Math.random() * 0.25,
-        phase: Math.random() * Math.PI * 2,
-        scale: 0.15 + Math.random() * 0.2,
-      });
+    // Morph vertices
+    if (mesh.geometry) {
+      const pos = mesh.geometry.attributes.position;
+      if (pos && !geometryRef.current) {
+        geometryRef.current = mesh.geometry.clone();
+      }
+      if (geometryRef.current) {
+        const origPos = geometryRef.current.attributes.position;
+        const array = pos.array as Float32Array;
+        for (let i = 0; i < array.length; i += 3) {
+          const x = origPos.array[i];
+          const y = origPos.array[i + 1];
+          const z = origPos.array[i + 2];
+          const noise1 = Math.sin(x * 2 + t) * 0.08;
+          const noise2 = Math.cos(y * 2 + t * 0.7) * 0.08;
+          const noise3 = Math.sin(z * 2 + t * 0.5) * 0.08;
+          array[i] = x + noise1;
+          array[i + 1] = y + noise2;
+          array[i + 2] = z + noise3;
+        }
+        pos.needsUpdate = true;
+        mesh.geometry.computeVertexNormals();
+      }
     }
-    return items;
+  });
+
+  return (
+    <mesh ref={meshRef} position={[0, 0, 0]} scale={1.8}>
+      <torusKnotGeometry args={[1, 0.3, 180, 24]} />
+      <meshPhysicalMaterial
+        ref={materialRef}
+        color="#6366f1"
+        emissive="#6366f1"
+        emissiveIntensity={0.3}
+        metalness={0.3}
+        roughness={0.2}
+        transparent
+        opacity={0.5}
+        wireframe={false}
+        side={THREE.DoubleSide}
+        clearcoat={0.2}
+      />
+    </mesh>
+  );
+}
+
+// ─── Wireframe Outer Shell ────────────────────────────────────
+
+function WireframeShell() {
+  const meshRef = useRef<THREE.Mesh>(null);
+
+  useFrame((state) => {
+    if (!meshRef.current) return;
+    const t = state.clock.elapsedTime;
+    meshRef.current.rotation.x = Math.sin(t * 0.08 + 1) * 0.3;
+    meshRef.current.rotation.y = -t * 0.1;
+    meshRef.current.scale.setScalar(1 + Math.sin(t * 0.15) * 0.03);
+  });
+
+  return (
+    <mesh ref={meshRef} position={[0, 0, 0]} scale={2.6}>
+      <icosahedronGeometry args={[1, 1]} />
+      <meshPhysicalMaterial
+        color="#a78bfa"
+        emissive="#a78bfa"
+        emissiveIntensity={0.1}
+        wireframe
+        transparent
+        opacity={0.08}
+        side={THREE.DoubleSide}
+      />
+    </mesh>
+  );
+}
+
+// ─── Orbiting Particle Ring ───────────────────────────────────
+
+function ParticleRing({ count = 200, radius = 3.2, color = "#6366f1", speed = 0.3 }) {
+  const meshRef = useRef<THREE.Points>(null);
+  const positions = useMemo(() => {
+    const pos = new Float32Array(count * 3);
+    for (let i = 0; i < count; i++) {
+      const angle = (i / count) * Math.PI * 2 + Math.random() * 0.1;
+      const r = radius + (Math.random() - 0.5) * 0.5;
+      const yOffset = (Math.random() - 0.5) * 0.8;
+      pos[i * 3] = Math.cos(angle) * r;
+      pos[i * 3 + 1] = yOffset;
+      pos[i * 3 + 2] = Math.sin(angle) * r;
+    }
+    return pos;
+  }, [count, radius]);
+
+  useFrame((state) => {
+    if (!meshRef.current) return;
+    meshRef.current.rotation.y += speed * 0.005;
+    meshRef.current.rotation.x = Math.sin(state.clock.elapsedTime * 0.05) * 0.15;
+  });
+
+  return (
+    <points ref={meshRef}>
+      <bufferGeometry>
+        <bufferAttribute
+          attach="attributes-position"
+          args={[positions, 3]}
+          count={count}
+          itemSize={3}
+        />
+      </bufferGeometry>
+      <pointsMaterial
+        size={0.04}
+        color={color}
+        transparent
+        opacity={0.6}
+        blending={THREE.AdditiveBlending}
+        sizeAttenuation
+        depthWrite={false}
+      />
+    </points>
+  );
+}
+
+// ─── Floating Energy Orbs ─────────────────────────────────────
+
+function EnergyOrbs({ count = 30 }) {
+  const groupRef = useRef<THREE.Group>(null);
+  const orbs = useMemo(() => {
+    return Array.from({ length: count }, (_, i) => ({
+      radius: 1.5 + Math.random() * 4,
+      angle: Math.random() * Math.PI * 2,
+      speed: 0.1 + Math.random() * 0.2,
+      yOffset: (Math.random() - 0.5) * 3,
+      phase: Math.random() * Math.PI * 2,
+      size: 0.02 + Math.random() * 0.04,
+      hue: 0.65 + Math.random() * 0.15,
+    }));
   }, [count]);
 
   const meshRefs = useRef<(THREE.Mesh | null)[]>(Array(count).fill(null));
 
   useFrame((state) => {
     const t = state.clock.elapsedTime;
-    data.forEach((item, i) => {
+    orbs.forEach((orb, i) => {
       const m = meshRefs.current[i];
       if (!m) return;
-      m.position.x = item.pos[0] + Math.sin(t * item.speed + item.phase) * 0.3;
-      m.position.y = item.pos[1] + Math.sin(t * item.speed * 0.7 + item.phase * 1.3) * 0.3;
-      m.position.z = item.pos[2] + Math.cos(t * item.speed * 0.5 + item.phase * 0.9) * 0.3;
-      const s = item.scale * (1 + Math.sin(t * 1.2 + item.phase) * 0.3);
-      m.scale.setScalar(s);
+      const a = orb.angle + t * orb.speed;
+      const r = orb.radius + Math.sin(t * 0.3 + orb.phase) * 0.3;
+      m.position.x = Math.cos(a) * r;
+      m.position.z = Math.sin(a) * r;
+      m.position.y = orb.yOffset + Math.sin(t * 0.2 + orb.phase * 2) * 0.3;
+      const s = orb.size * (1 + Math.sin(t * 0.5 + orb.phase) * 0.2);
+      m.scale.setScalar(s * 10);
     });
   });
 
-  const palette = ["#6366f1", "#a78bfa", "#f59e0b", "#10b981", "#f472b6", "#38bdf8"];
-
   return (
     <group ref={groupRef}>
-      {data.map((item, i) => (
+      {orbs.map((orb, i) => (
         <mesh
           key={i}
           ref={(el) => { meshRefs.current[i] = el; }}
-          position={item.pos}
         >
-          <boxGeometry args={[0.08, 0.04, 0.02]} />
+          <sphereGeometry args={[0.03, 8, 8]} />
           <meshPhysicalMaterial
-            color={palette[i % palette.length]}
-            emissive={palette[i % palette.length]}
-            emissiveIntensity={0.6}
+            color={`hsl(${orb.hue * 360}, 80%, 60%)`}
+            emissive={`hsl(${orb.hue * 360}, 80%, 60%)`}
+            emissiveIntensity={1}
             transparent
             opacity={0.6}
-            metalness={0.2}
-            roughness={0.3}
+            blending={THREE.AdditiveBlending}
           />
         </mesh>
       ))}
@@ -164,335 +203,148 @@ function CodeParticles({ count = 60 }) {
   );
 }
 
-// ─── Screen Content (code lines with animation) ──────────────
+// ─── Floating Code Symbols ────────────────────────────────────
 
-function ScreenContent() {
-  const codeLines = useMemo(
-    () => [
-      { color: "#6366f1", text: "import { AI } from 'devsync'" },
-      { color: "#a78bfa", text: "const app = new DevApp()" },
-      { color: "#f59e0b", text: "app.on('deploy', async () => {" },
-      { color: "#10b981", text: "  const build = await app.build()" },
-      { color: "#38bdf8", text: "  await deploy(build, { region: 'auto' })" },
-      { color: "#f472b6", text: "  return { status: 'live' }" },
-      { color: "#f59e0b", text: "})" },
-    ],
-    [],
-  );
-
-  // Animate line opacity/position
+function CodeSymbols({ count = 30 }) {
   const groupRef = useRef<THREE.Group>(null);
+  const symbols = useMemo(() => {
+    const chars = ["{", "}", "<", ">", "/", "=", "→", "⚡", "★", "◆"];
+    return Array.from({ length: count }, (_, i) => ({
+      char: chars[i % chars.length],
+      x: (Math.random() - 0.5) * 8,
+      y: (Math.random() - 0.5) * 4,
+      z: (Math.random() - 0.5) * 6 - 2,
+      speed: 0.3 + Math.random() * 0.5,
+      phase: Math.random() * Math.PI * 2,
+      color: `hsl(${220 + Math.random() * 60}, 80%, 60%)`,
+    }));
+  }, [count]);
+
+  const meshRefs = useRef<(THREE.Mesh | null)[]>(Array(count).fill(null));
 
   useFrame((state) => {
-    if (!groupRef.current) return;
     const t = state.clock.elapsedTime;
-    groupRef.current.children.forEach((child, i) => {
-      const mesh = child as THREE.Mesh;
-      if (mesh.material && Array.isArray(mesh.material)) return;
-      const mat = mesh.material as THREE.MeshPhysicalMaterial;
-      if (mat) {
-        // Wave opacity
-        const delay = i * 0.3;
-        const pulse = Math.sin((t + delay) * 0.8) * 0.15 + 0.85;
-        mat.opacity = pulse;
-        // Subtle position wave
-        const yBase = 0.95 - i * 0.14;
-        mesh.position.y = yBase + Math.sin(t * 0.5 + i) * 0.01;
-      }
+    symbols.forEach((sym, i) => {
+      const m = meshRefs.current[i];
+      if (!m) return;
+      m.position.y = sym.y + Math.sin(t * sym.speed + sym.phase) * 0.5;
+      m.rotation.z = Math.sin(t * 0.5 + sym.phase) * 0.2;
+      const s = 0.5 + Math.sin(t * sym.speed + sym.phase) * 0.2;
+      m.scale.setScalar(s);
     });
   });
 
   return (
     <group ref={groupRef}>
-      {codeLines.map((line, i) => {
-        const yBase = 0.95 - i * 0.14;
-        return (
-          <group key={i} position={[-0.82, yBase, -0.77]} rotation={[0.15, 0, 0]}>
-            {Array.from({ length: Math.ceil(line.text.length * 0.38) }).map(
-              (_, j) => (
-                <mesh
-                  key={j}
-                  position={[j * 0.068, 0, 0]}
-                >
-                  <planeGeometry args={[0.05, 0.02]} />
-                  <meshPhysicalMaterial
-                    color={line.color}
-                    emissive={line.color}
-                    emissiveIntensity={0.6}
-                    transparent
-                    opacity={0.85}
-                  />
-                </mesh>
-              ),
-            )}
-          </group>
-        );
-      })}
-      {/* Blinking cursor */}
-      <mesh position={[0.3, 0.55 + 0.95 - codeLines.length * 0.14 + 0.07, -0.77]} rotation={[0.15, 0, 0]}>
-        <planeGeometry args={[0.025, 0.12]} />
-        <meshPhysicalMaterial
-          color="#6366f1"
-          emissive="#6366f1"
-          emissiveIntensity={1}
-          transparent
-          opacity={0.9}
-        />
-      </mesh>
+      {symbols.map((sym, i) => (
+        <mesh
+          key={i}
+          ref={(el) => { meshRefs.current[i] = el; }}
+          position={[sym.x, sym.y, sym.z]}
+        >
+          <planeGeometry args={[0.15, 0.15]} />
+          <meshPhysicalMaterial
+            color={sym.color}
+            emissive={sym.color}
+            emissiveIntensity={0.8}
+            transparent
+            opacity={0.2}
+            side={THREE.DoubleSide}
+            blending={THREE.AdditiveBlending}
+          />
+        </mesh>
+      ))}
     </group>
   );
 }
 
-// ─── Scan Line Effect Overlay ────────────────────────────────
+// ─── Connecting Rays ──────────────────────────────────────────
 
-function ScanLines() {
-  const meshRef = useRef<THREE.Mesh>(null);
+function ConnectingRays() {
+  const meshRef = useRef<THREE.LineSegments>(null);
+  const positions = useMemo(() => {
+    const points: number[] = [];
+    const count = 40;
+    for (let i = 0; i < count; i++) {
+      const angle1 = (i / count) * Math.PI * 2;
+      const angle2 = ((i + 3) / count) * Math.PI * 2;
+      const r1 = 2 + Math.random() * 0.5;
+      const r2 = 2.5 + Math.random() * 0.5;
+      // Line from point on inner circle to point on outer circle
+      points.push(
+        Math.cos(angle1) * r1, (Math.random() - 0.5) * 1.5, Math.sin(angle1) * r1,
+        Math.cos(angle2) * r2, (Math.random() - 0.5) * 1.5, Math.sin(angle2) * r2,
+      );
+    }
+    return new Float32Array(points);
+  }, []);
 
   useFrame((state) => {
     if (!meshRef.current) return;
-    const mat = meshRef.current.material as THREE.MeshPhysicalMaterial;
-    if (mat) {
-      mat.opacity = 0.03 + Math.sin(state.clock.elapsedTime * 2) * 0.015;
-    }
+    meshRef.current.rotation.y += 0.002;
   });
 
   return (
-    <mesh position={[0, 0.55, -0.76]} rotation={[0.15, 0, 0]}>
-      <planeGeometry args={[1.9, 1.1, 1, 30]} />
-      <meshPhysicalMaterial
+    <lineSegments ref={meshRef}>
+      <bufferGeometry>
+        <bufferAttribute
+          attach="attributes-position"
+          args={[positions, 3]}
+          count={positions.length / 3}
+          itemSize={3}
+        />
+      </bufferGeometry>
+      <lineBasicMaterial
         color="#6366f1"
         transparent
-        opacity={0.04}
-        wireframe
-        side={THREE.DoubleSide}
+        opacity={0.06}
       />
-    </mesh>
+    </lineSegments>
   );
 }
 
-// ─── The 3D Laptop ───────────────────────────────────────────
-
-function Laptop() {
-  const group = useRef<THREE.Group>(null);
-  const screenGlowRef = useRef<THREE.Mesh>(null);
-
-  useFrame((state) => {
-    if (!group.current) return;
-    const t = state.clock.elapsedTime;
-    // Gentle floating + rotation
-    group.current.rotation.y = Math.sin(t * 0.15) * 0.08;
-    group.current.position.y = Math.sin(t * 0.25) * 0.04;
-
-    // Pulse screen glow
-    if (screenGlowRef.current) {
-      const mat = screenGlowRef.current.material as THREE.MeshPhysicalMaterial;
-      if (mat) {
-        mat.emissiveIntensity = 0.12 + Math.sin(t * 0.5) * 0.06;
-      }
-    }
-  });
-
-  return (
-    <group ref={group}>
-      {/* ── Base / Keyboard ── */}
-      {/* Bottom case */}
-      <mesh position={[0, -0.22, 0]} rotation={[-0.08, 0, 0]}>
-        <boxGeometry args={[2.2, 0.06, 1.5]} />
-        <meshPhysicalMaterial
-          color="#181825"
-          metalness={0.9}
-          roughness={0.15}
-        />
-      </mesh>
-      {/* Keyboard surface */}
-      <mesh position={[0, -0.17, 0.06]} rotation={[-0.08, 0, 0]}>
-        <boxGeometry args={[1.85, 0.01, 1.1]} />
-        <meshPhysicalMaterial color="#1e1e30" metalness={0.3} roughness={0.8} />
-      </mesh>
-      {/* Keyboard grid lines */}
-      {Array.from({ length: 5 }).map((_, row) =>
-        Array.from({ length: 12 }).map((_, col) => (
-          <mesh
-            key={`key-${row}-${col}`}
-            position={[
-              -0.78 + col * 0.14,
-              -0.16,
-              0.5 - row * 0.2,
-            ]}
-            rotation={[-0.08, 0, 0]}
-          >
-            <planeGeometry args={[0.1, 0.04]} />
-            <meshPhysicalMaterial
-              color="#2a2a40"
-              metalness={0.2}
-              roughness={0.9}
-            />
-          </mesh>
-        )),
-      )}
-      {/* Trackpad */}
-      <mesh position={[0, -0.16, -0.32]} rotation={[-0.08, 0, 0]}>
-        <planeGeometry args={[0.5, 0.25]} />
-        <meshPhysicalMaterial
-          color="#222236"
-          metalness={0.4}
-          roughness={0.5}
-        />
-      </mesh>
-
-      {/* ── Screen / Lid ── */}
-      {/* Bezel */}
-      <mesh position={[0, 0.6, -0.86]} rotation={[0.12, 0, 0]}>
-        <boxGeometry args={[2.15, 1.35, 0.04]} />
-        <meshPhysicalMaterial
-          color="#0f0f18"
-          metalness={0.95}
-          roughness={0.1}
-        />
-      </mesh>
-      {/* Screen panel */}
-      <mesh position={[0, 0.6, -0.83]} rotation={[0.12, 0, 0]}>
-        <planeGeometry args={[1.95, 1.15]} />
-        <meshPhysicalMaterial
-          color="#131322"
-          emissive="#6366f1"
-          emissiveIntensity={0.1}
-          metalness={0}
-          roughness={0.05}
-        />
-      </mesh>
-      {/* Screen outer glow */}
-      <mesh
-        ref={screenGlowRef}
-        position={[0, 0.6, -0.82]}
-        rotation={[0.12, 0, 0]}
-      >
-        <planeGeometry args={[2.25, 1.45]} />
-        <meshPhysicalMaterial
-          color="#6366f1"
-          transparent
-          opacity={0.04}
-          side={THREE.DoubleSide}
-          emissive="#6366f1"
-          emissiveIntensity={0.2}
-        />
-      </mesh>
-
-      {/* ── Code Lines on Screen ── */}
-      <ScreenContent />
-      <ScanLines />
-
-      {/* ── Hinge detail ── */}
-      <mesh position={[0, -0.01, -0.12]}>
-        <cylinderGeometry args={[0.03, 0.03, 2.2, 8]} />
-        <meshPhysicalMaterial
-          color="#1e1e30"
-          metalness={0.8}
-          roughness={0.2}
-        />
-      </mesh>
-    </group>
-  );
-}
-
-// ─── Ground Glow ─────────────────────────────────────────────
-
-function GroundGlow() {
-  const meshRef = useRef<THREE.Mesh>(null);
-
-  useFrame((state) => {
-    if (!meshRef.current) return;
-    const mat = meshRef.current.material as THREE.MeshPhysicalMaterial;
-    if (mat) {
-      mat.opacity = 0.08 + Math.sin(state.clock.elapsedTime * 0.3) * 0.04;
-    }
-  });
-
-  return (
-    <mesh
-      ref={meshRef}
-      position={[0, -0.45, 0]}
-      rotation={[-Math.PI / 2, 0, 0]}
-    >
-      <planeGeometry args={[4, 4]} />
-      <meshPhysicalMaterial
-        color="#6366f1"
-        transparent
-        opacity={0.1}
-        emissive="#6366f1"
-        emissiveIntensity={0.3}
-        blending={THREE.AdditiveBlending}
-        depthWrite={false}
-      />
-    </mesh>
-  );
-}
-
-// ─── Hero Export ─────────────────────────────────────────────
+// ─── Main Background Component ────────────────────────────────
 
 export default function Hero3D() {
   return (
-    <div className="w-full h-[450px] md:h-[550px] relative">
+    <div className="fixed inset-0 w-full h-full pointer-events-none z-0">
       <Canvas
-        camera={{ position: [0, 1.5, 4.5], fov: 40 }}
-        dpr={[1, 2]}
+        camera={{ position: [0, 0, 6], fov: 55 }}
+        dpr={[1, 1.5]}
         gl={{
           antialias: true,
           alpha: true,
           powerPreference: "high-performance",
         }}
-        style={{ background: "transparent" }}
+        style={{
+          background: "transparent",
+          width: "100%",
+          height: "100%",
+        }}
       >
-        {/* ── Lighting ── */}
-        <ambientLight intensity={0.4} />
-        {/* Main front light */}
-        <spotLight
-          position={[2, 3, 3]}
-          angle={0.4}
-          penumbra={0.8}
-          intensity={2}
-          color="#6366f1"
-          distance={10}
-        />
-        {/* Back rim light */}
-        <spotLight
-          position={[-2, 2, -2]}
-          angle={0.3}
-          penumbra={0.9}
-          intensity={0.8}
-          color="#a78bfa"
-        />
-        {/* Top fill */}
-        <pointLight position={[0, 3, 0]} intensity={0.5} color="#8b5cf6" />
-        {/* Side accent */}
-        <pointLight position={[2.5, 0.5, 0]} intensity={0.6} color="#f472b6" />
-        {/* Bottom glow */}
-        <pointLight position={[0, -0.5, 0]} intensity={0.4} color="#6366f1" />
+        {/* Lighting */}
+        <ambientLight intensity={0.6} />
+        <pointLight position={[5, 5, 5]} intensity={1.5} color="#6366f1" />
+        <pointLight position={[-5, -3, 2]} intensity={0.8} color="#a78bfa" />
+        <pointLight position={[0, 0, -5]} intensity={0.5} color="#f472b6" />
 
-        {/* ── Scene ── */}
-        <Float speed={1.5} rotationIntensity={0.06} floatIntensity={0.2}>
-          <Laptop />
-        </Float>
+        {/* Main animated shapes */}
+        <MorphingTorus />
+        <WireframeShell />
 
-        {/* Orbiting rings */}
-        <OrbitRing radius={2.3} color="#6366f1" speed={0.3} />
-        <OrbitRing radius={2.6} color="#a78bfa" speed={-0.2} />
-        <OrbitDots count={16} radius={2.3} color="#a78bfa" />
-        <OrbitDots count={12} radius={2.6} color="#6366f1" />
-        <TiltedRing />
+        {/* Particles and effects */}
+        <ParticleRing count={200} radius={3.2} color="#6366f1" speed={0.3} />
+        <ParticleRing count={150} radius={3.8} color="#a78bfa" speed={-0.2} />
+        <ParticleRing count={100} radius={2.5} color="#f472b6" speed={0.4} />
 
-        {/* Particles */}
-        <CodeParticles count={100} />
+        {/* Energy orbs floating around */}
+        <EnergyOrbs count={40} />
 
-        {/* Ground effects */}
-        <GroundGlow />
-        <ContactShadows
-          position={[0, -0.5, 0]}
-          opacity={0.25}
-          scale={5}
-          blur={3}
-          far={1.5}
-        />
+        {/* Code symbols */}
+        <CodeSymbols count={25} />
+
+        {/* Connecting rays */}
+        <ConnectingRays />
       </Canvas>
     </div>
   );

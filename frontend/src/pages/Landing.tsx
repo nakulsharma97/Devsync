@@ -29,7 +29,6 @@ import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router";
 import { useRef, useState, useEffect } from "react";
 import Hero3D from "@/components/Hero3D";
-import ParticleField from "@/components/ParticleField";
 
 // ─── Animation Variants ───────────────────────────────────────
 
@@ -275,8 +274,8 @@ export default function Landing() {
 
   return (
     <div className="min-h-screen bg-background text-foreground overflow-x-hidden">
-      {/* Particle background */}
-      <ParticleField />
+      {/* 3D Background */}
+      <Hero3D />
 
       {/* Navigation */}
       <Navbar />
@@ -292,21 +291,19 @@ export default function Landing() {
 
         <motion.div
           style={{ opacity: heroOpacity, scale: heroScale }}
-          className="mx-auto max-w-7xl px-4 sm:px-6 relative z-10 grid lg:grid-cols-2 gap-12 items-center"
+          className="mx-auto max-w-4xl px-4 sm:px-6 relative z-10 text-center"
         >
-          {/* Left: Text */}
           <motion.div
             variants={containerVariants}
             initial="hidden"
             animate="visible"
-            className="text-center lg:text-left"
           >
             <motion.div variants={itemVariants}>
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-indigo-500/15 via-purple-500/10 to-pink-500/10 text-indigo-400 text-xs font-medium tracking-wide mb-8 border border-indigo-500/20 shadow-sm">
+              <span className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-gradient-to-r from-indigo-500/20 via-purple-500/15 to-pink-500/15 text-indigo-300 text-xs font-medium tracking-wide mb-8 border border-indigo-500/25 shadow-lg shadow-indigo-500/10 backdrop-blur-sm">
                 <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" />
                 Now in Public Beta
                 <span className="mx-1 opacity-40">·</span>
-                <span className="text-indigo-400/70">50K+ developers</span>
+                <span className="text-indigo-300/70">50K+ developers</span>
               </span>
             </motion.div>
 
@@ -323,14 +320,14 @@ export default function Landing() {
 
             <motion.p
               variants={itemVariants}
-              className="mt-6 text-base sm:text-lg text-muted-foreground leading-relaxed max-w-lg mx-auto lg:mx-0"
+              className="mt-6 text-base sm:text-lg text-foreground/70 leading-relaxed max-w-2xl mx-auto"
             >
               The developer platform that combines AI-powered coding, real-time collaboration, and instant deployment — all in your browser.
             </motion.p>
 
             <motion.div
               variants={itemVariants}
-              className="mt-10 flex flex-col sm:flex-row items-center gap-4 justify-center lg:justify-start"
+              className="mt-10 flex flex-col sm:flex-row items-center gap-4 justify-center"
             >
               <Button
                 size="lg"
@@ -346,7 +343,7 @@ export default function Landing() {
               <Button
                 variant="outline"
                 size="lg"
-                className="w-full sm:w-auto text-base px-8 h-12 border-border/50 hover:border-indigo-500/30 hover:bg-indigo-500/5 transition-all duration-200 backdrop-blur-sm"
+                className="w-full sm:w-auto text-base px-8 h-12 border-indigo-500/40 hover:border-indigo-400/60 hover:bg-indigo-500/10 text-foreground font-medium transition-all duration-200"
               >
                 <Terminal className="mr-2 w-4 h-4" />
                 Watch Demo
@@ -355,7 +352,7 @@ export default function Landing() {
 
             <motion.div
               variants={itemVariants}
-              className="mt-8 flex items-center gap-6 justify-center lg:justify-start text-xs text-muted-foreground"
+              className="mt-8 flex items-center gap-6 justify-center text-xs text-foreground/60"
             >
               <span className="flex items-center gap-1.5">
                 <Check className="w-3.5 h-3.5 text-emerald-400" />
@@ -369,45 +366,6 @@ export default function Landing() {
                 <Check className="w-3.5 h-3.5 text-emerald-400" />
                 Cancel anytime
               </span>
-            </motion.div>
-          </motion.div>
-
-          {/* Right: 3D Laptop */}
-          <motion.div
-            initial={{ opacity: 0, x: 40 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.8, delay: 0.4, ease: [0.16, 1, 0.3, 1] as const }}
-            className="relative"
-          >
-            {/* Glow behind laptop */}
-            <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/20 via-purple-500/10 to-transparent rounded-full blur-3xl" />
-            <div className="relative z-10 transform lg:scale-110 xl:scale-125 origin-center">
-              <Hero3D />
-            </div>
-            {/* Floating badges */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 1.2, duration: 0.5 }}
-              className="absolute -bottom-4 -left-4 bg-card border border-border/50 rounded-xl px-3 py-2 shadow-lg backdrop-blur-sm"
-            >
-              <div className="flex items-center gap-2 text-xs">
-                <Zap className="w-3.5 h-3.5 text-amber-400" />
-                <span className="text-foreground font-medium">2.3s</span>
-                <span className="text-muted-foreground">cold start</span>
-              </div>
-            </motion.div>
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 1.4, duration: 0.5 }}
-              className="absolute -top-4 -right-4 bg-card border border-border/50 rounded-xl px-3 py-2 shadow-lg backdrop-blur-sm"
-            >
-              <div className="flex items-center gap-2 text-xs">
-                <Globe className="w-3.5 h-3.5 text-emerald-400" />
-                <span className="text-foreground font-medium">99.99%</span>
-                <span className="text-muted-foreground">uptime</span>
-              </div>
             </motion.div>
           </motion.div>
         </motion.div>
