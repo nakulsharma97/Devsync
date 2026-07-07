@@ -27,8 +27,9 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router";
-import { useRef, useState, useEffect } from "react";
-import Hero3D from "@/components/Hero3D";
+import { useRef, useState, useEffect, lazy, Suspense } from "react";
+
+const Hero3D = lazy(() => import("@/components/Hero3D"));
 
 // ─── Animation Variants ───────────────────────────────────────
 
@@ -259,6 +260,41 @@ function Navbar() {
   );
 }
 
+// ─── Lazy 3D Background (only loads when hero is visible) ─────
+
+function LazyHeroBackground() {
+  const [visible, setVisible] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setVisible(true);
+          observer.disconnect(); // Once loaded, stop observing
+        }
+      },
+      { rootMargin: "200px" } // Start loading 200px before hero enters view
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <div ref={ref} className="fixed inset-0 z-0 pointer-events-none">
+      {visible ? (
+        <Suspense fallback={<div className="fixed inset-0 bg-gradient-to-b from-background via-indigo-950/30 to-background" />}>
+          <Hero3D />
+        </Suspense>
+      ) : (
+        <div className="fixed inset-0 bg-gradient-to-b from-background via-indigo-950/30 to-background" />
+      )}
+    </div>
+  );
+}
+
 // ─── Main Landing Page ─────────────────────────────────────────
 
 export default function Landing() {
@@ -274,8 +310,8 @@ export default function Landing() {
 
   return (
     <div className="min-h-screen bg-background text-foreground overflow-x-hidden">
-      {/* 3D Background */}
-      <Hero3D />
+      {/* 3D Background - lazy loaded when hero section is visible */}
+      <LazyHeroBackground />
 
       {/* Navigation */}
       <Navbar />
