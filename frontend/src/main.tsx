@@ -4,7 +4,7 @@ import { VlyToolbar } from "../vly-toolbar-readonly.tsx";
 import { InstrumentationProvider } from "@/instrumentation.tsx";
 import { ConvexAuthProvider } from "@convex-dev/auth/react";
 import { ConvexReactClient } from "convex/react";
-import { StrictMode, useEffect, lazy, Suspense } from "react";
+import { StrictMode, useEffect, lazy } from "react";
 
 // Direct import for Landing (avoids stale dynamic chunk cache issues)
 import Landing from "./pages/Landing.tsx";
@@ -25,26 +25,18 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { DashboardLayout } from "@/components/DashboardLayout";
 
-// Lazy load route components for better code splitting
-const AuthPage = lazy(() => import("./pages/Auth.tsx"));
-const NotFound = lazy(() => import("./pages/NotFound.tsx"));
-const Dashboard = lazy(() => import("./pages/Dashboard.tsx"));
-const Profile = lazy(() => import("./pages/Profile.tsx"));
-const Projects = lazy(() => import("./pages/Projects.tsx"));
-const Feed = lazy(() => import("./pages/Feed.tsx"));
-const Teams = lazy(() => import("./pages/Teams.tsx"));
-const Notifications = lazy(() => import("./pages/Notifications.tsx"));
-const Bookmarks = lazy(() => import("./pages/Bookmarks.tsx"));
-const SearchPage = lazy(() => import("./pages/SearchPage.tsx"));
-const Settings = lazy(() => import("./pages/Settings.tsx"));
-
-function RouteLoading() {
-  return (
-    <div className="min-h-screen flex items-center justify-center">
-      <div className="animate-pulse text-muted-foreground">Loading...</div>
-    </div>
-  );
-}
+// Direct imports for pages (avoids Freebuff preview dynamic import issues)
+import AuthPage from "./pages/Auth.tsx";
+import NotFound from "./pages/NotFound.tsx";
+import Dashboard from "./pages/Dashboard.tsx";
+import Profile from "./pages/Profile.tsx";
+import Projects from "./pages/Projects.tsx";
+import Feed from "./pages/Feed.tsx";
+import Teams from "./pages/Teams.tsx";
+import Notifications from "./pages/Notifications.tsx";
+import Bookmarks from "./pages/Bookmarks.tsx";
+import SearchPage from "./pages/SearchPage.tsx";
+import Settings from "./pages/Settings.tsx";
 
 const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL as string);
 
@@ -110,10 +102,7 @@ createRoot(document.getElementById("root")!).render(
         <ConvexAuthProvider client={convex}>
           <BrowserRouter>
             <RouteSyncer />
-            <AuthProvider>
-              <Suspense fallback={<RouteLoading />}>
-                <AnimatedRoutes />
-              </Suspense>
+            <AuthProvider>                <AnimatedRoutes />
             </AuthProvider>
             <Toaster />
           </BrowserRouter>
