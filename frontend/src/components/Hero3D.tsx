@@ -105,16 +105,7 @@ function CodeParticles({ count = 80 }) {
   const mesh = useRef<THREE.InstancedMesh>(null);
   const data = useMemo(() => {
     const pos = new Float32Array(count * 3);
-    const colors = new Float32Array(count * 3);
     const sizes = new Float32Array(count);
-    const palette = [
-      new THREE.Color("#6366f1"),
-      new THREE.Color("#a78bfa"),
-      new THREE.Color("#f59e0b"),
-      new THREE.Color("#10b981"),
-      new THREE.Color("#f472b6"),
-      new THREE.Color("#38bdf8"),
-    ];
     for (let i = 0; i < count; i++) {
       const theta = Math.random() * Math.PI * 2;
       const phi = Math.random() * Math.PI;
@@ -122,13 +113,9 @@ function CodeParticles({ count = 80 }) {
       pos[i * 3] = Math.sin(phi) * Math.cos(theta) * r;
       pos[i * 3 + 1] = Math.sin(phi) * Math.sin(theta) * r * 0.6 + 0.3;
       pos[i * 3 + 2] = Math.cos(phi) * r;
-      const c = palette[Math.floor(Math.random() * palette.length)];
-      colors[i * 3] = c.r;
-      colors[i * 3 + 1] = c.g;
-      colors[i * 3 + 2] = c.b;
-      sizes[i] = 0.015 + Math.random() * 0.025;
+      sizes[i] = 0.02 + Math.random() * 0.03;
     }
-    return { pos, colors, sizes };
+    return { pos, sizes };
   }, [count]);
 
   const dummy = useMemo(() => new THREE.Object3D(), []);
@@ -151,25 +138,18 @@ function CodeParticles({ count = 80 }) {
   });
 
   return (
-    <points ref={mesh}>
-      <bufferGeometry>
-        <bufferAttribute
-          attach="attributes-color"
-          args={[data.colors, 3]}
-          count={count}
-          itemSize={3}
-        />
-      </bufferGeometry>
-      <pointsMaterial
-        size={0.06}
-        vertexColors
+    <instancedMesh ref={mesh} args={[undefined, undefined, count]}>
+      <boxGeometry args={[0.3, 0.3, 0.03]} />
+      <meshPhysicalMaterial
+        color="#6366f1"
+        emissive="#6366f1"
+        emissiveIntensity={0.6}
         transparent
-        opacity={0.7}
-        blending={THREE.AdditiveBlending}
-        depthWrite={false}
-        sizeAttenuation
+        opacity={0.5}
+        metalness={0.2}
+        roughness={0.3}
       />
-    </points>
+    </instancedMesh>
   );
 }
 
