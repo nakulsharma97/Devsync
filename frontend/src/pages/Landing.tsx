@@ -459,14 +459,14 @@ export default function Landing() {
       {/* ══════════════════════════════════════════════════════════
           FEATURES
       ══════════════════════════════════════════════════════════ */}
-      <section id="features" className="relative z-10 py-24 md:py-36 px-4 sm:px-6">
+      <section id="features" className="relative z-10 py-16 md:py-24 px-4 sm:px-6">
         <div className="mx-auto max-w-7xl relative">
           <motion.div
             initial="initial"
             whileInView="animate"
             viewport={{ once: true, margin: "-80px" }}
             variants={fadeInUp}
-            className="text-center mb-16 md:mb-24"
+            className="text-center mb-10 md:mb-16"
           >
             <span className="text-xs font-semibold tracking-[0.2em] uppercase bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent mb-4 block">
               Everything you need
@@ -509,14 +509,14 @@ export default function Landing() {
       {/* ══════════════════════════════════════════════════════════
           HOW IT WORKS
       ══════════════════════════════════════════════════════════ */}
-      <section className="relative z-10 py-24 md:py-32 px-4 sm:px-6 bg-muted/20">
+      <section className="relative z-10 py-16 md:py-24 px-4 sm:px-6 bg-muted/20">
         <div className="mx-auto max-w-7xl">
           <motion.div
             initial="initial"
             whileInView="animate"
             viewport={{ once: true, margin: "-80px" }}
             variants={fadeInUp}
-            className="text-center mb-16"
+            className="text-center mb-10"
           >
             <span className="text-xs font-semibold tracking-[0.2em] uppercase bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-400 bg-clip-text text-transparent mb-4 block">
               How it works
@@ -584,7 +584,7 @@ export default function Landing() {
       {/* ══════════════════════════════════════════════════════════
           TESTIMONIALS
       ══════════════════════════════════════════════════════════ */}
-      <section className="relative z-10 py-24 md:py-32 px-4 sm:px-6 overflow-hidden">
+      <section className="relative z-10 py-16 md:py-24 px-4 sm:px-6 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-accent/[0.02] to-transparent pointer-events-none" />
         <div className="mx-auto max-w-7xl relative">
           <motion.div
@@ -592,7 +592,7 @@ export default function Landing() {
             whileInView="animate"
             viewport={{ once: true, margin: "-80px" }}
             variants={fadeInUp}
-            className="text-center mb-16"
+            className="text-center mb-10"
           >
             <span className="text-xs font-semibold tracking-[0.2em] uppercase bg-gradient-to-r from-amber-400 via-orange-400 to-red-400 bg-clip-text text-transparent mb-4 block">
               Testimonials
@@ -640,9 +640,9 @@ export default function Landing() {
       {/* ══════════════════════════════════════════════════════════
           BENEFITS / WHY DEVSYNC
       ══════════════════════════════════════════════════════════ */}
-      <section className="relative z-10 py-24 md:py-36 px-4 sm:px-6">
+      <section className="relative z-10 py-16 md:py-24 px-4 sm:px-6">
         <div className="mx-auto max-w-7xl">
-          <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
+          <div className="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
             <motion.div
               initial={{ opacity: 0, x: -30 }}
               whileInView={{ opacity: 1, x: 0 }}
@@ -711,14 +711,14 @@ export default function Landing() {
       {/* ══════════════════════════════════════════════════════════
           PRICING
       ══════════════════════════════════════════════════════════ */}
-      <section id="pricing" className="relative z-10 py-24 md:py-36 px-4 sm:px-6 bg-muted/20">
+      <section id="pricing" className="relative z-10 py-16 md:py-24 px-4 sm:px-6 bg-muted/20">
         <div className="mx-auto max-w-7xl">
           <motion.div
             initial="initial"
             whileInView="animate"
             viewport={{ once: true, margin: "-80px" }}
             variants={fadeInUp}
-            className="text-center mb-16"
+            className="text-center mb-10"
           >
             <span className="text-xs font-semibold tracking-[0.2em] uppercase bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-400 bg-clip-text text-transparent mb-4 block">
               Pricing
@@ -788,7 +788,7 @@ export default function Landing() {
       {/* ══════════════════════════════════════════════════════════
           FINAL CTA
       ══════════════════════════════════════════════════════════ */}
-      <section className="relative z-10 py-24 md:py-36 px-4 sm:px-6 overflow-hidden">
+      <section className="relative z-10 py-16 md:py-28 px-4 sm:px-6 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-indigo-500/[0.02] via-transparent to-purple-500/[0.02] pointer-events-none" />
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-gradient-to-br from-indigo-500/8 via-purple-500/5 to-pink-500/5 rounded-full blur-3xl pointer-events-none" />
 
