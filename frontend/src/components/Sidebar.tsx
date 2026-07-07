@@ -1,5 +1,5 @@
-import { NavLink } from "react-router";
-import { useState, useEffect, useRef } from "react";
+import { NavLink, useLocation } from "react-router";
+import { useState, useEffect, useRef, useCallback } from "react";
 import {
   LayoutDashboard,
   User,
@@ -27,26 +27,39 @@ const navItems = [
 ];
 
 export function Sidebar() {
+  const location = useLocation();
   const [unreadCount, setUnreadCount] = useState(0);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  useEffect(() => {
-    const fetchCount = async () => {
-      try {
-        const count = await notificationService.getUnreadCount();
-        setUnreadCount(count);
-      } catch {
-        // Not authenticated or API not available
-      }
-    };
+  const fetchCount = useCallback(async () => {
+    try {
+      const count = await notificationService.getUnreadCount();
+      setUnreadCount(count);
+    } catch {
+      // Not authenticated or API not available
+    }
+  }, []);
 
+  // Fetch on mount, on route change, and on visibility change
+  useEffect(() => {
     fetchCount();
     intervalRef.current = setInterval(fetchCount, 15000);
 
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") fetchCount();
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
+      document.removeEventListener("visibilitychange", handleVisibility);
     };
-  }, []);
+  }, [fetchCount]);
+
+  // Refetch on route change
+  useEffect(() => {
+    fetchCount();
+  }, [location.pathname, fetchCount]);
 
   return (
     <aside className="fixed left-0 top-0 bottom-0 w-56 border-r border-border/30 bg-sidebar z-40 flex flex-col">

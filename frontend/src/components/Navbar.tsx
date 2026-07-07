@@ -1,6 +1,6 @@
 import { useDevSyncAuth } from "@/contexts/AuthContext";
-import { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { useNavigate, useLocation } from "react-router";
 import { Bell, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -9,26 +9,39 @@ import { notificationService } from "@/services/notificationService";
 export function Navbar() {
   const { user, logout } = useDevSyncAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [unreadCount, setUnreadCount] = useState(0);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  useEffect(() => {
-    const fetchCount = async () => {
-      try {
-        const count = await notificationService.getUnreadCount();
-        setUnreadCount(count);
-      } catch {
-        // Not authenticated or API not available
-      }
-    };
+  const fetchCount = useCallback(async () => {
+    try {
+      const count = await notificationService.getUnreadCount();
+      setUnreadCount(count);
+    } catch {
+      // Not authenticated or API not available
+    }
+  }, []);
 
+  // Fetch on mount, on route change, and on visibility change
+  useEffect(() => {
     fetchCount();
-    intervalRef.current = setInterval(fetchCount, 15000); // Poll every 15s
+    intervalRef.current = setInterval(fetchCount, 15000);
+
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") fetchCount();
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
 
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
+      document.removeEventListener("visibilitychange", handleVisibility);
     };
-  }, []);
+  }, [fetchCount]);
+
+  // Refetch on route change
+  useEffect(() => {
+    fetchCount();
+  }, [location.pathname, fetchCount]);
 
   return (
     <header className="fixed top-0 left-56 right-0 h-14 border-b border-border/50 bg-background/80 backdrop-blur-sm z-30 flex items-center justify-between px-6">
