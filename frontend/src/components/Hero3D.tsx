@@ -101,55 +101,66 @@ function TiltedRing() {
 
 // ─── Code Particles (colored floating symbols) ────────────────
 
-function CodeParticles({ count = 80 }) {
-  const mesh = useRef<THREE.InstancedMesh>(null);
+function CodeParticles({ count = 60 }) {
+  const groupRef = useRef<THREE.Group>(null);
   const data = useMemo(() => {
-    const pos = new Float32Array(count * 3);
-    const sizes = new Float32Array(count);
+    const items: { pos: [number, number, number]; speed: number; phase: number; scale: number }[] = [];
     for (let i = 0; i < count; i++) {
       const theta = Math.random() * Math.PI * 2;
       const phi = Math.random() * Math.PI;
       const r = 1.5 + Math.random() * 3;
-      pos[i * 3] = Math.sin(phi) * Math.cos(theta) * r;
-      pos[i * 3 + 1] = Math.sin(phi) * Math.sin(theta) * r * 0.6 + 0.3;
-      pos[i * 3 + 2] = Math.cos(phi) * r;
-      sizes[i] = 0.02 + Math.random() * 0.03;
+      items.push({
+        pos: [
+          Math.sin(phi) * Math.cos(theta) * r,
+          Math.sin(phi) * Math.sin(theta) * r * 0.6 + 0.3,
+          Math.cos(phi) * r,
+        ],
+        speed: 0.15 + Math.random() * 0.25,
+        phase: Math.random() * Math.PI * 2,
+        scale: 0.15 + Math.random() * 0.2,
+      });
     }
-    return { pos, sizes };
+    return items;
   }, [count]);
 
-  const dummy = useMemo(() => new THREE.Object3D(), []);
+  const meshRefs = useRef<(THREE.Mesh | null)[]>(Array(count).fill(null));
 
   useFrame((state) => {
-    if (!mesh.current) return;
-    for (let i = 0; i < count; i++) {
-      const t = state.clock.elapsedTime;
-      dummy.position.set(
-        data.pos[i * 3] + Math.sin(t * 0.2 + i * 0.7) * 0.3,
-        data.pos[i * 3 + 1] + Math.sin(t * 0.15 + i * 0.5) * 0.3,
-        data.pos[i * 3 + 2] + Math.cos(t * 0.2 + i * 0.6) * 0.3,
-      );
-      const s = data.sizes[i] * (1 + Math.sin(t * 0.5 + i) * 0.3);
-      dummy.scale.setScalar(s);
-      dummy.updateMatrix();
-      mesh.current.setMatrixAt(i, dummy.matrix);
-    }
-    mesh.current.instanceMatrix.needsUpdate = true;
+    const t = state.clock.elapsedTime;
+    data.forEach((item, i) => {
+      const m = meshRefs.current[i];
+      if (!m) return;
+      m.position.x = item.pos[0] + Math.sin(t * item.speed + item.phase) * 0.3;
+      m.position.y = item.pos[1] + Math.sin(t * item.speed * 0.7 + item.phase * 1.3) * 0.3;
+      m.position.z = item.pos[2] + Math.cos(t * item.speed * 0.5 + item.phase * 0.9) * 0.3;
+      const s = item.scale * (1 + Math.sin(t * 1.2 + item.phase) * 0.3);
+      m.scale.setScalar(s);
+    });
   });
 
+  const palette = ["#6366f1", "#a78bfa", "#f59e0b", "#10b981", "#f472b6", "#38bdf8"];
+
   return (
-    <instancedMesh ref={mesh} args={[undefined, undefined, count]}>
-      <boxGeometry args={[0.3, 0.3, 0.03]} />
-      <meshPhysicalMaterial
-        color="#6366f1"
-        emissive="#6366f1"
-        emissiveIntensity={0.6}
-        transparent
-        opacity={0.5}
-        metalness={0.2}
-        roughness={0.3}
-      />
-    </instancedMesh>
+    <group ref={groupRef}>
+      {data.map((item, i) => (
+        <mesh
+          key={i}
+          ref={(el) => { meshRefs.current[i] = el; }}
+          position={item.pos}
+        >
+          <boxGeometry args={[0.08, 0.04, 0.02]} />
+          <meshPhysicalMaterial
+            color={palette[i % palette.length]}
+            emissive={palette[i % palette.length]}
+            emissiveIntensity={0.6}
+            transparent
+            opacity={0.6}
+            metalness={0.2}
+            roughness={0.3}
+          />
+        </mesh>
+      ))}
+    </group>
   );
 }
 
