@@ -7,6 +7,8 @@ import * as THREE from "three";
 function MorphingTorus() {
   const meshRef = useRef<THREE.Mesh>(null);
   const materialRef = useRef<THREE.MeshPhysicalMaterial>(null);
+  const mouseTarget = useRef({ x: 0, y: 0 });
+  const mouseCurrent = useRef({ x: 0, y: 0 });
 
   // Store original positions to morph from
   const geometryRef = useRef<THREE.BufferGeometry | null>(null);
@@ -17,9 +19,24 @@ function MorphingTorus() {
     if (!mesh || !mat) return;
     const t = state.clock.elapsedTime;
 
-    mesh.rotation.x = Math.sin(t * 0.1) * 0.2;
-    mesh.rotation.y = t * 0.15;
-    mesh.rotation.z = Math.sin(t * 0.08) * 0.1;
+    // Track mouse via R3F pointer (normalized -1 to 1)
+    mouseTarget.current.x = state.pointer.x;
+    mouseTarget.current.y = state.pointer.y;
+
+    // Smooth lerp toward mouse target
+    mouseCurrent.current.x += (mouseTarget.current.x - mouseCurrent.current.x) * 0.03;
+    mouseCurrent.current.y += (mouseTarget.current.y - mouseCurrent.current.y) * 0.03;
+
+    const mx = mouseCurrent.current.x;
+    const my = mouseCurrent.current.y;
+
+    mesh.rotation.x = Math.sin(t * 0.1) * 0.2 + my * 0.4;
+    mesh.rotation.y = t * 0.15 + mx * 0.4;
+    mesh.rotation.z = Math.sin(t * 0.08) * 0.1 - mx * 0.15;
+
+    // Subtle position shift toward mouse
+    mesh.position.x = mx * 0.3;
+    mesh.position.y = -my * 0.2;
 
     const hue = ((Math.sin(t * 0.05) * 0.5 + 0.5) * 0.15 + 0.65);
     mat.color = new THREE.Color().setHSL(hue, 0.7, 0.4);
@@ -77,13 +94,25 @@ function MorphingTorus() {
 
 function WireframeShell() {
   const meshRef = useRef<THREE.Mesh>(null);
+  const mouseTarget = useRef({ x: 0, y: 0 });
+  const mouseCurrent = useRef({ x: 0, y: 0 });
 
   useFrame((state) => {
     if (!meshRef.current) return;
     const t = state.clock.elapsedTime;
-    meshRef.current.rotation.x = Math.sin(t * 0.08 + 1) * 0.3;
-    meshRef.current.rotation.y = -t * 0.1;
+
+    mouseTarget.current.x = state.pointer.x;
+    mouseTarget.current.y = state.pointer.y;
+    mouseCurrent.current.x += (mouseTarget.current.x - mouseCurrent.current.x) * 0.02;
+    mouseCurrent.current.y += (mouseTarget.current.y - mouseCurrent.current.y) * 0.02;
+    const mx = mouseCurrent.current.x;
+    const my = mouseCurrent.current.y;
+
+    meshRef.current.rotation.x = Math.sin(t * 0.08 + 1) * 0.3 + my * 0.5;
+    meshRef.current.rotation.y = -t * 0.1 + mx * 0.5;
     meshRef.current.scale.setScalar(1 + Math.sin(t * 0.15) * 0.03);
+    meshRef.current.position.x = mx * 0.15;
+    meshRef.current.position.y = -my * 0.1;
   });
 
   return (
@@ -121,8 +150,11 @@ function ParticleRing({ count = 200, radius = 3.2, color = "#6366f1", speed = 0.
 
   useFrame((state) => {
     if (!meshRef.current) return;
+    const mx = state.pointer.x * 0.15;
+    const my = state.pointer.y * 0.1;
     meshRef.current.rotation.y += speed * 0.005;
-    meshRef.current.rotation.x = Math.sin(state.clock.elapsedTime * 0.05) * 0.15;
+    meshRef.current.rotation.x = Math.sin(state.clock.elapsedTime * 0.05) * 0.15 + my;
+    meshRef.current.rotation.z += mx * 0.003;
   });
 
   return (
@@ -281,7 +313,11 @@ function ConnectingRays() {
 
   useFrame((state) => {
     if (!meshRef.current) return;
+    const mx = state.pointer.x * 0.3;
+    const my = state.pointer.y * 0.3;
     meshRef.current.rotation.y += 0.002;
+    meshRef.current.rotation.x = my * 0.05;
+    meshRef.current.rotation.z -= mx * 0.05;
   });
 
   return (
