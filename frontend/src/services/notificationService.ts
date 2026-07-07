@@ -1,35 +1,49 @@
-import api from "./api";
+import { api } from "@/convex/_generated/api";
+import { convexClient } from "@/lib/convexClient";
+import { getAuthToken } from "./api";
 
 export interface Notification {
-  id: number;
-  userId?: number;
-  user?: { id: number };
-  senderName: string;
-  senderAvatar: string;
-  type: "LIKE" | "COMMENT" | "CONNECTION" | "TEAM_INVITE";
-  referenceId: number;
+  _id: string;
+  userId: string;
+  type: "LIKE" | "COMMENT" | "CONNECTION";
   message: string;
   read: boolean;
-  isRead?: boolean;
-  createdAt: string;
+  actorId?: string;
+  referenceId?: string;
+  referenceType?: string;
+  actorName?: string | null;
+  createdAt: number;
+}
+
+function getToken(): string {
+  const token = getAuthToken();
+  if (!token) throw new Error("Not authenticated");
+  return token;
 }
 
 export const notificationService = {
   async getAll(): Promise<Notification[]> {
-    const response = await api.get("/notifications");
-    return response.data.data;
+    const token = getToken();
+    return await convexClient.query(api.notifications.getAll, { token });
   },
 
   async getUnreadCount(): Promise<number> {
-    const response = await api.get("/notifications/unread-count");
-    return response.data.data.count;
+    const token = getToken();
+    return await convexClient.query(api.notifications.getUnreadCount, { token });
   },
 
-  async markAsRead(id: number): Promise<void> {
-    await api.put(`/notifications/${id}/read`);
+  async markAsRead(notificationId: string): Promise<void> {
+    const token = getToken();
+    await convexClient.mutation(api.notifications.markAsRead, {
+      token,
+      notificationId: notificationId as any,
+    });
   },
 
   async markAllAsRead(): Promise<void> {
-    await api.put("/notifications/read-all");
+    const token = getToken();
+    await convexClient.mutation(api.notifications.markAllAsRead, { token });
   },
 };
+
+export type { Notification as NotificationType };

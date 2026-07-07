@@ -151,6 +151,20 @@ export const toggleLike = mutation({
         userId: account._id,
       });
       await ctx.db.patch(args.postId, { likeCount: post.likeCount + 1 });
+
+      // Notify the post owner (unless you liked your own post)
+      if (post.userId !== account._id) {
+        await ctx.db.insert("devsync_notifications", {
+          userId: post.userId,
+          type: "LIKE",
+          message: `${account.fullName} liked your post`,
+          read: false,
+          actorId: account._id,
+          referenceId: args.postId,
+          referenceType: "post",
+        });
+      }
+
       return { liked: true, count: post.likeCount + 1 };
     }
   },
@@ -205,6 +219,19 @@ export const addComment = mutation({
     const post = await ctx.db.get(args.postId);
     if (post) {
       await ctx.db.patch(args.postId, { commentCount: post.commentCount + 1 });
+
+      // Notify the post owner (unless you commented on your own post)
+      if (post.userId !== account._id) {
+        await ctx.db.insert("devsync_notifications", {
+          userId: post.userId,
+          type: "COMMENT",
+          message: `${account.fullName} commented on your post`,
+          read: false,
+          actorId: account._id,
+          referenceId: args.postId,
+          referenceType: "post",
+        });
+      }
     }
 
     return {

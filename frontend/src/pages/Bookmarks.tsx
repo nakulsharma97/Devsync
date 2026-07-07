@@ -2,6 +2,17 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent as AlertContent,
+  AlertDialogDescription as AlertDesc,
+  AlertDialogFooter as AlertFoot,
+  AlertDialogHeader as AlertHead,
+  AlertDialogTitle as AlertTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Bookmark, ExternalLink, Github, Plus, Search, Trash2 } from "lucide-react";
 import { bookmarkService, type Bookmark as BookmarkType, type BookmarkRequest } from "@/services/bookmarkService";
 
@@ -10,6 +21,7 @@ export default function Bookmarks() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [showAdd, setShowAdd] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const [form, setForm] = useState<BookmarkRequest>({ repoName: "", repoUrl: "", description: "", language: "", owner: "", stars: 0 });
 
   const fetchBookmarks = async () => {
@@ -79,7 +91,21 @@ export default function Bookmarks() {
           <div key={b.id} className="border border-border/50 rounded-xl p-5 bg-card hover:border-accent/30 transition-all duration-200 hover:shadow-sm group">
             <div className="flex items-start justify-between mb-2">
               <h3 className="text-sm font-semibold text-foreground">{b.repoName}</h3>
-              <button onClick={() => handleDelete(b.id)} className="opacity-0 group-hover:opacity-100 transition-all text-muted-foreground hover:text-destructive p-1 -mr-1 -mt-1"><Trash2 className="w-3.5 h-3.5" /></button>
+              <AlertDialog open={deleteTarget === b.id} onOpenChange={(open) => setDeleteTarget(open ? b.id : null)}>
+                <AlertDialogTrigger asChild>
+                  <button className="opacity-0 group-hover:opacity-100 transition-all text-muted-foreground hover:text-destructive p-1 -mr-1 -mt-1"><Trash2 className="w-3.5 h-3.5" /></button>
+                </AlertDialogTrigger>
+                <AlertContent>
+                  <AlertHead>
+                    <AlertTitle>Delete bookmark?</AlertTitle>
+                    <AlertDesc>This will remove <strong>{b.repoName}</strong> from your bookmarks.</AlertDesc>
+                  </AlertHead>
+                  <AlertFoot>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={() => handleDelete(b.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete</AlertDialogAction>
+                  </AlertFoot>
+                </AlertContent>
+              </AlertDialog>
             </div>
             {b.owner && <p className="text-xs text-muted-foreground mb-1">{b.owner}</p>}
             {b.description && <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed mb-3">{b.description}</p>}

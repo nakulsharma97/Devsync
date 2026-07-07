@@ -71,6 +71,13 @@ export const api = {
     getFollowerCount: $makeRef("connections", "getFollowerCount"),
     getFollowingCount: $makeRef("connections", "getFollowingCount"),
   },
+  notifications: {
+    create: $makeRef("notifications", "create"),
+    getAll: $makeRef("notifications", "getAll"),
+    getUnreadCount: $makeRef("notifications", "getUnreadCount"),
+    markAsRead: $makeRef("notifications", "markAsRead"),
+    markAllAsRead: $makeRef("notifications", "markAllAsRead"),
+  },
 };
 
 export const internal = {

@@ -31,6 +31,15 @@ export const follow = mutation({
       followingId: args.followingId,
     });
 
+    // Create a notification for the followed user
+    await ctx.db.insert("devsync_notifications", {
+      userId: args.followingId,
+      type: "CONNECTION",
+      message: `${account.fullName} started following you`,
+      read: false,
+      actorId: account._id,
+    });
+
     return { success: true };
   },
 });

@@ -112,4 +112,17 @@ export default defineSchema({
     .index("by_follower", ["followerId"])
     .index("by_following", ["followingId"])
     .index("by_follower_following", ["followerId", "followingId"]),
+
+  devsync_notifications: defineTable({
+    userId: v.id("devsync_accounts"),
+    type: v.string(),
+    message: v.string(),
+    read: v.boolean(),
+    actorId: v.optional(v.id("devsync_accounts")),
+    referenceId: v.optional(v.string()),
+    referenceType: v.optional(v.string()),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_read", ["userId", "read"])
+    .index("by_created", ["_creationTime"]),
 });

@@ -1,4 +1,5 @@
 import { NavLink } from "react-router";
+import { useState, useEffect, useRef } from "react";
 import {
   LayoutDashboard,
   User,
@@ -11,6 +12,7 @@ import {
   Settings,
   Code2,
 } from "lucide-react";
+import { notificationService } from "@/services/notificationService";
 
 const navItems = [
   { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
@@ -25,6 +27,27 @@ const navItems = [
 ];
 
 export function Sidebar() {
+  const [unreadCount, setUnreadCount] = useState(0);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    const fetchCount = async () => {
+      try {
+        const count = await notificationService.getUnreadCount();
+        setUnreadCount(count);
+      } catch {
+        // Not authenticated or API not available
+      }
+    };
+
+    fetchCount();
+    intervalRef.current = setInterval(fetchCount, 15000);
+
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, []);
+
   return (
     <aside className="fixed left-0 top-0 bottom-0 w-56 border-r border-border/30 bg-sidebar z-40 flex flex-col">
       {/* Logo */}
@@ -51,10 +74,15 @@ export function Sidebar() {
           >
             {({ isActive }) => (
               <>
-                <div className={`w-4 h-4 shrink-0 transition-all duration-200 ${
+                <div className={`w-4 h-4 shrink-0 transition-all duration-200 relative ${
                   isActive ? "text-accent" : "text-muted-foreground group-hover:text-foreground"
                 }`}>
                   <item.icon className="w-4 h-4" />
+                  {item.label === "Notifications" && unreadCount > 0 && (
+                    <span className="absolute -top-1 -right-1.5 w-3.5 h-3.5 rounded-full bg-red-500 text-[8px] font-bold text-white flex items-center justify-center shadow-sm">
+                      {unreadCount > 9 ? "9+" : unreadCount}
+                    </span>
+                  )}
                 </div>
                 <span>{item.label}</span>
                 {isActive && (

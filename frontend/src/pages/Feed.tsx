@@ -17,13 +17,28 @@ import {
   ImagePlus,
   Users,
   Rss,
+  AtSign,
+  ChevronDown,
 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { postService, type Post, type Comment } from "@/services/postService";
 import { connectionService } from "@/services/connectionService";
 import { useDevSyncAuth } from "@/contexts/AuthContext";
+import { searchService } from "@/services/searchService";
 
 const ACCEPTED_FILE_TYPES = "image/*,.pdf";
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const POSTS_PER_PAGE = 10;
 
 // Format file size for display
 function formatFileSize(bytes: number): string {
@@ -34,14 +49,108 @@ function formatFileSize(bytes: number): string {
 
 type FeedTab = "all" | "following";
 
+/** Render rich project links in post content */
+function renderRichText(text: string) {
+  // Match project links like 🚀 Just shared my project: **Title**
+  // and repo URLs
+  const parts = text.split(/(\*\*[^*]+\*\*|https?:\/\/[^\s]+)/g);
+  return parts.map((part, i) => {
+    if (part.startsWith("**") && part.endsWith("**")) {
+      return (
+        <strong key={i} className="text-accent">
+          {part.slice(2, -2)}
+        </strong>
+      );
+    }
+    if (part.startsWith("http")) {
+      return (
+        <a
+          key={i}
+          href={part}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-accent underline underline-offset-2 hover:no-underline"
+        >
+          {part}
+        </a>
+      );
+    }
+    return part;
+  });
+}
+
+/** @mention suggestions component */
+function MentionSuggestions({
+  query,
+  onSelect,
+  position,
+}: {
+  query: string;
+  onSelect: (username: string) => void;
+  position: { top: number; left: number };
+}) {
+  const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!query || query.length < 1) {
+      setSuggestions([]);
+      return;
+    }
+    setLoading(true);
+    searchService
+      .search(query)
+      .then((r) => setSuggestions((r.developers || []).slice(0, 5)))
+      .catch(() => setSuggestions([]))
+      .finally(() => setLoading(false));
+  }, [query]);
+
+  if (suggestions.length === 0 && !loading) return null;
+
+  return (
+    <div
+      className="absolute z-50 bg-popover border border-border rounded-xl shadow-lg p-1 min-w-[200px]"
+      style={{ top: position.top, left: position.left }}
+    >
+      {loading ? (
+        <div className="px-3 py-2 text-xs text-muted-foreground flex items-center gap-2">
+          <Loader2 className="w-3 h-3 animate-spin" /> Searching...
+        </div>
+      ) : (
+        suggestions.map((user: any) => (
+          <button
+            key={user.id}
+            onClick={() => onSelect(user.username || user.fullName)}
+            className="w-full text-left px-3 py-2 text-xs rounded-lg hover:bg-accent/10 transition-colors flex items-center gap-2"
+          >
+            <AtSign className="w-3 h-3 text-muted-foreground" />
+            <span className="font-medium text-foreground">
+              {user.fullName}
+            </span>
+            <span className="text-muted-foreground">@{user.username}</span>
+          </button>
+        ))
+      )}
+    </div>
+  );
+}
+
 export default function Feed() {
   const { user } = useDevSyncAuth();
   const [feedTab, setFeedTab] = useState<FeedTab>("all");
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
   const [newContent, setNewContent] = useState("");
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // @mention state
+  const [mentionQuery, setMentionQuery] = useState("");
+  const [mentionPosition, setMentionPosition] = useState({ top: 0, left: 0 });
+  const [showMentions, setShowMentions] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // File upload state
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -56,10 +165,14 @@ export default function Feed() {
   const [comments, setComments] = useState<Record<string, Comment[]>>({});
   const [openComments, setOpenComments] = useState<Record<string, boolean>>({});
 
+  // Delete confirmation
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+
   const fetchFeed = useCallback(async () => {
     try {
-      const feed = await postService.getFeed(0, 50);
+      const feed = await postService.getFeed(0, POSTS_PER_PAGE);
       let allPosts = feed.content || [];
+      setHasMore(allPosts.length >= POSTS_PER_PAGE);
 
       // If on "following" tab, filter by following user IDs
       if (feedTab === "following" && user?.id) {
@@ -85,20 +198,71 @@ export default function Feed() {
     fetchFeed();
   }, [fetchFeed]);
 
+  // Infinite scroll - load more
+  const loadMore = async () => {
+    if (loadingMore || !hasMore) return;
+    setLoadingMore(true);
+    try {
+      const feed = await postService.getFeed(posts.length, POSTS_PER_PAGE);
+      const newPosts = feed.content || [];
+      setHasMore(newPosts.length >= POSTS_PER_PAGE);
+      setPosts((prev) => [...prev, ...newPosts]);
+    } catch (err) {
+      console.error("Failed to load more posts:", err);
+    } finally {
+      setLoadingMore(false);
+    }
+  };
+
+  // Handle @mention detection in textarea
+  const handleContentChange = (value: string) => {
+    setNewContent(value);
+
+    // Check for @mention pattern
+    const cursorPos = textareaRef.current?.selectionStart || value.length;
+    const textBeforeCursor = value.slice(0, cursorPos);
+    const atMatch = textBeforeCursor.match(/@(\w*)$/);
+
+    if (atMatch) {
+      setMentionQuery(atMatch[1]);
+      setShowMentions(true);
+      // Position the suggestions below the textarea
+      if (textareaRef.current) {
+        const rect = textareaRef.current.getBoundingClientRect();
+        setMentionPosition({ top: rect.height + 4, left: 0 });
+      }
+    } else {
+      setShowMentions(false);
+      setMentionQuery("");
+    }
+  };
+
+  const handleMentionSelect = (username: string) => {
+    const cursorPos = textareaRef.current?.selectionStart || newContent.length;
+    const textBeforeCursor = newContent.slice(0, cursorPos);
+    const textAfterCursor = newContent.slice(cursorPos);
+    const updatedText =
+      textBeforeCursor.replace(/@\w*$/, `@${username} `) + textAfterCursor;
+    setNewContent(updatedText);
+    setShowMentions(false);
+    setMentionQuery("");
+    textareaRef.current?.focus();
+  };
+
   // Handle file selection
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] || null;
     setError(null);
 
     if (file) {
-      // Validate file size
       if (file.size > MAX_FILE_SIZE) {
-        setError(`File too large. Maximum size is 10MB. Selected file is ${formatFileSize(file.size)}.`);
+        setError(
+          `File too large. Maximum size is 10MB. Selected file is ${formatFileSize(file.size)}.`,
+        );
         e.target.value = "";
         return;
       }
 
-      // Validate file type
       if (!file.type.startsWith("image/") && file.type !== "application/pdf") {
         setError("Only image files (PNG, JPG, WebP) and PDFs are supported.");
         e.target.value = "";
@@ -119,7 +283,6 @@ export default function Feed() {
       setFilePreview(null);
     }
 
-    // Reset input so the same file can be selected again
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
@@ -137,7 +300,6 @@ export default function Feed() {
       let fileUrl: string | undefined;
       let fileType: string | undefined;
 
-      // Upload file if selected
       if (selectedFile) {
         setUploading(true);
         const result = await postService.uploadFile(selectedFile);
@@ -190,6 +352,8 @@ export default function Feed() {
       setPosts((prev) => prev.filter((p) => p._id !== postId));
     } catch (err) {
       console.error("Failed to delete post:", err);
+    } finally {
+      setDeleteTarget(null);
     }
   };
 
@@ -221,16 +385,29 @@ export default function Feed() {
   };
 
   const formatDate = (timestamp: number) => {
-    return new Date(timestamp).toLocaleDateString();
+    return new Date(timestamp).toLocaleDateString(undefined, {
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
   };
 
   return (
-    <div>
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold tracking-tight text-foreground">
-          Developer Feed
-        </h1>
-        <p className="mt-1 text-sm text-muted-foreground">
+    <div className="relative">
+      {/* Subtle background decoration */}
+      <div className="absolute -top-20 -right-20 w-72 h-72 bg-gradient-to-bl from-accent/[0.03] to-transparent rounded-full blur-3xl pointer-events-none" />
+
+      <div className="mb-8 relative">
+        <div className="flex items-center gap-2 mb-1">
+          <div className="w-5 h-5 rounded-md bg-accent/10 flex items-center justify-center">
+            <Rss className="w-3 h-3 text-accent" />
+          </div>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">
+            Developer Feed
+          </h1>
+        </div>
+        <p className="ml-7 text-sm text-muted-foreground">
           {feedTab === "following"
             ? "Posts from people you follow"
             : "See what others are building"}
@@ -263,13 +440,26 @@ export default function Feed() {
 
       {/* Create Post */}
       <div className="border border-border/50 rounded-xl p-4 mb-6 bg-card">
-        <Textarea
-          value={newContent}
-          onChange={(e) => setNewContent(e.target.value)}
-          placeholder="Share what you're working on..."
-          rows={3}
-          className="text-sm resize-none border-0 p-0 focus-visible:ring-0 placeholder:text-muted-foreground bg-transparent"
-        />
+        <div className="relative">
+          <Textarea
+            ref={textareaRef}
+            value={newContent}
+            onChange={(e) => handleContentChange(e.target.value)}
+            placeholder="Share what you're working on... Use @ to mention someone"
+            rows={3}
+            className="text-sm resize-none border-0 p-0 focus-visible:ring-0 placeholder:text-muted-foreground bg-transparent"
+          />
+          {/* @mention suggestions */}
+          {showMentions && (
+            <div className="relative">
+              <MentionSuggestions
+                query={mentionQuery}
+                onSelect={handleMentionSelect}
+                position={mentionPosition}
+              />
+            </div>
+          )}
+        </div>
 
         {/* File Preview */}
         {filePreview && filePreview !== "pdf" && (
@@ -349,11 +539,7 @@ export default function Feed() {
           <Button
             size="sm"
             onClick={handleCreatePost}
-            disabled={
-              creating ||
-              uploading ||
-              (!newContent.trim() && !selectedFile)
-            }
+            disabled={creating || uploading || (!newContent.trim() && !selectedFile)}
             className="text-sm shadow-sm"
           >
             {creating || uploading ? (
@@ -389,25 +575,31 @@ export default function Feed() {
         <div className="border border-border/50 rounded-xl p-12 flex flex-col items-center text-center gap-4 bg-card">
           {feedTab === "following" ? (
             <>
-              <Users className="w-8 h-8 text-muted-foreground" />
+              <div className="w-12 h-12 rounded-2xl bg-accent/10 flex items-center justify-center ring-1 ring-accent/20">
+                <Users className="w-6 h-6 text-accent" />
+              </div>
               <div>
                 <h3 className="text-sm font-semibold text-foreground">
                   Nothing from followed users yet
                 </h3>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Search for developers to follow and their posts will appear here.
+                  Go to <strong>Search</strong> to find developers to follow.
+                  Their posts will appear here.
                 </p>
               </div>
             </>
           ) : (
             <>
-              <Sparkles className="w-8 h-8 text-muted-foreground" />
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-accent/20 to-accent/5 flex items-center justify-center ring-1 ring-accent/20">
+                <Sparkles className="w-6 h-6 text-accent" />
+              </div>
               <div>
                 <h3 className="text-sm font-semibold text-foreground">
                   No posts yet
                 </h3>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Be the first to share something!
+                <p className="text-sm text-muted-foreground mt-1 max-w-sm">
+                  The feed is empty! Share your first post above to get started,
+                  or check back later for updates from the community.
                 </p>
               </div>
             </>
@@ -419,11 +611,11 @@ export default function Feed() {
         {posts.map((post) => (
           <div
             key={post._id}
-            className="border border-border/50 rounded-xl p-5 bg-card"
+            className="border border-border/50 rounded-xl p-5 bg-card hover:border-accent/20 transition-all duration-200"
           >
             <div className="flex items-start justify-between mb-3">
               <div className="flex items-center gap-2">
-                <span className="text-xs text-muted-foreground">
+                <span className="text-xs font-medium text-foreground">
                   {post.user?.fullName || "Unknown"}
                 </span>
                 <span className="text-xs text-muted-foreground/50">·</span>
@@ -432,17 +624,41 @@ export default function Feed() {
                 </span>
               </div>
               {post.user?.id === user?.id && (
-                <button
-                  onClick={() => handleDelete(post._id)}
-                  className="text-muted-foreground hover:text-destructive transition-colors p-1 -mr-1 -mt-1"
+                <AlertDialog
+                  open={deleteTarget === post._id}
+                  onOpenChange={(open) =>
+                    setDeleteTarget(open ? post._id : null)
+                  }
                 >
-                  <Trash2 className="w-3.5 h-3.5" />
-                </button>
+                  <AlertDialogTrigger asChild>
+                    <button className="text-muted-foreground hover:text-destructive transition-colors p-1 -mr-1 -mt-1">
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Delete post?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This will permanently delete this post and all its
+                        comments and likes. This action cannot be undone.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={() => handleDelete(post._id)}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      >
+                        Delete
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               )}
             </div>
 
             <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">
-              {post.content}
+              {renderRichText(post.content)}
             </p>
 
             {/* Post file attachment */}
@@ -491,9 +707,7 @@ export default function Feed() {
                   }`}
                 />
                 {likeCounts[post._id] !== undefined
-                  ? `${likeCounts[post._id]} ${
-                      likeCounts[post._id] === 1 ? "like" : "likes"
-                    }`
+                  ? `${likeCounts[post._id]} ${likeCounts[post._id] === 1 ? "like" : "likes"}`
                   : `${post.likeCount} ${post.likeCount === 1 ? "like" : "likes"}`}
               </button>
               <button
@@ -527,7 +741,7 @@ export default function Feed() {
                   ))
                 ) : (
                   <p className="text-xs text-muted-foreground">
-                    No comments yet.
+                    No comments yet. Be the first to share your thoughts!
                   </p>
                 )}
                 <div className="flex gap-2 items-center">
@@ -539,7 +753,7 @@ export default function Feed() {
                         [post._id]: e.target.value,
                       }))
                     }
-                    placeholder="Write a comment..."
+                    placeholder="Write a comment... Use @ to mention"
                     className="text-sm h-8 border-0 border-b border-border/50 rounded-none px-0 focus-visible:ring-0 focus-visible:border-accent bg-transparent"
                     onKeyDown={(e) =>
                       e.key === "Enter" && handleComment(post._id)
@@ -557,6 +771,30 @@ export default function Feed() {
           </div>
         ))}
       </div>
+
+      {/* Load more */}
+      {!loading && hasMore && posts.length > 0 && (
+        <div className="mt-6 flex justify-center">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={loadMore}
+            disabled={loadingMore}
+            className="text-sm"
+          >
+            {loadingMore ? (
+              <>
+                <Loader2 className="mr-1.5 w-3.5 h-3.5 animate-spin" />{" "}
+                Loading...
+              </>
+            ) : (
+              <>
+                <ChevronDown className="mr-1.5 w-3.5 h-3.5" /> Load more posts
+              </>
+            )}
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

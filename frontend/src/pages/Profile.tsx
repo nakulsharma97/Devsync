@@ -1,16 +1,19 @@
 import { useDevSyncAuth } from "@/contexts/AuthContext";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { User, AtSign, Github, Linkedin, Globe, MapPin, Pencil, Save, Sparkles } from "lucide-react";
+import { User, AtSign, Github, Linkedin, Globe, MapPin, Pencil, Save, Sparkles, Loader2, Camera } from "lucide-react";
 import { userService } from "@/services/userService";
+import { postService } from "@/services/postService";
 
 export default function Profile() {
   const { user, isLoading } = useDevSyncAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
   const [form, setForm] = useState({
     fullName: "", username: "", bio: "", location: "",
     githubUsername: "", linkedinLink: "", portfolioWebsite: "",
@@ -90,14 +93,46 @@ export default function Profile() {
         <div className="bg-card border border-border/50 rounded-xl p-6 relative overflow-hidden group hover:border-accent/30 hover:shadow-lg hover:shadow-accent/5 transition-all duration-300">
           <div className="absolute inset-0 bg-gradient-to-br from-accent/[0.02] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
           <div className="flex items-center gap-5 relative">
-            <div className="relative">
-              <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-accent/20 to-accent/5 flex items-center justify-center ring-1 ring-accent/20 group-hover:ring-accent/30 transition-all duration-300 shadow-sm">
+            <div className="relative group/avatar">
+              <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-accent/20 to-accent/5 flex items-center justify-center ring-1 ring-accent/20 group-hover:ring-accent/30 transition-all duration-300 shadow-sm overflow-hidden">
                 {user?.avatarUrl ? (
-                  <img src={user.avatarUrl} alt="" className="w-20 h-20 rounded-2xl object-cover" />
+                  <img src={user.avatarUrl} alt="" className="w-full h-full object-cover" />
                 ) : (
                   <User className="w-8 h-8 text-accent" />
                 )}
+                {/* Avatar upload overlay */}
+                <button
+                  onClick={() => avatarInputRef.current?.click()}
+                  disabled={uploadingAvatar}
+                  className="absolute inset-0 bg-black/40 opacity-0 group-hover/avatar:opacity-100 transition-opacity duration-200 flex items-center justify-center rounded-2xl"
+                >
+                  {uploadingAvatar ? (
+                    <Loader2 className="w-5 h-5 text-white animate-spin" />
+                  ) : (
+                    <Camera className="w-5 h-5 text-white" />
+                  )}
+                </button>
               </div>
+              <input
+                ref={avatarInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  setUploadingAvatar(true);
+                  try {
+                    const result = await postService.uploadFile(file);
+                    await userService.updateProfile({ avatarUrl: result.url });
+                    window.location.reload();
+                  } catch (err) {
+                    console.error("Failed to upload avatar:", err);
+                  } finally {
+                    setUploadingAvatar(false);
+                  }
+                }}
+              />
               {user && (
                 <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-green-500 border-2 border-card shadow-sm" />
               )}

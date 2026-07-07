@@ -10,6 +10,7 @@ export interface UserProfileRequest {
   githubUsername?: string;
   linkedinLink?: string;
   portfolioWebsite?: string;
+  avatarUrl?: string;
 }
 
 export interface User {

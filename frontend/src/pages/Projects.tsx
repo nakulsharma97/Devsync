@@ -3,6 +3,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Plus, FolderGit2, ExternalLink, Github, Trash2, Send, Check } from "lucide-react";
 import { projectService, type Project, type ProjectRequest } from "@/services/projectService";
 import { postService } from "@/services/postService";
@@ -14,6 +25,7 @@ export default function Projects() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const [form, setForm] = useState<ProjectRequest>(emptyForm);
 
   const fetchProjects = async () => {
@@ -87,10 +99,25 @@ export default function Projects() {
             <div key={project.id} className="border border-border/50 rounded-xl p-5 bg-card hover:border-accent/30 transition-all duration-200 hover:shadow-sm group">
               <div className="flex items-start justify-between mb-3">
                 <h3 className="text-sm font-semibold text-foreground">{project.title}</h3>
-                <button onClick={() => handleDelete(project.id)}
-                  className="opacity-0 group-hover:opacity-100 transition-all text-muted-foreground hover:text-destructive p-1 -mr-1 -mt-1">
-                  <Trash2 className="w-3.5 h-3.5" />
-                </button>
+                <AlertDialog open={deleteTarget === project.id} onOpenChange={(open) => setDeleteTarget(open ? project.id : null)}>
+                  <AlertDialogTrigger asChild>
+                    <button className="opacity-0 group-hover:opacity-100 transition-all text-muted-foreground hover:text-destructive p-1 -mr-1 -mt-1">
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Delete project?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This will permanently delete <strong>{project.title}</strong> and all its data. This action cannot be undone.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={() => handleDelete(project.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete</AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </div>
               <p className="text-xs text-muted-foreground line-clamp-3 leading-relaxed mb-3">
                 {project.description || "No description provided."}
