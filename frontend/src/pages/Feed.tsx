@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import { useNavigate } from "react-router";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
@@ -16,6 +17,8 @@ import {
   AlertCircle,
   ImagePlus,
   Users,
+  UserPlus,
+  User,
   Rss,
   AtSign,
   ChevronDown,
@@ -38,6 +41,7 @@ import { useDevSyncAuth } from "@/contexts/AuthContext";
 import { searchService } from "@/services/searchService";
 import { reactionService, REACTION_LIST, type EmojiReaction } from "@/services/reactionService";
 import { PostSkeleton } from "@/components/Shimmer";
+import { notificationService, type FollowEvent } from "@/services/notificationService";
 import { toast } from "sonner";
 
 const ACCEPTED_FILE_TYPES = "image/*,.pdf";
@@ -141,6 +145,7 @@ function MentionSuggestions({
 
 export default function Feed() {
   const { user } = useDevSyncAuth();
+  const navigate = useNavigate();
   const [feedTab, setFeedTab] = useState<FeedTab>("all");
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
@@ -149,6 +154,9 @@ export default function Feed() {
   const [newContent, setNewContent] = useState("");
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Follow events (displayed as inline feed items)
+  const [followEvents, setFollowEvents] = useState<FollowEvent[]>([]);
 
   // @mention state
   const [mentionQuery, setMentionQuery] = useState("");
@@ -205,6 +213,19 @@ export default function Feed() {
   useEffect(() => {
     fetchFeed();
   }, [fetchFeed]);
+
+  // Fetch recent follow notifications
+  useEffect(() => {
+    const fetchFollowEvents = async () => {
+      try {
+        const events = await notificationService.getFollowFeed();
+        setFollowEvents(events.slice(0, 5));
+      } catch {
+        // ignore
+      }
+    };
+    fetchFollowEvents();
+  }, []);
 
   // Load reactions for all visible posts
   useEffect(() => {
@@ -631,6 +652,59 @@ export default function Feed() {
               </div>
             </>
           )}
+        </div>
+      )}
+
+      {/* Follow events — recent followers */}
+      {followEvents.length > 0 && (
+        <div className="mb-6 space-y-2">
+          <div className="flex items-center gap-1.5 mb-2 text-xs text-muted-foreground/60 uppercase tracking-wider font-medium">
+            <UserPlus className="w-3 h-3" />
+            <span>Recent followers</span>
+          </div>
+          {followEvents.map((ev) => (
+            <div
+              key={ev._id}
+              className="border border-green-500/20 bg-green-500/5 rounded-xl p-4 flex items-center gap-3"
+            >
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-accent/20 to-accent/5 flex items-center justify-center shrink-0 ring-1 ring-accent/20 overflow-hidden">
+                {ev.actorAvatar ? (
+                  <img src={ev.actorAvatar} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  <User className="w-4 h-4 text-accent" />
+                )}
+              </div>
+              <div className="flex-1">
+                <p className="text-sm text-foreground">
+                  <span
+                    className="font-semibold hover:text-accent cursor-pointer"
+                    onClick={() => navigate(`/profile/${ev.actorId}`)}
+                  >
+                    {ev.actorName}
+                  </span>{" "}
+                  <span className="text-muted-foreground">started following you</span>
+                </p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {new Date(ev.createdAt).toLocaleDateString(undefined, {
+                    month: "short",
+                    day: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  if (ev.actorId) {
+                    navigate(`/profile/${ev.actorId}`);
+                  }
+                }}
+                className="text-xs text-accent hover:text-accent/80 font-medium shrink-0"
+              >
+                View profile
+              </button>
+            </div>
+          ))}
         </div>
       )}
 

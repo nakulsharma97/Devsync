@@ -27,6 +27,11 @@ export const notificationService = {
     return await convexClient.query(api.notifications.getAll, { token });
   },
 
+  async getFollowFeed(): Promise<FollowEvent[]> {
+    const token = getToken();
+    return await convexClient.query(api.notifications.getFollowFeed, { token });
+  },
+
   async getUnreadCount(): Promise<number> {
     const token = getToken();
     return await convexClient.query(api.notifications.getUnreadCount, { token });
@@ -45,5 +50,15 @@ export const notificationService = {
     await convexClient.mutation(api.notifications.markAllAsRead, { token });
   },
 };
+
+export interface FollowEvent {
+  _id: string;
+  type: "follow";
+  actorName: string;
+  actorAvatar?: string;
+  actorUsername: string;
+  actorId?: string;
+  createdAt: number;
+}
 
 export type { Notification as NotificationType };

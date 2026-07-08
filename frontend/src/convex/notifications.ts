@@ -81,6 +81,53 @@ export const getAll = query({
 });
 
 /**
+ * Get recent CONNECTION-type notifications (for displaying in the feed).
+ */
+export const getFollowFeed = query({
+  args: { token: v.string() },
+  handler: async (ctx, args) => {
+    const account = await ctx.db
+      .query("devsync_accounts")
+      .withIndex("by_token", (q) => q.eq("token", args.token))
+      .unique();
+    if (!account) return [];
+
+    const notifications = await ctx.db
+      .query("devsync_notifications")
+      .withIndex("by_user", (q) => q.eq("userId", account._id))
+      .order("desc")
+      .take(20);
+
+    const followEvents = notifications.filter((n) => n.type === "CONNECTION");
+
+    return await Promise.all(
+      followEvents.map(async (n) => {
+        let actorName = "Someone";
+        let actorAvatar: string | undefined;
+        let actorUsername = "";
+        if (n.actorId) {
+          const actor = await ctx.db.get(n.actorId);
+          if (actor) {
+            actorName = actor.fullName;
+            actorAvatar = actor.avatarUrl;
+            actorUsername = actor.username;
+          }
+        }
+        return {
+          _id: n._id,
+          type: "follow" as const,
+          actorName,
+          actorAvatar,
+          actorUsername,
+          actorId: n.actorId,
+          createdAt: n._creationTime,
+        };
+      }),
+    );
+  },
+});
+
+/**
  * Get unread notification count for the authenticated user.
  */
 export const getUnreadCount = query({
