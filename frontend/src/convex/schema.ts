@@ -182,4 +182,11 @@ export default defineSchema({
   })
     .index("by_conversation", ["conversationId"])
     .index("by_conversation_user", ["conversationId", "userId"]),
+
+  // ── User online presence ─────────────────────────────
+  devsync_presence: defineTable({
+    userId: v.id("devsync_accounts"),
+    lastSeenAt: v.number(),
+  })
+    .index("by_user", ["userId"]),
 });
