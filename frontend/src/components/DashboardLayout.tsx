@@ -2,12 +2,14 @@ import { Outlet, useLocation } from "react-router";
 import { motion } from "framer-motion";
 import { Sidebar } from "@/components/Sidebar";
 import { Navbar } from "@/components/Navbar";
+import { ToastNotificationProvider } from "@/components/ToastNotificationProvider";
 
 export function DashboardLayout() {
   const location = useLocation();
 
   return (
     <div className="min-h-screen bg-background">
+      <ToastNotificationProvider />
       <Sidebar />
       <Navbar />
       <main className="pl-56 pt-14 min-h-screen">
