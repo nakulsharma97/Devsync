@@ -29,9 +29,18 @@ export function ThemeToggle() {
 
   const handleToggle = () => {
     setIsRotating(true);
+
+    // Brief full-page blur overlay during theme transition
+    const html = document.documentElement;
+    html.classList.add("theme-switching");
+
     setTheme(isDark ? "light" : "dark");
-    // Reset rotation state after animation completes
-    setTimeout(() => setIsRotating(false), 300);
+
+    // Remove overlay and reset rotation after animation completes
+    setTimeout(() => {
+      html.classList.remove("theme-switching");
+      setIsRotating(false);
+    }, 500);
   };
 
   return (

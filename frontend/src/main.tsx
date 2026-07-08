@@ -4,7 +4,7 @@ import { VlyToolbar } from "../vly-toolbar-readonly.tsx";
 import { InstrumentationProvider } from "@/instrumentation.tsx";
 import { ConvexAuthProvider } from "@convex-dev/auth/react";
 import { ConvexReactClient } from "convex/react";
-import { StrictMode, useEffect, lazy } from "react";
+import { StrictMode, useEffect, lazy, useCallback } from "react";
 
 // Direct import for Landing (avoids stale dynamic chunk cache issues)
 import Landing from "./pages/Landing.tsx";
@@ -63,6 +63,18 @@ function RouteSyncer() {
   return null;
 }
 
+/** Enable theme transitions after initial paint to avoid flash on load */
+function ThemeBootstrap() {
+  useEffect(() => {
+    // Small delay ensures the first paint happens before transitions activate
+    const id = requestAnimationFrame(() => {
+      document.documentElement.classList.add("theme-ready");
+    });
+    return () => cancelAnimationFrame(id);
+  }, []);
+  return null;
+}
+
 function AnimatedRoutes() {
   const location = useLocation();
 
@@ -102,6 +114,7 @@ createRoot(document.getElementById("root")!).render(
         <ConvexAuthProvider client={convex}>
           <BrowserRouter>
             <RouteSyncer />
+            <ThemeBootstrap />
             <AuthProvider>                <AnimatedRoutes />
             </AuthProvider>
             <Toaster />
