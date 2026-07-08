@@ -81,9 +81,9 @@ export const getAll = query({
 });
 
 /**
- * Get recent CONNECTION-type notifications (for displaying in the feed).
+ * Get recent activity events (LIKE, COMMENT, CONNECTION) for displaying in the feed.
  */
-export const getFollowFeed = query({
+export const getActivityFeed = query({
   args: { token: v.string() },
   handler: async (ctx, args) => {
     const account = await ctx.db
@@ -92,16 +92,15 @@ export const getFollowFeed = query({
       .unique();
     if (!account) return [];
 
+    // Fetch the latest 30 notifications
     const notifications = await ctx.db
       .query("devsync_notifications")
       .withIndex("by_user", (q) => q.eq("userId", account._id))
       .order("desc")
-      .take(20);
-
-    const followEvents = notifications.filter((n) => n.type === "CONNECTION");
+      .take(30);
 
     return await Promise.all(
-      followEvents.map(async (n) => {
+      notifications.map(async (n) => {
         let actorName = "Someone";
         let actorAvatar: string | undefined;
         let actorUsername = "";
@@ -113,6 +112,36 @@ export const getFollowFeed = query({
             actorUsername = actor.username;
           }
         }
+        // Only include the event type, not the raw notification
+        if (n.type === "LIKE") {
+          return {
+            _id: n._id,
+            type: "like" as const,
+            actorName,
+            actorAvatar,
+            actorUsername,
+            actorId: n.actorId,
+            referenceId: n.referenceId,
+            referenceType: n.referenceType,
+            message: n.message,
+            createdAt: n._creationTime,
+          };
+        }
+        if (n.type === "COMMENT") {
+          return {
+            _id: n._id,
+            type: "comment" as const,
+            actorName,
+            actorAvatar,
+            actorUsername,
+            actorId: n.actorId,
+            referenceId: n.referenceId,
+            referenceType: n.referenceType,
+            message: n.message,
+            createdAt: n._creationTime,
+          };
+        }
+        // CONNECTION
         return {
           _id: n._id,
           type: "follow" as const,

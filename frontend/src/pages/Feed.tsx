@@ -41,7 +41,7 @@ import { useDevSyncAuth } from "@/contexts/AuthContext";
 import { searchService } from "@/services/searchService";
 import { reactionService, REACTION_LIST, type EmojiReaction } from "@/services/reactionService";
 import { PostSkeleton } from "@/components/Shimmer";
-import { notificationService, type FollowEvent } from "@/services/notificationService";
+import { notificationService, type ActivityEvent } from "@/services/notificationService";
 import { toast } from "sonner";
 
 const ACCEPTED_FILE_TYPES = "image/*,.pdf";
@@ -155,8 +155,8 @@ export default function Feed() {
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Follow events (displayed as inline feed items)
-  const [followEvents, setFollowEvents] = useState<FollowEvent[]>([]);
+  // Activity events (likes, comments, follows shown as inline feed items)
+  const [activityEvents, setActivityEvents] = useState<ActivityEvent[]>([]);
 
   // @mention state
   const [mentionQuery, setMentionQuery] = useState("");
@@ -214,17 +214,17 @@ export default function Feed() {
     fetchFeed();
   }, [fetchFeed]);
 
-  // Fetch recent follow notifications
+  // Fetch recent activity events (likes, comments, follows)
   useEffect(() => {
-    const fetchFollowEvents = async () => {
+    const fetchActivity = async () => {
       try {
-        const events = await notificationService.getFollowFeed();
-        setFollowEvents(events.slice(0, 5));
+        const events = await notificationService.getActivityFeed();
+        setActivityEvents(events.slice(0, 10));
       } catch {
         // ignore
       }
     };
-    fetchFollowEvents();
+    fetchActivity();
   }, []);
 
   // Load reactions for all visible posts
@@ -655,17 +655,23 @@ export default function Feed() {
         </div>
       )}
 
-      {/* Follow events — recent followers */}
-      {followEvents.length > 0 && (
+      {/* Activity events — likes, comments, follows */}
+      {activityEvents.length > 0 && (
         <div className="mb-6 space-y-2">
           <div className="flex items-center gap-1.5 mb-2 text-xs text-muted-foreground/60 uppercase tracking-wider font-medium">
-            <UserPlus className="w-3 h-3" />
-            <span>Recent followers</span>
+            <Heart className="w-3 h-3" />
+            <span>Recent activity</span>
           </div>
-          {followEvents.map((ev) => (
+          {activityEvents.map((ev) => (
             <div
               key={ev._id}
-              className="border border-green-500/20 bg-green-500/5 rounded-xl p-4 flex items-center gap-3"
+              className={`rounded-xl p-4 flex items-center gap-3 border ${
+                ev.type === "follow"
+                  ? "border-green-500/20 bg-green-500/5"
+                  : ev.type === "like"
+                    ? "border-red-500/20 bg-red-500/5"
+                    : "border-blue-500/20 bg-blue-500/5"
+              }`}
             >
               <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-accent/20 to-accent/5 flex items-center justify-center shrink-0 ring-1 ring-accent/20 overflow-hidden">
                 {ev.actorAvatar ? (
@@ -678,11 +684,15 @@ export default function Feed() {
                 <p className="text-sm text-foreground">
                   <span
                     className="font-semibold hover:text-accent cursor-pointer"
-                    onClick={() => navigate(`/profile/${ev.actorId}`)}
+                    onClick={() => ev.actorId && navigate(`/profile/${ev.actorId}`)}
                   >
                     {ev.actorName}
                   </span>{" "}
-                  <span className="text-muted-foreground">started following you</span>
+                  <span className="text-muted-foreground">
+                    {ev.type === "follow" && "started following you"}
+                    {ev.type === "like" && "liked your post"}
+                    {ev.type === "comment" && "commented on your post"}
+                  </span>
                 </p>
                 <p className="text-xs text-muted-foreground mt-0.5">
                   {new Date(ev.createdAt).toLocaleDateString(undefined, {
@@ -693,16 +703,29 @@ export default function Feed() {
                   })}
                 </p>
               </div>
-              <button
-                onClick={() => {
-                  if (ev.actorId) {
-                    navigate(`/profile/${ev.actorId}`);
-                  }
-                }}
-                className="text-xs text-accent hover:text-accent/80 font-medium shrink-0"
-              >
-                View profile
-              </button>
+              <div className="flex items-center gap-2 shrink-0">
+                <span
+                  className={`${
+                    ev.type === "follow"
+                      ? "text-green-500"
+                      : ev.type === "like"
+                        ? "text-red-500"
+                        : "text-blue-500"
+                  }`}
+                >
+                  {ev.type === "follow" && <UserPlus className="w-4 h-4" />}
+                  {ev.type === "like" && <Heart className="w-4 h-4 fill-current" />}
+                  {ev.type === "comment" && <MessageCircle className="w-4 h-4" />}
+                </span>
+                {ev.actorId && (
+                  <button
+                    onClick={() => navigate(`/profile/${ev.actorId}`)}
+                    className="text-xs text-accent hover:text-accent/80 font-medium"
+                  >
+                    View
+                  </button>
+                )}
+              </div>
             </div>
           ))}
         </div>

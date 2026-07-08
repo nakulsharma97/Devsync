@@ -27,9 +27,9 @@ export const notificationService = {
     return await convexClient.query(api.notifications.getAll, { token });
   },
 
-  async getFollowFeed(): Promise<FollowEvent[]> {
+  async getActivityFeed(): Promise<ActivityEvent[]> {
     const token = getToken();
-    return await convexClient.query(api.notifications.getFollowFeed, { token });
+    return await convexClient.query(api.notifications.getActivityFeed, { token });
   },
 
   async getUnreadCount(): Promise<number> {
@@ -51,14 +51,39 @@ export const notificationService = {
   },
 };
 
-export interface FollowEvent {
-  _id: string;
-  type: "follow";
-  actorName: string;
-  actorAvatar?: string;
-  actorUsername: string;
-  actorId?: string;
-  createdAt: number;
-}
+export type ActivityEvent =
+  | {
+      _id: string;
+      type: "like";
+      actorName: string;
+      actorAvatar?: string;
+      actorUsername: string;
+      actorId?: string;
+      referenceId?: string;
+      referenceType?: string;
+      message: string;
+      createdAt: number;
+    }
+  | {
+      _id: string;
+      type: "comment";
+      actorName: string;
+      actorAvatar?: string;
+      actorUsername: string;
+      actorId?: string;
+      referenceId?: string;
+      referenceType?: string;
+      message: string;
+      createdAt: number;
+    }
+  | {
+      _id: string;
+      type: "follow";
+      actorName: string;
+      actorAvatar?: string;
+      actorUsername: string;
+      actorId?: string;
+      createdAt: number;
+    };
 
 export type { Notification as NotificationType };

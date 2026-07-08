@@ -105,7 +105,7 @@ export const api = {
   notifications: {
     create: $makeRef("notifications", "create"),
     getAll: $makeRef("notifications", "getAll"),
-    getFollowFeed: $makeRef("notifications", "getFollowFeed"),
+    getActivityFeed: $makeRef("notifications", "getActivityFeed"),
     getUnreadCount: $makeRef("notifications", "getUnreadCount"),
     markAsRead: $makeRef("notifications", "markAsRead"),
     markAllAsRead: $makeRef("notifications", "markAllAsRead"),
