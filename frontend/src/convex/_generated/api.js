@@ -95,6 +95,11 @@ export const api = {
     getFollowerCount: $makeRef("connections", "getFollowerCount"),
     getFollowingCount: $makeRef("connections", "getFollowingCount"),
   },
+  typing: {
+    startTyping: $makeRef("typing", "startTyping"),
+    stopTyping: $makeRef("typing", "stopTyping"),
+    getTypingUsers: $makeRef("typing", "getTypingUsers"),
+  },
   notifications: {
     create: $makeRef("notifications", "create"),
     getAll: $makeRef("notifications", "getAll"),

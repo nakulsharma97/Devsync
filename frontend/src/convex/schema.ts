@@ -173,4 +173,13 @@ export default defineSchema({
   })
     .index("by_post_user_emoji", ["postId", "userId", "emoji"])
     .index("by_post", ["postId"]),
+
+  // ── Typing status for conversations ────────────────────
+  devsync_typing_status: defineTable({
+    conversationId: v.id("devsync_conversations"),
+    userId: v.id("devsync_accounts"),
+    lastTypingAt: v.number(),
+  })
+    .index("by_conversation", ["conversationId"])
+    .index("by_conversation_user", ["conversationId", "userId"]),
 });

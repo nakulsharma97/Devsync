@@ -12,6 +12,8 @@ import {
   Sparkles,
 } from "lucide-react";
 import { EmojiPicker } from "@/components/EmojiPicker";
+import { TypingIndicator } from "@/components/TypingIndicator";
+import { typingService } from "@/services/typingService";
 import { conversationService, type Conversation } from "@/services/conversationService";
 import { messageService, type Message } from "@/services/messageService";
 
@@ -101,8 +103,12 @@ function ChatView({
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [typingNames, setTypingNames] = useState<string[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const typingPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const lastTypingPing = useRef(0);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const fetchMessages = useCallback(async () => {
     try {
@@ -129,12 +135,50 @@ function ChatView({
     }
   }, [messages]);
 
+  // Debounced typing ping — updates server every 2s max while typing
+  const pingTyping = useCallback(async () => {
+    const now = Date.now();
+    if (now - lastTypingPing.current < 2000) return;
+    lastTypingPing.current = now;
+    try {
+      await typingService.startTyping(conversationId);
+    } catch { /* ignore */ }
+  }, [conversationId]);
+
+  // Handle input change — trigger typing ping + update input
+  const onInputChange = useCallback(
+    (value: string) => {
+      setInput(value);
+      if (value.trim()) {
+        pingTyping();
+      }
+    },
+    [pingTyping],
+  );
+
+  // Poll for other users typing
+  useEffect(() => {
+    const fetchTyping = async () => {
+      try {
+        const names = await typingService.getTypingUsers(conversationId);
+        setTypingNames(names);
+      } catch { /* ignore */ }
+    };
+    fetchTyping();
+    typingPollRef.current = setInterval(fetchTyping, 3000);
+    return () => {
+      if (typingPollRef.current) clearInterval(typingPollRef.current);
+    };
+  }, [conversationId]);
+
   const handleSend = async () => {
     if (!input.trim() || sending) return;
     setSending(true);
     try {
       await messageService.send(conversationId, input.trim());
       setInput("");
+      await typingService.stopTyping(conversationId);
+      lastTypingPing.current = 0;
       await fetchMessages();
     } catch (err) {
       console.error("Failed to send message:", err);
@@ -159,6 +203,8 @@ function ChatView({
 
       {/* Messages */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-3">
+        {/* Typing indicator */}
+        <TypingIndicator names={typingNames} />
         {loading && (
           <div className="flex items-center justify-center py-8">
             <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
@@ -210,8 +256,9 @@ function ChatView({
               disabled={sending}
             />
             <Input
+              ref={inputRef}
               value={input}
-              onChange={(e) => setInput(e.target.value)}
+              onChange={(e) => onInputChange(e.target.value)}
               placeholder="Type a message..."
               className="flex-1 text-sm bg-transparent border-0 focus-visible:ring-0 px-0"
               onKeyDown={(e) => e.key === "Enter" && handleSend()}
