@@ -11,6 +11,7 @@ import {
   User,
   Sparkles,
 } from "lucide-react";
+import { EmojiPicker } from "@/components/EmojiPicker";
 import { conversationService, type Conversation } from "@/services/conversationService";
 import { messageService, type Message } from "@/services/messageService";
 
@@ -203,13 +204,19 @@ function ChatView({
       {/* Input */}
       <div className="p-4 border-t border-border/50">
         <div className="flex items-center gap-2">
-          <Input
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Type a message..."
-            className="text-sm bg-muted/30 border-0 focus-visible:ring-1 focus-visible:ring-accent/30"
-            onKeyDown={(e) => e.key === "Enter" && handleSend()}
-          />
+          <div className="flex items-center gap-1 flex-1 bg-muted/30 rounded-lg px-3">
+            <EmojiPicker
+              onSelect={(emoji) => setInput((prev) => prev + emoji)}
+              disabled={sending}
+            />
+            <Input
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder="Type a message..."
+              className="flex-1 text-sm bg-transparent border-0 focus-visible:ring-0 px-0"
+              onKeyDown={(e) => e.key === "Enter" && handleSend()}
+            />
+          </div>
           <Button
             size="icon"
             onClick={handleSend}
