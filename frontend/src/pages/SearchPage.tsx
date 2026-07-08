@@ -1,9 +1,11 @@
 import { useState, useEffect, useCallback } from "react";
 import { Input } from "@/components/ui/input";
-import { Search, Users, FolderGit2, Bookmark, User, UserPlus, UserCheck } from "lucide-react";
+import { Search, Users, FolderGit2, Bookmark, User, UserPlus, UserCheck, MessageCircle } from "lucide-react";
 import { searchService, type SearchResults } from "@/services/searchService";
 import { connectionService } from "@/services/connectionService";
+import { conversationService } from "@/services/conversationService";
 import { useDevSyncAuth } from "@/contexts/AuthContext";
+import { useNavigate } from "react-router";
 
 type TabKey = "developers" | "projects" | "bookmarks";
 
@@ -55,8 +57,23 @@ function FollowButton({ userId }: { userId: string }) {
   );
 }
 
-/** Developer card with follow button */
+/** Developer card with follow + message buttons */
 function DevUserCard({ dev }: { dev: any }) {
+  const navigate = useNavigate();
+  const [sending, setSending] = useState(false);
+
+  const handleMessage = async () => {
+    if (sending) return;
+    setSending(true);
+    try {
+      const { conversationId } = await conversationService.createOrGet(dev.id);
+      navigate(`/messages/${conversationId}`);
+    } catch (err) {
+      console.error("Failed to start conversation:", err);
+    }
+    setSending(false);
+  };
+
   return (
     <div className="border border-border/50 rounded-xl p-4 flex items-center gap-3 bg-card hover:border-accent/20 transition-colors">
       <div className="w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center ring-1 ring-accent/20 shrink-0">
@@ -66,7 +83,17 @@ function DevUserCard({ dev }: { dev: any }) {
         <p className="text-sm font-medium text-foreground">{dev.fullName || dev.username}</p>
         <p className="text-xs text-muted-foreground">@{dev.username}</p>
       </div>
-      <FollowButton userId={dev.id} />
+      <div className="flex items-center gap-1.5">
+        <button
+          onClick={handleMessage}
+          disabled={sending}
+          className="flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg transition-all border border-border/50 hover:border-accent/20 hover:bg-accent/5 text-muted-foreground hover:text-foreground shrink-0"
+        >
+          <MessageCircle className="w-3 h-3" />
+          Message
+        </button>
+        <FollowButton userId={dev.id} />
+      </div>
     </div>
   );
 }
