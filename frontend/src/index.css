@@ -199,6 +199,13 @@
   }
 }
 
+/* ── Shimmer animation ───────────────────── */
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
 /* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 6px;

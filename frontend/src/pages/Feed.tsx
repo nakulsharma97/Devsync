@@ -19,6 +19,7 @@ import {
   Rss,
   AtSign,
   ChevronDown,
+  Share2,
 } from "lucide-react";
 import {
   AlertDialog,
@@ -35,6 +36,9 @@ import { postService, type Post, type Comment } from "@/services/postService";
 import { connectionService } from "@/services/connectionService";
 import { useDevSyncAuth } from "@/contexts/AuthContext";
 import { searchService } from "@/services/searchService";
+import { reactionService, REACTION_LIST, type EmojiReaction } from "@/services/reactionService";
+import { PostSkeleton } from "@/components/Shimmer";
+import { toast } from "sonner";
 
 const ACCEPTED_FILE_TYPES = "image/*,.pdf";
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
@@ -165,6 +169,10 @@ export default function Feed() {
   const [comments, setComments] = useState<Record<string, Comment[]>>({});
   const [openComments, setOpenComments] = useState<Record<string, boolean>>({});
 
+  // Reaction state
+  const [postReactions, setPostReactions] = useState<Record<string, Record<string, { count: number; users: string[] }>>>({});
+  const [userReactions, setUserReactions] = useState<Record<string, string[]>>({});
+
   // Delete confirmation
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
 
@@ -197,6 +205,26 @@ export default function Feed() {
   useEffect(() => {
     fetchFeed();
   }, [fetchFeed]);
+
+  // Load reactions for all visible posts
+  useEffect(() => {
+    if (posts.length === 0) return;
+    const loadReactions = async () => {
+      for (const post of posts) {
+        try {
+          const [allReactions, userReacts] = await Promise.all([
+            reactionService.getForPost(post._id),
+            reactionService.getUserReactions(post._id),
+          ]);
+          setPostReactions((prev) => ({ ...prev, [post._id]: allReactions }));
+          setUserReactions((prev) => ({ ...prev, [post._id]: userReacts }));
+        } catch {
+          // ignore
+        }
+      }
+    };
+    loadReactions();
+  }, [posts]);
 
   // Infinite scroll - load more
   const loadMore = async () => {
@@ -393,6 +421,12 @@ export default function Feed() {
     });
   };
 
+  const readingTime = (text: string) => {
+    const words = text.split(/\s+/).filter(Boolean).length;
+    const minutes = Math.ceil(words / 200);
+    return minutes < 1 ? "<1 min read" : `${minutes} min read`;
+  };
+
   return (
     <div className="relative">
       {/* Subtle background decoration */}
@@ -559,14 +593,7 @@ export default function Feed() {
       {loading && (
         <div className="space-y-4">
           {[1, 2, 3].map((i) => (
-            <div
-              key={i}
-              className="border border-border/50 rounded-xl p-5 animate-pulse bg-card"
-            >
-              <div className="h-3 bg-muted rounded w-1/3 mb-3" />
-              <div className="h-2 bg-muted rounded w-full mb-2" />
-              <div className="h-2 bg-muted rounded w-2/3" />
-            </div>
+            <PostSkeleton key={i} />
           ))}
         </div>
       )}
@@ -622,6 +649,10 @@ export default function Feed() {
                 <span className="text-xs text-muted-foreground">
                   {formatDate(post.createdAt)}
                 </span>
+                <span className="text-xs text-muted-foreground/50">·</span>
+                <span className="text-xs text-muted-foreground">
+                  {readingTime(post.content)}
+                </span>
               </div>
               {post.user?.id === user?.id && (
                 <AlertDialog
@@ -662,6 +693,44 @@ export default function Feed() {
             </p>
 
             {/* Post file attachment */}
+            {/* Emoji Reactions */}
+            <div className="flex items-center gap-1 mt-3 flex-wrap">
+              {REACTION_LIST.map((emoji) => {
+                const reactions = postReactions[post._id]?.[emoji];
+                const isActive = userReactions[post._id]?.includes(emoji);
+                return (
+                  <button
+                    key={emoji}
+                    onClick={async () => {
+                      try {
+                        const result = await reactionService.toggle(post._id, emoji as EmojiReaction);
+                        // Refresh reactions
+                        const [allReactions, userReacts] = await Promise.all([
+                          reactionService.getForPost(post._id),
+                          reactionService.getUserReactions(post._id),
+                        ]);
+                        setPostReactions((prev) => ({ ...prev, [post._id]: allReactions }));
+                        setUserReactions((prev) => ({ ...prev, [post._id]: userReacts }));
+                      } catch (err) {
+                        console.error("Failed to toggle reaction:", err);
+                      }
+                    }}
+                    className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs border transition-all duration-200 ${
+                      isActive
+                        ? "bg-accent/15 border-accent/30 text-accent scale-105"
+                        : "bg-transparent border-border/30 text-muted-foreground hover:border-accent/30 hover:text-foreground hover:bg-accent/5"
+                    }`}
+                    title={reactions?.users?.join(", ") || emoji}
+                  >
+                    <span className="text-sm">{emoji}</span>
+                    {reactions && reactions.count > 0 && (
+                      <span className="text-[10px] font-medium">{reactions.count}</span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
             {post.fileUrl && (
               <div className="mt-3">
                 {post.fileType?.startsWith("image/") ? (
@@ -718,6 +787,18 @@ export default function Feed() {
                 {post.commentCount > 0
                   ? `${post.commentCount} comments`
                   : "Comment"}
+              </button>
+              {/* Share button */}
+              <button
+                onClick={() => {
+                  const url = `${window.location.origin}/feed?post=${post._id}`;
+                  navigator.clipboard.writeText(url);
+                  toast.success("Link copied to clipboard!");
+                }}
+                className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                title="Share"
+              >
+                <Share2 className="w-3.5 h-3.5" />
               </button>
             </div>
 

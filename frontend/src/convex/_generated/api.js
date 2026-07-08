@@ -48,6 +48,11 @@ export const api = {
     login: $makeRef("users", "login"),
     register: $makeRef("users", "register"),
   },
+  reactions: {
+    toggle: $makeRef("reactions", "toggle"),
+    getForPost: $makeRef("reactions", "getForPost"),
+    getUserReactions: $makeRef("reactions", "getUserReactions"),
+  },
   posts: {
     createPost: $makeRef("posts", "createPost"),
     getFeed: $makeRef("posts", "getFeed"),

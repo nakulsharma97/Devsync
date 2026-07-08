@@ -164,4 +164,13 @@ export default defineSchema({
   })
     .index("by_conversation", ["conversationId"])
     .index("by_conversation_created", ["conversationId", "_creationTime"]),
+
+  // ── Post emoji reactions ───────────────────────────────
+  devsync_post_reactions: defineTable({
+    postId: v.id("devsync_posts"),
+    userId: v.id("devsync_accounts"),
+    emoji: v.string(),
+  })
+    .index("by_post_user_emoji", ["postId", "userId", "emoji"])
+    .index("by_post", ["postId"]),
 });
