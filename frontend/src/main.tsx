@@ -39,6 +39,7 @@ import SearchPage from "./pages/SearchPage.tsx";
 import Settings from "./pages/Settings.tsx";
 import Messages from "./pages/Messages.tsx";
 import Network from "./pages/Network.tsx";
+import UserProfilePage from "./pages/UserProfilePage.tsx";
 
 const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL as string);
 
@@ -93,6 +94,7 @@ function AnimatedRoutes() {
         }
       >
         <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/profile/:userId" element={<UserProfilePage />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/projects" element={<Projects />} />
         <Route path="/feed" element={<Feed />} />

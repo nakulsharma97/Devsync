@@ -309,6 +309,45 @@ export const getComments = query({
 });
 
 // ════════════════════════════════════════════════════════════════
+// User posts (for public profile page)
+// ════════════════════════════════════════════════════════════════
+
+/** Get posts by a specific user */
+export const getPostsByUser = query({
+  args: { userId: v.id("devsync_accounts") },
+  handler: async (ctx, args) => {
+    const posts = await ctx.db
+      .query("devsync_posts")
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .order("desc")
+      .take(20);
+
+    return await Promise.all(
+      posts.map(async (post) => {
+        const user = await ctx.db.get(post.userId);
+        return {
+          _id: post._id,
+          content: post.content,
+          fileUrl: post.fileUrl,
+          fileType: post.fileType,
+          postType: post.postType,
+          likeCount: post.likeCount,
+          commentCount: post.commentCount,
+          createdAt: post._creationTime,
+          user: user
+            ? {
+                id: user._id,
+                fullName: user.fullName,
+                email: user.email,
+              }
+            : null,
+        };
+      })
+    );
+  },
+});
+
+// ════════════════════════════════════════════════════════════════
 // File Upload (Convex Storage)
 // ════════════════════════════════════════════════════════════════
 

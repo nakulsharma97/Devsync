@@ -61,6 +61,7 @@ export const api = {
     hasLiked: $makeRef("posts", "hasLiked"),
     addComment: $makeRef("posts", "addComment"),
     getComments: $makeRef("posts", "getComments"),
+    getPostsByUser: $makeRef("posts", "getPostsByUser"),
     generateUploadUrl: $makeRef("posts", "generateUploadUrl"),
     storeFile: $makeRef("posts", "storeFile"),
   },

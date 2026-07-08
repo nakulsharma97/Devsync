@@ -99,6 +99,12 @@ export const postService = {
     return result;
   },
 
+  async getPostsByUser(userId: string): Promise<Post[]> {
+    return await convexClient.query(api.posts.getPostsByUser, {
+      userId: userId as any,
+    });
+  },
+
   async uploadFile(file: File): Promise<{ url: string; fileType: string }> {
     const token = getAuthToken();
     if (!token) throw new Error("Not authenticated");
