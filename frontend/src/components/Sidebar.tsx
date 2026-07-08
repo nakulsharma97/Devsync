@@ -14,6 +14,7 @@ import {
   Code2,
 } from "lucide-react";
 import { notificationService } from "@/services/notificationService";
+import { conversationService } from "@/services/conversationService";
 
 const navItems = [
   { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
@@ -31,12 +32,17 @@ const navItems = [
 export function Sidebar() {
   const location = useLocation();
   const [unreadCount, setUnreadCount] = useState(0);
+  const [msgUnreadCount, setMsgUnreadCount] = useState(0);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const fetchCount = useCallback(async () => {
     try {
-      const count = await notificationService.getUnreadCount();
-      setUnreadCount(count);
+      const [notifCount, msgCount] = await Promise.all([
+        notificationService.getUnreadCount(),
+        conversationService.getUnreadCount(),
+      ]);
+      setUnreadCount(notifCount);
+      setMsgUnreadCount(msgCount);
     } catch {
       // Not authenticated or API not available
     }
@@ -96,6 +102,11 @@ export function Sidebar() {
                   {item.label === "Notifications" && unreadCount > 0 && (
                     <span className="absolute -top-1 -right-1.5 w-3.5 h-3.5 rounded-full bg-red-500 text-[8px] font-bold text-white flex items-center justify-center shadow-sm">
                       {unreadCount > 9 ? "9+" : unreadCount}
+                    </span>
+                  )}
+                  {item.label === "Messages" && msgUnreadCount > 0 && (
+                    <span className="absolute -top-1 -right-1.5 w-3.5 h-3.5 rounded-full bg-accent text-[8px] font-bold text-white flex items-center justify-center shadow-sm">
+                      {msgUnreadCount > 9 ? "9+" : msgUnreadCount}
                     </span>
                   )}
                 </div>
