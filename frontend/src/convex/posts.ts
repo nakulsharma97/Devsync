@@ -31,6 +31,13 @@ export const createPost = mutation({
       updatedAt: Date.now(),
     });
 
+    // Log activity for contribution graph
+    await ctx.db.insert("devsync_activity", {
+      userId: account._id,
+      type: "post",
+      count: 1,
+    });
+
     return {
       _id: postId,
       content: args.content,
@@ -152,17 +159,31 @@ export const toggleLike = mutation({
       });
       await ctx.db.patch(args.postId, { likeCount: post.likeCount + 1 });
 
+      // Log activity for contribution graph
+      await ctx.db.insert("devsync_activity", {
+        userId: account._id,
+        type: "like",
+        count: 1,
+      });
+
       // Notify the post owner (unless you liked your own post)
       if (post.userId !== account._id) {
-        await ctx.db.insert("devsync_notifications", {
-          userId: post.userId,
-          type: "LIKE",
-          message: `${account.fullName} liked your post`,
-          read: false,
-          actorId: account._id,
-          referenceId: args.postId,
-          referenceType: "post",
-        });
+        // Check notification preferences before creating
+        const prefs = await ctx.db
+          .query("devsync_notification_prefs")
+          .withIndex("by_user", (q) => q.eq("userId", post.userId))
+          .unique();
+        if (!prefs || prefs.likes) {
+          await ctx.db.insert("devsync_notifications", {
+            userId: post.userId,
+            type: "LIKE",
+            message: `${account.fullName} liked your post`,
+            read: false,
+            actorId: account._id,
+            referenceId: args.postId,
+            referenceType: "post",
+          });
+        }
       }
 
       return { liked: true, count: post.likeCount + 1 };
@@ -215,6 +236,13 @@ export const addComment = mutation({
       updatedAt: Date.now(),
     });
 
+    // Log activity for contribution graph
+    await ctx.db.insert("devsync_activity", {
+      userId: account._id,
+      type: "comment",
+      count: 1,
+    });
+
     // Increment comment count
     const post = await ctx.db.get(args.postId);
     if (post) {
@@ -222,15 +250,22 @@ export const addComment = mutation({
 
       // Notify the post owner (unless you commented on your own post)
       if (post.userId !== account._id) {
-        await ctx.db.insert("devsync_notifications", {
-          userId: post.userId,
-          type: "COMMENT",
-          message: `${account.fullName} commented on your post`,
-          read: false,
-          actorId: account._id,
-          referenceId: args.postId,
-          referenceType: "post",
-        });
+        // Check notification preferences before creating
+        const prefs = await ctx.db
+          .query("devsync_notification_prefs")
+          .withIndex("by_user", (q) => q.eq("userId", post.userId))
+          .unique();
+        if (!prefs || prefs.comments) {
+          await ctx.db.insert("devsync_notifications", {
+            userId: post.userId,
+            type: "COMMENT",
+            message: `${account.fullName} commented on your post`,
+            read: false,
+            actorId: account._id,
+            referenceId: args.postId,
+            referenceType: "post",
+          });
+        }
       }
     }
 

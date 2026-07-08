@@ -10,6 +10,7 @@ import {
   Bookmark,
   Search,
   Settings,
+  MessageCircle,
   Code2,
 } from "lucide-react";
 import { notificationService } from "@/services/notificationService";
@@ -23,6 +24,7 @@ const navItems = [
   { to: "/notifications", icon: Bell, label: "Notifications" },
   { to: "/bookmarks", icon: Bookmark, label: "Bookmarks" },
   { to: "/search", icon: Search, label: "Search" },
+  { to: "/messages", icon: MessageCircle, label: "Messages" },
   { to: "/settings", icon: Settings, label: "Settings" },
 ];
 

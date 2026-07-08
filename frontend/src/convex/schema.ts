@@ -125,4 +125,43 @@ export default defineSchema({
     .index("by_user", ["userId"])
     .index("by_user_read", ["userId", "read"])
     .index("by_created", ["_creationTime"]),
+
+  // ── Activity log for contribution graph ───────────────
+  devsync_activity: defineTable({
+    userId: v.id("devsync_accounts"),
+    type: v.string(),      // "post" | "like" | "comment" | "follow" | "project"
+    count: v.number(),     // always 1, aggregated later
+  })
+    .index("by_user_day", ["userId", "_creationTime"])
+    .index("by_user", ["userId"]),
+
+  // ── Notification preferences ──────────────────────────
+  devsync_notification_prefs: defineTable({
+    userId: v.id("devsync_accounts"),
+    likes: v.boolean(),
+    comments: v.boolean(),
+    connections: v.boolean(),
+    teamInvites: v.boolean(),
+  })
+    .index("by_user", ["userId"]),
+
+  // ── Conversations for direct messaging ────────────────
+  devsync_conversations: defineTable({
+    participantIds: v.array(v.id("devsync_accounts")),
+    lastMessageAt: v.number(),
+    lastMessageText: v.optional(v.string()),
+    lastMessageSenderId: v.optional(v.id("devsync_accounts")),
+  })
+    .index("by_participants", ["participantIds"])
+    .index("by_last_message", ["lastMessageAt"]),
+
+  // ── Messages within a conversation ────────────────────
+  devsync_messages: defineTable({
+    conversationId: v.id("devsync_conversations"),
+    senderId: v.id("devsync_accounts"),
+    content: v.string(),
+    read: v.boolean(),
+  })
+    .index("by_conversation", ["conversationId"])
+    .index("by_conversation_created", ["conversationId", "_creationTime"]),
 });

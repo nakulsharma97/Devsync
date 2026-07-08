@@ -4,7 +4,8 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { User, AtSign, Github, Linkedin, Globe, MapPin, Pencil, Save, Sparkles, Loader2, Camera } from "lucide-react";
+import { User, AtSign, Github, Linkedin, Globe, MapPin, Pencil, Save, Sparkles, Loader2, Camera, BarChart3 } from "lucide-react";
+import { ContributionGraph } from "@/components/ContributionGraph";
 import { userService } from "@/services/userService";
 import { postService } from "@/services/postService";
 
@@ -162,6 +163,16 @@ export default function Profile() {
 
           </div>
         </div>
+      </motion.div>
+
+      {/* Activity Graph */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: 0.1 }}
+        className="mb-8"
+      >
+        <ContributionGraph />
       </motion.div>
 
       {/* Form - Two Column Layout */}

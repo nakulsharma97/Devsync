@@ -37,6 +37,7 @@ import Notifications from "./pages/Notifications.tsx";
 import Bookmarks from "./pages/Bookmarks.tsx";
 import SearchPage from "./pages/SearchPage.tsx";
 import Settings from "./pages/Settings.tsx";
+import Messages from "./pages/Messages.tsx";
 
 const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL as string);
 
@@ -99,6 +100,8 @@ function AnimatedRoutes() {
         <Route path="/bookmarks" element={<Bookmarks />} />
         <Route path="/search" element={<SearchPage />} />
         <Route path="/settings" element={<Settings />} />
+        <Route path="/messages" element={<Messages />} />
+        <Route path="/messages/:conversationId" element={<Messages />} />
       </Route>
       
       <Route path="*" element={<NotFound />} />

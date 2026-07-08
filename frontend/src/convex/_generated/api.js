@@ -21,6 +21,25 @@ const $makeRef = (module, name) =>
 
 export const api = {
   auth: {},
+  activity: {
+    log: $makeRef("activity", "log"),
+    getContributions: $makeRef("activity", "getContributions"),
+    getContributionsByUser: $makeRef("activity", "getContributionsByUser"),
+  },
+  notificationPrefs: {
+    get: $makeRef("notificationPrefs", "get"),
+    update: $makeRef("notificationPrefs", "update"),
+  },
+  conversations: {
+    createOrGet: $makeRef("conversations", "createOrGet"),
+    getMyConversations: $makeRef("conversations", "getMyConversations"),
+    getUnreadCount: $makeRef("conversations", "getUnreadCount"),
+  },
+  messages: {
+    send: $makeRef("messages", "send"),
+    getMessages: $makeRef("messages", "getMessages"),
+    markAsRead: $makeRef("messages", "markAsRead"),
+  },
   users: {
     currentUser: $makeRef("users", "currentUser"),
     getAccountByToken: $makeRef("users", "getAccountByToken"),

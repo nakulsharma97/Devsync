@@ -38,6 +38,13 @@ export const create = mutation({
       updatedAt: Date.now(),
     });
 
+    // Log activity for contribution graph
+    await ctx.db.insert("devsync_activity", {
+      userId: account._id,
+      type: "project",
+      count: 1,
+    });
+
     const project = await ctx.db.get(projectId);
     return formatProject(project!);
   },

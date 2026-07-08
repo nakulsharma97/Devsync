@@ -1,12 +1,19 @@
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { useDevSyncAuth } from "@/contexts/AuthContext";
-import { LogOut, User, Mail, Shield, Calendar, Settings2, Moon, Sun, Eye, AlertTriangle } from "lucide-react";
+import { LogOut, User, Mail, Shield, Calendar, Settings2, Moon, Sun, Eye, Bell, Heart, MessageCircle, UserPlus, Users, AlertTriangle } from "lucide-react";
 import { useHighContrast } from "@/hooks/useHighContrast";
+import { useEffect, useState } from "react";
+import { notificationPrefsService, type NotificationPrefs } from "@/services/notificationPrefsService";
 
 export default function Settings() {
   const { user, logout } = useDevSyncAuth();
   const { enabled: highContrast, setEnabled: setHighContrast } = useHighContrast();
+  const [notifPrefs, setNotifPrefs] = useState<NotificationPrefs | null>(null);
+
+  useEffect(() => {
+    notificationPrefsService.get().then(setNotifPrefs).catch(() => {});
+  }, []);
 
   return (
     <div className="relative">
@@ -118,6 +125,64 @@ export default function Settings() {
                 <p className="text-[10px] text-muted-foreground/70 mt-0.5 relative">System</p>
               </div>
             </div>
+          </motion.div>
+        </section>
+
+        {/* Notification Preferences */}
+        <section>
+          <div className="flex items-center gap-2 mb-3">
+            <span className="w-1 h-4 rounded-full bg-accent" />
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Notifications</h2>
+          </div>
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: 0.1 }}
+            className="bg-card border border-border/50 rounded-xl p-5 space-y-3"
+          >
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-7 h-7 rounded-lg bg-accent/10 flex items-center justify-center">
+                <Bell className="w-3.5 h-3.5 text-accent" />
+              </div>
+              <p className="text-sm text-muted-foreground">Choose what you get notified about.</p>
+            </div>
+            {notifPrefs && [
+              { key: "likes" as const, icon: Heart, label: "Likes", desc: "Someone likes your post" },
+              { key: "comments" as const, icon: MessageCircle, label: "Comments", desc: "Someone comments on your post" },
+              { key: "connections" as const, icon: UserPlus, label: "Connections", desc: "Someone follows you" },
+              { key: "teamInvites" as const, icon: Users, label: "Team Invites", desc: "You get invited to a team" },
+            ].map(({ key, icon: Icon, label, desc }) => (
+              <div key={key} className="flex items-center justify-between py-2.5 px-3 rounded-lg hover:bg-accent/5 transition-colors">
+                <div className="flex items-center gap-3">
+                  <div className="w-7 h-7 rounded-lg bg-accent/10 flex items-center justify-center">
+                    <Icon className="w-3.5 h-3.5 text-accent" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-foreground">{label}</p>
+                    <p className="text-xs text-muted-foreground">{desc}</p>
+                  </div>
+                </div>
+                <button
+                  onClick={async () => {
+                    const newVal = !notifPrefs[key];
+                    setNotifPrefs((prev) => prev ? { ...prev, [key]: newVal } : prev);
+                    await notificationPrefsService.update({ [key]: newVal });
+                  }}
+                  className={`relative w-10 h-5 rounded-full transition-colors duration-200 ${
+                    notifPrefs[key] ? "bg-accent" : "bg-muted/50"
+                  }`}
+                >
+                  <span
+                    className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow-sm transition-transform duration-200 ${
+                      notifPrefs[key] ? "translate-x-5" : "translate-x-0.5"
+                    }`}
+                  />
+                </button>
+              </div>
+            ))}
+            {!notifPrefs && (
+              <div className="h-24 bg-muted/20 rounded-lg animate-pulse" />
+            )}
           </motion.div>
         </section>
 

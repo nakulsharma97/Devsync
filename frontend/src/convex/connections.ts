@@ -31,14 +31,27 @@ export const follow = mutation({
       followingId: args.followingId,
     });
 
-    // Create a notification for the followed user
-    await ctx.db.insert("devsync_notifications", {
-      userId: args.followingId,
-      type: "CONNECTION",
-      message: `${account.fullName} started following you`,
-      read: false,
-      actorId: account._id,
+    // Log activity for contribution graph
+    await ctx.db.insert("devsync_activity", {
+      userId: account._id,
+      type: "follow",
+      count: 1,
     });
+
+    // Create a notification for the followed user (check prefs)
+    const prefs = await ctx.db
+      .query("devsync_notification_prefs")
+      .withIndex("by_user", (q) => q.eq("userId", args.followingId))
+      .unique();
+    if (!prefs || prefs.connections) {
+      await ctx.db.insert("devsync_notifications", {
+        userId: args.followingId,
+        type: "CONNECTION",
+        message: `${account.fullName} started following you`,
+        read: false,
+        actorId: account._id,
+      });
+    }
 
     return { success: true };
   },
