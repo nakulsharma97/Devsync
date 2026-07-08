@@ -147,6 +147,88 @@ export const getFollowerCount = query({
 });
 
 /**
+ * Get all platform users with follow status relative to the current user.
+ */
+export const getAllUsers = query({
+  args: { token: v.string(), searchQuery: v.optional(v.string()) },
+  handler: async (ctx, args) => {
+    const account = await ctx.db
+      .query("devsync_accounts")
+      .withIndex("by_token", (q) => q.eq("token", args.token))
+      .unique();
+    if (!account) return [];
+
+    // Get the IDs the current user follows
+    const following = await ctx.db
+      .query("devsync_connections")
+      .withIndex("by_follower", (q) => q.eq("followerId", account._id))
+      .collect();
+    const followingIds = new Set(following.map((f) => f.followingId.toString()));
+
+    // Get the IDs that follow the current user
+    const followers = await ctx.db
+      .query("devsync_connections")
+      .withIndex("by_following", (q) => q.eq("followingId", account._id))
+      .collect();
+    const followerIds = new Set(followers.map((f) => f.followerId.toString()));
+
+    // Fetch all users
+    const allAccounts = await ctx.db.query("devsync_accounts").collect();
+
+    let users = await Promise.all(
+      allAccounts.map(async (u) => {
+        // Count followers for this user
+        const userFollowers = await ctx.db
+          .query("devsync_connections")
+          .withIndex("by_following", (q) => q.eq("followingId", u._id))
+          .collect();
+        // Count following for this user
+        const userFollowing = await ctx.db
+          .query("devsync_connections")
+          .withIndex("by_follower", (q) => q.eq("followerId", u._id))
+          .collect();
+
+        return {
+          id: u._id,
+          email: u.email,
+          fullName: u.fullName,
+          username: u.username,
+          bio: u.bio,
+          avatarUrl: u.avatarUrl,
+          role: u.role,
+          isSelf: u._id.toString() === account._id.toString(),
+          isFollowing: followingIds.has(u._id.toString()),
+          followsYou: followerIds.has(u._id.toString()),
+          followerCount: userFollowers.length,
+          followingCount: userFollowing.length,
+        };
+      }),
+    );
+
+    // Apply search filter
+    if (args.searchQuery && args.searchQuery.trim()) {
+      const q = args.searchQuery.toLowerCase();
+      users = users.filter(
+        (u) =>
+          u.fullName.toLowerCase().includes(q) ||
+          u.username.toLowerCase().includes(q) ||
+          u.email.toLowerCase().includes(q) ||
+          (u.bio && u.bio.toLowerCase().includes(q)),
+      );
+    }
+
+    // Sort: current user first, then friends, then by name
+    users.sort((a, b) => {
+      if (a.isSelf) return -1;
+      if (b.isSelf) return 1;
+      return a.fullName.localeCompare(b.fullName);
+    });
+
+    return users;
+  },
+});
+
+/**
  * Get the following count for a user.
  */
 export const getFollowingCount = query({

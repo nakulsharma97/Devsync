@@ -51,4 +51,12 @@ export const connectionService = {
       userId: userId as any,
     });
   },
+
+  async getAllUsers(searchQuery?: string): Promise<any[]> {
+    const token = getToken();
+    return await convexClient.query(api.connections.getAllUsers, {
+      token,
+      searchQuery,
+    });
+  },
 };
