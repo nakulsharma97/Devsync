@@ -26,6 +26,7 @@ import {
   X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { useNavigate } from "react-router";
 import { useRef, useState, useEffect, lazy, Suspense } from "react";
 
@@ -199,6 +200,7 @@ function Navbar() {
             </a>
           ))}
           <div className="w-px h-5 bg-border/50 mx-2" />
+          <ThemeToggle />
           <Button variant="ghost" size="sm" onClick={() => navigate("/auth")} className="text-sm font-medium">
             Sign in
           </Button>
