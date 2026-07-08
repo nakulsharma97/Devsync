@@ -1,10 +1,12 @@
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { useDevSyncAuth } from "@/contexts/AuthContext";
-import { LogOut, User, Mail, Shield, Calendar, Settings2, Moon, Sun, AlertTriangle } from "lucide-react";
+import { LogOut, User, Mail, Shield, Calendar, Settings2, Moon, Sun, Eye, AlertTriangle } from "lucide-react";
+import { useHighContrast } from "@/hooks/useHighContrast";
 
 export default function Settings() {
   const { user, logout } = useDevSyncAuth();
+  const { enabled: highContrast, setEnabled: setHighContrast } = useHighContrast();
 
   return (
     <div className="relative">
@@ -115,6 +117,66 @@ export default function Settings() {
                 <p className="text-xs text-background font-medium relative">Dark</p>
                 <p className="text-[10px] text-muted-foreground/70 mt-0.5 relative">System</p>
               </div>
+            </div>
+          </motion.div>
+        </section>
+
+        {/* Accessibility / High Contrast */}
+        <section>
+          <div className="flex items-center gap-2 mb-3">
+            <span className="w-1 h-4 rounded-full bg-accent" />
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Accessibility</h2>
+          </div>
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: 0.12 }}
+            className="bg-card border border-border/50 rounded-xl p-5 group hover:border-accent/30 hover:shadow-lg hover:shadow-accent/5 transition-all duration-300"
+          >
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-7 h-7 rounded-lg bg-accent/10 flex items-center justify-center">
+                <Eye className="w-3.5 h-3.5 text-accent" />
+              </div>
+              <div>
+                <p className="text-sm text-foreground font-medium">High Contrast Mode</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Increases color contrast for better readability. Applies to both light and dark modes.
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setHighContrast(true)}
+                className={`flex-1 rounded-xl p-4 text-center border-2 transition-all duration-200 ${
+                  highContrast
+                    ? "border-accent bg-accent/10 shadow-sm"
+                    : "border-border/50 hover:border-accent/30 hover:shadow-sm"
+                }`}
+              >
+                <Eye className="w-5 h-5 mx-auto mb-1.5 text-foreground" />
+                <p className={`text-xs font-medium ${highContrast ? "text-accent" : "text-foreground"}`}>
+                  On
+                </p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">
+                  WCAG AAA (7:1+)
+                </p>
+              </button>
+              <button
+                onClick={() => setHighContrast(false)}
+                className={`flex-1 rounded-xl p-4 text-center border-2 transition-all duration-200 ${
+                  !highContrast
+                    ? "border-border/50 bg-card shadow-sm"
+                    : "border-border/20 hover:border-accent/30"
+                }`}
+              >
+                <Eye className="w-5 h-5 mx-auto mb-1.5 text-muted-foreground" />
+                <p className="text-xs font-medium text-foreground">
+                  Off
+                </p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">
+                  WCAG AA (4.5:1+)
+                </p>
+              </button>
             </div>
           </motion.div>
         </section>

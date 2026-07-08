@@ -4,6 +4,7 @@ import { useNavigate, useLocation } from "react-router";
 import { Bell, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { HighContrastToggle } from "@/components/HighContrastToggle";
 import { notificationService } from "@/services/notificationService";
 
 export function Navbar() {
@@ -57,6 +58,7 @@ export function Navbar() {
 
       {/* Right */}
       <div className="flex items-center gap-0.5">
+        <HighContrastToggle />
         <ThemeToggle />
         <Button
           variant="ghost"

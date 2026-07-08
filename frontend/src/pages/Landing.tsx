@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { HighContrastToggle } from "@/components/HighContrastToggle";
 import { useNavigate } from "react-router";
 import { useRef, useState, useEffect, lazy, Suspense } from "react";
 
@@ -200,6 +201,7 @@ function Navbar() {
             </a>
           ))}
           <div className="w-px h-5 bg-border/50 mx-2" />
+          <HighContrastToggle />
           <ThemeToggle />
           <Button variant="ghost" size="sm" onClick={() => navigate("/auth")} className="text-sm font-medium">
             Sign in
