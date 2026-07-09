@@ -104,6 +104,8 @@ export const api = {
   teamRooms: {
     createOrGet: $makeRef("teamRooms", "createOrGet"),
     joinRoom: $makeRef("teamRooms", "joinRoom"),
+    inviteToRoom: $makeRef("teamRooms", "inviteToRoom"),
+    getRoomParticipants: $makeRef("teamRooms", "getRoomParticipants"),
     getMyTeamRooms: $makeRef("teamRooms", "getMyTeamRooms"),
   },
   connections: {

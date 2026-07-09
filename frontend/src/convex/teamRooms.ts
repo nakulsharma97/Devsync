@@ -72,6 +72,93 @@ export const joinRoom = mutation({
 });
 
 /**
+ * Invite a user to a team room.
+ */
+export const inviteToRoom = mutation({
+  args: {
+    token: v.string(),
+    roomId: v.id("devsync_conversations"),
+    userId: v.id("devsync_accounts"),
+  },
+  handler: async (ctx, args) => {
+    const account = await ctx.db
+      .query("devsync_accounts")
+      .withIndex("by_token", (q) => q.eq("token", args.token))
+      .unique();
+    if (!account) throw new Error("Not authenticated");
+
+    const room = await ctx.db.get(args.roomId);
+    if (!room) throw new Error("Room not found");
+    if (!room.isTeamRoom) throw new Error("Not a team room");
+
+    // Check inviter is a participant
+    if (!room.participantIds.includes(account._id)) {
+      throw new Error("You are not a participant in this room");
+    }
+
+    // Check if already a participant
+    if (room.participantIds.includes(args.userId)) {
+      return { success: true, alreadyMember: true };
+    }
+
+    // Add user to participants
+    await ctx.db.patch(args.roomId, {
+      participantIds: [...room.participantIds, args.userId],
+    });
+
+    // Send a system message notifying the room
+    const invitedUser = await ctx.db.get(args.userId);
+    if (invitedUser) {
+      await ctx.db.insert("devsync_messages", {
+        conversationId: args.roomId,
+        senderId: account._id,
+        content: `👋 ${invitedUser.fullName} was invited to the room by ${account.fullName}`,
+        read: false,
+      });
+    }
+
+    return { success: true, alreadyMember: false };
+  },
+});
+
+/**
+ * Get participants of a team room with their details.
+ */
+export const getRoomParticipants = query({
+  args: {
+    token: v.string(),
+    roomId: v.id("devsync_conversations"),
+  },
+  handler: async (ctx, args) => {
+    const account = await ctx.db
+      .query("devsync_accounts")
+      .withIndex("by_token", (q) => q.eq("token", args.token))
+      .unique();
+    if (!account) return [];
+
+    const room = await ctx.db.get(args.roomId);
+    if (!room) return [];
+
+    const participants = await Promise.all(
+      room.participantIds.map(async (pid) => {
+        const user = await ctx.db.get(pid);
+        return user
+          ? {
+              id: user._id,
+              fullName: user.fullName,
+              username: user.username,
+              avatarUrl: user.avatarUrl,
+              isMe: user._id.toString() === account._id.toString(),
+            }
+          : null;
+      }),
+    );
+
+    return participants.filter(Boolean);
+  },
+});
+
+/**
  * Get all team rooms for the user's projects.
  */
 export const getMyTeamRooms = query({
