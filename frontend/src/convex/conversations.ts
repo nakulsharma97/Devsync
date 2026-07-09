@@ -66,6 +66,7 @@ export const getMyConversations = query({
           (id) => id.toString() !== account._id.toString(),
         );
         const otherUser = otherId ? await ctx.db.get(otherId) : null;
+        const project = c.projectId ? await ctx.db.get(c.projectId) : null;
         // Count unread
         const unreadMsgs = await ctx.db
           .query("devsync_messages")
@@ -84,6 +85,10 @@ export const getMyConversations = query({
                 avatarUrl: otherUser.avatarUrl,
               }
             : null,
+          isTeamRoom: c.isTeamRoom || false,
+          roomName: c.roomName || null,
+          projectName: project?.title || null,
+          participantCount: c.isTeamRoom ? c.participantIds.length : undefined,
           lastMessageAt: c.lastMessageAt,
           lastMessageText: c.lastMessageText || "",
           unreadCount: unreadMsgs.length,

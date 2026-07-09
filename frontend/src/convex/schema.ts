@@ -151,6 +151,9 @@ export default defineSchema({
     lastMessageAt: v.number(),
     lastMessageText: v.optional(v.string()),
     lastMessageSenderId: v.optional(v.id("devsync_accounts")),
+    isTeamRoom: v.optional(v.boolean()),
+    projectId: v.optional(v.id("devsync_projects")),
+    roomName: v.optional(v.string()),
   })
     .index("by_participants", ["participantIds"])
     .index("by_last_message", ["lastMessageAt"]),
@@ -182,6 +185,29 @@ export default defineSchema({
   })
     .index("by_conversation", ["conversationId"])
     .index("by_conversation_user", ["conversationId", "userId"]),
+
+  // ── Kanban board columns ──────────────────────────────
+  devsync_board_columns: defineTable({
+    projectId: v.id("devsync_projects"),
+    title: v.string(),
+    sortOrder: v.number(),
+  })
+    .index("by_project", ["projectId"])
+    .index("by_project_order", ["projectId", "sortOrder"]),
+
+  // ── Kanban board tasks ────────────────────────────────
+  devsync_board_tasks: defineTable({
+    columnId: v.id("devsync_board_columns"),
+    projectId: v.id("devsync_projects"),
+    title: v.string(),
+    description: v.optional(v.string()),
+    assigneeId: v.optional(v.id("devsync_accounts")),
+    priority: v.optional(v.string()),
+    sortOrder: v.number(),
+  })
+    .index("by_column", ["columnId"])
+    .index("by_project", ["projectId"])
+    .index("by_project_column", ["projectId", "columnId"]),
 
   // ── User online presence ─────────────────────────────
   devsync_presence: defineTable({

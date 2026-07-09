@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -14,13 +15,14 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Plus, FolderGit2, ExternalLink, Github, Trash2, Send, Check } from "lucide-react";
+import { Plus, FolderGit2, ExternalLink, Github, Trash2, Send, Check, LayoutPanelTop, MessageCircle } from "lucide-react";
 import { projectService, type Project, type ProjectRequest } from "@/services/projectService";
 import { postService } from "@/services/postService";
 
 const emptyForm: ProjectRequest = { title: "", description: "", techStack: "", githubRepo: "", liveDemo: "", tags: [] };
 
 export default function Projects() {
+  const navigate = useNavigate();
   const [showCreate, setShowCreate] = useState(false);
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
@@ -131,7 +133,13 @@ export default function Projects() {
                   ))}
                 </div>
               )}
-              <div className="flex gap-3">
+              <div className="flex gap-3 flex-wrap">
+                <button
+                  onClick={() => navigate(`/board/${project.id}`)}
+                  className="text-xs text-muted-foreground hover:text-accent transition-colors inline-flex items-center gap-1"
+                >
+                  <LayoutPanelTop className="w-3 h-3" /> Board
+                </button>
                 {project.githubRepo && (
                   <a href={project.githubRepo} target="_blank" rel="noopener noreferrer"
                     className="text-xs text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-1">

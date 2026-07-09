@@ -20,7 +20,20 @@ const $makeRef = (module, name) =>
   Object.freeze({ [$fnSym]: module + ":" + name });
 
 export const api = {
+  analytics: {
+    getPostStats: $makeRef("analytics", "getPostStats"),
+    getFollowerGrowth: $makeRef("analytics", "getFollowerGrowth"),
+    getActivityStats: $makeRef("analytics", "getActivityStats"),
+  },
   auth: {},
+  admin: {
+    isAdmin: $makeRef("admin", "isAdmin"),
+    getAllUsers: $makeRef("admin", "getAllUsers"),
+    getAllPosts: $makeRef("admin", "getAllPosts"),
+    updateUserRole: $makeRef("admin", "updateUserRole"),
+    deletePost: $makeRef("admin", "deletePost"),
+    getPlatformStats: $makeRef("admin", "getPlatformStats"),
+  },
   activity: {
     log: $makeRef("activity", "log"),
     getContributions: $makeRef("activity", "getContributions"),
@@ -88,6 +101,11 @@ export const api = {
   search: {
     search: $makeRef("search", "search"),
   },
+  teamRooms: {
+    createOrGet: $makeRef("teamRooms", "createOrGet"),
+    joinRoom: $makeRef("teamRooms", "joinRoom"),
+    getMyTeamRooms: $makeRef("teamRooms", "getMyTeamRooms"),
+  },
   connections: {
     follow: $makeRef("connections", "follow"),
     unfollow: $makeRef("connections", "unfollow"),
@@ -96,6 +114,16 @@ export const api = {
     getFollowerCount: $makeRef("connections", "getFollowerCount"),
     getFollowingCount: $makeRef("connections", "getFollowingCount"),
     getAllUsers: $makeRef("connections", "getAllUsers"),
+  },
+  boards: {
+    initDefaults: $makeRef("boards", "initDefaults"),
+    addColumn: $makeRef("boards", "addColumn"),
+    addTask: $makeRef("boards", "addTask"),
+    moveTask: $makeRef("boards", "moveTask"),
+    updateTask: $makeRef("boards", "updateTask"),
+    deleteTask: $makeRef("boards", "deleteTask"),
+    getBoard: $makeRef("boards", "getBoard"),
+    getColumns: $makeRef("boards", "getColumns"),
   },
   typing: {
     startTyping: $makeRef("typing", "startTyping"),
