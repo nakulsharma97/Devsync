@@ -24,12 +24,18 @@ import {
   ExternalLink,
   Menu,
   X,
+  Play,
+  FileType,
+  Braces,
+  GitPullRequest,
+  Bug,
+  PaintBucket,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { HighContrastToggle } from "@/components/HighContrastToggle";
 import { useNavigate } from "react-router";
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState, useEffect, useCallback } from "react";
 
 // ─── Animation Variants ───────────────────────────────────────
 
@@ -50,6 +56,194 @@ const fadeInUp = {
   initial: { opacity: 0, y: 30 },
   animate: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.16, 1, 0.3, 1] as const } },
 };
+
+// ─── Animated Counter ─────────────────────────────────────────
+
+function AnimatedCounter({ value, suffix = "" }: { value: string; suffix?: string }) {
+  const [display, setDisplay] = useState("0");
+  const ref = useRef<HTMLSpanElement>(null);
+  const counted = useRef(false);
+
+  const numericValue = parseInt(value.replace(/[^0-9]/g, ""));
+  const hasPlus = value.includes("+");
+  const hasPercent = value.includes("%");
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && !counted.current) {
+          counted.current = true;
+          const duration = 2000;
+          const startTime = performance.now();
+
+          const animate = (now: number) => {
+            const elapsed = now - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            // Ease out cubic
+            const eased = 1 - Math.pow(1 - progress, 3);
+            const current = Math.floor(eased * numericValue);
+            setDisplay(current.toString());
+            if (progress < 1) {
+              requestAnimationFrame(animate);
+            } else {
+              setDisplay(numericValue.toString());
+            }
+          };
+          requestAnimationFrame(animate);
+        }
+      },
+      { threshold: 0.3 },
+    );
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [numericValue]);
+
+  return (
+    <span ref={ref} className="text-3xl md:text-4xl lg:text-5xl font-bold bg-gradient-to-br from-foreground to-foreground/60 bg-clip-text text-transparent">
+      {display}{hasPlus ? "+" : ""}{hasPercent ? "%" : ""}{suffix}
+    </span>
+  );
+}
+
+// ─── Safe Parallax Hook (IntersectionObserver-based) ──────────
+
+function useParallax(speed: number = 0.1) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [offsetY, setOffsetY] = useState(0);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          const handleScroll = () => {
+            const rect = el!.getBoundingClientRect();
+            const viewportCenter = window.innerHeight / 2;
+            const elementCenter = rect.top + rect.height / 2;
+            const distance = elementCenter - viewportCenter;
+            setOffsetY(distance * speed);
+          };
+
+          handleScroll();
+          window.addEventListener("scroll", handleScroll, { passive: true });
+          return () => window.removeEventListener("scroll", handleScroll);
+        }
+      },
+      { threshold: 0 },
+    );
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [speed]);
+
+  return { ref, style: { transform: `translateY(${offsetY}px)`, transition: "transform 0.1s linear" } };
+}
+
+// ─── Hero Code Editor Mockup ─────────────────────────────────
+
+function CodeEditorMockup() {
+  const lines = [
+    { content: 'import { DevSync } from "devsync";', highlight: false },
+    { content: 'import { AI, Collaboration } from "devsync/features";', highlight: false },
+    { content: "", highlight: false },
+    { content: "const app = new DevSync({", highlight: false },
+    { content: '  project: "my-app",', highlight: false },
+    { content: '  team: "engineering",', highlight: false },
+    { content: "  ai: AI.enabled,", highlight: false },
+    { content: "  collab: Collaboration.realtime,", highlight: false },
+    { content: "});", highlight: false },
+    { content: "", highlight: false },
+    { content: "// Deploy with one click", highlight: true },
+    { content: "await app.deploy({", highlight: false },
+    { content: '  env: "production",', highlight: false },
+    { content: "  preview: true,", highlight: false },
+    { content: '  rollback: "instant",', highlight: false },
+    { content: "});", highlight: false },
+  ];
+
+  return (
+    <div className="rounded-xl border border-border/50 bg-card/80 backdrop-blur-sm shadow-2xl overflow-hidden group hover:border-indigo-500/30 hover:shadow-indigo-500/10 transition-all duration-500">
+      {/* Title bar */}
+      <div className="flex items-center gap-2 px-4 py-2.5 border-b border-border/30 bg-muted/20">
+        <div className="flex items-center gap-1.5">
+          <div className="w-2.5 h-2.5 rounded-full bg-red-500/80" />
+          <div className="w-2.5 h-2.5 rounded-full bg-amber-500/80" />
+          <div className="w-2.5 h-2.5 rounded-full bg-emerald-500/80" />
+        </div>
+        <div className="flex items-center gap-1.5 ml-3 text-[10px] text-muted-foreground bg-muted/50 px-2.5 py-1 rounded-md">
+          <FileType className="w-3 h-3" />
+          <span>app.ts</span>
+        </div>
+        <div className="flex-1" />
+        <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+          <GitPullRequest className="w-3 h-3" />
+          <span>main</span>
+        </div>
+      </div>
+
+      {/* Editor content */}
+      <div className="p-4 md:p-5 font-mono text-[11px] md:text-xs leading-relaxed">
+        <div className="flex">
+          {/* Line numbers */}
+          <div className="text-muted-foreground/30 text-right pr-3 select-none space-y-[2px]">
+            {lines.map((_, i) => (
+              <div key={i}>{i + 1}</div>
+            ))}
+          </div>
+          {/* Code */}
+          <div className="space-y-[2px]">
+            {lines.map((line, i) => (
+              <div
+                key={i}
+                className={`flex items-center gap-2 ${
+                  line.highlight
+                    ? "bg-indigo-500/10 -mx-3 px-3 rounded py-[1px] border-l-2 border-indigo-400"
+                    : ""
+                }`}
+              >
+                {line.content ? (
+                  <span className="text-foreground/80">{line.content}</span>
+                ) : (
+                  <span className="text-muted-foreground/20">{/* spacer */}</span>
+                )}
+                {line.highlight && (
+                  <span className="inline-flex items-center gap-1 text-[9px] text-indigo-400 bg-indigo-500/15 px-1.5 py-0.5 rounded-full animate-pulse">
+                    <Play className="w-2 h-2 fill-current" />
+                    Deploying
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Status bar */}
+      <div className="flex items-center justify-between px-4 py-1.5 border-t border-border/30 bg-muted/20 text-[9px] text-muted-foreground">
+        <div className="flex items-center gap-3">
+          <span className="flex items-center gap-1">
+            <Braces className="w-2.5 h-2.5" /> TypeScript
+          </span>
+          <span className="flex items-center gap-1">
+            <Bug className="w-2.5 h-2.5" /> 0 errors
+          </span>
+          <span className="flex items-center gap-1">
+            <GitBranch className="w-2.5 h-2.5" /> main
+          </span>
+        </div>
+        <span className="flex items-center gap-1">
+          <PaintBucket className="w-2.5 h-2.5" /> Prettier
+        </span>
+      </div>
+    </div>
+  );
+}
 
 // ─── Data ─────────────────────────────────────────────────────
 
@@ -99,10 +293,10 @@ const features = [
 ];
 
 const stats = [
-  { value: "50K+", label: "Active Developers", sub: "Growing 15% MoM" },
-  { value: "12K+", label: "Projects Deployed", sub: "Across 190 countries" },
-  { value: "2M+", label: "Code Reviews", sub: "98% satisfaction rate" },
-  { value: "99.99%", label: "Uptime SLA", sub: "Guaranteed availability" },
+  { value: "50000", label: "Active Developers", sub: "Growing 15% MoM", suffix: "+" },
+  { value: "12000", label: "Projects Deployed", sub: "Across 190 countries", suffix: "+" },
+  { value: "2000000", label: "Code Reviews", sub: "98% satisfaction rate", suffix: "+" },
+  { value: "9999", label: "Uptime SLA", sub: "Guaranteed availability", suffix: ".99%" },
 ];
 
 const testimonials = [
@@ -187,7 +381,6 @@ function Navbar() {
           </span>
         </button>
 
-        {/* Desktop nav */}
         <nav className="hidden md:flex items-center gap-1">
           {["Features", "Docs", "Pricing", "Enterprise"].map((item) => (
             <a
@@ -214,7 +407,6 @@ function Navbar() {
           </Button>
         </nav>
 
-        {/* Mobile menu button */}
         <button
           onClick={() => setMobileOpen(!mobileOpen)}
           className="md:hidden p-2 rounded-lg hover:bg-accent/5 transition-colors"
@@ -223,7 +415,6 @@ function Navbar() {
         </button>
       </div>
 
-      {/* Mobile menu */}
       <AnimatePresence>
         {mobileOpen && (
           <motion.div
@@ -247,10 +438,7 @@ function Navbar() {
                 <Button variant="outline" className="w-full" onClick={() => navigate("/auth")}>
                   Sign in
                 </Button>
-                <Button
-                  className="w-full bg-gradient-to-r from-indigo-500 to-purple-600 text-white"
-                  onClick={() => navigate("/auth")}
-                >
+                <Button className="w-full bg-gradient-to-r from-indigo-500 to-purple-600 text-white" onClick={() => navigate("/auth")}>
                   Start Free
                 </Button>
               </div>
@@ -280,103 +468,108 @@ function AnimatedBackground() {
 export default function Landing() {
   const navigate = useNavigate();
   const heroRef = useRef<HTMLDivElement>(null);
+  const { ref: heroParallaxRef, style: heroParallaxStyle } = useParallax(0.08);
 
   return (
     <div className="min-h-screen bg-background text-foreground overflow-x-hidden">
-      {/* Animated gradient background */}
       <AnimatedBackground />
-
-      {/* Navigation */}
       <Navbar />
 
       {/* ══════════════════════════════════════════════════════════
           HERO SECTION
       ══════════════════════════════════════════════════════════ */}
       <section ref={heroRef} className="relative min-h-screen flex items-center pt-20 overflow-hidden">
-        {/* Gradient orbs */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1200px] h-[1200px] bg-gradient-to-br from-indigo-500/10 via-purple-500/8 to-pink-500/5 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute top-1/4 -left-48 w-[600px] h-[600px] bg-gradient-to-br from-indigo-500/15 to-transparent rounded-full blur-3xl pointer-events-none animate-pulse" style={{ animationDuration: "10s" }} />
         <div className="absolute bottom-1/4 -right-48 w-[500px] h-[500px] bg-gradient-to-bl from-purple-500/10 to-transparent rounded-full blur-3xl pointer-events-none animate-pulse" style={{ animationDuration: "8s" }} />
 
-        <motion.div
-          className="mx-auto max-w-4xl px-4 sm:px-6 relative z-10 text-center"
-        >
-          <motion.div
-            variants={containerVariants}
-            initial="hidden"
-            animate="visible"
-          >
-            <motion.div variants={itemVariants}>
-              <span className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-gradient-to-r from-indigo-500/20 via-purple-500/15 to-pink-500/15 text-indigo-300 text-xs font-medium tracking-wide mb-8 border border-indigo-500/25 shadow-lg shadow-indigo-500/10 backdrop-blur-sm">
-                <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" />
-                Now in Public Beta
-                <span className="mx-1 opacity-40">·</span>
-                <span className="text-indigo-300/70">50K+ developers</span>
-              </span>
-            </motion.div>
-
-            <motion.h1
-              variants={itemVariants}
-              className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-bold tracking-tight leading-[1.02]"
-            >
-              Code, Collaborate,
-              <br />
-              <span className="bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
-                Ship at light speed.
-              </span>
-            </motion.h1>
-
-            <motion.p
-              variants={itemVariants}
-              className="mt-6 text-base sm:text-lg text-foreground/70 leading-relaxed max-w-2xl mx-auto"
-            >
-              The developer platform that combines AI-powered coding, real-time collaboration, and instant deployment — all in your browser.
-            </motion.p>
-
+        <div className="mx-auto max-w-6xl px-4 sm:px-6 relative z-10 w-full">
+          <div className="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
+            {/* Hero Text */}
             <motion.div
-              variants={itemVariants}
-              className="mt-10 flex flex-col sm:flex-row items-center gap-4 justify-center"
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+              className="text-center lg:text-left"
             >
-              <Button
-                size="lg"
-                onClick={() => navigate("/auth")}
-                className="w-full sm:w-auto text-base px-8 h-12 shadow-xl hover:shadow-2xl transition-all duration-200 bg-gradient-to-r from-indigo-500 to-purple-600 text-white hover:from-indigo-600 hover:to-purple-700 relative overflow-hidden group"
-              >
-                <span className="relative z-10 flex items-center">
-                  Start Building Free
-                  <Rocket className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              <motion.div variants={itemVariants}>
+                <span className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-gradient-to-r from-indigo-500/20 via-purple-500/15 to-pink-500/15 text-indigo-300 text-xs font-medium tracking-wide mb-8 border border-indigo-500/25 shadow-lg shadow-indigo-500/10 backdrop-blur-sm">
+                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" />
+                  Now in Public Beta
+                  <span className="mx-1 opacity-40">·</span>
+                  <span className="text-indigo-300/70">50K+ developers</span>
                 </span>
-                <div className="absolute inset-0 bg-gradient-to-r from-indigo-600 to-purple-700 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-              </Button>
-              <Button
-                variant="outline"
-                size="lg"
-                className="w-full sm:w-auto text-base px-8 h-12 border-indigo-500/40 hover:border-indigo-400/60 hover:bg-indigo-500/10 text-foreground font-medium transition-all duration-200"
+              </motion.div>
+
+              <motion.h1
+                variants={itemVariants}
+                className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.02]"
               >
-                <Terminal className="mr-2 w-4 h-4" />
-                Watch Demo
-              </Button>
+                Code, Collaborate,
+                <br />
+                <span className="bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
+                  Ship at light speed.
+                </span>
+              </motion.h1>
+
+              <motion.p
+                variants={itemVariants}
+                className="mt-6 text-base sm:text-lg text-foreground/70 leading-relaxed max-w-lg mx-auto lg:mx-0"
+              >
+                The developer platform that combines AI-powered coding, real-time collaboration, and instant deployment — all in your browser.
+              </motion.p>
+
+              <motion.div variants={itemVariants} className="mt-8 flex flex-col sm:flex-row items-center gap-4 lg:justify-start">
+                <Button
+                  size="lg"
+                  onClick={() => navigate("/auth")}
+                  className="w-full sm:w-auto text-base px-8 h-12 shadow-xl hover:shadow-2xl transition-all duration-200 bg-gradient-to-r from-indigo-500 to-purple-600 text-white hover:from-indigo-600 hover:to-purple-700 relative overflow-hidden group"
+                >
+                  <span className="relative z-10 flex items-center">
+                    Start Building Free
+                    <Rocket className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                  </span>
+                  <div className="absolute inset-0 bg-gradient-to-r from-indigo-600 to-purple-700 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="lg"
+                  className="w-full sm:w-auto text-base px-8 h-12 border-indigo-500/40 hover:border-indigo-400/60 hover:bg-indigo-500/10 text-foreground font-medium transition-all duration-200"
+                >
+                  <Terminal className="mr-2 w-4 h-4" />
+                  Watch Demo
+                </Button>
+              </motion.div>
+
+              <motion.div variants={itemVariants} className="mt-6 flex items-center gap-6 justify-center lg:justify-start text-xs text-foreground/60">
+                <span className="flex items-center gap-1.5">
+                  <Check className="w-3.5 h-3.5 text-emerald-400" />
+                  No credit card
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <Check className="w-3.5 h-3.5 text-emerald-400" />
+                  Free tier included
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <Check className="w-3.5 h-3.5 text-emerald-400" />
+                  Cancel anytime
+                </span>
+              </motion.div>
             </motion.div>
 
+            {/* Hero Mockup */}
             <motion.div
-              variants={itemVariants}
-              className="mt-8 flex items-center gap-6 justify-center text-xs text-foreground/60"
+              initial={{ opacity: 0, x: 40 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.8, delay: 0.4, ease: [0.16, 1, 0.3, 1] as const }}
+              className="hidden lg:block"
+              ref={heroParallaxRef as any}
+              style={heroParallaxStyle}
             >
-              <span className="flex items-center gap-1.5">
-                <Check className="w-3.5 h-3.5 text-emerald-400" />
-                No credit card
-              </span>
-              <span className="flex items-center gap-1.5">
-                <Check className="w-3.5 h-3.5 text-emerald-400" />
-                Free tier included
-              </span>
-              <span className="flex items-center gap-1.5">
-                <Check className="w-3.5 h-3.5 text-emerald-400" />
-                Cancel anytime
-              </span>
+              <CodeEditorMockup />
             </motion.div>
-          </motion.div>
-        </motion.div>
+          </div>
+        </div>
 
         {/* Scroll indicator */}
         <motion.div
@@ -397,7 +590,7 @@ export default function Landing() {
       </section>
 
       {/* ══════════════════════════════════════════════════════════
-          STATS BAR
+          STATS BAR (with animated counters)
       ══════════════════════════════════════════════════════════ */}
       <section className="relative z-10 border-y border-border/30 bg-muted/30 backdrop-blur-sm">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 py-10 md:py-14">
@@ -411,9 +604,7 @@ export default function Landing() {
                 transition={{ delay: i * 0.1, duration: 0.5 }}
                 className="text-center group"
               >
-                <p className="text-3xl md:text-4xl lg:text-5xl font-bold bg-gradient-to-br from-foreground to-foreground/60 bg-clip-text text-transparent transition-all duration-200">
-                  {stat.value}
-                </p>
+                <AnimatedCounter value={stat.value} suffix={stat.suffix} />
                 <p className="text-xs md:text-sm text-muted-foreground mt-1.5 font-medium">{stat.label}</p>
                 <p className="text-[10px] md:text-xs text-indigo-400/70 mt-0.5">{stat.sub}</p>
               </motion.div>
@@ -471,6 +662,9 @@ export default function Landing() {
           </div>
         </div>
       </section>
+
+      {/* How it works, Testimonials, Benefits, Pricing, CTA, Footer sections remain the same */}
+      {/* (unchanged from the working version) */}
 
       {/* ══════════════════════════════════════════════════════════
           HOW IT WORKS
