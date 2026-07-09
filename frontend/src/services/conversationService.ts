@@ -10,6 +10,10 @@ export interface Conversation {
     username: string;
     avatarUrl?: string;
   } | null;
+  isTeamRoom?: boolean;
+  roomName?: string | null;
+  projectName?: string | null;
+  participantCount?: number;
   lastMessageAt: number;
   lastMessageText: string;
   unreadCount: number;
