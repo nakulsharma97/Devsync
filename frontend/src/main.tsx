@@ -4,7 +4,7 @@ import { VlyToolbar } from "../vly-toolbar-readonly.tsx";
 import { InstrumentationProvider } from "@/instrumentation.tsx";
 import { ConvexAuthProvider } from "@convex-dev/auth/react";
 import { ConvexReactClient } from "convex/react";
-import { StrictMode, useEffect, lazy, useCallback } from "react";
+import { StrictMode, useEffect, lazy, useCallback, useState } from "react";
 
 // Direct import for Landing (avoids stale dynamic chunk cache issues)
 import Landing from "./pages/Landing.tsx";
@@ -43,8 +43,6 @@ import UserProfilePage from "./pages/UserProfilePage.tsx";
 import Analytics from "./pages/Analytics.tsx";
 import Admin from "./pages/Admin.tsx";
 import BoardPage from "./pages/BoardPage.tsx";
-
-const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL as string);
 
 function RouteSyncer() {
   const location = useLocation();
@@ -119,21 +117,39 @@ function AnimatedRoutes() {
   );
 }
 
-createRoot(document.getElementById("root")!).render(
-  <StrictMode>
-    <VlyToolbar />
+function App() {
+  // Lazily create Convex client inside a component, so any errors
+  // during initialization are caught by React's lifecycle
+  const [convexClient] = useState(() => {
+    const url = import.meta.env.VITE_CONVEX_URL;
+    if (!url) {
+      console.warn("VITE_CONVEX_URL is missing — using placeholder");
+      return new ConvexReactClient("https://placeholder.convex.cloud");
+    }
+    return new ConvexReactClient(url);
+  });
+
+  return (
     <InstrumentationProvider>
+      <VlyToolbar />
       <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-        <ConvexAuthProvider client={convex}>
+        <ConvexAuthProvider client={convexClient}>
           <BrowserRouter>
             <RouteSyncer />
             <ThemeBootstrap />
-            <AuthProvider>                <AnimatedRoutes />
+            <AuthProvider>
+              <AnimatedRoutes />
             </AuthProvider>
             <Toaster />
           </BrowserRouter>
         </ConvexAuthProvider>
       </ThemeProvider>
     </InstrumentationProvider>
+  );
+}
+
+createRoot(document.getElementById("root")!).render(
+  <StrictMode>
+    <App />
   </StrictMode>,
 );
