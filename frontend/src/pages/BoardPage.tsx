@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { useParams, useNavigate } from "react-router";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,49 +31,68 @@ function TaskCard({
   task,
   onDelete,
   onDragStart,
+  isDragging,
 }: {
   task: BoardTask;
   onDelete: (id: string) => void;
   onDragStart: (e: React.DragEvent, taskId: string, columnId: string) => void;
+  isDragging?: boolean;
 }) {
   return (
-    <div
-      draggable
-      onDragStart={(e) => onDragStart(e, task._id, "")}
-      className="bg-card border border-border/50 rounded-lg p-3 cursor-grab active:cursor-grabbing hover:border-accent/30 hover:shadow-sm transition-all group"
+    <motion.div
+      layout
+      initial={{ opacity: 0, y: 12, scale: 0.95 }}
+      animate={{
+        opacity: isDragging ? 0.5 : 1,
+        y: 0,
+        scale: isDragging ? 1.02 : 1,
+      }}
+      exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.15 } }}
+      transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+      className="bg-card border border-border/50 rounded-lg p-3 cursor-grab active:cursor-grabbing hover:border-accent/30 hover:shadow-md transition-all group relative"
     >
-      <div className="flex items-start justify-between gap-2 mb-2">
-        <div className="flex items-center gap-1.5 min-w-0">
-          <GripVertical className="w-3 h-3 text-muted-foreground/30 shrink-0 mt-0.5" />
-          <p className="text-xs font-medium text-foreground line-clamp-2">{task.title}</p>
-        </div>
-        <button
-          onClick={() => onDelete(task._id)}
-          className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
-        >
-          <X className="w-3 h-3" />
-        </button>
-      </div>
-      {task.description && (
-        <p className="text-[10px] text-muted-foreground line-clamp-2 mb-2 ml-5">
-          {task.description}
-        </p>
-      )}
-      <div className="flex items-center gap-2 ml-5">
-        {task.priority && (
-          <span
-            className={`text-[9px] px-1.5 py-0.5 rounded-full border ${
-              PRIORITY_COLORS[task.priority] || "bg-accent/10 text-accent border-accent/20"
-            }`}
+      {/* Drag handle indicator */}
+      <div className="absolute top-0 left-0 w-1 h-full bg-accent/0 group-hover:bg-accent/30 rounded-l-lg transition-colors duration-200" />
+
+      {/* Native drag wrapper - separate from framer-motion to avoid event conflicts */}
+      <div
+        draggable
+        onDragStart={(e) => onDragStart(e, task._id, "")}
+        className="cursor-grab active:cursor-grabbing"
+      >
+        <div className="flex items-start justify-between gap-2 mb-2">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <GripVertical className="w-3 h-3 text-muted-foreground/30 shrink-0 mt-0.5 group-hover:text-muted-foreground/60 transition-colors" />
+            <p className="text-xs font-medium text-foreground line-clamp-2">{task.title}</p>
+          </div>
+          <button
+            onClick={(e) => { e.stopPropagation(); onDelete(task._id); }}
+            className="shrink-0 opacity-0 group-hover:opacity-100 transition-all text-muted-foreground hover:text-destructive hover:bg-destructive/5 rounded-md p-1 -mr-1 -mt-1"
           >
-            {task.priority}
-          </span>
+            <X className="w-3 h-3" />
+          </button>
+        </div>
+        {task.description && (
+          <p className="text-[10px] text-muted-foreground line-clamp-2 mb-2 ml-5">
+            {task.description}
+          </p>
         )}
-        {task.assignee && (
-          <span className="text-[9px] text-muted-foreground">{task.assignee.fullName}</span>
-        )}
+        <div className="flex items-center gap-2 ml-5">
+          {task.priority && (
+            <span
+              className={`text-[9px] px-1.5 py-0.5 rounded-full border ${
+                PRIORITY_COLORS[task.priority] || "bg-accent/10 text-accent border-accent/20"
+              }`}
+            >
+              {task.priority}
+            </span>
+          )}
+          {task.assignee && (
+            <span className="text-[9px] text-muted-foreground">{task.assignee.fullName}</span>
+          )}
+        </div>
       </div>
-    </div>
+    </motion.div>
   );
 }
 
@@ -86,6 +106,7 @@ export default function BoardPage() {
   const [addingTask, setAddingTask] = useState<Record<string, boolean>>({});
   const [addingColumn, setAddingColumn] = useState(false);
   const [newColumnTitle, setNewColumnTitle] = useState("");
+  const [dragOverCol, setDragOverCol] = useState<string | null>(null);
   const dragItem = useRef<{ taskId: string; sourceColumnId: string } | null>(null);
 
   useEffect(() => {
@@ -155,7 +176,17 @@ export default function BoardPage() {
     }
   };
 
+  const handleDragOver = (e: React.DragEvent, colId: string) => {
+    e.preventDefault();
+    setDragOverCol(colId);
+  };
+
+  const handleDragLeave = () => {
+    setDragOverCol(null);
+  };
+
   const handleDrop = async (targetColumnId: string) => {
+    setDragOverCol(null);
     if (!dragItem.current) return;
     const { taskId, sourceColumnId } = dragItem.current;
     if (sourceColumnId === targetColumnId) return;
@@ -245,10 +276,19 @@ export default function BoardPage() {
       {/* Board Columns */}
       <div className="flex gap-4 overflow-x-auto pb-4 min-h-[60vh]">
         {columns.map((col) => (
-          <div
+          <motion.div
             key={col._id}
-            className="flex-shrink-0 w-72 bg-muted/30 border border-border/50 rounded-xl"
-            onDragOver={(e) => e.preventDefault()}
+            layout
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+            className={`flex-shrink-0 w-72 rounded-xl transition-all duration-200 ${
+              dragOverCol === col._id
+                ? "bg-accent/10 border-2 border-accent/40 border-dashed shadow-lg shadow-accent/5"
+                : "bg-muted/30 border border-border/50"
+            }`}
+            onDragOver={(e) => handleDragOver(e, col._id)}
+            onDragLeave={handleDragLeave}
             onDrop={() => handleDrop(col._id)}
           >
             {/* Column Header */}
@@ -266,22 +306,32 @@ export default function BoardPage() {
                   }`}
                 />
                 <span className="text-xs font-semibold text-foreground">{col.title}</span>
-                <span className="text-[10px] text-muted-foreground bg-muted/50 px-1.5 rounded-full">
+                <motion.span
+                  key={col.tasks.length}
+                  initial={{ scale: 1.3 }}
+                  animate={{ scale: 1 }}
+                  className="text-[10px] text-muted-foreground bg-muted/50 px-1.5 rounded-full"
+                >
                   {col.tasks.length}
-                </span>
+                </motion.span>
               </div>
             </div>
 
             {/* Tasks */}
-            <div className="p-2 space-y-2 min-h-[100px]">
-              {col.tasks.map((task) => (
-                <TaskCard
-                  key={task._id}
-                  task={task}
-                  onDelete={handleDeleteTask}
-                  onDragStart={handleDragStart}
-                />
-              ))}
+            <div className={`p-2 space-y-2 min-h-[120px] transition-all duration-200 ${
+              dragOverCol === col._id ? "min-h-[160px]" : ""
+            }`}>
+              <AnimatePresence mode="popLayout">
+                {col.tasks.map((task) => (
+                  <TaskCard
+                    key={task._id}
+                    task={task}
+                    onDelete={handleDeleteTask}
+                    onDragStart={handleDragStart}
+                    isDragging={dragItem.current?.taskId === task._id}
+                  />
+                ))}
+              </AnimatePresence>
 
               {/* Add Task Form */}
               <div className="pt-1">
@@ -371,7 +421,7 @@ export default function BoardPage() {
                 )}
               </div>
             </div>
-          </div>
+          </motion.div>
         ))}
 
         {/* Add Column Button */}

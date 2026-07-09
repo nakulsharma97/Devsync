@@ -5,6 +5,7 @@ const NOTIFICATION_TYPES = {
   LIKE: "LIKE",
   COMMENT: "COMMENT",
   CONNECTION: "CONNECTION",
+  INVITE: "INVITE",
 } as const;
 
 /**
@@ -18,6 +19,7 @@ export const create = mutation({
       v.literal("LIKE"),
       v.literal("COMMENT"),
       v.literal("CONNECTION"),
+      v.literal("INVITE"),
     ),
     message: v.string(),
     actorId: v.optional(v.id("devsync_accounts")),

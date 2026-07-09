@@ -22,6 +22,11 @@ const typeMeta: Record<string, { icon: React.ReactNode; color: string; label: st
     color: "text-green-500",
     label: "Connection",
   },
+  INVITE: {
+    icon: <UserPlus className="w-4 h-4 text-purple-500" />,
+    color: "text-purple-500",
+    label: "Invite",
+  },
 };
 
 /**

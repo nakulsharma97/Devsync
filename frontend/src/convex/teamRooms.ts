@@ -115,6 +115,17 @@ export const inviteToRoom = mutation({
         content: `👋 ${invitedUser.fullName} was invited to the room by ${account.fullName}`,
         read: false,
       });
+
+      // Create an INVITE notification for the invited user
+      await ctx.db.insert("devsync_notifications", {
+        userId: args.userId,
+        type: "INVITE",
+        message: `${account.fullName} invited you to join ${room.roomName || "a team room"}`,
+        read: false,
+        actorId: account._id,
+        referenceId: args.roomId,
+        referenceType: "room",
+      });
     }
 
     return { success: true, alreadyMember: false };

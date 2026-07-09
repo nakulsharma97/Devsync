@@ -7,12 +7,14 @@ const typeIcons: Record<string, React.ReactNode> = {
   LIKE: <Heart className="w-4 h-4" />,
   COMMENT: <MessageCircle className="w-4 h-4" />,
   CONNECTION: <UserPlus className="w-4 h-4" />,
+  INVITE: <UserPlus className="w-4 h-4" />,
 };
 
 const typeColors: Record<string, string> = {
   LIKE: "text-red-500",
   COMMENT: "text-blue-500",
   CONNECTION: "text-green-500",
+  INVITE: "text-purple-500",
 };
 
 export default function Notifications() {

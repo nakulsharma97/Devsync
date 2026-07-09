@@ -29,9 +29,7 @@ import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { HighContrastToggle } from "@/components/HighContrastToggle";
 import { useNavigate } from "react-router";
-import { useRef, useState, useEffect, lazy, Suspense } from "react";
-
-const Hero3D = lazy(() => import("@/components/Hero3D"));
+import { useRef, useState, useEffect } from "react";
 
 // ─── Animation Variants ───────────────────────────────────────
 
@@ -264,37 +262,33 @@ function Navbar() {
   );
 }
 
-// ─── Lazy 3D Background (only loads when hero is visible) ─────
+// ─── Animated Background (gradient mesh that shifts over time) ─
 
-function LazyHeroBackground() {
-  const [visible, setVisible] = useState(false);
+function AnimatedBackground() {
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setVisible(true);
-          observer.disconnect(); // Once loaded, stop observing
-        }
-      },
-      { rootMargin: "200px" } // Start loading 200px before hero enters view
-    );
-    observer.observe(el);
-    return () => observer.disconnect();
+    let frame: number;
+    let angle = 0;
+    const animate = () => {
+      angle += 0.003;
+      const x = Math.sin(angle) * 30;
+      const y = Math.cos(angle * 0.7) * 20;
+      el.style.transform = `translate(${x}px, ${y}px)`;
+      frame = requestAnimationFrame(animate);
+    };
+    animate();
+    return () => cancelAnimationFrame(frame);
   }, []);
 
   return (
-    <div ref={ref} className="fixed inset-0 z-0 pointer-events-none">
-      {visible ? (
-        <Suspense fallback={<div className="fixed inset-0 bg-gradient-to-b from-background via-indigo-950/30 to-background" />}>
-          <Hero3D />
-        </Suspense>
-      ) : (
-        <div className="fixed inset-0 bg-gradient-to-b from-background via-indigo-950/30 to-background" />
-      )}
+    <div ref={ref} className="fixed inset-0 z-0 pointer-events-none transition-transform duration-1000">
+      <div className="absolute inset-0 bg-gradient-to-b from-background via-indigo-950/20 to-background" />
+      <div className="absolute top-1/3 -left-32 w-[500px] h-[500px] bg-gradient-to-br from-indigo-500/10 via-purple-500/8 to-transparent rounded-full blur-3xl" />
+      <div className="absolute bottom-1/3 -right-32 w-[400px] h-[400px] bg-gradient-to-bl from-purple-500/10 via-pink-500/8 to-transparent rounded-full blur-3xl" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-gradient-to-br from-indigo-500/5 via-purple-500/5 to-transparent rounded-full blur-3xl" />
     </div>
   );
 }
@@ -314,8 +308,8 @@ export default function Landing() {
 
   return (
     <div className="min-h-screen bg-background text-foreground overflow-x-hidden">
-      {/* 3D Background - lazy loaded when hero section is visible */}
-      <LazyHeroBackground />
+      {/* Animated gradient background */}
+      <AnimatedBackground />
 
       {/* Navigation */}
       <Navbar />

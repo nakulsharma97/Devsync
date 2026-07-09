@@ -5,7 +5,7 @@ import { getAuthToken } from "./api";
 export interface Notification {
   _id: string;
   userId: string;
-  type: "LIKE" | "COMMENT" | "CONNECTION";
+  type: "LIKE" | "COMMENT" | "CONNECTION" | "INVITE";
   message: string;
   read: boolean;
   actorId?: string;
