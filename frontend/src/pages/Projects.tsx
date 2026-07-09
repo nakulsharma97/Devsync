@@ -17,7 +17,9 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Plus, FolderGit2, ExternalLink, Github, Trash2, Send, Check, LayoutPanelTop, MessageCircle } from "lucide-react";
 import { projectService, type Project, type ProjectRequest } from "@/services/projectService";
+import { teamRoomService } from "@/services/teamRoomService";
 import { postService } from "@/services/postService";
+import { toast } from "sonner";
 
 const emptyForm: ProjectRequest = { title: "", description: "", techStack: "", githubRepo: "", liveDemo: "", tags: [] };
 
@@ -28,6 +30,7 @@ export default function Projects() {
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+  const [creatingChat, setCreatingChat] = useState<string | null>(null);
   const [form, setForm] = useState<ProjectRequest>(emptyForm);
 
   const fetchProjects = async () => {
@@ -139,6 +142,23 @@ export default function Projects() {
                   className="text-xs text-muted-foreground hover:text-accent transition-colors inline-flex items-center gap-1"
                 >
                   <LayoutPanelTop className="w-3 h-3" /> Board
+                </button>
+                <button
+                  onClick={async () => {
+                    setCreatingChat(project.id);
+                    try {
+                      const roomId = await teamRoomService.createOrGet(project.id, project.title);
+                      navigate(`/messages/${roomId}`);
+                    } catch {
+                      toast.error("Failed to create team chat");
+                    } finally {
+                      setCreatingChat(null);
+                    }
+                  }}
+                  disabled={creatingChat === project.id}
+                  className="text-xs text-muted-foreground hover:text-accent transition-colors inline-flex items-center gap-1"
+                >
+                  <MessageCircle className="w-3 h-3" /> Chat
                 </button>
                 {project.githubRepo && (
                   <a href={project.githubRepo} target="_blank" rel="noopener noreferrer"
