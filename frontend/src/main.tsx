@@ -5,8 +5,34 @@ import { createRoot } from "react-dom/client";
 import { ThemeProvider } from "next-themes";
 import { ConvexAuthProvider } from "@convex-dev/auth/react";
 import { ConvexReactClient } from "convex/react";
+import { BrowserRouter, Route, Routes, useLocation } from "react-router";
+import { Toaster } from "@/components/ui/sonner";
+import { AuthProvider } from "@/contexts/AuthContext";
 import Landing from "./pages/Landing.tsx";
 import "./index.css";
+
+function RouteSyncer() {
+  const location = useLocation();
+  useEffect(() => {
+    window.parent.postMessage(
+      { type: "iframe-route-change", path: location.pathname },
+      "*",
+    );
+  }, [location.pathname]);
+
+  useEffect(() => {
+    function handleMessage(event: MessageEvent) {
+      if (event.data?.type === "navigate") {
+        if (event.data.direction === "back") window.history.back();
+        if (event.data.direction === "forward") window.history.forward();
+      }
+    }
+    window.addEventListener("message", handleMessage);
+    return () => window.removeEventListener("message", handleMessage);
+  }, []);
+
+  return null;
+}
 
 function ThemeBootstrap() {
   useEffect(() => {
@@ -33,8 +59,16 @@ function App() {
       <VlyToolbar />
       <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
         <ConvexAuthProvider client={convexClient}>
-          <ThemeBootstrap />
-          <Landing />
+          <BrowserRouter>
+            <RouteSyncer />
+            <ThemeBootstrap />
+            <AuthProvider>
+              <Routes>
+                <Route path="/" element={<Landing />} />
+              </Routes>
+            </AuthProvider>
+            <Toaster />
+          </BrowserRouter>
         </ConvexAuthProvider>
       </ThemeProvider>
     </InstrumentationProvider>
