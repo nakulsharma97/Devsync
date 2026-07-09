@@ -1,4 +1,4 @@
-import { motion, useScroll, useTransform, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowRight,
   Code2,
@@ -180,7 +180,7 @@ function Navbar() {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 py-3 flex items-center justify-between">
         <button onClick={() => navigate("/")} className="flex items-center gap-2.5 group">
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/20 transition-all duration-200 group-hover:scale-105 group-hover:shadow-indigo-500/30">
-            <Code2 className="w-4.5 h-4.5 text-white" />
+            <Code2 className="w-4 h-4 text-white" />
           </div>
           <span className="text-base font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
             DevSync
@@ -262,29 +262,11 @@ function Navbar() {
   );
 }
 
-// ─── Animated Background (gradient mesh that shifts over time) ─
+// ─── Static gradient background ────────────────────────────────
 
 function AnimatedBackground() {
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    let frame: number;
-    let angle = 0;
-    const animate = () => {
-      angle += 0.003;
-      const x = Math.sin(angle) * 30;
-      const y = Math.cos(angle * 0.7) * 20;
-      el.style.transform = `translate(${x}px, ${y}px)`;
-      frame = requestAnimationFrame(animate);
-    };
-    animate();
-    return () => cancelAnimationFrame(frame);
-  }, []);
-
   return (
-    <div ref={ref} className="fixed inset-0 z-0 pointer-events-none transition-transform duration-1000">
+    <div className="fixed inset-0 z-0 pointer-events-none">
       <div className="absolute inset-0 bg-gradient-to-b from-background via-indigo-950/20 to-background" />
       <div className="absolute top-1/3 -left-32 w-[500px] h-[500px] bg-gradient-to-br from-indigo-500/10 via-purple-500/8 to-transparent rounded-full blur-3xl" />
       <div className="absolute bottom-1/3 -right-32 w-[400px] h-[400px] bg-gradient-to-bl from-purple-500/10 via-pink-500/8 to-transparent rounded-full blur-3xl" />
@@ -298,13 +280,6 @@ function AnimatedBackground() {
 export default function Landing() {
   const navigate = useNavigate();
   const heroRef = useRef<HTMLDivElement>(null);
-  const { scrollYProgress } = useScroll({
-    target: heroRef,
-    offset: ["start start", "end start"],
-  });
-  const heroOpacity = useTransform(scrollYProgress, [0, 1], [1, 0]);
-  const heroScale = useTransform(scrollYProgress, [0, 1], [1, 0.95]);
-  const heroY = useTransform(scrollYProgress, [0, 1], [0, -80]);
 
   return (
     <div className="min-h-screen bg-background text-foreground overflow-x-hidden">
@@ -324,7 +299,6 @@ export default function Landing() {
         <div className="absolute bottom-1/4 -right-48 w-[500px] h-[500px] bg-gradient-to-bl from-purple-500/10 to-transparent rounded-full blur-3xl pointer-events-none animate-pulse" style={{ animationDuration: "8s" }} />
 
         <motion.div
-          style={{ opacity: heroOpacity, scale: heroScale }}
           className="mx-auto max-w-4xl px-4 sm:px-6 relative z-10 text-center"
         >
           <motion.div
@@ -836,7 +810,7 @@ export default function Landing() {
             <div className="sm:col-span-2">
               <div className="flex items-center gap-2 mb-4">
                 <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg">
-                  <Code2 className="w-4.5 h-4.5 text-white" />
+                  <Code2 className="w-4 h-4 text-white" />
                 </div>
                 <span className="text-base font-bold">DevSync</span>
               </div>
