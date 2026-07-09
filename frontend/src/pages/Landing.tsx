@@ -109,41 +109,7 @@ function AnimatedCounter({ value, suffix = "" }: { value: string; suffix?: strin
   );
 }
 
-// ─── Safe Parallax Hook (IntersectionObserver-based) ──────────
 
-function useParallax(speed: number = 0.1) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [offsetY, setOffsetY] = useState(0);
-
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          const handleScroll = () => {
-            const rect = el!.getBoundingClientRect();
-            const viewportCenter = window.innerHeight / 2;
-            const elementCenter = rect.top + rect.height / 2;
-            const distance = elementCenter - viewportCenter;
-            setOffsetY(distance * speed);
-          };
-
-          handleScroll();
-          window.addEventListener("scroll", handleScroll, { passive: true });
-          return () => window.removeEventListener("scroll", handleScroll);
-        }
-      },
-      { threshold: 0 },
-    );
-
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [speed]);
-
-  return { ref, style: { transform: `translateY(${offsetY}px)`, transition: "transform 0.1s linear" } };
-}
 
 // ─── Hero Code Editor Mockup ─────────────────────────────────
 
@@ -468,7 +434,6 @@ function AnimatedBackground() {
 export default function Landing() {
   const navigate = useNavigate();
   const heroRef = useRef<HTMLDivElement>(null);
-  const { ref: heroParallaxRef, style: heroParallaxStyle } = useParallax(0.08);
 
   return (
     <div className="min-h-screen bg-background text-foreground overflow-x-hidden">
@@ -558,16 +523,9 @@ export default function Landing() {
             </motion.div>
 
             {/* Hero Mockup */}
-            <motion.div
-              initial={{ opacity: 0, x: 40 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.8, delay: 0.4, ease: [0.16, 1, 0.3, 1] as const }}
-              className="hidden lg:block"
-              ref={heroParallaxRef as any}
-              style={heroParallaxStyle}
-            >
+            <div className="hidden lg:block">
               <CodeEditorMockup />
-            </motion.div>
+            </div>
           </div>
         </div>
 
