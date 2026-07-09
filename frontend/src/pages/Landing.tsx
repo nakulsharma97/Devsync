@@ -39,6 +39,8 @@ import { useRef, useState, useEffect, useCallback } from "react";
 
 // ─── Animation Variants ───────────────────────────────────────
 
+const easeOutExpo: [number, number, number, number] = [0.16, 1, 0.3, 1];
+
 const containerVariants = {
   hidden: { opacity: 0 },
   visible: {
@@ -49,60 +51,66 @@ const containerVariants = {
 
 const itemVariants = {
   hidden: { opacity: 0, y: 30 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.16, 1, 0.3, 1] as const } },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: easeOutExpo } },
 };
 
 const fadeInUp = {
   initial: { opacity: 0, y: 30 },
-  animate: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.16, 1, 0.3, 1] as const } },
+  animate: { opacity: 1, y: 0, transition: { duration: 0.6, ease: easeOutExpo } },
 };
 
 // ─── Animated Counter ─────────────────────────────────────────
 
 function AnimatedCounter({ value, suffix = "" }: { value: string; suffix?: string }) {
-  const [display, setDisplay] = useState("0");
+  const [display, setDisplay] = useState(value);
   const ref = useRef<HTMLSpanElement>(null);
-  const counted = useRef(false);
 
   const numericValue = parseInt(value.replace(/[^0-9]/g, ""));
   const hasPlus = value.includes("+");
   const hasPercent = value.includes("%");
+  const suffixChar = hasPlus ? "+" : hasPercent ? "%" : "";
 
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
+    let started = false;
 
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting && !counted.current) {
-          counted.current = true;
-          const duration = 2000;
+        if (entry.isIntersecting && !started) {
+          started = true;
+          let rafId: number;
+          const startVal = 0;
+          const endVal = numericValue;
+          const duration = 1500;
           const startTime = performance.now();
-          const animate = (now: number) => {
+
+          function step(now: number) {
             const elapsed = now - startTime;
             const progress = Math.min(elapsed / duration, 1);
             const eased = 1 - Math.pow(1 - progress, 3);
-            const current = Math.floor(eased * numericValue);
-            setDisplay(current.toString());
+            const current = Math.floor(startVal + (endVal - startVal) * eased);
+            setDisplay(String(current) + suffixChar + suffix);
             if (progress < 1) {
-              requestAnimationFrame(animate);
-            } else {
-              setDisplay(numericValue.toString());
+              rafId = requestAnimationFrame(step);
             }
-          };
-          requestAnimationFrame(animate);
+          }
+
+          rafId = requestAnimationFrame(step);
         }
       },
       { threshold: 0.3 },
     );
 
     observer.observe(el);
-    return () => observer.disconnect();
-  }, [numericValue]);
+    return () => {
+      observer.disconnect();
+    };
+  }, [numericValue, suffixChar, suffix]);
 
   return (
     <span ref={ref} className="text-3xl md:text-4xl lg:text-5xl font-bold bg-gradient-to-br from-foreground to-foreground/60 bg-clip-text text-transparent">
-      {display}{hasPlus ? "+" : ""}{hasPercent ? "%" : ""}{suffix}
+      {display}
     </span>
   );
 }
@@ -370,7 +378,7 @@ export default function Landing() {
           </motion.div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
             {features.map((feature, index) => (
-              <motion.div key={feature.title} initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: "-40px" }} transition={{ duration: 0.5, delay: index * 0.08, ease: [0.16, 1, 0.3, 1] as const }} className="group relative bg-card border border-border/50 rounded-2xl p-6 md:p-8 transition-all duration-300 hover:border-indigo-500/30 hover:shadow-xl hover:shadow-indigo-500/5 hover:-translate-y-1 overflow-hidden">
+              <motion.div key={feature.title} initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: "-40px" }}            transition={{ duration: 0.5, delay: index * 0.08, ease: easeOutExpo }} className="group relative bg-card border border-border/50 rounded-2xl p-6 md:p-8 transition-all duration-300 hover:border-indigo-500/30 hover:shadow-xl hover:shadow-indigo-500/5 hover:-translate-y-1 overflow-hidden">
                 <div className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none`} />
                 <div className="relative z-10">
                   <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${feature.iconBg} flex items-center justify-center mb-5 shadow-lg transition-all duration-200 group-hover:scale-110 group-hover:shadow-xl`}><feature.icon className="w-5 h-5 text-white" /></div>
@@ -396,7 +404,7 @@ export default function Landing() {
               {step: "02", icon: Users, title: "Invite your team", description: "Real-time multiplayer editing with cursor sync, voice chat, and instant feedback. Like Google Docs for code.", gradient: "from-emerald-500 to-teal-600"},
               {step: "03", icon: Rocket, title: "Ship to production", description: "One click deploys your app to production with built-in CI/CD, preview URLs, and instant rollbacks.", gradient: "from-orange-500 to-amber-600"},
             ].map((step, i) => (
-              <motion.div key={step.step} initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: "-40px" }} transition={{ delay: i * 0.15, duration: 0.5 }} className="relative">
+              <motion.div key={step.step} initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: "-40px" }}            transition={{ delay: i * 0.15, duration: 0.5, ease: easeOutExpo }} className="relative">
                 <div className="bg-card border border-border/50 rounded-2xl p-8 hover:border-indigo-500/20 transition-all duration-300 group">
                   <div className="flex items-center gap-4 mb-6">
                     <span className="text-4xl font-black bg-gradient-to-br from-foreground to-foreground/20 bg-clip-text text-transparent">{step.step}</span>
@@ -422,7 +430,7 @@ export default function Landing() {
           </motion.div>
           <div className="grid md:grid-cols-3 gap-6">
             {testimonials.map((t, index) => (
-              <motion.div key={t.author} initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: "-40px" }} transition={{ delay: index * 0.1, duration: 0.5 }} className="bg-card border border-border/50 rounded-2xl p-6 md:p-8 transition-all duration-300 hover:border-indigo-500/20 hover:shadow-xl hover:-translate-y-1 group">
+              <motion.div key={t.author} initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: "-40px" }}            transition={{ delay: index * 0.1, duration: 0.5, ease: easeOutExpo }} className="bg-card border border-border/50 rounded-2xl p-6 md:p-8 transition-all duration-300 hover:border-indigo-500/20 hover:shadow-xl hover:-translate-y-1 group">
                 <div className="flex gap-1 mb-4">{[...Array(5)].map((_, i) => (<Star key={i} className="w-4 h-4 fill-amber-400 text-amber-400" />))}</div>
                 <p className="text-sm md:text-base text-foreground leading-relaxed mb-6 italic">&ldquo;{t.quote}&rdquo;</p>
                 <div className="flex items-center gap-3 pt-4 border-t border-border/50">
@@ -439,7 +447,7 @@ export default function Landing() {
       <section className="relative z-10 py-16 md:py-24 px-4 sm:px-6">
         <div className="mx-auto max-w-7xl">
           <div className="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
-            <motion.div initial={{ opacity: 0, x: -30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] as const }}>
+            <motion.div initial={{ opacity: 0, x: -30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 0.6, ease: easeOutExpo }}>
               <span className="text-xs font-semibold tracking-[0.2em] uppercase bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent mb-4 block">Why DevSync</span>
               <h2 className="text-3xl sm:text-4xl font-bold tracking-tight mb-6">Built by engineers, for engineers</h2>
               <p className="text-muted-foreground leading-relaxed mb-8 max-w-md">We&apos;ve spent years building software and know what really matters. DevSync delivers the tools you need without the noise.</p>
@@ -452,7 +460,7 @@ export default function Landing() {
                 ))}
               </div>
             </motion.div>
-            <motion.div initial={{ opacity: 0, x: 30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] as const }} className="relative">
+            <motion.div initial={{ opacity: 0, x: 30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 0.6, ease: easeOutExpo }} className="relative">
               <div className="aspect-[4/3] rounded-2xl bg-gradient-to-br from-indigo-500/10 via-purple-500/5 to-pink-500/5 border border-border/50 p-6 md:p-8 flex items-center justify-center relative overflow-hidden group hover:shadow-2xl hover:shadow-indigo-500/10 transition-all duration-500">
                 <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/[0.03] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
                 <div className="text-center relative z-10">
@@ -496,7 +504,7 @@ export default function Landing() {
       <section className="relative z-10 py-16 md:py-28 px-4 sm:px-6 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-indigo-500/[0.02] via-transparent to-purple-500/[0.02] pointer-events-none" />
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-gradient-to-br from-indigo-500/8 via-purple-500/5 to-pink-500/5 rounded-full blur-3xl pointer-events-none" />
-        <motion.div initial={{ opacity: 0, scale: 0.95 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true, margin: "-80px" }} transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] as const }} className="mx-auto max-w-3xl text-center relative z-10">
+        <motion.div initial={{ opacity: 0, scale: 0.95 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true, margin: "-80px" }} transition={{ duration: 0.6, ease: easeOutExpo }} className="mx-auto max-w-3xl text-center relative z-10">
           <span className="text-xs font-semibold tracking-[0.2em] uppercase bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent mb-4 block">Get started</span>
           <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.05]">Ready to build<br /><span className="bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">the next big thing?</span></h2>
           <p className="mt-6 text-base md:text-lg text-muted-foreground leading-relaxed max-w-xl mx-auto">Join the platform that helps developers ship better software, faster. No credit card required.</p>
