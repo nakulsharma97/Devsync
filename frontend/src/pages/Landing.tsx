@@ -109,7 +109,69 @@ function AnimatedCounter({ value, suffix = "" }: { value: string; suffix?: strin
   );
 }
 
+// ─── Safe Parallax Section (IntersectionObserver + passive scroll) ─
 
+function ParallaxSection({ children, speed = 0.08, className = "" }: { children: React.ReactNode; speed?: number; className?: string }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const offsetRef = useRef(0);
+  const [style, setStyle] = useState<React.CSSProperties>({});
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+
+    let ticking = false;
+    let cleanupScroll: (() => void) | null = null;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          // Start scroll tracking
+          const handleScroll = () => {
+            if (!ticking) {
+              window.requestAnimationFrame(() => {
+                const rect = el!.getBoundingClientRect();
+                const viewportCenter = window.innerHeight / 2;
+                const elementCenter = rect.top + rect.height / 2;
+                const distance = (elementCenter - viewportCenter) * speed;
+                offsetRef.current = distance;
+                setStyle({ transform: `translateY(${distance}px)` });
+                ticking = false;
+              });
+              ticking = true;
+            }
+          };
+
+          handleScroll();
+          window.addEventListener("scroll", handleScroll, { passive: true });
+          cleanupScroll = () => window.removeEventListener("scroll", handleScroll);
+        } else {
+          // Stop scroll tracking when element leaves viewport
+          if (cleanupScroll) {
+            cleanupScroll();
+            cleanupScroll = null;
+          }
+          // Reset position
+          offsetRef.current = 0;
+          setStyle({});
+        }
+      },
+      { threshold: 0 },
+    );
+
+    observer.observe(el);
+    return () => {
+      observer.disconnect();
+      if (cleanupScroll) cleanupScroll();
+    };
+  }, [speed]);
+
+  return (
+    <div ref={ref} className={className} style={{ ...style, willChange: "transform" }}>
+      {children}
+    </div>
+  );
+}
 
 // ─── Hero Code Editor Mockup ─────────────────────────────────
 
@@ -522,10 +584,10 @@ export default function Landing() {
               </motion.div>
             </motion.div>
 
-            {/* Hero Mockup */}
-            <div className="hidden lg:block">
+            {/* Hero Mockup — with subtle parallax float */}
+            <ParallaxSection className="hidden lg:block" speed={0.08}>
               <CodeEditorMockup />
-            </div>
+            </ParallaxSection>
           </div>
         </div>
 
