@@ -229,6 +229,7 @@ export default function AuthPage() {
   const [otpCode, setOtpCode] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [attempted, setAttempted] = useState(false);
 
   useEffect(() => {
     if (!isLoading && isAuthenticated) navigate("/dashboard", { replace: true });
@@ -237,6 +238,7 @@ export default function AuthPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setAttempted(true);
     setLocalLoading(true);
     try {
       if (useOtp) {
@@ -256,7 +258,7 @@ export default function AuthPage() {
     }
   };
 
-  if (isLoading) {
+  if (!attempted && isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#07071a]">
         <Loader2 className="h-8 w-8 animate-spin text-indigo-500" />
@@ -267,8 +269,8 @@ export default function AuthPage() {
   const isValid = useOtp
     ? otpCode.length === 6
     : mode === "login"
-      ? email && password.length >= 6
-      : email && password.length >= 6 && fullName;
+      ? email && password.length >= 8
+      : email && password.length >= 8 && fullName;
 
   return (
     <div className="min-h-screen bg-[#07071a] text-white overflow-hidden">
@@ -527,14 +529,14 @@ export default function AuthPage() {
                       type={showPassword ? "text" : "password"}
                       placeholder={
                         mode === "register"
-                          ? "Min 6 characters"
+                          ? "Min 8 characters"
                           : "Your password"
                       }
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       className="h-11 text-sm bg-white/5 border-white/10 text-white placeholder:text-white/30 focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20 transition-all"
                       required
-                      minLength={6}
+                      minLength={mode === "register" ? 8 : 1}
                     />
                     <div className="flex items-center justify-between mt-2">
                       <button
