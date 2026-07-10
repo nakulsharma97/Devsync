@@ -1,32 +1,19 @@
-import { api } from "@/convex/_generated/api";
-import { convexClient } from "@/lib/convexClient";
-import { getAuthToken } from "./api";
+import api from "./api";
 
 export type EmojiReaction = "👍" | "🎉" | "❤️" | "🚀" | "👀";
-
 export const REACTION_LIST: EmojiReaction[] = ["👍", "🎉", "❤️", "🚀", "👀"];
 
 export const reactionService = {
   async toggle(postId: string, emoji: EmojiReaction): Promise<{ added: boolean; emoji: string }> {
-    const token = getAuthToken();
-    if (!token) throw new Error("Not authenticated");
-    return convexClient.mutation(api.reactions.toggle, {
-      token,
-      postId,
-      emoji,
-    });
+    const res = await api.post(`/posts/${postId}/reactions`, { emoji });
+    return res.data;
   },
-
   async getForPost(postId: string): Promise<Record<string, { count: number; users: string[] }>> {
-    return convexClient.query(api.reactions.getForPost, { postId });
+    try { const res = await api.get(`/posts/${postId}/reactions`); return res.data; }
+    catch { return {}; }
   },
-
   async getUserReactions(postId: string): Promise<string[]> {
-    const token = getAuthToken();
-    if (!token) return [];
-    return convexClient.query(api.reactions.getUserReactions, {
-      postId,
-      token,
-    });
+    try { const res = await api.get(`/posts/${postId}/reactions/mine`); return res.data; }
+    catch { return []; }
   },
 };

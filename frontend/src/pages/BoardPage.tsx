@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { useParams } from "react-router";
 import { useApi } from "@/hooks/useApi";
-import { boardService, type BoardDto, type ColumnDto } from "@/services/boardService";
+import { boardService } from "@/services/boardService";
 import { Button } from "@/components/ui/button";
-import { Plus, Loader2, GripVertical } from "lucide-react";
+import { Plus, GripVertical, Loader2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
+import { Skeleton } from "@/components/Skeletons";
 
 function TaskCard({ task, columnId }: { task: any; columnId: string }) {
   const [dragging, setDragging] = useState(false);
@@ -29,6 +30,30 @@ function TaskCard({ task, columnId }: { task: any; columnId: string }) {
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+function BoardSkeleton() {
+  return (
+    <div className="flex gap-4 overflow-x-auto pb-4">
+      {Array.from({ length: 3 }).map((_, colIdx) => (
+        <div key={colIdx} className="flex-1 min-w-[250px] bg-muted/30 rounded-xl border border-border/40 p-3">
+          <div className="flex items-center gap-2 mb-3">
+            <Skeleton className="w-2 h-2 rounded-full" />
+            <Skeleton className="h-4 w-20" />
+            <Skeleton className="h-4 w-6 rounded-full" />
+          </div>
+          <div className="space-y-2">
+            {Array.from({ length: 3 }).map((_, taskIdx) => (
+              <div key={taskIdx} className="bg-card border border-border/40 rounded-lg p-3">
+                <Skeleton className="h-4 w-full mb-1" />
+                <Skeleton className="h-3 w-24 mt-2" />
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
@@ -74,7 +99,12 @@ export default function BoardPage() {
   };
 
   if (loading) {
-    return <div className="flex items-center justify-center py-16"><Loader2 className="h-8 w-8 animate-spin text-indigo-500" /></div>;
+    return (
+      <div className="space-y-4">
+        <Skeleton className="h-7 w-40" />
+        <BoardSkeleton />
+      </div>
+    );
   }
 
   if (!board) {

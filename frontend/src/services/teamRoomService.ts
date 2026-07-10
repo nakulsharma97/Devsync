@@ -1,70 +1,23 @@
-import { api } from "@/convex/_generated/api";
-import { convexClient } from "@/lib/convexClient";
-import { getAuthToken } from "./api";
-
-function getToken(): string {
-  const token = getAuthToken();
-  if (!token) throw new Error("Not authenticated");
-  return token;
-}
-
-export interface TeamRoom {
-  _id: string;
-  roomName: string;
-  isTeamRoom: boolean;
-  projectId?: string;
-  projectName?: string | null;
-  participantCount: number;
-  lastMessageText?: string;
-  lastMessageAt: number;
-  unreadCount: number;
-}
-
-export interface RoomParticipant {
-  id: string;
-  fullName: string;
-  username: string;
-  avatarUrl?: string;
-  isMe?: boolean;
-}
+import api from "./api";
 
 export const teamRoomService = {
   async createOrGet(projectId: string, name: string): Promise<string> {
-    const token = getToken();
-    return await convexClient.mutation(api.teamRooms.createOrGet, {
-      token,
-      projectId: projectId as any,
-      name,
-    });
+    const res = await api.post("/rooms", { projectId, name });
+    return res.data?.id || "";
   },
-
   async joinRoom(roomId: string): Promise<void> {
-    const token = getToken();
-    await convexClient.mutation(api.teamRooms.joinRoom, {
-      token,
-      roomId: roomId as any,
-    });
+    await api.post(`/rooms/${roomId}/join`);
   },
-
   async inviteToRoom(roomId: string, userId: string): Promise<{ success: boolean; alreadyMember: boolean }> {
-    const token = getToken();
-    return await convexClient.mutation(api.teamRooms.inviteToRoom, {
-      token,
-      roomId: roomId as any,
-      userId: userId as any,
-    });
+    const res = await api.post(`/rooms/${roomId}/invite`, { userId });
+    return res.data;
   },
-
-  async getRoomParticipants(roomId: string): Promise<RoomParticipant[]> {
-    const token = getToken();
-    return await convexClient.query(api.teamRooms.getRoomParticipants, {
-      token,
-      roomId: roomId as any,
-    });
+  async getRoomParticipants(roomId: string): Promise<any[]> {
+    const res = await api.get(`/rooms/${roomId}/participants`);
+    return res.data;
   },
-
-  async getMyTeamRooms(): Promise<TeamRoom[]> {
-    const token = getToken();
-    return await convexClient.query(api.teamRooms.getMyTeamRooms, { token });
+  async getMyTeamRooms(): Promise<any[]> {
+    const res = await api.get("/rooms");
+    return res.data;
   },
 };

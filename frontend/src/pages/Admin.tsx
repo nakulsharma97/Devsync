@@ -53,7 +53,7 @@ export default function Admin() {
     setDeletingPost(postId);
     try {
       await adminService.deletePost(postId);
-      setPosts((prev) => prev.filter((p) => p._id !== postId));
+      setPosts((prev) => prev.filter((p) => p.id !== postId));
       toast.success("Post deleted");
     } catch {
       toast.error("Failed to delete post");
@@ -274,7 +274,7 @@ export default function Admin() {
           ) : (
             posts.map((post) => (
               <div
-                key={post._id}
+                key={post.id}
                 className="bg-card border border-border/50 rounded-xl p-4 hover:border-accent/20 transition-colors"
               >
                 <div className="flex items-start justify-between gap-3">
@@ -287,11 +287,11 @@ export default function Admin() {
                     </p>
                   </div>
                   <button
-                    onClick={() => handleDeletePost(post._id)}
-                    disabled={deletingPost === post._id}
+                    onClick={() => handleDeletePost(post.id)}
+                    disabled={deletingPost === post.id}
                     className="shrink-0 p-1.5 text-muted-foreground hover:text-destructive transition-colors rounded-lg hover:bg-destructive/5"
                   >
-                    {deletingPost === post._id ? (
+                    {deletingPost === post.id ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
                     ) : (
                       <Trash2 className="w-4 h-4" />

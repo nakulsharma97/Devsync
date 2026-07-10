@@ -1,62 +1,30 @@
-import { api } from "@/convex/_generated/api";
-import { convexClient } from "@/lib/convexClient";
-import { getAuthToken } from "./api";
-
-function getToken(): string {
-  const token = getAuthToken();
-  if (!token) throw new Error("Not authenticated");
-  return token;
-}
+import api from "./api";
 
 export const connectionService = {
   async follow(followingId: string): Promise<void> {
-    const token = getToken();
-    await convexClient.mutation(api.connections.follow, {
-      token,
-      followingId: followingId as any,
-    });
+    await api.post("/connections/follow", { followingId });
   },
-
   async unfollow(followingId: string): Promise<void> {
-    const token = getToken();
-    await convexClient.mutation(api.connections.unfollow, {
-      token,
-      followingId: followingId as any,
-    });
+    await api.post("/connections/unfollow", { followingId });
   },
-
   async isFollowing(followingId: string): Promise<boolean> {
-    const token = getToken();
-    return await convexClient.query(api.connections.isFollowing, {
-      token,
-      followingId: followingId as any,
-    });
+    try { const res = await api.get(`/connections/is-following/${followingId}`); return res.data?.isFollowing || false; }
+    catch { return false; }
   },
-
   async getFollowingIds(): Promise<string[]> {
-    const token = getToken();
-    return await convexClient.query(api.connections.getFollowingIds, {
-      token,
-    });
+    try { const res = await api.get("/connections/following"); return res.data; }
+    catch { return []; }
   },
-
   async getFollowerCount(userId: string): Promise<number> {
-    return await convexClient.query(api.connections.getFollowerCount, {
-      userId: userId as any,
-    });
+    try { const res = await api.get(`/connections/followers/count/${userId}`); return res.data?.count || 0; }
+    catch { return 0; }
   },
-
   async getFollowingCount(userId: string): Promise<number> {
-    return await convexClient.query(api.connections.getFollowingCount, {
-      userId: userId as any,
-    });
+    try { const res = await api.get(`/connections/following/count/${userId}`); return res.data?.count || 0; }
+    catch { return 0; }
   },
-
   async getAllUsers(searchQuery?: string): Promise<any[]> {
-    const token = getToken();
-    return await convexClient.query(api.connections.getAllUsers, {
-      token,
-      searchQuery,
-    });
+    try { const res = await api.get(`/users?q=${encodeURIComponent(searchQuery || "")}`); return res.data; }
+    catch { return []; }
   },
 };

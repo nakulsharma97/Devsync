@@ -1,6 +1,4 @@
-import { api } from "@/convex/_generated/api";
-import { convexClient } from "@/lib/convexClient";
-import { getAuthToken } from "./api";
+import api from "./api";
 
 export interface BookmarkRequest {
   repoName: string;
@@ -13,7 +11,6 @@ export interface BookmarkRequest {
 
 export interface Bookmark {
   id: string;
-  userId?: string;
   repoName: string;
   repoUrl: string;
   description: string;
@@ -23,31 +20,16 @@ export interface Bookmark {
   createdAt: string;
 }
 
-function getToken(): string {
-  const token = getAuthToken();
-  if (!token) throw new Error("Not authenticated");
-  return token;
-}
-
 export const bookmarkService = {
   async create(data: BookmarkRequest): Promise<Bookmark> {
-    const token = getToken();
-    return await convexClient.mutation(api.bookmarks.create, {
-      token,
-      ...data,
-    });
+    const res = await api.post("/bookmarks", data);
+    return res.data;
   },
-
   async getAll(): Promise<Bookmark[]> {
-    const token = getToken();
-    return await convexClient.query(api.bookmarks.getAll, { token });
+    const res = await api.get("/bookmarks");
+    return res.data;
   },
-
   async delete(id: string): Promise<void> {
-    const token = getToken();
-    await convexClient.mutation(api.bookmarks.deleteBookmark, {
-      token,
-      id: id as any,
-    });
+    await api.delete(`/bookmarks/${id}`);
   },
 };

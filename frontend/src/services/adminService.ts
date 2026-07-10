@@ -1,12 +1,4 @@
-import { api } from "@/convex/_generated/api";
-import { convexClient } from "@/lib/convexClient";
-import { getAuthToken } from "./api";
-
-function getToken(): string {
-  const token = getAuthToken();
-  if (!token) throw new Error("Not authenticated");
-  return token;
-}
+import api from "./api";
 
 export interface AdminUser {
   id: string;
@@ -17,7 +9,7 @@ export interface AdminUser {
   avatarUrl?: string;
   postCount: number;
   followerCount: number;
-  createdAt: number;
+  createdAt: string;
 }
 
 export interface PlatformStats {
@@ -29,49 +21,35 @@ export interface PlatformStats {
 }
 
 export interface AdminPost {
-  _id: string;
+  id: string;
   content: string;
   likeCount: number;
   commentCount: number;
-  createdAt: number;
+  createdAt: string;
   author: { id: string; fullName: string; email: string } | null;
 }
 
 export const adminService = {
   async isAdmin(): Promise<boolean> {
-    const token = getToken();
-    return await convexClient.query(api.admin.isAdmin, { token });
+    try { const res = await api.get("/admin/check"); return res.data?.isAdmin || false; }
+    catch { return false; }
   },
-
   async getPlatformStats(): Promise<PlatformStats> {
-    const token = getToken();
-    return await convexClient.query(api.admin.getPlatformStats, { token });
+    try { const res = await api.get("/admin/stats"); return res.data; }
+    catch { return { totalUsers: 0, totalPosts: 0, totalProjects: 0, totalTeams: 0, totalConnections: 0 }; }
   },
-
   async getAllUsers(): Promise<AdminUser[]> {
-    const token = getToken();
-    return await convexClient.query(api.admin.getAllUsers, { token });
+    try { const res = await api.get("/admin/users"); return res.data; }
+    catch { return []; }
   },
-
-  async getAllPosts(): Promise<AdminPost[]> {
-    const token = getToken();
-    return await convexClient.query(api.admin.getAllPosts, { token });
+  async getAllPosts(): Promise<any[]> {
+    try { const res = await api.get("/admin/posts"); return res.data; }
+    catch { return []; }
   },
-
   async updateUserRole(userId: string, role: string): Promise<void> {
-    const token = getToken();
-    await convexClient.mutation(api.admin.updateUserRole, {
-      token,
-      userId: userId as any,
-      role,
-    });
+    await api.put(`/admin/users/${userId}/role`, { role });
   },
-
   async deletePost(postId: string): Promise<void> {
-    const token = getToken();
-    await convexClient.mutation(api.admin.deletePost, {
-      token,
-      postId: postId as any,
-    });
+    await api.delete(`/admin/posts/${postId}`);
   },
 };

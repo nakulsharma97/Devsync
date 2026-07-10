@@ -1,12 +1,4 @@
-import { api } from "@/convex/_generated/api";
-import { convexClient } from "@/lib/convexClient";
-import { getAuthToken } from "./api";
-
-function getToken(): string {
-  const token = getAuthToken();
-  if (!token) throw new Error("Not authenticated");
-  return token;
-}
+import api from "./api";
 
 export interface PostStats {
   totalPosts: number;
@@ -30,18 +22,16 @@ export interface ActivityStats {
 }
 
 export const analyticsService = {
-  async getPostStats(): Promise<PostStats> {
-    const token = getToken();
-    return await convexClient.query(api.analytics.getPostStats, { token });
+  async getPostStats() {
+    try { const res = await api.get("/analytics/posts"); return res.data; }
+    catch { return { totalPosts: 0, totalLikes: 0, totalComments: 0, dailyData: [] }; }
   },
-
-  async getFollowerGrowth(): Promise<FollowerGrowth> {
-    const token = getToken();
-    return await convexClient.query(api.analytics.getFollowerGrowth, { token });
+  async getFollowerGrowth() {
+    try { const res = await api.get("/analytics/followers"); return res.data; }
+    catch { return { totalFollowers: 0, totalFollowing: 0, dailyData: [] }; }
   },
-
-  async getActivityStats(): Promise<ActivityStats> {
-    const token = getToken();
-    return await convexClient.query(api.analytics.getActivityStats, { token });
+  async getActivityStats() {
+    try { const res = await api.get("/analytics/activity"); return res.data; }
+    catch { return { posts: 0, likes: 0, comments: 0, follows: 0, projects: 0 }; }
   },
 };

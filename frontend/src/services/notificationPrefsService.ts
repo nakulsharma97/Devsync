@@ -1,24 +1,11 @@
-import { api } from "@/convex/_generated/api";
-import { convexClient } from "@/lib/convexClient";
-import { getAuthToken } from "./api";
-
-export interface NotificationPrefs {
-  likes: boolean;
-  comments: boolean;
-  connections: boolean;
-  teamInvites: boolean;
-}
+import api from "./api";
 
 export const notificationPrefsService = {
-  async get(): Promise<NotificationPrefs> {
-    const token = getAuthToken();
-    if (!token) return { likes: true, comments: true, connections: true, teamInvites: true };
-    return await convexClient.query(api.notificationPrefs.get, { token });
+  async get() {
+    try { const res = await api.get("/notification-prefs"); return res.data; }
+    catch { return { likes: true, comments: true, connections: true, teamInvites: true }; }
   },
-
-  async update(prefs: Partial<NotificationPrefs>): Promise<void> {
-    const token = getAuthToken();
-    if (!token) throw new Error("Not authenticated");
-    await convexClient.mutation(api.notificationPrefs.update, { token, ...prefs });
+  async update(prefs: Record<string, boolean>) {
+    await api.put("/notification-prefs", prefs);
   },
 };

@@ -1,8 +1,9 @@
 import { useApi } from "@/hooks/useApi";
 import { notificationService, type NotificationDto } from "@/services/notificationService";
 import { Button } from "@/components/ui/button";
-import { Bell, Loader2, Check, UserPlus, MessageSquare, FolderKanban } from "lucide-react";
+import { Bell, UserPlus, MessageSquare, FolderKanban } from "lucide-react";
 import { toast } from "sonner";
+import { SkeletonNotification } from "@/components/Skeletons";
 
 const iconMap: Record<string, any> = {
   INVITE: UserPlus,
@@ -52,14 +53,16 @@ export default function Notifications() {
         </div>
         {unreadData && unreadData > 0 && (
           <Button variant="outline" size="sm" onClick={handleMarkAllRead}>
-            <Check className="w-4 h-4 mr-1.5" /> Mark all read
+            <Bell className="w-4 h-4 mr-1.5" /> Mark all read
           </Button>
         )}
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center py-16">
-          <Loader2 className="h-8 w-8 animate-spin text-indigo-500" />
+        <div className="divide-y divide-border/20 border border-border/40 rounded-xl overflow-hidden">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <SkeletonNotification key={i} />
+          ))}
         </div>
       ) : notifications && notifications.length > 0 ? (
         <div className="space-y-2">

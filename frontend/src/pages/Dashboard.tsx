@@ -4,8 +4,9 @@ import { projectService, type ProjectDto } from "@/services/projectService";
 import { notificationService } from "@/services/notificationService";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { FolderKanban, Bell, Plus, Loader2, ArrowRight } from "lucide-react";
+import { FolderKanban, Bell, Plus, ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router";
+import { Skeleton, SkeletonTableRow, SkeletonStatCard } from "@/components/Skeletons";
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -34,7 +35,11 @@ export default function Dashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-bold">{projectsLoading ? "..." : projects?.length || 0}</p>
+            {projectsLoading ? (
+              <Skeleton className="h-8 w-16 mb-1" />
+            ) : (
+              <p className="text-3xl font-bold">{projects?.length || 0}</p>
+            )}
             <p className="text-xs text-muted-foreground mt-1">Total projects</p>
           </CardContent>
         </Card>
@@ -47,7 +52,11 @@ export default function Dashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-bold">{unreadCount ?? "..."}</p>
+            {unreadCount === null ? (
+              <Skeleton className="h-8 w-12 mb-1" />
+            ) : (
+              <p className="text-3xl font-bold">{unreadCount}</p>
+            )}
             <p className="text-xs text-muted-foreground mt-1">Unread</p>
           </CardContent>
         </Card>
@@ -74,8 +83,10 @@ export default function Dashboard() {
         </CardHeader>
         <CardContent>
           {projectsLoading ? (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-6 w-6 animate-spin text-indigo-500" />
+            <div className="space-y-2">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <SkeletonTableRow key={i} />
+              ))}
             </div>
           ) : projects && projects.length > 0 ? (
             <div className="space-y-2">
