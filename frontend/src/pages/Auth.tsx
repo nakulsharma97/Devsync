@@ -242,9 +242,21 @@ export default function AuthPage() {
     setLocalLoading(true);
     try {
       if (useOtp) {
-        // OTP flow — would need an OTP service endpoint
+        if (!email) {
+          setError("Enter your email first");
+          setLocalLoading(false);
+          setAttempted(false);
+          return;
+        }
         if (otpCode.length === 6) {
-          // await authService.verifyOtp(email, otpCode);
+          const { authService } = await import("@/services/authService");
+          const response = await authService.verifyOtp(email, otpCode);
+          authService.saveSession(response);
+          window.location.href = "/dashboard";
+        } else {
+          // No code yet — send OTP
+          const { authService } = await import("@/services/authService");
+          await authService.sendOtp(email);
         }
       } else if (mode === "login") {
         await login(email, password);
