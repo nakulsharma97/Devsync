@@ -374,6 +374,8 @@ function ScrollRevealFromRight({ children, className = "" }: { children: React.R
   );
 }
 
+import { ErrorBoundary } from "@/components/ErrorBoundary";
+
 const Hero3D = lazy(() => import("@/components/Hero3D"));
 
 // ─── Main Landing Page ─────────────────────────────────────────
@@ -436,9 +438,11 @@ export default function Landing() {
                 <CodeEditorMockup />
               </div>
               <div className="absolute -top-16 -right-16 w-64 h-64 opacity-60 pointer-events-none">
-                <Suspense fallback={null}>
-                  <Hero3D />
-                </Suspense>
+                <ErrorBoundary>
+                  <Suspense fallback={null}>
+                    <Hero3D />
+                  </Suspense>
+                </ErrorBoundary>
               </div>
             </div>
           </div>
