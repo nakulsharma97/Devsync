@@ -2,11 +2,15 @@ server:
   port: 8080
 
 spring:
+  application:
+    name: devsync-backend
+
   datasource:
-    url: jdbc:mysql://localhost:3306/devsync_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+    url: jdbc:mysql://localhost:3306/devsync?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
     username: root
-    password: ${MYSQL_PASSWORD:password}
+    password: root
     driver-class-name: com.mysql.cj.jdbc.Driver
+
   jpa:
     hibernate:
       ddl-auto: update
@@ -15,43 +19,40 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.MySQLDialect
         format_sql: true
-    open-in-view: false
+        jdbc:
+          time_zone: UTC
+
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
   jackson:
     serialization:
       write-dates-as-timestamps: false
     date-format: yyyy-MM-dd'T'HH:mm:ss.SSS'Z'
     time-zone: UTC
 
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health,info,metrics
-      base-path: /api/actuator
-  endpoint:
-    health:
-      show-details: when-authorized
-      show-components: when-authorized
-  info:
-    env:
-      enabled: true
-
-info:
-  app:
-    name: DevSync Backend
-    description: AI-powered developer networking and collaboration platform
-    version: 1.0.0
-
 app:
   jwt:
-    secret: ${JWT_SECRET:4a6f686e446f6553656372657456657279562795365637265744b6579466f724a57545369676e696e67416e64456e6372797074696f6e}
-    expiration-ms: 86400000
+    secret: ${JWT_SECRET:devsync-jwt-secret-key-must-be-at-least-256-bits-long-for-hs256}
+    expiration-ms: 86400000  # 24 hours
+    refresh-expiration-ms: 2592000000  # 30 days
+
+  otp:
+    expiration-minutes: 10
 
   cors:
-    allowed-origins: ${CORS_ORIGINS:http://localhost:5173,http://localhost:3000}
+    allowed-origins: http://localhost:5173,http://localhost:3000
 
 logging:
   level:
     com.devsync: DEBUG
     org.springframework.security: INFO
-    org.hibernate.SQL: WARN

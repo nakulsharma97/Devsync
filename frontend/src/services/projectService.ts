@@ -1,74 +1,70 @@
-import { api } from "@/convex/_generated/api";
-import { convexClient } from "@/lib/convexClient";
-import { getAuthToken } from "./api";
+import api from "./api";
 
-export interface ProjectRequest {
-  title: string;
-  description?: string;
-  techStack?: string;
-  githubRepo?: string;
-  liveDemo?: string;
-  videoDemo?: string;
-  tags?: string[];
-}
-
-export interface Project {
+export interface ProjectDto {
   id: string;
-  userId?: string;
-  title: string;
-  description: string;
-  techStack: string;
-  githubRepo: string;
-  liveDemo: string;
-  videoDemo: string;
-  tags: string[];
+  name: string;
+  description: string | null;
+  ownerId: string;
   status: string;
+  repositoryUrl: string | null;
+  imageUrl: string | null;
+  memberCount: number;
+  members: Array<{
+    id: string;
+    userId: string;
+    role: string;
+    fullName: string;
+    email: string;
+    avatarUrl: string | null;
+  }>;
   createdAt: string;
   updatedAt: string;
 }
 
-function getToken(): string {
-  const token = getAuthToken();
-  if (!token) throw new Error("Not authenticated");
-  return token;
-}
-
 export const projectService = {
-  async create(data: ProjectRequest): Promise<Project> {
-    const token = getToken();
-    return await convexClient.mutation(api.projects.create, {
-      token,
-      ...data,
-    });
+  async getMyProjects(): Promise<ProjectDto[]> {
+    const res = await api.get("/projects");
+    return res.data;
   },
 
-  async getAll(): Promise<Project[]> {
-    const token = getToken();
-    return await convexClient.query(api.projects.getAll, { token });
+  async getProject(id: string): Promise<ProjectDto> {
+    const res = await api.get(`/projects/${id}`);
+    return res.data;
   },
 
-  async getById(id: string): Promise<Project> {
-    const token = getToken();
-    return await convexClient.query(api.projects.getById, { token, id: id as any });
+  async createProject(data: {
+    name: string;
+    description?: string;
+    repositoryUrl?: string;
+    imageUrl?: string;
+  }): Promise<ProjectDto> {
+    const res = await api.post("/projects", data);
+    return res.data;
   },
 
-  async update(id: string, data: ProjectRequest): Promise<Project> {
-    const token = getToken();
-    return await convexClient.mutation(api.projects.update, {
-      token,
-      id: id as any,
-      ...data,
-    });
+  async updateProject(
+    id: string,
+    data: {
+      name?: string;
+      description?: string;
+      status?: string;
+      repositoryUrl?: string;
+      imageUrl?: string;
+    }
+  ): Promise<ProjectDto> {
+    const res = await api.put(`/projects/${id}`, data);
+    return res.data;
   },
 
-  async delete(id: string): Promise<void> {
-    const token = getToken();
-    await convexClient.mutation(api.projects.deleteProject, {
-      token,
-      id: id as any,
-    });
+  async deleteProject(id: string): Promise<void> {
+    await api.delete(`/projects/${id}`);
+  },
+
+  async addMember(projectId: string, userId: string, role?: string): Promise<void> {
+    await api.post(`/projects/${projectId}/members?userId=${userId}&role=${role || "MEMBER"}`);
+  },
+
+  async removeMember(projectId: string, userId: string): Promise<void> {
+    await api.delete(`/projects/${projectId}/members/${userId}`);
   },
 };
-
-// Also export as default for backward compatibility
-export default projectService;

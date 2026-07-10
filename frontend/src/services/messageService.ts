@@ -1,46 +1,57 @@
-import { api } from "@/convex/_generated/api";
-import { convexClient } from "@/lib/convexClient";
-import { getAuthToken } from "./api";
+import api from "./api";
 
-export interface Message {
-  _id: string;
+export interface MessageDto {
+  id: string;
+  senderId: string;
+  senderName: string;
+  senderAvatar: string | null;
+  roomId: string | null;
+  receiverId: string | null;
   content: string;
-  read: boolean;
-  createdAt: number;
-  sender: {
-    id: string;
-    fullName: string;
-    avatarUrl?: string;
-  } | null;
-  isMine: boolean;
+  messageType: string;
+  systemMessage: boolean;
+  createdAt: string;
+}
+
+export interface ConversationDto {
+  id: string;
+  type: "direct" | "room";
+  name: string;
+  projectName: string | null;
+  avatarUrl: string | null;
+  lastMessage: string | null;
+  lastMessageAt: string | null;
+  unreadCount: number;
+  participantCount: number;
+  otherUserId: string | null;
+  otherUserName: string | null;
+  roomId: string | null;
 }
 
 export const messageService = {
-  async send(conversationId: string, content: string): Promise<void> {
-    const token = getAuthToken();
-    if (!token) throw new Error("Not authenticated");
-    await convexClient.mutation(api.messages.send, {
-      token,
-      conversationId: conversationId as any,
-      content,
-    });
+  async getConversations(): Promise<ConversationDto[]> {
+    const res = await api.get("/messages/conversations");
+    return res.data;
   },
 
-  async getMessages(conversationId: string): Promise<Message[]> {
-    const token = getAuthToken();
-    if (!token) return [];
-    return await convexClient.query(api.messages.getMessages, {
-      token,
-      conversationId: conversationId as any,
-    });
+  async getRoomMessages(roomId: string, limit = 100): Promise<MessageDto[]> {
+    const res = await api.get(`/messages/room/${roomId}?limit=${limit}`);
+    return res.data;
   },
 
-  async markAsRead(conversationId: string): Promise<void> {
-    const token = getAuthToken();
-    if (!token) return;
-    await convexClient.mutation(api.messages.markAsRead, {
-      token,
-      conversationId: conversationId as any,
-    });
+  async getConversation(otherUserId: string, limit = 100): Promise<MessageDto[]> {
+    const res = await api.get(`/messages/dm/${otherUserId}?limit=${limit}`);
+    return res.data;
+  },
+
+  async sendMessage(data: {
+    roomId?: string;
+    receiverId?: string;
+    content: string;
+    messageType?: string;
+    systemMessage?: boolean;
+  }): Promise<MessageDto> {
+    const res = await api.post("/messages", data);
+    return res.data;
   },
 };

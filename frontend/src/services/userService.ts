@@ -1,65 +1,42 @@
-import { api } from "@/convex/_generated/api";
-import { convexClient } from "@/lib/convexClient";
-import { getAuthToken } from "./api";
+import api from "./api";
+import type { UserDto } from "./authService";
 
-export interface UserProfileRequest {
+export interface UpdateUserData {
   fullName?: string;
   username?: string;
-  bio?: string;
-  location?: string;
-  githubUsername?: string;
-  linkedinLink?: string;
-  portfolioWebsite?: string;
   avatarUrl?: string;
-}
-
-export interface User {
-  id: string;
-  email: string;
-  fullName: string;
-  username: string;
   bio?: string;
-  avatarUrl?: string;
-  bannerUrl?: string;
+  jobTitle?: string;
+  company?: string;
   location?: string;
-  githubUsername?: string;
-  linkedinLink?: string;
-  portfolioWebsite?: string;
-  role: string;
-  createdAt: string;
+  githubUrl?: string;
+  twitterUrl?: string;
+  websiteUrl?: string;
 }
 
 export const userService = {
-  async getCurrentUser(): Promise<User> {
-    const token = getAuthToken();
-    if (!token) throw new Error("Not authenticated");
-    const user = await convexClient.query(api.users.getAccountByToken, {
-      token,
-    });
-    if (!user) throw new Error("User not found");
-    return user;
+  async getMe(): Promise<UserDto> {
+    const res = await api.get("/users/me");
+    return res.data;
   },
 
-  async updateProfile(data: UserProfileRequest): Promise<User> {
-    const token = getAuthToken();
-    if (!token) throw new Error("Not authenticated");
-    await convexClient.mutation(api.users.updateAccountProfile, {
-      token,
-      ...data,
-    });
-    // Return updated user
-    const updated = await convexClient.query(api.users.getAccountByToken, {
-      token,
-    });
-    if (!updated) throw new Error("User not found");
-    return updated;
+  async updateMe(data: UpdateUserData): Promise<UserDto> {
+    const res = await api.put("/users/me", data);
+    return res.data;
   },
 
-  async getUserById(id: string): Promise<User> {
-    const user = await convexClient.query(api.users.getAccountById, {
-      accountId: id as any,
-    });
-    if (!user) throw new Error("User not found");
-    return user;
+  async getUser(id: string): Promise<UserDto> {
+    const res = await api.get(`/users/${id}`);
+    return res.data;
+  },
+
+  async searchUsers(query: string): Promise<UserDto[]> {
+    const res = await api.get(`/users?q=${encodeURIComponent(query)}`);
+    return res.data;
+  },
+
+  async getAllUsers(): Promise<UserDto[]> {
+    const res = await api.get("/users/all");
+    return res.data;
   },
 };

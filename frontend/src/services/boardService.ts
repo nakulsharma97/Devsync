@@ -1,92 +1,89 @@
-import { api } from "@/convex/_generated/api";
-import { convexClient } from "@/lib/convexClient";
-import { getAuthToken } from "./api";
+import api from "./api";
 
-function getToken(): string {
-  const token = getAuthToken();
-  if (!token) throw new Error("Not authenticated");
-  return token;
+export interface TaskDto {
+  id: string;
+  title: string;
+  description: string | null;
+  columnId: string;
+  position: number;
+  assigneeId: string | null;
+  assigneeName: string | null;
+  assigneeAvatar: string | null;
+  priority: string;
+  dueDate: string | null;
+  labels: string[];
+  createdAt: string;
 }
 
-export interface BoardColumn {
-  _id: string;
-  title: string;
-  sortOrder: number;
-  tasks: BoardTask[];
+export interface ColumnDto {
+  id: string;
+  name: string;
+  position: number;
+  color: string | null;
+  tasks: TaskDto[];
 }
 
-export interface BoardTask {
-  _id: string;
-  title: string;
-  description?: string;
-  priority?: string;
-  sortOrder: number;
-  assignee?: { id: string; fullName: string; avatarUrl?: string } | null;
-  createdAt: number;
+export interface BoardDto {
+  id: string;
+  name: string;
+  projectId: string;
+  description: string | null;
+  columns: ColumnDto[];
+  createdAt: string;
 }
 
 export const boardService = {
-  async initDefaults(projectId: string): Promise<any> {
-    const token = getToken();
-    return await convexClient.mutation(api.boards.initDefaults, {
-      token,
-      projectId: projectId as any,
-    });
+  async getBoard(boardId: string): Promise<BoardDto> {
+    const res = await api.get(`/boards/${boardId}`);
+    return res.data;
   },
 
-  async addColumn(projectId: string, title: string): Promise<any> {
-    const token = getToken();
-    return await convexClient.mutation(api.boards.addColumn, {
-      token,
-      projectId: projectId as any,
-      title,
-    });
+  async getProjectBoard(projectId: string): Promise<BoardDto | null> {
+    const res = await api.get(`/boards/project/${projectId}`);
+    return res.data || null;
   },
 
-  async addTask(columnId: string, projectId: string, title: string, description?: string, priority?: string): Promise<any> {
-    const token = getToken();
-    return await convexClient.mutation(api.boards.addTask, {
-      token,
-      columnId: columnId as any,
-      projectId: projectId as any,
-      title,
-      description,
-      priority,
-    });
+  async createBoard(name: string, projectId: string, columns: string[]): Promise<BoardDto> {
+    const res = await api.post(
+      `/boards?name=${encodeURIComponent(name)}&projectId=${projectId}&columns=${columns.join(",")}`
+    );
+    return res.data;
   },
 
-  async moveTask(taskId: string, newColumnId: string, newSortOrder: number): Promise<void> {
-    const token = getToken();
-    await convexClient.mutation(api.boards.moveTask, {
-      token,
-      taskId: taskId as any,
-      newColumnId: newColumnId as any,
-      newSortOrder,
-    });
+  async createTask(data: {
+    title: string;
+    description?: string;
+    columnId: string;
+    assigneeId?: string;
+    priority?: string;
+    dueDate?: string;
+    labels?: string;
+  }): Promise<TaskDto> {
+    const res = await api.post("/boards/tasks", data);
+    return res.data;
   },
 
-  async updateTask(taskId: string, data: { title?: string; description?: string; priority?: string }): Promise<void> {
-    const token = getToken();
-    await convexClient.mutation(api.boards.updateTask, {
-      token,
-      taskId: taskId as any,
-      ...data,
-    });
+  async updateTaskPosition(taskId: string, newColumnId: string, newPosition: number): Promise<void> {
+    await api.put("/boards/tasks/position", { taskId, newColumnId, newPosition });
+  },
+
+  async updateTask(
+    taskId: string,
+    data: {
+      title?: string;
+      description?: string;
+      columnId: string;
+      assigneeId?: string;
+      priority?: string;
+      dueDate?: string;
+      labels?: string;
+    }
+  ): Promise<TaskDto> {
+    const res = await api.put(`/boards/tasks/${taskId}`, data);
+    return res.data;
   },
 
   async deleteTask(taskId: string): Promise<void> {
-    const token = getToken();
-    await convexClient.mutation(api.boards.deleteTask, {
-      token,
-      taskId: taskId as any,
-    });
-  },
-
-  async getBoard(projectId: string): Promise<BoardColumn[]> {
-    const token = getToken();
-    return await convexClient.query(api.boards.getBoard, {
-      token,
-      projectId: projectId as any,
-    });
+    await api.delete(`/boards/tasks/${taskId}`);
   },
 };

@@ -1,45 +1,99 @@
-import { api } from "@/convex/_generated/api";
-import { convexClient } from "@/lib/convexClient";
-import { setAuthToken } from "./api";
+import api from "./api";
 
-export interface LoginRequest {
+export interface UserDto {
+  id: string;
   email: string;
-  password: string;
-}
-
-export interface RegisterRequest {
-  email: string;
-  password: string;
   fullName: string;
   username: string;
+  avatarUrl: string | null;
+  bio: string | null;
+  jobTitle: string | null;
+  company: string | null;
+  location: string | null;
+  role: string;
+  emailVerified: boolean;
+  authProvider: string;
+  createdAt: string;
+  lastLoginAt: string | null;
 }
 
 export interface AuthResponse {
-  userId?: string;
-  email: string;
-  fullName: string;
-  role: string;
-  token: string;
+  accessToken: string;
+  refreshToken: string;
+  tokenType: string;
+  user: {
+    id: string;
+    email: string;
+    fullName: string;
+    username: string;
+    avatarUrl: string | null;
+    role: string;
+  };
 }
 
 export const authService = {
-  async login(data: LoginRequest): Promise<AuthResponse> {
-    try {
-      const result = await convexClient.action(api.users.login, data);
-      setAuthToken(result.token);
-      return result;
-    } catch (error: any) {
-      throw new Error(error?.message || "Login failed");
-    }
+  async register(data: {
+    email: string;
+    password: string;
+    fullName: string;
+    username?: string;
+  }): Promise<AuthResponse> {
+    const res = await api.post("/auth/register", data);
+    return res.data;
   },
 
-  async register(data: RegisterRequest): Promise<AuthResponse> {
-    try {
-      const result = await convexClient.action(api.users.register, data);
-      setAuthToken(result.token);
-      return result;
-    } catch (error: any) {
-      throw new Error(error?.message || "Registration failed");
-    }
+  async login(email: string, password: string): Promise<AuthResponse> {
+    const res = await api.post("/auth/login", { email, password });
+    return res.data;
+  },
+
+  async refresh(refreshToken: string): Promise<AuthResponse> {
+    const res = await api.post("/auth/refresh", { refreshToken });
+    return res.data;
+  },
+
+  async sendOtp(email: string): Promise<void> {
+    await api.post(`/auth/otp/send?email=${encodeURIComponent(email)}`);
+  },
+
+  async verifyOtp(email: string, otp: string): Promise<AuthResponse> {
+    const res = await api.post("/auth/otp/verify", { email, otp });
+    return res.data;
+  },
+
+  async oauthCallback(data: {
+    email: string;
+    fullName: string;
+    avatarUrl?: string;
+    provider: string;
+  }): Promise<AuthResponse> {
+    const res = await api.post("/auth/oauth/callback", data);
+    return res.data;
+  },
+
+  async getMe(): Promise<UserDto> {
+    const res = await api.get("/auth/me");
+    return res.data;
+  },
+
+  saveSession(response: AuthResponse) {
+    localStorage.setItem("accessToken", response.accessToken);
+    localStorage.setItem("refreshToken", response.refreshToken);
+    localStorage.setItem("user", JSON.stringify(response.user));
+  },
+
+  clearSession() {
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("refreshToken");
+    localStorage.removeItem("user");
+  },
+
+  getStoredUser(): AuthResponse["user"] | null {
+    const stored = localStorage.getItem("user");
+    return stored ? JSON.parse(stored) : null;
+  },
+
+  isAuthenticated(): boolean {
+    return !!localStorage.getItem("accessToken");
   },
 };
