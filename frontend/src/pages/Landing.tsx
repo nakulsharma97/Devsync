@@ -383,13 +383,18 @@ const Hero3D = lazy(() => import("@/components/Hero3D"));
 export default function Landing() {
   const navigate = useNavigate();
   const heroRef = useRef<HTMLDivElement>(null);
-  const [brightness, setBrightness] = useState(0); // 0=full bright, 0.5=medium, 0.75=dim
+  const [overlayMode, setOverlayMode] = useState(0); // 0=none, 1-5=presets
 
-  const brightnessLevels = [
-    { value: 0, label: "Bright", icon: "☀️" },
-    { value: 0.4, label: "Balanced", icon: "🌤" },
-    { value: 0.7, label: "Dim", icon: "🌙" },
+  const overlayPresets = [
+    { intensity: 0, color: "#000000", label: "Off", icon: "☀️" },
+    { intensity: 0.35, color: "#000000", label: "Black", icon: "⬛" },
+    { intensity: 0.35, color: "#0a0a2e", label: "Deep Blue", icon: "🔵" },
+    { intensity: 0.3, color: "#1a0a2e", label: "Violet", icon: "🟣" },
+    { intensity: 0.35, color: "#2e0a0a", label: "Ember", icon: "🟤" },
+    { intensity: 0.3, color: "#0a2e1a", label: "Forest", icon: "🟢" },
   ];
+
+  const currentOverlay = overlayPresets[overlayMode];
 
   return (
     <div className="min-h-screen bg-background text-foreground overflow-x-hidden relative">
@@ -398,25 +403,24 @@ export default function Landing() {
       {/* Full-page 3D background — covers the whole viewport behind everything */}
       <ErrorBoundary>
         <Suspense fallback={<div className="fixed inset-0 bg-gradient-to-b from-background via-indigo-950/20 to-background" />}>
-          <Hero3D intensity={brightness} />
+          <Hero3D intensity={currentOverlay.intensity} color={currentOverlay.color} />
         </Suspense>
       </ErrorBoundary>
 
-      {/* Brightness toggle — fixed bottom-right corner */}
-      <div className="fixed bottom-6 right-6 z-[60] flex items-center gap-1.5 bg-background/70 backdrop-blur-md border border-border/40 rounded-full px-3 py-1.5 shadow-lg">
-        {brightnessLevels.map((level) => (
+      {/* Overlay toggle — fixed bottom-right corner */}
+      <div className="fixed bottom-6 right-6 z-[60] flex items-center gap-1 bg-background/70 backdrop-blur-md border border-border/40 rounded-full px-2.5 py-1.5 shadow-lg">
+        {overlayPresets.map((preset, i) => (
           <button
-            key={level.value}
-            onClick={() => setBrightness(level.value)}
-            className={`px-2 py-1 rounded-full text-xs font-medium transition-all duration-200 ${
-              brightness === level.value
-                ? "bg-indigo-500/20 text-indigo-300 border border-indigo-500/30"
-                : "text-muted-foreground/60 hover:text-foreground/80 hover:bg-accent/10"
+            key={i}
+            onClick={() => setOverlayMode(i)}
+            className={`w-7 h-7 rounded-full flex items-center justify-center text-[11px] transition-all duration-200 ${
+              overlayMode === i
+                ? "bg-indigo-500/20 ring-2 ring-indigo-500/40 scale-110"
+                : "hover:bg-accent/10 hover:scale-105"
             }`}
-            title={level.label}
+            title={preset.label}
           >
-            <span className="mr-1">{level.icon}</span>
-            <span className="hidden sm:inline">{level.label}</span>
+            {preset.icon}
           </button>
         ))}
       </div>

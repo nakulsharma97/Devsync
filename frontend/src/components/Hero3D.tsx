@@ -155,7 +155,13 @@ function Scene() {
 
 // ─── Exported Component ──────────────────────────────────────
 
-export default function Hero3D({ intensity = 0 }: { intensity?: number }) {
+export default function Hero3D({
+  intensity = 0,
+  color = "#000000",
+}: {
+  intensity?: number;
+  color?: string;
+}) {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -164,14 +170,19 @@ export default function Hero3D({ intensity = 0 }: { intensity?: number }) {
 
   if (!mounted) return null;
 
+  const hasOverlay = intensity > 0;
+  const overlayR = parseInt(color.slice(1, 3), 16);
+  const overlayG = parseInt(color.slice(3, 5), 16);
+  const overlayB = parseInt(color.slice(5, 7), 16);
+
   return (
     <div className="fixed inset-0 z-0">
-      {/* Dimming overlay — adjust opacity to control brightness */}
+      {/* Tinted dimming overlay — color + opacity = full control */}
       <div
         className="absolute inset-0 z-10 pointer-events-none transition-all duration-500"
         style={{
-          background: intensity > 0
-            ? `rgba(0, 0, 0, ${intensity})`
+          background: hasOverlay
+            ? `rgba(${overlayR}, ${overlayG}, ${overlayB}, ${intensity})`
             : "transparent",
         }}
       />
