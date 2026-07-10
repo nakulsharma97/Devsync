@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from "react";
 import { authService, type AuthResponse } from "@/services/authService";
+import { wsService } from "@/services/websocketService";
 
 interface AuthContextType {
   user: AuthResponse["user"] | null;
@@ -24,21 +25,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!token) {
       setUser(null);
       setIsLoading(false);
+      wsService.disconnect();
       return;
     }
     try {
       const userData = await authService.getMe();
-      setUser({
+      const user = {
         id: userData.id,
         email: userData.email,
         fullName: userData.fullName,
         username: userData.username,
         avatarUrl: userData.avatarUrl,
         role: userData.role,
-      });
+      };
+      setUser(user);
+      // Connect WebSocket for real-time messaging
+      wsService.connect(user.id, token);
     } catch {
       authService.clearSession();
       setUser(null);
+      wsService.disconnect();
     } finally {
       setIsLoading(false);
     }
@@ -83,6 +89,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = useCallback(() => {
     authService.clearSession();
     setUser(null);
+    wsService.disconnect();
     window.location.href = "/";
   }, []);
 

@@ -172,8 +172,8 @@ function Navbar() {
   return (
     <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
       scrolled
-        ? "bg-background/80 backdrop-blur-xl border-b border-border/30 shadow-sm"
-        : "bg-transparent"
+        ? "bg-background/85 backdrop-blur-xl border-b border-border shadow-sm"
+        : "bg-background/40 backdrop-blur-sm border-b border-border/10"
     }`}>
       <div className="mx-auto max-w-7xl px-4 sm:px-6 py-3 flex items-center justify-between">
         <button onClick={() => navigate("/")} className="flex items-center gap-2.5 group">
@@ -745,7 +745,7 @@ export default function Landing() {
                   { icon: Twitter, href: "#", label: "Twitter" },
                   { icon: MessageCircle, href: "#", label: "Discord" },
                 ].map(({ icon: Icon, href, label }) => (
-                  <a key={label} href={href} aria-label={label} className="w-9 h-9 rounded-xl bg-muted/50 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-indigo-500/10 hover:text-indigo-400 transition-all duration-200">
+                  <a key={label} href={href} aria-label={label} className="w-9 h-9 rounded-xl bg-muted/50 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-indigo-500/10 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all duration-200">
                     <Icon className="w-4 h-4" />
                   </a>
                 ))}

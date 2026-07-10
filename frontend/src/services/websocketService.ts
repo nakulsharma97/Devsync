@@ -1,93 +1,110 @@
-// WebSocket service for real-time messaging and notifications
-// Uses native WebSocket with SockJS-compatible fallback
+// STOMP over SockJS WebSocket service for real-time messaging
+// Matches the Spring Boot backend configuration
+
+import SockJS from "sockjs-client";
+import { Client, type IMessage, type IFrame } from "@stomp/stompjs";
 
 type MessageCallback = (data: any) => void;
+type ConnectionCallback = (connected: boolean) => void;
 
 class WebSocketService {
-  private ws: WebSocket | null = null;
+  private client: Client | null = null;
+  private roomSubscriptions: Map<string, () => void> = new Map();
+  private dmSubscriptions: Set<string> = new Set();
   private messageCallbacks: Map<string, Set<MessageCallback>> = new Map();
   private notificationCallbacks: Set<MessageCallback> = new Set();
   private typingCallbacks: Set<MessageCallback> = new Set();
-  private reconnectAttempts = 0;
-  private maxReconnectAttempts = 5;
-  private reconnectDelay = 2000;
+  private connectionCallbacks: Set<ConnectionCallback> = new Set();
   private userId: string | null = null;
-  private token: string | null = null;
+  private connected = false;
 
   connect(userId: string, token: string) {
-    if (this.ws?.readyState === WebSocket.OPEN) return;
+    if (this.client?.active) return;
 
     this.userId = userId;
-    this.token = token;
-    const wsUrl = import.meta.env.VITE_WS_URL || "ws://localhost:8080/ws";
+    const wsUrl = import.meta.env.VITE_WS_URL || "http://localhost:8080/ws";
 
-    try {
-      this.ws = new WebSocket(wsUrl);
+    this.client = new Client({
+      webSocketFactory: () => new SockJS(wsUrl),
+      connectHeaders: {
+        Authorization: `Bearer ${token}`,
+        "X-User-Id": userId,
+      },
+      debug: (msg) => {
+        if (import.meta.env.DEV) console.debug("[STOMP]", msg);
+      },
+      reconnectDelay: 2000,
+      maxReconnectDelay: 30000,
+      heartbeatIncoming: 10000,
+      heartbeatOutgoing: 10000,
+    });
 
-      this.ws.onopen = () => {
-        console.log("[WS] Connected");
-        this.reconnectAttempts = 0;
+    this.client.onConnect = (frame: IFrame) => {
+      console.log("[STOMP] Connected");
+      this.connected = true;
+      this.connectionCallbacks.forEach((cb) => cb(true));
 
-        // Send auth message
-        this.send({ type: "auth", token, userId });
+      // Subscribe to user-specific queue for DMs and notifications
+      this.client?.subscribe(`/user/queue/messages`, (msg: IMessage) => {
+        const data = JSON.parse(msg.body);
+        this.handleIncomingMessage(data);
+      });
 
-        // Subscribe to user-specific channel
-        this.send({ type: "subscribe", channel: `/user/${userId}` });
+      this.client?.subscribe(`/user/queue/notifications`, (msg: IMessage) => {
+        const data = JSON.parse(msg.body);
+        this.handleIncomingNotification(data);
+      });
+    };
 
-        // Start heartbeat
-        this.startHeartbeat();
-      };
+    this.client.onDisconnect = () => {
+      this.connected = false;
+      this.connectionCallbacks.forEach((cb) => cb(false));
+    };
 
-      this.ws.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          this.handleMessage(data);
-        } catch {
-          console.warn("[WS] Failed to parse message");
-        }
-      };
+    this.client.onStompError = (frame: IFrame) => {
+      console.error("[STOMP] Error:", frame.headers["message"]);
+      this.connected = false;
+    };
 
-      this.ws.onclose = () => {
-        console.log("[WS] Disconnected");
-        this.handleReconnect();
-      };
-
-      this.ws.onerror = (err) => {
-        console.error("[WS] Error:", err);
-      };
-    } catch (err) {
-      console.error("[WS] Connection failed:", err);
-      this.handleReconnect();
-    }
+    this.client.activate();
   }
 
   disconnect() {
-    this.reconnectAttempts = this.maxReconnectAttempts; // Prevent reconnect
-    if (this.ws) {
-      this.ws.close();
-      this.ws = null;
-    }
-    this.stopHeartbeat();
+    this.connected = false;
+    this.client?.deactivate();
+    this.client = null;
+    this.roomSubscriptions.clear();
+    this.dmSubscriptions.clear();
   }
 
-  send(data: any) {
-    if (this.ws?.readyState === WebSocket.OPEN) {
-      this.ws.send(JSON.stringify(data));
-    }
+  onConnection(callback: ConnectionCallback) {
+    this.connectionCallbacks.add(callback);
+    return () => this.connectionCallbacks.delete(callback);
   }
 
   // Room messages
-  onRoomMessage(roomId: string, callback: MessageCallback) {
-    if (!this.messageCallbacks.has(roomId)) {
-      this.messageCallbacks.set(roomId, new Set());
+  subscribeToRoom(roomId: string, callback: MessageCallback) {
+    const topic = `/topic/room/${roomId}`;
+    if (!this.messageCallbacks.has(topic)) {
+      this.messageCallbacks.set(topic, new Set());
     }
-    this.messageCallbacks.get(roomId)!.add(callback);
+    this.messageCallbacks.get(topic)!.add(callback);
 
-    // Subscribe to room channel
-    this.send({ type: "subscribe", channel: `/room/${roomId}` });
+    if (!this.roomSubscriptions.has(roomId) && this.client?.active) {
+      const sub = this.client.subscribe(topic, (msg: IMessage) => {
+        const data = JSON.parse(msg.body);
+        this.messageCallbacks.get(topic)?.forEach((cb) => cb(data));
+      });
+      this.roomSubscriptions.set(roomId, () => sub.unsubscribe());
+    }
 
     return () => {
-      this.messageCallbacks.get(roomId)?.delete(callback);
+      this.messageCallbacks.get(topic)?.delete(callback);
+      if (this.messageCallbacks.get(topic)?.size === 0) {
+        this.roomSubscriptions.get(roomId)?.();
+        this.roomSubscriptions.delete(roomId);
+        this.messageCallbacks.delete(topic);
+      }
     };
   }
 
@@ -104,66 +121,50 @@ class WebSocketService {
   }
 
   sendTyping(roomId?: string, receiverId?: string, typing = true) {
-    this.send({ type: "typing", roomId, receiverId, userId: this.userId, typing });
-  }
-
-  sendMessage(data: { roomId?: string; receiverId?: string; content: string; messageType?: string; systemMessage?: boolean }) {
-    this.send({
-      type: "message",
-      ...data,
-      senderId: this.userId,
+    this.client?.publish({
+      destination: "/app/chat.typing",
+      body: JSON.stringify({ roomId, receiverId, userId: this.userId, typing }),
     });
   }
 
-  private handleMessage(data: any) {
-    // Route messages
-    if (data.type === "message") {
-      const roomId = data.roomId;
-      if (roomId && this.messageCallbacks.has(roomId)) {
-        this.messageCallbacks.get(roomId)!.forEach((cb) => cb(data));
-      } else if (data.receiverId || data.senderId) {
-        // DM — notify all DM callbacks
-        this.messageCallbacks.forEach((callbacks, key) => {
-          if (key.startsWith("dm_")) callbacks.forEach((cb) => cb(data));
-        });
-      }
-    }
+  sendMessage(data: {
+    roomId?: string;
+    receiverId?: string;
+    content: string;
+    messageType?: string;
+    systemMessage?: boolean;
+  }) {
+    this.client?.publish({
+      destination: "/app/chat.send",
+      body: JSON.stringify({
+        ...data,
+        senderId: this.userId,
+        timestamp: new Date().toISOString(),
+      }),
+    });
+  }
 
-    if (data.type === "notification") {
-      this.notificationCallbacks.forEach((cb) => cb(data));
-    }
+  get isConnected() {
+    return this.connected;
+  }
 
-    if (data.type === "typing") {
-      this.typingCallbacks.forEach((cb) => cb(data));
+  private handleIncomingMessage(data: any) {
+    const topic = data.roomId
+      ? `/topic/room/${data.roomId}`
+      : "dm";
+
+    this.messageCallbacks.get(topic)?.forEach((cb) => cb(data));
+
+    // Also notify DM listeners
+    if (!data.roomId) {
+      this.messageCallbacks.forEach((callbacks, key) => {
+        if (key.startsWith("dm_")) callbacks.forEach((cb) => cb(data));
+      });
     }
   }
 
-  private handleReconnect() {
-    if (this.reconnectAttempts >= this.maxReconnectAttempts) return;
-    this.reconnectAttempts++;
-    const delay = this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1);
-    console.log(`[WS] Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts})`);
-    setTimeout(() => {
-      if (this.userId && this.token) {
-        this.connect(this.userId, this.token);
-      }
-    }, delay);
-  }
-
-  private heartbeatInterval: any = null;
-
-  private startHeartbeat() {
-    this.stopHeartbeat();
-    this.heartbeatInterval = setInterval(() => {
-      this.send({ type: "ping" });
-    }, 30000);
-  }
-
-  private stopHeartbeat() {
-    if (this.heartbeatInterval) {
-      clearInterval(this.heartbeatInterval);
-      this.heartbeatInterval = null;
-    }
+  private handleIncomingNotification(data: any) {
+    this.notificationCallbacks.forEach((cb) => cb(data));
   }
 }
 

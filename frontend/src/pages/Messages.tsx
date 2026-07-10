@@ -2,11 +2,12 @@ import { useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { useApi } from "@/hooks/useApi";
 import { messageService, type ConversationDto, type MessageDto } from "@/services/messageService";
+import { wsService } from "@/services/websocketService";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Loader2, Send, MessageSquare, Users } from "lucide-react";
 import { toast } from "sonner";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useCallback } from "react";
 
 export default function Messages() {
   const { conversationId } = useParams();
@@ -32,30 +33,59 @@ export default function Messages() {
     fetch.then(setMessages).catch(() => toast("Failed to load messages")).finally(() => setLoadingMessages(false));
   }, [conversationId]);
 
+  // Subscribe to real-time messages via WebSocket
+  useEffect(() => {
+    if (!conversationId || !wsService.isConnected) return;
+    const isRoom = conversationId.startsWith("room_");
+    const actualId = conversationId.replace(/^(room_|dm_)/, "");
+
+    if (isRoom) {
+      return wsService.subscribeToRoom(actualId, (data) => {
+        setMessages((prev) => {
+          // Avoid duplicates
+          if (prev.some((m) => m.id === data.id || (m.content === data.content && m.senderId === data.senderId))) return prev;
+          return [...prev, data];
+        });
+      });
+    }
+  }, [conversationId]);
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const handleSend = async (e: React.FormEvent) => {
+  const handleSend = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newMessage.trim() || !conversationId) return;
     setSending(true);
     try {
       const isRoom = conversationId.startsWith("room_");
       const actualId = conversationId.replace(/^(room_|dm_)/, "");
-      const msg = await messageService.sendMessage({
-        roomId: isRoom ? actualId : undefined,
-        receiverId: !isRoom ? actualId : undefined,
-        content: newMessage.trim(),
-      });
-      setMessages((prev) => [...prev, msg]);
-      setNewMessage("");
+
+      // Send via WebSocket for real-time delivery
+      if (wsService.isConnected) {
+        wsService.sendMessage({
+          roomId: isRoom ? actualId : undefined,
+          receiverId: !isRoom ? actualId : undefined,
+          content: newMessage.trim(),
+        });
+        setNewMessage("");
+      } else {
+        // Fallback to REST API
+        const msg = await messageService.sendMessage({
+          roomId: isRoom ? actualId : undefined,
+          receiverId: !isRoom ? actualId : undefined,
+          content: newMessage.trim(),
+        });
+        setMessages((prev) => [...prev, msg]);
+        setNewMessage("");
+      }
     } catch {
       toast("Failed to send message");
     } finally {
       setSending(false);
     }
-  };
+  }, [newMessage, conversationId]);
 
   return (
     <div className="flex h-[calc(100vh-8rem)] -m-4 md:-m-6">

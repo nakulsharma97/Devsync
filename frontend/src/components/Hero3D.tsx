@@ -113,11 +113,14 @@ function Particles() {
     pointsRef.current.rotation.y = clock.getElapsedTime() * 0.02;
   });
 
+  const geom = useMemo(() => {
+    const g = new THREE.BufferGeometry();
+    g.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+    return g;
+  }, [positions]);
+
   return (
-    <points ref={pointsRef}>
-      <bufferGeometry>
-        <bufferAttribute attach="attributes-position" count={count} array={positions} itemSize={3} />
-      </bufferGeometry>
+    <points ref={pointsRef} geometry={geom}>
       <pointsMaterial size={0.05} color="#818cf8" transparent opacity={0.7} sizeAttenuation blending={THREE.AdditiveBlending} depthWrite={false} />
     </points>
   );
