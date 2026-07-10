@@ -42,7 +42,10 @@ spring:
 
 app:
   jwt:
-    secret: ${JWT_SECRET:devsync-jwt-secret-key-must-be-at-least-256-bits-long-for-hs256}
+    # ⚠️ CRITICAL: Set a strong JWT secret as an environment variable!
+    # Generate one with: openssl rand -base64 64
+    # DO NOT use the fallback default in production.
+    secret: ${JWT_SECRET}
     expiration-ms: 86400000  # 24 hours
     refresh-expiration-ms: 2592000000  # 30 days
 

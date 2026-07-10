@@ -51,11 +51,7 @@ export interface ApiResponse<T> {
 // ── Service ────────────────────────────────────────────────────
 
 export const postService = {
-  async create(data: {
-    content: string;
-    imageUrl?: string;
-    postType?: string;
-  }): Promise<PostDto> {
+  async create(data: { content: string; imageUrl?: string; postType?: string }): Promise<PostDto> {
     const res = await api.post<ApiResponse<PostDto>>("/posts", {
       content: data.content,
       imageUrl: data.imageUrl || undefined,
@@ -78,28 +74,23 @@ export const postService = {
     };
   },
 
-  async getPost(id: number): Promise<PostDto> {
+  async getPost(id: string): Promise<PostDto> {
     const res = await api.get<ApiResponse<PostDto>>(`/posts/${id}`);
     return res.data.data;
   },
 
-  async delete(id: number): Promise<void> {
+  async delete(id: string): Promise<void> {
     await api.delete(`/posts/${id}`);
   },
 
-  async toggleLike(
-    postId: number
-  ): Promise<{ liked: boolean; count: number }> {
+  async toggleLike(postId: string): Promise<{ liked: boolean; count: number }> {
     const res = await api.post<ApiResponse<{ liked: boolean; count: number }>>(
       `/posts/${postId}/like`
     );
     return res.data.data;
   },
 
-  async addComment(
-    postId: number,
-    data: { content: string }
-  ): Promise<CommentDto> {
+  async addComment(postId: string, data: { content: string }): Promise<CommentDto> {
     const res = await api.post<ApiResponse<CommentDto>>(
       `/posts/${postId}/comments`,
       data
@@ -107,18 +98,17 @@ export const postService = {
     return res.data.data;
   },
 
-  async getComments(postId: number): Promise<CommentDto[]> {
+  async getComments(postId: string): Promise<CommentDto[]> {
     const res = await api.get<ApiResponse<CommentDto[]>>(
       `/posts/${postId}/comments`
     );
     return res.data.data;
   },
 
-  async getPostsByUser(userId: number): Promise<PostDto[]> {
+  async getPostsByUser(userId: string): Promise<PostDto[]> {
     const res = await api.get<ApiResponse<PageDto<PostDto>>>(
       `/posts/feed?page=0&size=50`
     );
-    // Filter by user on the client side
     return res.data.data.content.filter((p) => p.user.id === userId);
   },
 };

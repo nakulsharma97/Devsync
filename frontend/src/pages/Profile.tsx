@@ -4,6 +4,7 @@ import { useApi } from "@/hooks/useApi";
 import { userService } from "@/services/userService";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, Save } from "lucide-react";
 import { toast } from "sonner";
@@ -73,12 +74,30 @@ export default function Profile() {
                 </div>
               </div>
               <div className="grid sm:grid-cols-2 gap-4">
-                <Input label="Full Name" placeholder="Full name" value={form.fullName} onChange={(e) => setForm({ ...form, fullName: e.target.value })} />
-                <Input label="Username" placeholder="Username" value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })} />
-                <Input label="Job Title" placeholder="Job title" value={form.jobTitle} onChange={(e) => setForm({ ...form, jobTitle: e.target.value })} />
-                <Input label="Company" placeholder="Company" value={form.company} onChange={(e) => setForm({ ...form, company: e.target.value })} />
-                <Input label="Location" placeholder="Location" value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} className="sm:col-span-2" />
-                <Input label="Bio" placeholder="Bio" value={form.bio} onChange={(e) => setForm({ ...form, bio: e.target.value })} className="sm:col-span-2" />
+                <div className="space-y-1.5">
+                  <Label htmlFor="fullName" className="text-xs">Full Name</Label>
+                  <Input id="fullName" placeholder="Full name" value={form.fullName} onChange={(e) => setForm({ ...form, fullName: e.target.value })} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="username" className="text-xs">Username</Label>
+                  <Input id="username" placeholder="Username" value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="jobTitle" className="text-xs">Job Title</Label>
+                  <Input id="jobTitle" placeholder="Job title" value={form.jobTitle} onChange={(e) => setForm({ ...form, jobTitle: e.target.value })} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="company" className="text-xs">Company</Label>
+                  <Input id="company" placeholder="Company" value={form.company} onChange={(e) => setForm({ ...form, company: e.target.value })} />
+                </div>
+                <div className="space-y-1.5 sm:col-span-2">
+                  <Label htmlFor="location" className="text-xs">Location</Label>
+                  <Input id="location" placeholder="Location" value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} />
+                </div>
+                <div className="space-y-1.5 sm:col-span-2">
+                  <Label htmlFor="bio" className="text-xs">Bio</Label>
+                  <Input id="bio" placeholder="Bio" value={form.bio} onChange={(e) => setForm({ ...form, bio: e.target.value })} />
+                </div>
               </div>
               <Button type="submit" disabled={saving} className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white">
                 {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}

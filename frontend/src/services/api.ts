@@ -1,5 +1,10 @@
 import axios from "axios";
 
+// Re-export for Convex-based services (legacy, will be migrated)
+export function getAuthToken(): string | null {
+  return localStorage.getItem("accessToken");
+}
+
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8080/api";
 
 const api = axios.create({

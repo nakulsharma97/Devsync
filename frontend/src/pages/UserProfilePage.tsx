@@ -44,7 +44,7 @@ export default function UserProfilePage() {
     try {
       const [userData, userPosts] = await Promise.all([
         userService.getUser(userId),
-        postService.getPostsByUser(Number(userId)).catch(() => [] as PostDto[]),
+        postService.getPostsByUser(userId).catch(() => [] as PostDto[]),
       ]);
       setProfileUser(userData);
       setPosts(userPosts);

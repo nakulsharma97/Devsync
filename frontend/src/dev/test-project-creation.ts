@@ -1,12 +1,9 @@
 /**
  * Project CRUD test utility — Dev mode only.
- *
- * Exposes `window.testProjectCrud()` for easy console testing.
- * Imported in main.tsx via `import.meta.env.DEV` guard, so it's
- * tree-shaken out of production builds.
+ * Uses the current REST-based projectService API.
  */
 
-import { projectService, type ProjectRequest } from "@/services/projectService";
+import { projectService } from "@/services/projectService";
 
 export default function registerTest() {
   (window as any).testProjectCrud = testProjectCrud;
@@ -15,68 +12,56 @@ export default function registerTest() {
 
 async function testProjectCrud(): Promise<void> {
   const results: string[] = [];
-  const log = console.log;
 
-  const testProject: ProjectRequest = {
-    title: "Test Project — " + new Date().toISOString().slice(0, 16),
+  const testData = {
+    name: "Test Project — " + new Date().toISOString().slice(0, 16),
     description:
-      "Auto-generated test to verify the Convex project migration works correctly.",
-    techStack: "TypeScript, Convex, React",
-    githubRepo: "https://github.com/test/test-project",
-    liveDemo: "https://test-project.example.com",
-    tags: ["test", "verification"],
+      "Auto-generated test to verify project CRUD works correctly.",
   };
 
   let projectId: string | null = null;
 
   try {
-    // -------- Step 1: Create --------
-    const created = await projectService.create(testProject);
+    // Step 1: Create
+    const created = await projectService.createProject(testData);
     if (created?.id) {
       projectId = created.id;
-      results.push(
-        `✅ PASS: Created project "${created.title}" (id: ${projectId})`,
-      );
+      results.push(`✅ PASS: Created project "${created.name}" (id: ${projectId})`);
     } else {
       results.push(`❌ FAIL: Create returned unexpected shape`);
       return printResults(results);
     }
 
-    // -------- Step 2: Get All --------
-    const all = await projectService.getAll();
-    const found = all.find((p) => p.id === projectId);
+    // Step 2: Get My Projects
+    const all = await projectService.getMyProjects();
+    const found = all.find((p: { id: string }) => p.id === projectId);
     if (found) {
-      results.push(
-        `✅ PASS: Found project in getAll() (${all.length} total)`,
-      );
+      results.push(`✅ PASS: Found project in getMyProjects() (${all.length} total)`);
     } else {
-      results.push(`❌ FAIL: Created project missing from getAll()`);
+      results.push(`❌ FAIL: Created project missing from getMyProjects()`);
     }
 
-    // -------- Step 3: Get By ID --------
-    const fetched = await projectService.getById(projectId);
+    // Step 3: Get By ID
+    const fetched = await projectService.getProject(projectId);
     if (fetched.id === projectId) {
-      results.push(`✅ PASS: getById() returned correct project`);
+      results.push(`✅ PASS: getProject() returned correct project`);
     } else {
-      results.push(`❌ FAIL: getById() mismatch`);
+      results.push(`❌ FAIL: getProject() mismatch`);
     }
 
-    // -------- Step 4: Update --------
-    const updatedTitle = testProject.title + " [UPDATED]";
-    const updated = await projectService.update(projectId, {
-      ...testProject,
-      title: updatedTitle,
-    });
-    if (updated.title === updatedTitle) {
-      results.push(`✅ PASS: Updated project title successfully`);
+    // Step 4: Update
+    const updatedName = testData.name + " [UPDATED]";
+    const updated = await projectService.updateProject(projectId, { name: updatedName });
+    if (updated.name === updatedName) {
+      results.push(`✅ PASS: Updated project name successfully`);
     } else {
-      results.push(`❌ FAIL: Update didn't change title`);
+      results.push(`❌ FAIL: Update didn't change name`);
     }
 
-    // -------- Step 5: Delete (cleanup) --------
-    await projectService.delete(projectId);
-    const afterDelete = await projectService.getAll();
-    const deleted = afterDelete.find((p) => p.id === projectId);
+    // Step 5: Delete (cleanup)
+    await projectService.deleteProject(projectId);
+    const afterDelete = await projectService.getMyProjects();
+    const deleted = afterDelete.find((p: { id: string }) => p.id === projectId);
     if (!deleted) {
       results.push(`✅ PASS: Deleted project — no leftovers`);
     } else {
@@ -86,11 +71,6 @@ async function testProjectCrud(): Promise<void> {
     results.push(`\n🎉 All CRUD operations verified end-to-end!`);
   } catch (err: any) {
     results.push(`❌ FAIL: ${err?.message || String(err)}`);
-    if (!projectId) {
-      results.push(
-        `\n💡 Tip: Make sure you're logged in before running the test.`,
-      );
-    }
   }
 
   printResults(results);
