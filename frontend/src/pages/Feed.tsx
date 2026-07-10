@@ -36,7 +36,7 @@ export default function Feed() {
   // Comments state: { postId: { comments, show, loading } }
   const [commentState, setCommentState] = useState<
     Record<
-      number,
+      string,
       {
         comments: CommentDto[];
         show: boolean;
@@ -47,7 +47,7 @@ export default function Feed() {
   >({});
 
   // Liked posts for optimistic UI
-  const [likedPosts, setLikedPosts] = useState<Set<number>>(new Set());
+  const [likedPosts, setLikedPosts] = useState<Set<string>>(new Set());
 
   const loadPosts = useCallback(async (pageNum: number, append = false) => {
     if (pageNum === 0) setLoading(true);
@@ -98,7 +98,7 @@ export default function Feed() {
     }
   };
 
-  const handleLike = async (postId: number) => {
+  const handleLike = async (postId: string) => {
     // Optimistic toggle
     const wasLiked = likedPosts.has(postId);
     setLikedPosts((prev) => {
@@ -135,7 +135,7 @@ export default function Feed() {
     }
   };
 
-  const handleDelete = async (postId: number) => {
+  const handleDelete = async (postId: string) => {
     try {
       await postService.delete(postId);
       setPosts((prev) => prev.filter((p) => p.id !== postId));
@@ -145,7 +145,7 @@ export default function Feed() {
     }
   };
 
-  const toggleComments = async (postId: number) => {
+  const toggleComments = async (postId: string) => {
     setCommentState((prev) => {
       const current = prev[postId];
       if (current?.show) {
@@ -180,7 +180,7 @@ export default function Feed() {
     }
   };
 
-  const handleAddComment = async (postId: number) => {
+  const handleAddComment = async (postId: string) => {
     const text = commentState[postId]?.text;
     if (!text?.trim()) return;
 

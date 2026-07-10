@@ -3,7 +3,7 @@ import api from "./api";
 // ── Backend-Matching Types ─────────────────────────────────────
 
 export interface PostUserDto {
-  id: number;
+  id: string;
   fullName: string;
   email: string;
   avatarUrl: string | null;
@@ -11,7 +11,7 @@ export interface PostUserDto {
 }
 
 export interface PostDto {
-  id: number;
+  id: string;
   content: string;
   imageUrl: string | null;
   postType: string;
@@ -23,7 +23,7 @@ export interface PostDto {
 }
 
 export interface CommentDto {
-  id: number;
+  id: string;
   content: string;
   createdAt: string;
   user: PostUserDto;
