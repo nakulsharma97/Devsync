@@ -268,3 +268,8 @@ class WebSocketService {
 }
 
 export const wsService = new WebSocketService();
+
+// Debug: expose to window for console access
+if (typeof window !== "undefined") {
+  (window as any).wsService = wsService;
+}
