@@ -180,12 +180,20 @@ function Navbar() {
         ? "bg-background/85 backdrop-blur-xl border-b border-border shadow-sm"
         : "bg-background/40 backdrop-blur-sm border-b border-border/10"
     }`}>
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 py-3 flex items-center justify-between">
+      <div className={`mx-auto max-w-7xl px-4 sm:px-6 flex items-center justify-between transition-all duration-300 ${
+        scrolled ? "py-2" : "py-3"
+      }`}>
         <button onClick={() => navigate("/")} className="flex items-center gap-2.5 group">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/20 transition-all duration-200 group-hover:scale-105 group-hover:shadow-indigo-500/30">
-            <Code2 className="w-4 h-4 text-white" />
+          <div className={`rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/20 transition-all duration-300 group-hover:scale-105 group-hover:shadow-indigo-500/30 ${
+            scrolled ? "w-6 h-6" : "w-8 h-8"
+          }`}>
+            <Code2 className={`text-white transition-all duration-300 ${
+              scrolled ? "w-3 h-3" : "w-4 h-4"
+            }`} />
           </div>
-          <span className="text-base font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">DevSync</span>
+          <span className={`font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text transition-all duration-300 ${
+            scrolled ? "text-sm" : "text-base"
+          }`}>DevSync</span>
         </button>
 
         <nav className="hidden md:flex items-center gap-1">
@@ -193,7 +201,9 @@ function Navbar() {
             <a
               key={item.label}
               href={item.href}
-              className="px-3 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-accent/5"
+              className={`text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-accent/5 ${
+                scrolled ? "px-2 py-1.5 text-xs" : "px-3 py-2 text-sm"
+              }`}
             >
               {item.label}
             </a>
@@ -201,9 +211,13 @@ function Navbar() {
           <div className="w-px h-5 bg-border/50 mx-2" />
           <HighContrastToggle />
           <ThemeToggle />
-          <Button variant="ghost" size="sm" onClick={() => navigate("/auth")} className="text-sm font-medium">Sign in</Button>
-          <Button size="sm" onClick={() => navigate("/auth")} className="text-sm font-medium shadow-lg hover:shadow-xl transition-all duration-200 bg-gradient-to-r from-indigo-500 to-purple-600 text-white hover:from-indigo-600 hover:to-purple-700">
-            Start Free<ArrowRight className="ml-1.5 w-3.5 h-3.5" />
+          <Button variant="ghost" onClick={() => navigate("/auth")} className={`transition-all duration-300 font-medium ${
+            scrolled ? "text-xs h-7 px-2.5" : "text-sm h-9 px-4"
+          }`}>Sign in</Button>
+          <Button onClick={() => navigate("/auth")} className={`transition-all duration-300 bg-gradient-to-r from-indigo-500 to-purple-600 text-white hover:from-indigo-600 hover:to-purple-700 shadow-lg hover:shadow-xl font-medium ${
+            scrolled ? "text-xs h-7 px-3" : "text-sm h-9 px-4"
+          }`}>
+            Start Free<ArrowRight className={`ml-1.5 transition-all duration-300 ${scrolled ? "w-3 h-3" : "w-3.5 h-3.5"}`} />
           </Button>
         </nav>
 
