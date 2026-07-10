@@ -385,19 +385,25 @@ export default function Landing() {
   const heroRef = useRef<HTMLDivElement>(null);
 
   return (
-    <div className="min-h-screen bg-background text-foreground overflow-x-hidden">
+    <div className="min-h-screen bg-background text-foreground overflow-x-hidden relative">
       <style>{keyframesStyle}</style>
-      <AnimatedBackground />
+      
+      {/* Full-page 3D background — fixed, covers everything */}
+      <ErrorBoundary>
+        <Suspense fallback={<div className="fixed inset-0 bg-gradient-to-b from-background via-indigo-950/20 to-background" />}>
+          <Hero3D />
+        </Suspense>
+      </ErrorBoundary>
+      
+      {/* Gradient overlays for section readability */}
+      <div className="fixed inset-0 bg-gradient-to-b from-transparent via-background/20 to-background pointer-events-none z-[1]" />
+
+      <div className="relative z-10">
       <Navbar />
 
       {/* ─── HERO SECTION ─── */}
       <section ref={heroRef} className="relative min-h-screen flex items-center pt-20 overflow-hidden">
-        <ErrorBoundary>
-          <Suspense fallback={<div className="absolute inset-0 bg-gradient-to-b from-background via-indigo-950/20 to-background" />}>
-            <Hero3D />
-          </Suspense>
-        </ErrorBoundary>
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-background pointer-events-none z-[1]" />
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-background/40 pointer-events-none" />
 
         <div className="mx-auto max-w-6xl px-4 sm:px-6 relative z-10 w-full">
           <div className="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
@@ -451,7 +457,7 @@ export default function Landing() {
       </section>
 
       {/* ─── STATS BAR ─── */}
-      <section className="relative z-10 border-y border-border/30 bg-muted/30">
+      <section className="relative border-y border-border/20 bg-background/40 backdrop-blur-sm">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 py-10 md:py-14">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8">
             {stats.map((stat, i) => (
@@ -482,7 +488,7 @@ export default function Landing() {
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
             {features.map((feature, index) => (
-              <ScrollReveal key={feature.title} delay={index * 0.08} className="group relative bg-card border border-border/50 rounded-2xl p-6 md:p-8 transition-all duration-300 hover:border-indigo-500/30 hover:shadow-xl hover:shadow-indigo-500/5 hover:-translate-y-1 overflow-hidden">
+              <ScrollReveal key={feature.title} delay={index * 0.08} className="group relative bg-card/70 backdrop-blur-sm border border-border/40 rounded-2xl p-6 md:p-8 transition-all duration-300 hover:border-indigo-500/30 hover:shadow-xl hover:shadow-indigo-500/5 hover:-translate-y-1 overflow-hidden">
                 <div className={`absolute inset-0 bg-gradient-to-br from-${feature.iconBg.split(" ")[0].replace("from-", "").replace("500", "")}/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none`} />
                 <div className="relative z-10">
                   <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${feature.iconBg} flex items-center justify-center mb-5 shadow-lg transition-all duration-200 group-hover:scale-110 group-hover:shadow-xl`}>
@@ -499,7 +505,7 @@ export default function Landing() {
       </section>
 
       {/* ─── HOW IT WORKS ─── */}
-      <section className="relative z-10 py-16 md:py-24 px-4 sm:px-6 bg-muted/20">
+      <section className="relative py-16 md:py-24 px-4 sm:px-6 bg-background/30 backdrop-blur-sm">
         <div className="mx-auto max-w-7xl">
           <ScrollReveal className="text-center mb-10">
             <span className="text-xs font-semibold tracking-[0.2em] uppercase bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-400 bg-clip-text text-transparent mb-4 block">How it works</span>
@@ -545,7 +551,7 @@ export default function Landing() {
 
           <div className="grid md:grid-cols-3 gap-6">
             {testimonials.map((t, index) => (
-              <ScrollReveal key={t.author} delay={index * 0.1} className="bg-card border border-border/50 rounded-2xl p-6 md:p-8 transition-all duration-300 hover:border-indigo-500/20 hover:shadow-xl hover:-translate-y-1 group">
+              <ScrollReveal key={t.author} delay={index * 0.1} className="bg-card/70 backdrop-blur-sm border border-border/40 rounded-2xl p-6 md:p-8 transition-all duration-300 hover:border-indigo-500/20 hover:shadow-xl hover:-translate-y-1 group">
                 <div className="flex gap-1 mb-4">
                   {[...Array(5)].map((_, i) => (
                     <Star key={i} className="w-4 h-4 fill-amber-400 text-amber-400" />
@@ -609,7 +615,7 @@ export default function Landing() {
       </section>
 
       {/* ─── PRICING ─── */}
-      <section id="pricing" className="relative z-10 py-16 md:py-24 px-4 sm:px-6 bg-muted/20">
+      <section id="pricing" className="relative py-16 md:py-24 px-4 sm:px-6 bg-background/30 backdrop-blur-sm">
         <div className="mx-auto max-w-7xl">
           <ScrollReveal className="text-center mb-10">
             <span className="text-xs font-semibold tracking-[0.2em] uppercase bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-400 bg-clip-text text-transparent mb-4 block">Pricing</span>
@@ -619,10 +625,10 @@ export default function Landing() {
 
           <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
             {pricing.map((plan, i) => (
-              <ScrollReveal key={plan.name} delay={i * 0.1} className={`relative rounded-2xl border p-8 transition-all duration-300 ${
+              <ScrollReveal key={plan.name} delay={i * 0.1} className={`relative rounded-2xl border p-8 transition-all duration-300 backdrop-blur-sm ${
                 plan.popular
-                  ? "border-indigo-500/50 bg-gradient-to-b from-indigo-500/10 to-purple-500/5 shadow-xl shadow-indigo-500/10 scale-105"
-                  : "border-border/50 bg-card hover:border-indigo-500/20 hover:shadow-lg"
+                  ? "border-indigo-500/50 bg-gradient-to-b from-indigo-500/15 to-purple-500/10 shadow-xl shadow-indigo-500/10 scale-105"
+                  : "border-border/40 bg-card/70 hover:border-indigo-500/30 hover:shadow-lg"
               }`}>
                 {plan.popular && (
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2">
@@ -692,7 +698,7 @@ export default function Landing() {
       </section>
 
       {/* ─── FOOTER ─── */}
-      <footer className="relative z-10 border-t border-border/30 bg-muted/20">
+      <footer className="relative border-t border-border/20 bg-background/40 backdrop-blur-sm">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 py-14 md:py-20">
           <div className="grid sm:grid-cols-2 md:grid-cols-5 gap-8 md:gap-12">
             <div className="sm:col-span-2">
@@ -746,6 +752,7 @@ export default function Landing() {
           </div>
         </div>
       </footer>
+      </div>{/* end z-10 wrapper */}
     </div>
   );
 }
