@@ -438,15 +438,15 @@ export default function Landing() {
           <div className="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
             <div className="text-center lg:text-left">
               <div className="animate-fade-in-up" style={{ animationDelay: "0.1s" }}>
-                <span className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-gradient-to-r from-indigo-500/20 via-purple-500/15 to-pink-500/15 text-indigo-300 text-xs font-medium tracking-wide mb-8 border border-indigo-500/25 shadow-lg shadow-indigo-500/10 backdrop-blur-sm">
-                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-400" />
-                  Now in Public Beta <span className="mx-1 opacity-40">·</span> <span className="text-indigo-300/70">50K+ developers</span>
+                <span className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-gradient-to-r from-indigo-500/20 via-purple-500/15 to-pink-500/15 text-indigo-700 dark:text-indigo-300 text-xs font-medium tracking-wide mb-8 border border-indigo-500/25 shadow-lg shadow-indigo-500/10 backdrop-blur-sm">
+                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 dark:bg-indigo-400" />
+                  Now in Public Beta <span className="mx-1 opacity-40">·</span> <span className="text-indigo-600/80 dark:text-indigo-300/70">50K+ developers</span>
                 </span>
               </div>
 
               <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.02] animate-fade-in-up" style={{ animationDelay: "0.2s" }}>
                 Code, Collaborate,<br />
-                <span className="bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">Ship at light speed.</span>
+                <span className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-500 dark:from-indigo-400 dark:via-purple-400 dark:to-pink-400 bg-clip-text text-transparent">Ship at light speed.</span>
               </h1>
 
               <p className="mt-6 text-base sm:text-lg text-foreground/70 leading-relaxed max-w-lg mx-auto lg:mx-0 animate-fade-in-up" style={{ animationDelay: "0.3s" }}>
@@ -465,9 +465,9 @@ export default function Landing() {
               </div>
 
               <div className="mt-6 flex items-center gap-6 justify-center lg:justify-start text-xs text-foreground/60 animate-fade-in-up" style={{ animationDelay: "0.5s" }}>
-                <span className="flex items-center gap-1.5"><Check className="w-3.5 h-3.5 text-emerald-400" />No credit card</span>
-                <span className="flex items-center gap-1.5"><Check className="w-3.5 h-3.5 text-emerald-400" />Free tier included</span>
-                <span className="flex items-center gap-1.5"><Check className="w-3.5 h-3.5 text-emerald-400" />Cancel anytime</span>
+                <span className="flex items-center gap-1.5"><Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />No credit card</span>
+                <span className="flex items-center gap-1.5"><Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />Free tier included</span>
+                <span className="flex items-center gap-1.5"><Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />Cancel anytime</span>
               </div>
             </div>
 
@@ -477,8 +477,7 @@ export default function Landing() {
           </div>
         </div>
 
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 animate-fade-in" style={{ animationDelay: "2s" }}>
-          <span className="text-xs text-muted-foreground/60">Scroll to explore</span>
+        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 animate-fade-in" style={{ animationDelay: "2s" }}>              <span className="text-xs text-muted-foreground">Scroll to explore</span>
           <div className="w-5 h-8 rounded-full border border-border/40 flex items-start justify-center p-1 animate-float">
             <div className="w-1 h-2 rounded-full bg-accent/60" />
           </div>
@@ -495,7 +494,7 @@ export default function Landing() {
                   {stat.value}
                 </span>
                 <p className="text-xs md:text-sm text-muted-foreground mt-1.5 font-medium">{stat.label}</p>
-                <p className="text-[10px] md:text-xs text-indigo-400/70 mt-0.5">{stat.sub}</p>
+                <p className="text-[10px] md:text-xs text-indigo-600/80 dark:text-indigo-400/70 mt-0.5">{stat.sub}</p>
               </div>
             ))}
           </div>
@@ -506,9 +505,9 @@ export default function Landing() {
       <section id="features" className="relative z-10 py-16 md:py-24 px-4 sm:px-6">
         <div className="mx-auto max-w-7xl">
           <ScrollReveal className="text-center mb-10 md:mb-16">
-            <span className="text-xs font-semibold tracking-[0.2em] uppercase bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent mb-4 block">Everything you need</span>
+            <span className="text-xs font-semibold tracking-[0.2em] uppercase bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-500 dark:from-indigo-400 dark:via-purple-400 dark:to-pink-400 bg-clip-text text-transparent mb-4 block">Everything you need</span>
             <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight">
-              Build better software,<br /><span className="bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">faster than ever</span>
+              Build better software,<br /><span className="bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-indigo-400 dark:to-purple-400 bg-clip-text text-transparent">faster than ever</span>
             </h2>
             <p className="mt-4 text-muted-foreground text-base md:text-lg max-w-2xl mx-auto leading-relaxed">
               A complete development platform with AI-powered tools, real-time collaboration, and enterprise-grade infrastructure.
@@ -523,7 +522,7 @@ export default function Landing() {
                   <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${feature.iconBg} flex items-center justify-center mb-5 shadow-lg transition-all duration-200 group-hover:scale-110 group-hover:shadow-xl`}>
                     <feature.icon className="w-5 h-5 text-white" />
                   </div>
-                  <h3 className="text-base font-semibold mb-2 group-hover:text-indigo-300 transition-colors duration-200">{feature.title}</h3>
+                  <h3 className="text-base font-semibold mb-2 group-hover:text-indigo-600 dark:group-hover:text-indigo-300 transition-colors duration-200">{feature.title}</h3>
                   <p className="text-sm text-muted-foreground leading-relaxed">{feature.description}</p>
                 </div>
                 <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-indigo-500 to-purple-600 scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left" />
@@ -537,7 +536,7 @@ export default function Landing() {
       <section className="relative py-16 md:py-24 px-4 sm:px-6 bg-background/30 backdrop-blur-sm">
         <div className="mx-auto max-w-7xl">
           <ScrollReveal className="text-center mb-10">
-            <span className="text-xs font-semibold tracking-[0.2em] uppercase bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-400 bg-clip-text text-transparent mb-4 block">How it works</span>
+            <span className="text-xs font-semibold tracking-[0.2em] uppercase bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 dark:from-emerald-400 dark:via-teal-400 dark:to-cyan-400 bg-clip-text text-transparent mb-4 block">How it works</span>
             <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight">From idea to production in minutes</h2>
           </ScrollReveal>
 
@@ -574,7 +573,7 @@ export default function Landing() {
         <div className="absolute inset-0 bg-gradient-to-b from-accent/[0.02] to-transparent pointer-events-none" />
         <div className="mx-auto max-w-7xl relative">
           <ScrollReveal className="text-center mb-10">
-            <span className="text-xs font-semibold tracking-[0.2em] uppercase bg-gradient-to-r from-amber-400 via-orange-400 to-red-400 bg-clip-text text-transparent mb-4 block">Testimonials</span>
+            <span className="text-xs font-semibold tracking-[0.2em] uppercase bg-gradient-to-r from-amber-600 via-orange-600 to-red-600 dark:from-amber-400 dark:via-orange-400 dark:to-red-400 bg-clip-text text-transparent mb-4 block">Testimonials</span>
             <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight">Trusted by engineering leaders</h2>
           </ScrollReveal>
 
@@ -583,7 +582,7 @@ export default function Landing() {
               <ScrollReveal key={t.author} delay={index * 0.1} className="bg-card/70 backdrop-blur-sm border border-border/40 rounded-2xl p-6 md:p-8 transition-all duration-300 hover:border-indigo-500/20 hover:shadow-xl hover:-translate-y-1 group">
                 <div className="flex gap-1 mb-4">
                   {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="w-4 h-4 fill-amber-400 text-amber-400" />
+                    <Star key={i} className="w-4 h-4 fill-amber-500 text-amber-500 dark:fill-amber-400 dark:text-amber-400" />
                   ))}
                 </div>
                 <p className="text-sm md:text-base text-foreground leading-relaxed mb-6 italic">&ldquo;{t.quote}&rdquo;</p>
@@ -607,7 +606,7 @@ export default function Landing() {
         <div className="mx-auto max-w-7xl">
           <div className="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
             <ScrollRevealFromLeft>
-              <span className="text-xs font-semibold tracking-[0.2em] uppercase bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent mb-4 block">Why DevSync</span>
+              <span className="text-xs font-semibold tracking-[0.2em] uppercase bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-500 dark:from-indigo-400 dark:via-purple-400 dark:to-pink-400 bg-clip-text text-transparent mb-4 block">Why DevSync</span>
               <h2 className="text-3xl sm:text-4xl font-bold tracking-tight mb-6">Built by engineers, for engineers</h2>
               <p className="text-muted-foreground leading-relaxed mb-8 max-w-md">
                 We&apos;ve spent years building software and know what really matters. DevSync delivers the tools you need without the noise.
@@ -616,7 +615,7 @@ export default function Landing() {
                 {benefits.map((b) => (
                   <div key={b.text} className="flex items-center gap-3 group">
                     <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500/20 to-purple-500/20 flex items-center justify-center shrink-0 group-hover:from-indigo-500/30 group-hover:to-purple-500/30 transition-all duration-200">
-                      <b.icon className="w-4 h-4 text-indigo-400" />
+                      <b.icon className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
                     </div>
                     <span className="text-sm text-foreground">{b.text}</span>
                   </div>
@@ -629,7 +628,7 @@ export default function Landing() {
                 <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/[0.03] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
                 <div className="text-center relative z-10">
                   <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-indigo-500/20 to-purple-500/20 flex items-center justify-center mx-auto mb-6 ring-1 ring-indigo-500/20 group-hover:scale-110 transition-transform duration-300">
-                    <Command className="w-12 h-12 text-indigo-400" />
+                    <Command className="w-12 h-12 text-indigo-600 dark:text-indigo-400" />
                   </div>
                   <p className="text-xl font-semibold mb-2">Ready to ship faster?</p>
                   <p className="text-sm text-muted-foreground mb-6">Join 50,000+ developers already building on DevSync.</p>
@@ -647,7 +646,7 @@ export default function Landing() {
       <section id="pricing" className="relative py-16 md:py-24 px-4 sm:px-6 bg-background/30 backdrop-blur-sm">
         <div className="mx-auto max-w-7xl">
           <ScrollReveal className="text-center mb-10">
-            <span className="text-xs font-semibold tracking-[0.2em] uppercase bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-400 bg-clip-text text-transparent mb-4 block">Pricing</span>
+            <span className="text-xs font-semibold tracking-[0.2em] uppercase bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 dark:from-emerald-400 dark:via-teal-400 dark:to-cyan-400 bg-clip-text text-transparent mb-4 block">Pricing</span>
             <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight">Simple, transparent pricing</h2>
             <p className="mt-4 text-muted-foreground max-w-md mx-auto">Start for free. Upgrade when you need more power.</p>
           </ScrollReveal>
@@ -677,7 +676,7 @@ export default function Landing() {
                 <ul className="space-y-3 mb-8">
                   {plan.features.map((f) => (
                     <li key={f} className="flex items-start gap-2.5 text-sm">
-                      <Check className="w-4 h-4 text-emerald-400 mt-0.5 shrink-0" />
+                      <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400 mt-0.5 shrink-0" />
                       <span>{f}</span>
                     </li>
                   ))}
@@ -705,10 +704,10 @@ export default function Landing() {
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-gradient-to-br from-indigo-500/8 via-purple-500/5 to-pink-500/5 rounded-full blur-3xl pointer-events-none" />
         
         <ScrollReveal className="mx-auto max-w-3xl text-center relative z-10" delay={0.1}>
-          <span className="text-xs font-semibold tracking-[0.2em] uppercase bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent mb-4 block">Get started</span>
+          <span className="text-xs font-semibold tracking-[0.2em] uppercase bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-500 dark:from-indigo-400 dark:via-purple-400 dark:to-pink-400 bg-clip-text text-transparent mb-4 block">Get started</span>
           <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.05]">
             Ready to build<br />
-            <span className="bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">the next big thing?</span>
+            <span className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-500 dark:from-indigo-400 dark:via-purple-400 dark:to-pink-400 bg-clip-text text-transparent">the next big thing?</span>
           </h2>
           <p className="mt-6 text-base md:text-lg text-muted-foreground leading-relaxed max-w-xl mx-auto">
             Join the platform that helps developers ship better software, faster. No credit card required.
