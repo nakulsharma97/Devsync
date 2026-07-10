@@ -138,10 +138,10 @@ function GridFloor() {
 function Scene() {
   return (
     <>
-      <color attach="background" args={["#050510"]} />
-      <ambientLight intensity={0.3} />
-      <directionalLight position={[5, 8, 5]} intensity={0.6} />
-      <pointLight position={[0, 4, 0]} intensity={0.5} distance={10} color="#6366f1" />
+      <color attach="background" args={["#0a0a2e"]} />
+      <ambientLight intensity={0.6} />
+      <directionalLight position={[5, 8, 5]} intensity={1.0} />
+      <pointLight position={[0, 4, 0]} intensity={0.8} distance={12} color="#818cf8" />
       <Suspense fallback={null}>
         <OrbitalRing />
         <PulsingKnot />
@@ -155,7 +155,7 @@ function Scene() {
 
 // ─── Exported Component ──────────────────────────────────────
 
-export default function Hero3D() {
+export default function Hero3D({ intensity = 0 }: { intensity?: number }) {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -166,6 +166,15 @@ export default function Hero3D() {
 
   return (
     <div className="fixed inset-0 z-0">
+      {/* Dimming overlay — adjust opacity to control brightness */}
+      <div
+        className="absolute inset-0 z-10 pointer-events-none transition-all duration-500"
+        style={{
+          background: intensity > 0
+            ? `rgba(0, 0, 0, ${intensity})`
+            : "transparent",
+        }}
+      />
       <Canvas
         camera={{ position: [0, 1, 7], fov: 50 }}
         dpr={[1, 1.0]}

@@ -383,6 +383,13 @@ const Hero3D = lazy(() => import("@/components/Hero3D"));
 export default function Landing() {
   const navigate = useNavigate();
   const heroRef = useRef<HTMLDivElement>(null);
+  const [brightness, setBrightness] = useState(0); // 0=full bright, 0.5=medium, 0.75=dim
+
+  const brightnessLevels = [
+    { value: 0, label: "Bright", icon: "☀️" },
+    { value: 0.4, label: "Balanced", icon: "🌤" },
+    { value: 0.7, label: "Dim", icon: "🌙" },
+  ];
 
   return (
     <div className="min-h-screen bg-background text-foreground overflow-x-hidden relative">
@@ -391,9 +398,28 @@ export default function Landing() {
       {/* Full-page 3D background — covers the whole viewport behind everything */}
       <ErrorBoundary>
         <Suspense fallback={<div className="fixed inset-0 bg-gradient-to-b from-background via-indigo-950/20 to-background" />}>
-          <Hero3D />
+          <Hero3D intensity={brightness} />
         </Suspense>
       </ErrorBoundary>
+
+      {/* Brightness toggle — fixed bottom-right corner */}
+      <div className="fixed bottom-6 right-6 z-[60] flex items-center gap-1.5 bg-background/70 backdrop-blur-md border border-border/40 rounded-full px-3 py-1.5 shadow-lg">
+        {brightnessLevels.map((level) => (
+          <button
+            key={level.value}
+            onClick={() => setBrightness(level.value)}
+            className={`px-2 py-1 rounded-full text-xs font-medium transition-all duration-200 ${
+              brightness === level.value
+                ? "bg-indigo-500/20 text-indigo-300 border border-indigo-500/30"
+                : "text-muted-foreground/60 hover:text-foreground/80 hover:bg-accent/10"
+            }`}
+            title={level.label}
+          >
+            <span className="mr-1">{level.icon}</span>
+            <span className="hidden sm:inline">{level.label}</span>
+          </button>
+        ))}
+      </div>
 
       {/* Minimal veil for text readability over 3D */}
       <div className="fixed inset-0 bg-gradient-to-t from-background/30 via-transparent to-transparent pointer-events-none z-[1]" />
