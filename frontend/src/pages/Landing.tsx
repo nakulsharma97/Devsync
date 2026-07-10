@@ -154,6 +154,31 @@ const benefits = [
   { icon: Monitor, text: "Full local development environment" },
 ];
 
+// ─── Scroll Progress Bar ───────────────────────────────────────
+
+function ScrollProgress() {
+  const [progress, setProgress] = useState(0);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollTop = window.scrollY;
+      const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+      setProgress(docHeight > 0 ? Math.min(scrollTop / docHeight, 1) : 0);
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  return (
+    <div className="fixed top-0 left-0 right-0 h-[3px] z-[60] pointer-events-none">
+      <div
+        className="h-full bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 transition-[width] duration-150 ease-out"
+        style={{ width: `${progress * 100}%` }}
+      />
+    </div>
+  );
+}
+
 // ─── Navbar ────────────────────────────────────────────────────
 
 function Navbar() {
@@ -448,6 +473,7 @@ export default function Landing() {
       {/* Minimal veil for text readability over 3D */}
       <div className="fixed inset-0 bg-gradient-to-t from-background/30 via-transparent to-transparent pointer-events-none z-[1]" />
       <div className="relative z-10">
+      <ScrollProgress />
       <Navbar />
 
       {/* ─── HERO SECTION ─── */}
