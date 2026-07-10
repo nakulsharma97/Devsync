@@ -20,6 +20,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
     private final OtpService otpService;
+    private final EmailService emailService;
 
     @Transactional
     public AuthResponse register(RegisterRequest request) {
@@ -95,8 +96,13 @@ public class AuthService {
             return;
         }
         String otp = otpService.generateOtp(email);
-        // In production, send email here: emailService.sendOtp(email, otp);
-        System.out.println("OTP for " + email + ": " + otp);
+        try {
+            emailService.sendOtpEmail(email, otp);
+        } catch (Exception e) {
+            // Fallback: log OTP to console if email fails
+            System.out.println("OTP for " + email + ": " + otp);
+            System.out.println("Email delivery failed: " + e.getMessage());
+        }
     }
 
     public AuthResponse verifyOtpAndLogin(VerifyOtpRequest request) {

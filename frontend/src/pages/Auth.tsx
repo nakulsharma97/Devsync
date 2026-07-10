@@ -411,15 +411,19 @@ export default function AuthPage() {
 
             {/* Social logins */}
             <div className="flex gap-3 mb-6">
-              <button
-                type="button"
+              <a
+                href={`${
+                  import.meta.env.VITE_API_URL || "http://localhost:8080/api"
+                }/../oauth2/authorization/github`}
                 className="flex-1 flex items-center justify-center gap-2 h-10 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20 transition-all text-sm text-white/70 hover:text-white"
               >
                 <Github className="w-4 h-4" />
                 <span className="hidden sm:inline">GitHub</span>
-              </button>
-              <button
-                type="button"
+              </a>
+              <a
+                href={`${
+                  import.meta.env.VITE_API_URL || "http://localhost:8080/api"
+                }/../oauth2/authorization/google`}
                 className="flex-1 flex items-center justify-center gap-2 h-10 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20 transition-all text-sm text-white/70 hover:text-white"
               >
                 <svg className="w-4 h-4" viewBox="0 0 24 24">
@@ -441,7 +445,7 @@ export default function AuthPage() {
                   />
                 </svg>
                 <span className="hidden sm:inline">Google</span>
-              </button>
+              </a>
             </div>
 
             {/* Divider */}
