@@ -170,8 +170,8 @@ function Navbar() {
   const navLinks = [
     { label: "Features", href: "#features" },
     { label: "How it Works", href: "#docs" },
-    { label: "Pricing", href: "#pricing" },
     { label: "Enterprise", href: "#enterprise" },
+    { label: "Pricing", href: "#pricing" },
   ];
 
   return (
