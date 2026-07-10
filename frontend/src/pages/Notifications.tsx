@@ -1,157 +1,107 @@
-import { useState, useEffect, useCallback } from "react";
+import { useApi } from "@/hooks/useApi";
+import { notificationService, type NotificationDto } from "@/services/notificationService";
 import { Button } from "@/components/ui/button";
-import { Bell, CheckCheck, Heart, MessageCircle, UserPlus } from "lucide-react";
-import { notificationService, type Notification } from "@/services/notificationService";
+import { Bell, Loader2, Check, UserPlus, MessageSquare, FolderKanban } from "lucide-react";
+import { toast } from "sonner";
 
-const typeIcons: Record<string, React.ReactNode> = {
-  LIKE: <Heart className="w-4 h-4" />,
-  COMMENT: <MessageCircle className="w-4 h-4" />,
-  CONNECTION: <UserPlus className="w-4 h-4" />,
-  INVITE: <UserPlus className="w-4 h-4" />,
+const iconMap: Record<string, any> = {
+  INVITE: UserPlus,
+  MENTION: MessageSquare,
+  PROJECT_UPDATE: FolderKanban,
 };
 
-const typeColors: Record<string, string> = {
-  LIKE: "text-red-500",
-  COMMENT: "text-blue-500",
-  CONNECTION: "text-green-500",
-  INVITE: "text-purple-500",
+const colorMap: Record<string, string> = {
+  INVITE: "text-purple-400 bg-purple-500/10",
+  MENTION: "text-blue-400 bg-blue-500/10",
+  PROJECT_UPDATE: "text-emerald-400 bg-emerald-500/10",
 };
 
 export default function Notifications() {
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  const fetchNotifications = useCallback(async () => {
-    try {
-      setNotifications(await notificationService.getAll());
-    } catch {
-      /* API not available */
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchNotifications();
-  }, [fetchNotifications]);
-
-  const handleMarkAllRead = async () => {
-    try {
-      await notificationService.markAllAsRead();
-      setNotifications((prev) =>
-        prev.map((n) => ({ ...n, read: true })),
-      );
-    } catch (err) {
-      console.error(err);
-    }
-  };
+  const { data: notifications, loading, refetch } = useApi(() => notificationService.getNotifications(50));
+  const { data: unreadData, refetch: refetchCount } = useApi(() => notificationService.getUnreadCount());
 
   const handleMarkRead = async (id: string) => {
     try {
       await notificationService.markAsRead(id);
-      setNotifications((prev) =>
-        prev.map((n) => (n._id === id ? { ...n, read: true } : n)),
-      );
-    } catch (err) {
-      console.error(err);
+      refetch();
+      refetchCount();
+    } catch {
+      toast("Failed to mark as read");
+    }
+  };
+
+  const handleMarkAllRead = async () => {
+    try {
+      await notificationService.markAllAsRead();
+      refetch();
+      refetchCount();
+      toast("All notifications marked as read");
+    } catch {
+      toast("Failed to mark all as read");
     }
   };
 
   return (
-    <div className="relative">
-      <div className="absolute -top-20 -right-20 w-72 h-72 bg-gradient-to-bl from-accent/[0.03] to-transparent rounded-full blur-3xl pointer-events-none" />
-
-      <div className="flex items-center justify-between mb-8 relative">
+    <div className="space-y-6 max-w-3xl">
+      <div className="flex items-center justify-between">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <div className="w-5 h-5 rounded-md bg-accent/10 flex items-center justify-center">
-              <Bell className="w-3 h-3 text-accent" />
-            </div>
-            <h1 className="text-2xl font-bold tracking-tight text-foreground">
-              Notifications
-            </h1>
-          </div>
-          <p className="ml-7 text-sm text-muted-foreground">
-            Stay updated with your activity
+          <h1 className="text-2xl font-bold tracking-tight">Notifications</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            {unreadData ? `${unreadData} unread` : "Stay updated"}
           </p>
         </div>
-        {notifications.some((n) => !n.read) && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleMarkAllRead}
-            className="text-xs text-muted-foreground hover:text-foreground"
-          >
-            <CheckCheck className="w-4 h-4 mr-1.5" /> Mark all read
+        {unreadData && unreadData > 0 && (
+          <Button variant="outline" size="sm" onClick={handleMarkAllRead}>
+            <Check className="w-4 h-4 mr-1.5" /> Mark all read
           </Button>
         )}
       </div>
 
-      {loading && (
+      {loading ? (
+        <div className="flex items-center justify-center py-16">
+          <Loader2 className="h-8 w-8 animate-spin text-indigo-500" />
+        </div>
+      ) : notifications && notifications.length > 0 ? (
         <div className="space-y-2">
-          {[1, 2, 3].map((i) => (
-            <div
-              key={i}
-              className="border border-border/50 rounded-xl p-4 animate-pulse bg-card"
-            >
-              <div className="h-3 bg-muted rounded w-3/4 mb-2" />
-              <div className="h-3 bg-muted rounded w-1/2" />
-            </div>
-          ))}
-        </div>
-      )}
-
-      {!loading && notifications.length === 0 && (
-        <div className="border border-border/50 rounded-xl p-12 flex flex-col items-center text-center gap-4 bg-card">
-          <div className="w-12 h-12 rounded-2xl bg-accent/10 flex items-center justify-center ring-1 ring-accent/20">
-            <Bell className="w-6 h-6 text-accent" />
-          </div>
-          <div>
-            <h3 className="text-sm font-semibold text-foreground">
-              No notifications
-            </h3>
-            <p className="text-sm text-muted-foreground mt-1">
-              You're all caught up! Like a post or follow someone to see notifications here.
-            </p>
-          </div>
-        </div>
-      )}
-
-      <div className="space-y-2">
-        {notifications.map((notif) => (
-          <button
-            key={notif._id}
-            onClick={() => !notif.read && handleMarkRead(notif._id)}
-            className={`w-full text-left border border-border/50 rounded-xl p-4 flex items-start gap-3 transition-all duration-200 hover:border-accent/20 ${
-              !notif.read
-                ? "bg-accent/5 border-accent/10"
-                : "bg-card"
-            }`}
-          >
-            <span
-              className={`mt-0.5 ${typeColors[notif.type] || "text-muted-foreground"}`}
-            >
-              {typeIcons[notif.type] || <Bell className="w-4 h-4" />}
-            </span>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <p className="text-sm text-foreground">{notif.message}</p>
+          {notifications.map((n) => {
+            const Icon = iconMap[n.type] || Bell;
+            const colorClass = colorMap[n.type] || "text-indigo-400 bg-indigo-500/10";
+            return (
+              <div
+                key={n.id}
+                className={`flex items-start gap-3 p-4 rounded-xl border transition-colors ${
+                  n.read ? "border-border/30 bg-card/50" : "border-indigo-500/20 bg-indigo-500/5"
+                }`}
+              >
+                <div className={`w-9 h-9 rounded-xl ${colorClass} flex items-center justify-center shrink-0`}>
+                  <Icon className="w-4 h-4" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium">{n.title}</p>
+                  {n.message && <p className="text-xs text-muted-foreground mt-0.5">{n.message}</p>}
+                  <p className="text-[10px] text-muted-foreground/60 mt-1">
+                    {new Date(n.createdAt).toLocaleDateString()}
+                  </p>
+                </div>
+                {!n.read && (
+                  <button
+                    onClick={() => handleMarkRead(n.id)}
+                    className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors shrink-0"
+                  >
+                    Mark read
+                  </button>
+                )}
               </div>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                {new Date(notif.createdAt).toLocaleDateString(undefined, {
-                  month: "short",
-                  day: "numeric",
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
-              </p>
-            </div>
-            {!notif.read && (
-              <span className="w-2 h-2 rounded-full bg-accent mt-2 shrink-0" />
-            )}
-          </button>
-        ))}
-      </div>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="text-center py-16">
+          <Bell className="w-12 h-12 text-muted-foreground/40 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold mb-2">No notifications</h3>
+          <p className="text-sm text-muted-foreground">You're all caught up</p>
+        </div>
+      )}
     </div>
   );
 }

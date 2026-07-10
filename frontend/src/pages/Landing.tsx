@@ -33,7 +33,7 @@ import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { HighContrastToggle } from "@/components/HighContrastToggle";
 import { useNavigate } from "react-router";
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState, useEffect, lazy, Suspense } from "react";
 
 // ─── Hero Code Editor Mockup ─────────────────────────────────
 
@@ -374,6 +374,8 @@ function ScrollRevealFromRight({ children, className = "" }: { children: React.R
   );
 }
 
+const Hero3D = lazy(() => import("@/components/Hero3D"));
+
 // ─── Main Landing Page ─────────────────────────────────────────
 
 export default function Landing() {
@@ -429,8 +431,15 @@ export default function Landing() {
               </div>
             </div>
 
-            <div className="hidden lg:block animate-fade-in-up" style={{ animationDelay: "0.3s" }}>
-              <CodeEditorMockup />
+            <div className="hidden lg:block relative">
+              <div className="relative z-10 animate-fade-in-up" style={{ animationDelay: "0.3s" }}>
+                <CodeEditorMockup />
+              </div>
+              <div className="absolute -top-16 -right-16 w-64 h-64 opacity-60 pointer-events-none">
+                <Suspense fallback={null}>
+                  <Hero3D />
+                </Suspense>
+              </div>
             </div>
           </div>
         </div>

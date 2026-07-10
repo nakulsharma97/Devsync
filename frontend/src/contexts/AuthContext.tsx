@@ -1,35 +1,43 @@
-import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react";
+import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from "react";
 import { authService, type AuthResponse } from "@/services/authService";
-import { userService, type User } from "@/services/userService";
-import { setAuthToken, getAuthToken } from "@/services/api";
 
 interface AuthContextType {
-  user: User | null;
+  user: AuthResponse["user"] | null;
   isLoading: boolean;
   isAuthenticated: boolean;
+  error: string | null;
   login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string, fullName: string, username: string) => Promise<void>;
+  register: (email: string, password: string, fullName: string, username?: string) => Promise<void>;
   logout: () => void;
   refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState<AuthResponse["user"] | null>(() => authService.getStoredUser());
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const fetchUser = useCallback(async () => {
-    const token = getAuthToken();
+  const refreshUser = useCallback(async () => {
+    const token = localStorage.getItem("accessToken");
     if (!token) {
+      setUser(null);
       setIsLoading(false);
       return;
     }
     try {
-      const currentUser = await userService.getCurrentUser();
-      setUser(currentUser);
+      const userData = await authService.getMe();
+      setUser({
+        id: userData.id,
+        email: userData.email,
+        fullName: userData.fullName,
+        username: userData.username,
+        avatarUrl: userData.avatarUrl,
+        role: userData.role,
+      });
     } catch {
-      setAuthToken(null);
+      authService.clearSession();
       setUser(null);
     } finally {
       setIsLoading(false);
@@ -37,40 +45,46 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    fetchUser();
-  }, [fetchUser]);
+    refreshUser();
+  }, [refreshUser]);
 
-  const login = async (email: string, password: string) => {
-    const response = await authService.login({ email, password });
-    if (response.token) {
-      try {
-        const currentUser = await userService.getCurrentUser();
-        setUser(currentUser);
-      } catch (err) {
-        // Token was set but fetching user failed — clean up
-        setAuthToken(null);
-        throw new Error("Login succeeded but failed to load profile.");
-      }
+  const login = useCallback(async (email: string, password: string) => {
+    setError(null);
+    setIsLoading(true);
+    try {
+      const response = await authService.login(email, password);
+      authService.saveSession(response);
+      setUser(response.user);
+      window.location.href = "/dashboard";
+    } catch (err: any) {
+      setError(err.response?.data?.message || err.message || "Login failed");
+      throw err;
+    } finally {
+      setIsLoading(false);
     }
-  };
+  }, []);
 
-  const register = async (email: string, password: string, fullName: string, username: string) => {
-    const response = await authService.register({ email, password, fullName, username });
-    if (response.token) {
-      try {
-        const currentUser = await userService.getCurrentUser();
-        setUser(currentUser);
-      } catch (err) {
-        setAuthToken(null);
-        throw new Error("Registration succeeded but failed to load profile.");
-      }
+  const register = useCallback(async (email: string, password: string, fullName: string, username?: string) => {
+    setError(null);
+    setIsLoading(true);
+    try {
+      const response = await authService.register({ email, password, fullName, username });
+      authService.saveSession(response);
+      setUser(response.user);
+      window.location.href = "/dashboard";
+    } catch (err: any) {
+      setError(err.response?.data?.message || err.message || "Registration failed");
+      throw err;
+    } finally {
+      setIsLoading(false);
     }
-  };
+  }, []);
 
-  const logout = () => {
-    setAuthToken(null);
+  const logout = useCallback(() => {
+    authService.clearSession();
     setUser(null);
-  };
+    window.location.href = "/";
+  }, []);
 
   return (
     <AuthContext.Provider
@@ -78,10 +92,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         user,
         isLoading,
         isAuthenticated: !!user,
+        error,
         login,
         register,
         logout,
-        refreshUser: fetchUser,
+        refreshUser,
       }}
     >
       {children}
@@ -89,10 +104,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
-export function useDevSyncAuth() {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error("useDevSyncAuth must be used within an AuthProvider");
-  }
-  return context;
+export function useAuth() {
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error("useAuth must be used within AuthProvider");
+  return ctx;
 }
+
+// Re-export for backwards compatibility
+export const useDevSyncAuth = useAuth;

@@ -1,188 +1,110 @@
-import { useDevSyncAuth } from "@/contexts/AuthContext";
-import { motion } from "framer-motion";
-import { useEffect, useState } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useApi } from "@/hooks/useApi";
+import { projectService, type ProjectDto } from "@/services/projectService";
+import { notificationService } from "@/services/notificationService";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { FolderKanban, Bell, Plus, Loader2, ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router";
-import {
-  FolderGit2,
-  Rss,
-  Users,
-  Bookmark,
-  TrendingUp,
-  ArrowRight,
-  Sparkles,
-} from "lucide-react";
-import { projectService } from "@/services/projectService";
-import { bookmarkService } from "@/services/bookmarkService";
-import { postService } from "@/services/postService";
-import { connectionService } from "@/services/connectionService";
-
-interface DashboardStats {
-  projects: number;
-  posts: number;
-  teams: number;
-  bookmarks: number;
-  repos: number;
-  connections: number;
-}
 
 export default function Dashboard() {
-  const { user } = useDevSyncAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
-  const [stats, setStats] = useState<DashboardStats>({
-    projects: 0, posts: 0, teams: 0, bookmarks: 0, repos: 0, connections: 0,
-  });
-  const [recentProjects, setRecentProjects] = useState<any[]>([]);
-
-  useEffect(() => {
-    (async () => {
-      try {
-        const [projects, bookmarks, feed] = await Promise.all([
-          projectService.getAll(),
-          bookmarkService.getAll(),
-          postService.getFeed(0, 20),
-        ]);
-        setRecentProjects(projects.slice(0, 4));
-        setStats((prev) => ({
-          ...prev,
-          projects: projects.length,
-          bookmarks: bookmarks.length,
-          posts: feed.content.length,
-        }));
-      } catch { /* API not available */ }
-    })();
-
-    // Fetch connections count
-    (async () => {
-      try {
-        const ids = await connectionService.getFollowingIds();
-        setStats((prev) => ({ ...prev, connections: ids.length }));
-      } catch {}
-    })();
-  }, []);
-
-  // Dashboard is now fully Convex-backed — no Spring Boot health polling
-
-  const statCards = [
-    { icon: FolderGit2, label: "Projects", value: stats.projects, href: "/projects", color: "text-accent" },
-    { icon: Rss, label: "Posts", value: stats.posts, href: "/feed", color: "text-accent" },
-    { icon: Users, label: "Teams", value: stats.teams, href: "/teams", color: "text-accent" },
-    { icon: Bookmark, label: "Bookmarks", value: stats.bookmarks, href: "/bookmarks", color: "text-accent" },
-    { icon: TrendingUp, label: "Connections", value: stats.connections, href: "#", color: "text-muted-foreground" },
-  ];
+  const { data: projects, loading: projectsLoading } = useApi(() => projectService.getMyProjects());
+  const { data: unreadCount } = useApi(() => notificationService.getUnreadCount());
 
   return (
-    <div className="relative">
-      {/* Subtle background decoration */}
-      <div className="absolute -top-20 -right-20 w-72 h-72 bg-gradient-to-bl from-accent/[0.03] to-transparent rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute -bottom-20 -left-20 w-72 h-72 bg-gradient-to-tr from-purple-500/[0.02] to-transparent rounded-full blur-3xl pointer-events-none" />
-
-      {/* Welcome */}
-      <div className="mb-10 relative">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight text-foreground">Dashboard</h1>
-            <p className="mt-1.5 text-sm text-muted-foreground">
-              Welcome back, <span className="text-foreground font-medium">{user?.fullName || "Developer"}</span>.
-            </p>
-          </div>
-
-          {/* Convex-powered — no external API health checks needed */}
+    <div className="space-y-6 max-w-5xl">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Welcome, {user?.fullName?.split(" ")[0] || "Developer"}</h1>
+          <p className="text-sm text-muted-foreground mt-1">Here's your development overview</p>
         </div>
+        <Button onClick={() => navigate("/projects")} className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white">
+          <Plus className="w-4 h-4 mr-1.5" /> New Project
+        </Button>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-8 relative">
-        {statCards.map((stat, i) => (
-          <motion.button
-            key={stat.label}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.04 }}
-            onClick={() => stat.href !== "#" && navigate(stat.href)}
-            className="group relative bg-card border border-border/50 rounded-xl p-5 flex flex-col items-center text-center gap-2 transition-all duration-300 hover:border-accent/30 hover:shadow-lg hover:shadow-accent/5 hover:-translate-y-0.5 overflow-hidden"
-          >
-            <div className="absolute inset-0 bg-gradient-to-br from-accent/[0.03] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-accent/15 to-accent/5 flex items-center justify-center ring-1 ring-accent/20 group-hover:ring-accent/30 group-hover:scale-105 transition-all duration-200">
-              <stat.icon className={`w-4.5 h-4.5 ${stat.color}`} />
-            </div>
-            <span className="text-xl font-bold text-foreground group-hover:text-accent transition-colors duration-200">{stat.value}</span>
-            <span className="text-xs text-muted-foreground">{stat.label}</span>
-          </motion.button>
-        ))}
+      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <Card className="border-border/40 hover:border-indigo-500/30 transition-colors cursor-pointer" onClick={() => navigate("/projects")}>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <FolderKanban className="w-4 h-4 text-indigo-400" />
+              Projects
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-3xl font-bold">{projectsLoading ? "..." : projects?.length || 0}</p>
+            <p className="text-xs text-muted-foreground mt-1">Total projects</p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-border/40 hover:border-indigo-500/30 transition-colors cursor-pointer" onClick={() => navigate("/notifications")}>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <Bell className="w-4 h-4 text-amber-400" />
+              Notifications
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-3xl font-bold">{unreadCount ?? "..."}</p>
+            <p className="text-xs text-muted-foreground mt-1">Unread</p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-border/40 hover:border-indigo-500/30 transition-colors cursor-pointer" onClick={() => navigate("/messages")}>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <svg className="w-4 h-4 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+              Messages
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-xs text-muted-foreground">Team chats & DMs</p>
+            <Button variant="link" className="p-0 h-auto text-xs text-indigo-400 mt-2">
+              Open messages <ArrowRight className="w-3 h-3 ml-1" />
+            </Button>
+          </CardContent>
+        </Card>
       </div>
 
-      {/* Recent Projects */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <div className="w-5 h-5 rounded-md bg-accent/10 flex items-center justify-center">
-              <FolderGit2 className="w-3 h-3 text-accent" />
+      <Card className="border-border/40">
+        <CardHeader>
+          <CardTitle className="text-base font-semibold">Recent Projects</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {projectsLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin text-indigo-500" />
             </div>
-            <h2 className="text-sm font-semibold text-foreground">Recent Projects</h2>
-          </div>
-          <button onClick={() => navigate("/projects")}
-            className="text-xs text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-1">
-            View all <ArrowRight className="w-3 h-3" />
-          </button>
-        </div>
-        {recentProjects.length === 0 ? (
-          <div className="border border-border/50 rounded-xl p-10 flex items-center justify-center bg-card relative overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-br from-accent/[0.02] to-transparent pointer-events-none" />
-            <p className="text-sm text-muted-foreground relative">
-              No projects yet.{" "}
-              <button onClick={() => navigate("/projects")}
-                className="text-accent underline underline-offset-2 hover:no-underline">
-                Create your first project
-              </button>
-            </p>
-          </div>
-        ) : (
-          <div className="grid sm:grid-cols-2 gap-3">
-            {recentProjects.map((project) => (
-              <div key={project.id}
-                className="group relative border border-border/50 rounded-xl p-4 transition-all duration-300 cursor-pointer bg-card hover:border-accent/30 hover:shadow-lg hover:shadow-accent/5 hover:-translate-y-0.5 overflow-hidden"
-                onClick={() => navigate(`/projects/${project.id}`)}>
-                <div className="absolute inset-0 bg-gradient-to-br from-accent/[0.03] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
-                <h3 className="text-sm font-medium text-foreground mb-1 relative group-hover:text-accent transition-colors duration-200">{project.title}</h3>
-                <p className="text-xs text-muted-foreground line-clamp-2 relative">{project.description}</p>
-                {project.techStack && (
-                  <div className="flex gap-1.5 mt-2 flex-wrap relative">
-                    {project.techStack.split(",").map((t: string) => (
-                      <span key={t.trim()} className="text-[10px] px-1.5 py-0.5 rounded-md bg-gradient-to-r from-accent/15 to-accent/5 text-accent border border-accent/20">
-                        {t.trim()}
-                      </span>
-                    ))}
+          ) : projects && projects.length > 0 ? (
+            <div className="space-y-2">
+              {projects.slice(0, 5).map((p) => (
+                <div key={p.id} className="flex items-center justify-between p-3 rounded-lg border border-border/40 hover:border-indigo-500/20 transition-colors cursor-pointer" onClick={() => navigate(`/board/${p.id}`)}>
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500/20 to-purple-500/20 flex items-center justify-center">
+                      <FolderKanban className="w-4 h-4 text-indigo-400" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium">{p.name}</p>
+                      <p className="text-xs text-muted-foreground">{p.memberCount} member{p.memberCount !== 1 ? "s" : ""}</p>
+                    </div>
                   </div>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Quick Actions */}
-      <div>
-        <div className="flex items-center gap-2 mb-4">
-          <div className="w-5 h-5 rounded-md bg-accent/10 flex items-center justify-center">
-            <Sparkles className="w-3 h-3 text-accent" />
-          </div>
-          <h2 className="text-sm font-semibold text-foreground">Quick Actions</h2>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          {[
-            { label: "Create a project", href: "/projects" },
-            { label: "Browse feed", href: "/feed" },
-            { label: "Find a team", href: "/teams" },
-          ].map((action) => (
-            <button key={action.label} onClick={() => navigate(action.href)}
-              className="group relative bg-card border border-border/50 rounded-xl px-4 py-3.5 text-sm text-foreground hover:border-accent/30 transition-all duration-300 text-left hover:shadow-lg hover:shadow-accent/5 hover:-translate-y-0.5 inline-flex items-center justify-between overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-br from-accent/[0.03] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
-              <span className="relative group-hover:text-accent transition-colors duration-200">{action.label}</span>
-              <ArrowRight className="w-3.5 h-3.5 text-muted-foreground group-hover:text-accent transition-colors relative" />
-            </button>
-          ))}
-        </div>
-      </div>
+                  <span className="text-xs text-indigo-400">{p.status}</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <FolderKanban className="w-10 h-10 text-muted-foreground/40 mx-auto mb-3" />
+              <p className="text-sm text-muted-foreground">No projects yet</p>
+              <Button variant="outline" size="sm" className="mt-3" onClick={() => navigate("/projects")}>
+                Create your first project
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

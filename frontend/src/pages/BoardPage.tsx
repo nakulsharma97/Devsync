@@ -1,471 +1,144 @@
-import { useState, useEffect, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { useParams, useNavigate } from "react-router";
+import { useState } from "react";
+import { useParams } from "react-router";
+import { useApi } from "@/hooks/useApi";
+import { boardService, type BoardDto, type ColumnDto } from "@/services/boardService";
 import { Button } from "@/components/ui/button";
+import { Plus, Loader2, GripVertical } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Plus,
-  GripVertical,
-  Trash2,
-  Loader2,
-  ArrowLeft,
-  LayoutPanelTop,
-  Circle,
-  AlertCircle,
-  AlertTriangle,
-  ChevronDown,
-  X,
-} from "lucide-react";
-import { boardService, type BoardColumn, type BoardTask } from "@/services/boardService";
-import { projectService } from "@/services/projectService";
 import { toast } from "sonner";
 
-const PRIORITY_COLORS: Record<string, string> = {
-  low: "bg-green-500/10 text-green-500 border-green-500/20",
-  medium: "bg-amber-500/10 text-amber-500 border-amber-500/20",
-  high: "bg-red-500/10 text-red-500 border-red-500/20",
-};
+function TaskCard({ task, columnId }: { task: any; columnId: string }) {
+  const [dragging, setDragging] = useState(false);
 
-function TaskCard({
-  task,
-  onDelete,
-  onDragStart,
-  isDragging,
-}: {
-  task: BoardTask;
-  onDelete: (id: string) => void;
-  onDragStart: (e: React.DragEvent, taskId: string, columnId: string) => void;
-  isDragging?: boolean;
-}) {
   return (
-    <motion.div
-      layout
-      initial={{ opacity: 0, y: 12, scale: 0.95 }}
-      animate={{
-        opacity: isDragging ? 0.5 : 1,
-        y: 0,
-        scale: isDragging ? 1.02 : 1,
-      }}
-      exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.15 } }}
-      transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-      className="bg-card border border-border/50 rounded-lg p-3 cursor-grab active:cursor-grabbing hover:border-accent/30 hover:shadow-md transition-all group relative"
+    <div
+      draggable
+      onDragStart={(e) => { e.dataTransfer.setData("text/plain", JSON.stringify({ taskId: task.id, columnId })); setDragging(true); }}
+      onDragEnd={() => setDragging(false)}
+      className={`bg-card border border-border/40 rounded-lg p-3 cursor-grab active:cursor-grabbing transition-all ${
+        dragging ? "opacity-50 scale-95 shadow-lg" : "hover:border-indigo-500/30 hover:shadow-sm"
+      }`}
     >
-      {/* Drag handle indicator */}
-      <div className="absolute top-0 left-0 w-1 h-full bg-accent/0 group-hover:bg-accent/30 rounded-l-lg transition-colors duration-200" />
-
-      {/* Native drag wrapper - separate from framer-motion to avoid event conflicts */}
-      <div
-        draggable
-        onDragStart={(e) => onDragStart(e, task._id, "")}
-        className="cursor-grab active:cursor-grabbing"
-      >
-        <div className="flex items-start justify-between gap-2 mb-2">
-          <div className="flex items-center gap-1.5 min-w-0">
-            <GripVertical className="w-3 h-3 text-muted-foreground/30 shrink-0 mt-0.5 group-hover:text-muted-foreground/60 transition-colors" />
-            <p className="text-xs font-medium text-foreground line-clamp-2">{task.title}</p>
-          </div>
-          <button
-            onClick={(e) => { e.stopPropagation(); onDelete(task._id); }}
-            className="shrink-0 opacity-0 group-hover:opacity-100 transition-all text-muted-foreground hover:text-destructive hover:bg-destructive/5 rounded-md p-1 -mr-1 -mt-1"
-          >
-            <X className="w-3 h-3" />
-          </button>
-        </div>
-        {task.description && (
-          <p className="text-[10px] text-muted-foreground line-clamp-2 mb-2 ml-5">
-            {task.description}
-          </p>
-        )}
-        <div className="flex items-center gap-2 ml-5">
-          {task.priority && (
-            <span
-              className={`text-[9px] px-1.5 py-0.5 rounded-full border ${
-                PRIORITY_COLORS[task.priority] || "bg-accent/10 text-accent border-accent/20"
-              }`}
-            >
-              {task.priority}
-            </span>
-          )}
-          {task.assignee && (
-            <span className="text-[9px] text-muted-foreground">{task.assignee.fullName}</span>
+      <div className="flex items-start gap-2">
+        <GripVertical className="w-3 h-3 text-muted-foreground/40 mt-0.5 shrink-0" />
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium">{task.title}</p>
+          {task.assigneeName && (
+            <p className="text-xs text-muted-foreground mt-1">Assigned to {task.assigneeName}</p>
           )}
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 }
 
 export default function BoardPage() {
-  const { projectId } = useParams<{ projectId: string }>();
-  const navigate = useNavigate();
-  const [columns, setColumns] = useState<BoardColumn[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [projectName, setProjectName] = useState("");
-  const [newTaskInputs, setNewTaskInputs] = useState<Record<string, { title: string; description: string; priority: string }>>({});
-  const [addingTask, setAddingTask] = useState<Record<string, boolean>>({});
-  const [addingColumn, setAddingColumn] = useState(false);
-  const [newColumnTitle, setNewColumnTitle] = useState("");
-  const [dragOverCol, setDragOverCol] = useState<string | null>(null);
-  const dragItem = useRef<{ taskId: string; sourceColumnId: string } | null>(null);
+  const { projectId } = useParams();
+  const { data: board, loading, refetch } = useApi(
+    () => projectId ? boardService.getProjectBoard(projectId) : Promise.resolve(null),
+    [projectId]
+  );
+  const [open, setOpen] = useState(false);
+  const [title, setTitle] = useState("");
+  const [creating, setCreating] = useState(false);
+  const [selectedColumn, setSelectedColumn] = useState("");
 
-  useEffect(() => {
-    if (!projectId) return;
-    const fetchBoard = async () => {
-      try {
-        const [boardData, project] = await Promise.all([
-          boardService.getBoard(projectId),
-          projectService.getById(projectId),
-        ]);
-        setColumns(boardData);
-        setProjectName(project.title);
-      } catch (err) {
-        console.error("Failed to load board:", err);
-        toast.error("Failed to load board");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchBoard();
-  }, [projectId]);
-
-  const handleAddTask = async (colId: string) => {
-    if (!projectId) return;
-    const input = newTaskInputs[colId];
-    if (!input?.title.trim()) return;
-
-    setAddingTask((prev) => ({ ...prev, [colId]: true }));
-    try {
-      const task = await boardService.addTask(colId, projectId, input.title, input.description || undefined, input.priority || undefined);
-      setColumns((prev) =>
-        prev.map((col) =>
-          col._id === colId
-            ? { ...col, tasks: [...col.tasks, task] }
-            : col,
-        ),
-      );
-      setNewTaskInputs((prev) => ({ ...prev, [colId]: { title: "", description: "", priority: "" } }));
-      toast.success("Task added");
-    } catch {
-      toast.error("Failed to add task");
-    } finally {
-      setAddingTask((prev) => ({ ...prev, [colId]: false }));
-    }
-  };
-
-  const handleDeleteTask = async (taskId: string) => {
-    try {
-      await boardService.deleteTask(taskId);
-      setColumns((prev) =>
-        prev.map((col) => ({
-          ...col,
-          tasks: col.tasks.filter((t) => t._id !== taskId),
-        })),
-      );
-      toast.success("Task deleted");
-    } catch {
-      toast.error("Failed to delete task");
-    }
-  };
-
-  const handleDragStart = (e: React.DragEvent, taskId: string, _columnId: string) => {
-    const colId = columns.find((col) => col.tasks.some((t) => t._id === taskId))?._id;
-    if (colId) {
-      dragItem.current = { taskId, sourceColumnId: colId };
-      e.dataTransfer.effectAllowed = "move";
-    }
-  };
-
-  const handleDragOver = (e: React.DragEvent, colId: string) => {
+  const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
-    setDragOverCol(colId);
-  };
-
-  const handleDragLeave = () => {
-    setDragOverCol(null);
-  };
-
-  const handleDrop = async (targetColumnId: string) => {
-    setDragOverCol(null);
-    if (!dragItem.current) return;
-    const { taskId, sourceColumnId } = dragItem.current;
-    if (sourceColumnId === targetColumnId) return;
-
-    // Optimistically update UI
-    setColumns((prev) => {
-      const newCols = prev.map((col) => ({ ...col, tasks: [...col.tasks] }));
-      const sourceCol = newCols.find((c) => c._id === sourceColumnId);
-      const targetCol = newCols.find((c) => c._id === targetColumnId);
-      if (!sourceCol || !targetCol) return prev;
-
-      const taskIndex = sourceCol.tasks.findIndex((t) => t._id === taskId);
-      if (taskIndex === -1) return prev;
-
-      const [movedTask] = sourceCol.tasks.splice(taskIndex, 1);
-      targetCol.tasks.push(movedTask);
-
-      return newCols;
-    });
-
-    dragItem.current = null;
-
+    if (!title.trim() || !selectedColumn) return;
+    setCreating(true);
     try {
-      await boardService.moveTask(taskId, targetColumnId, 999);
+      await boardService.createTask({ title: title.trim(), columnId: selectedColumn });
+      toast("Task created!");
+      setTitle("");
+      setOpen(false);
+      refetch();
     } catch {
-      toast.error("Failed to move task");
-      // Refetch board
-      if (projectId) {
-        const boardData = await boardService.getBoard(projectId);
-        setColumns(boardData);
-      }
+      toast("Failed to create task");
+    } finally {
+      setCreating(false);
     }
   };
 
-  const handleAddColumn = async () => {
-    if (!projectId || !newColumnTitle.trim()) return;
-    setAddingColumn(true);
+  const handleDrop = async (e: React.DragEvent, targetColumnId: string) => {
+    e.preventDefault();
     try {
-      const col = await boardService.addColumn(projectId, newColumnTitle.trim());
-      setColumns((prev) => [...prev, col]);
-      setNewColumnTitle("");
-      toast.success("Column added");
+      const { taskId, columnId } = JSON.parse(e.dataTransfer.getData("text/plain"));
+      if (columnId === targetColumnId) return;
+      await boardService.updateTaskPosition(taskId, targetColumnId, 0);
+      refetch();
     } catch {
-      toast.error("Failed to add column");
-    } finally {
-      setAddingColumn(false);
+      toast("Failed to move task");
     }
   };
 
   if (loading) {
+    return <div className="flex items-center justify-center py-16"><Loader2 className="h-8 w-8 animate-spin text-indigo-500" /></div>;
+  }
+
+  if (!board) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <div className="flex flex-col items-center gap-3">
-          <div className="w-8 h-8 rounded-full border-2 border-accent/30 border-t-accent animate-spin" />
-          <p className="text-sm text-muted-foreground">Loading board...</p>
-        </div>
+      <div className="text-center py-16">
+        <p className="text-muted-foreground mb-4">No board found for this project</p>
+        <Button onClick={async () => {
+          try {
+            await boardService.createBoard("Board", projectId!, ["To Do", "In Progress", "Done"]);
+            refetch();
+            toast("Board created!");
+          } catch { toast("Failed to create board"); }
+        }}>Create Board</Button>
       </div>
     );
   }
 
   return (
-    <div className="relative">
-      {/* Background decoration */}
-      <div className="absolute -top-20 -right-20 w-72 h-72 bg-gradient-to-bl from-accent/[0.03] to-transparent rounded-full blur-3xl pointer-events-none" />
-
-      {/* Header */}
-      <div className="mb-6">
-        <button
-          onClick={() => navigate("/projects")}
-          className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground mb-2 transition-colors"
-        >
-          <ArrowLeft className="w-3 h-3" /> Back to Projects
-        </button>
-        <div className="flex items-center gap-2">
-          <div className="w-5 h-5 rounded-md bg-accent/10 flex items-center justify-center">
-            <LayoutPanelTop className="w-3 h-3 text-accent" />
-          </div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">
-            {projectName} — Board
-          </h1>
-        </div>
-        <p className="ml-7 text-sm text-muted-foreground">
-          Drag tasks between columns to update their status
-        </p>
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h1 className="text-xl font-bold tracking-tight">{board.name}</h1>
       </div>
 
-      {/* Board Columns */}
-      <div className="flex gap-4 overflow-x-auto pb-4 min-h-[60vh]">
-        {columns.map((col) => (
-          <motion.div
-            key={col._id}
-            layout
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-            className={`flex-shrink-0 w-72 rounded-xl transition-all duration-200 ${
-              dragOverCol === col._id
-                ? "bg-accent/10 border-2 border-accent/40 border-dashed shadow-lg shadow-accent/5"
-                : "bg-muted/30 border border-border/50"
-            }`}
-            onDragOver={(e) => handleDragOver(e, col._id)}
-            onDragLeave={handleDragLeave}
-            onDrop={() => handleDrop(col._id)}
+      <div className="flex gap-4 overflow-x-auto pb-4">
+        {board.columns.map((col) => (
+          <div
+            key={col.id}
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={(e) => handleDrop(e, col.id)}
+            className="flex-1 min-w-[250px] bg-muted/30 rounded-xl border border-border/40 p-3"
           >
-            {/* Column Header */}
-            <div className="px-3 py-2.5 border-b border-border/30 flex items-center justify-between">
+            <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
-                <div
-                  className={`w-2 h-2 rounded-full ${
-                    col.title === "To Do"
-                      ? "bg-blue-500"
-                      : col.title === "In Progress"
-                        ? "bg-amber-500"
-                        : col.title === "Done"
-                          ? "bg-green-500"
-                          : "bg-accent"
-                  }`}
-                />
-                <span className="text-xs font-semibold text-foreground">{col.title}</span>
-                <motion.span
-                  key={col.tasks.length}
-                  initial={{ scale: 1.3 }}
-                  animate={{ scale: 1 }}
-                  className="text-[10px] text-muted-foreground bg-muted/50 px-1.5 rounded-full"
-                >
-                  {col.tasks.length}
-                </motion.span>
+                <div className="w-2 h-2 rounded-full bg-indigo-400" />
+                <h3 className="text-sm font-semibold">{col.name}</h3>
+                <span className="text-xs text-muted-foreground bg-muted/50 px-1.5 py-0.5 rounded-full">{col.tasks.length}</span>
               </div>
+              <button
+                onClick={() => { setSelectedColumn(col.id); setOpen(true); }}
+                className="p-1 rounded hover:bg-accent/10 transition-colors"
+              >
+                <Plus className="w-3.5 h-3.5 text-muted-foreground" />
+              </button>
             </div>
-
-            {/* Tasks */}
-            <div className={`p-2 space-y-2 min-h-[120px] transition-all duration-200 ${
-              dragOverCol === col._id ? "min-h-[160px]" : ""
-            }`}>
-              <AnimatePresence mode="popLayout">
-                {col.tasks.map((task) => (
-                  <TaskCard
-                    key={task._id}
-                    task={task}
-                    onDelete={handleDeleteTask}
-                    onDragStart={handleDragStart}
-                    isDragging={dragItem.current?.taskId === task._id}
-                  />
-                ))}
-              </AnimatePresence>
-
-              {/* Add Task Form */}
-              <div className="pt-1">
-                {newTaskInputs[col._id]?.title !== undefined ? (
-                  <div className="space-y-2">
-                    <Input
-                      value={newTaskInputs[col._id]?.title || ""}
-                      onChange={(e) =>
-                        setNewTaskInputs((prev) => ({
-                          ...prev,
-                          [col._id]: { ...prev[col._id], title: e.target.value },
-                        }))
-                      }
-                      placeholder="Task title..."
-                      className="text-xs h-8 bg-background"
-                      onKeyDown={(e) => e.key === "Enter" && handleAddTask(col._id)}
-                      autoFocus
-                    />
-                    <Textarea
-                      value={newTaskInputs[col._id]?.description || ""}
-                      onChange={(e) =>
-                        setNewTaskInputs((prev) => ({
-                          ...prev,
-                          [col._id]: { ...prev[col._id], description: e.target.value },
-                        }))
-                      }
-                      placeholder="Description (optional)"
-                      rows={2}
-                      className="text-xs resize-none bg-background"
-                    />
-                    <div className="flex items-center gap-2">
-                      <select
-                        value={newTaskInputs[col._id]?.priority || ""}
-                        onChange={(e) =>
-                          setNewTaskInputs((prev) => ({
-                            ...prev,
-                            [col._id]: { ...prev[col._id], priority: e.target.value },
-                          }))
-                        }
-                        className="text-[10px] bg-background border border-border/50 rounded px-1.5 py-1 text-foreground"
-                      >
-                        <option value="">No priority</option>
-                        <option value="low">Low</option>
-                        <option value="medium">Medium</option>
-                        <option value="high">High</option>
-                      </select>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        size="sm"
-                        onClick={() => handleAddTask(col._id)}
-                        disabled={addingTask[col._id]}
-                        className="text-xs h-7 flex-1"
-                      >
-                        {addingTask[col._id] ? (
-                          <Loader2 className="w-3 h-3 animate-spin" />
-                        ) : (
-                          "Add"
-                        )}
-                      </Button>
-                      <button
-                        onClick={() =>
-                          setNewTaskInputs((prev) => {
-                            const next = { ...prev };
-                            delete next[col._id];
-                            return next;
-                          })
-                        }
-                        className="text-xs text-muted-foreground hover:text-foreground"
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <button
-                    onClick={() =>
-                      setNewTaskInputs((prev) => ({
-                        ...prev,
-                        [col._id]: { title: "", description: "", priority: "" },
-                      }))
-                    }
-                    className="w-full flex items-center gap-1.5 px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-accent/5 rounded-lg transition-colors"
-                  >
-                    <Plus className="w-3 h-3" /> Add task
-                  </button>
-                )}
-              </div>
+            <div className="space-y-2 min-h-[100px]">
+              {col.tasks.map((task) => (
+                <TaskCard key={task.id} task={task} columnId={col.id} />
+              ))}
             </div>
-          </motion.div>
+          </div>
         ))}
-
-        {/* Add Column Button */}
-        <div className="flex-shrink-0 w-72">
-          {addingColumn || newColumnTitle !== "" ? (
-            <div className="bg-muted/30 border border-border/50 rounded-xl p-3 space-y-2">
-              <Input
-                value={newColumnTitle}
-                onChange={(e) => setNewColumnTitle(e.target.value)}
-                placeholder="Column name..."
-                className="text-xs h-8 bg-background"
-                onKeyDown={(e) => e.key === "Enter" && handleAddColumn()}
-                autoFocus
-              />
-              <div className="flex items-center gap-2">
-                <Button
-                  size="sm"
-                  onClick={handleAddColumn}
-                  disabled={addingColumn}
-                  className="text-xs h-7"
-                >
-                  {addingColumn ? <Loader2 className="w-3 h-3 animate-spin" /> : "Add Column"}
-                </Button>
-                <button
-                  onClick={() => {
-                    setAddingColumn(false);
-                    setNewColumnTitle("");
-                  }}
-                  className="text-xs text-muted-foreground hover:text-foreground"
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          ) : (
-            <button
-              onClick={() => setAddingColumn(true)}
-              className="w-full border-2 border-dashed border-border/30 rounded-xl p-4 flex items-center justify-center gap-2 text-sm text-muted-foreground hover:text-foreground hover:border-accent/30 transition-colors"
-            >
-              <Plus className="w-4 h-4" /> Add Column
-            </button>
-          )}
-        </div>
       </div>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Add Task</DialogTitle></DialogHeader>
+          <form onSubmit={handleCreate} className="space-y-4">
+            <Input placeholder="Task title" value={title} onChange={(e) => setTitle(e.target.value)} required />
+            <Button type="submit" disabled={creating || !title.trim()} className="w-full bg-gradient-to-r from-indigo-500 to-purple-600 text-white">
+              {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : "Add Task"}
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
