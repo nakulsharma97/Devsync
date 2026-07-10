@@ -20,6 +20,7 @@ if (import.meta.env.VITE_SENTRY_DSN) {
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { DashboardLayout } from "@/components/DashboardLayout";
+import PageTransition from "@/components/PageTransition";
 import Landing from "./pages/Landing";
 import AuthPage from "./pages/Auth";
 import NotFound from "./pages/NotFound";
@@ -38,6 +39,7 @@ function App() {
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
       <BrowserRouter>
         <AuthProvider>
+          <PageTransition>
           <Routes>
             <Route path="/" element={<Landing />} />
             <Route path="/auth" element={<AuthPage />} />
@@ -61,6 +63,7 @@ function App() {
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
+          </PageTransition>
         </AuthProvider>
         <Toaster />
       </BrowserRouter>
