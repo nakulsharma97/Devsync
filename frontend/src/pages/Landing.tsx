@@ -388,16 +388,15 @@ export default function Landing() {
     <div className="min-h-screen bg-background text-foreground overflow-x-hidden relative">
       <style>{keyframesStyle}</style>
       
-      {/* Full-page 3D background — fixed, covers everything */}
+      {/* Full-page 3D background — covers the whole viewport behind everything */}
       <ErrorBoundary>
         <Suspense fallback={<div className="fixed inset-0 bg-gradient-to-b from-background via-indigo-950/20 to-background" />}>
           <Hero3D />
         </Suspense>
       </ErrorBoundary>
-      
-      {/* Gradient overlays for section readability */}
-      <div className="fixed inset-0 bg-gradient-to-b from-transparent via-background/20 to-background pointer-events-none z-[1]" />
 
+      {/* Minimal veil for text readability over 3D */}
+      <div className="fixed inset-0 bg-gradient-to-t from-background/30 via-transparent to-transparent pointer-events-none z-[1]" />
       <div className="relative z-10">
       <Navbar />
 

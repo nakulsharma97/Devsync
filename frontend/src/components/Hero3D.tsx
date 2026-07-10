@@ -165,7 +165,7 @@ export default function Hero3D() {
   if (!mounted) return null;
 
   return (
-    <div className="absolute inset-0 z-0">
+    <div className="fixed inset-0 z-0">
       <Canvas
         camera={{ position: [0, 1, 7], fov: 50 }}
         dpr={[1, 1.0]}
