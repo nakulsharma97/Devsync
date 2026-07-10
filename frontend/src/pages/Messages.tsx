@@ -34,20 +34,43 @@ export default function Messages() {
   }, [conversationId]);
 
   // Subscribe to real-time messages via WebSocket
+  // Re-subscribes when the WebSocket reconnects OR when the conversation changes
   useEffect(() => {
-    if (!conversationId || !wsService.isConnected) return;
+    if (!conversationId) return;
     const isRoom = conversationId.startsWith("room_");
     const actualId = conversationId.replace(/^(room_|dm_)/, "");
 
-    if (isRoom) {
-      return wsService.subscribeToRoom(actualId, (data) => {
-        setMessages((prev) => {
-          // Avoid duplicates
-          if (prev.some((m) => m.id === data.id || (m.content === data.content && m.senderId === data.senderId))) return prev;
-          return [...prev, data];
+    let unsubscribe: (() => void) | undefined;
+
+    const doSubscribe = () => {
+      // Clean up previous subscription
+      if (unsubscribe) unsubscribe();
+
+      if (!wsService.isConnected) return;
+
+      if (isRoom) {
+        unsubscribe = wsService.subscribeToRoom(actualId, (data) => {
+          setMessages((prev) => {
+            // Avoid duplicates
+            if (prev.some((m) => m.id === data.id || (m.content === data.content && m.senderId === data.senderId))) return prev;
+            return [...prev, data];
+          });
         });
-      });
-    }
+      }
+    };
+
+    // Try immediately
+    doSubscribe();
+
+    // Also subscribe to connection changes so we subscribe when WS comes online
+    const unsubConnection = wsService.onConnection((connected) => {
+      if (connected) doSubscribe();
+    });
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+      unsubConnection();
+    };
   }, [conversationId]);
 
   useEffect(() => {
