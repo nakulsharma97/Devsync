@@ -167,7 +167,12 @@ function Navbar() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  const navLinks = ["Features", "Docs", "Pricing", "Enterprise"];
+  const navLinks = [
+    { label: "Features", href: "#features" },
+    { label: "How it Works", href: "#docs" },
+    { label: "Pricing", href: "#pricing" },
+    { label: "Enterprise", href: "#enterprise" },
+  ];
 
   return (
     <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
@@ -186,11 +191,11 @@ function Navbar() {
         <nav className="hidden md:flex items-center gap-1">
           {navLinks.map((item) => (
             <a
-              key={item}
-              href={item === "Features" ? "#features" : `#${item.toLowerCase()}`}
+              key={item.label}
+              href={item.href}
               className="px-3 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-accent/5"
             >
-              {item}
+              {item.label}
             </a>
           ))}
           <div className="w-px h-5 bg-border/50 mx-2" />
@@ -211,8 +216,8 @@ function Navbar() {
       <div className={`md:hidden overflow-hidden transition-all duration-300 ${mobileOpen ? "max-h-96 border-b border-border/30 bg-background/95 backdrop-blur-xl" : "max-h-0"}`}>
         <div className="px-4 py-4 space-y-2">
           {navLinks.map((item) => (
-            <a key={item} href={`#${item.toLowerCase()}`} onClick={() => setMobileOpen(false)} className="block px-3 py-2.5 text-sm text-foreground rounded-lg hover:bg-accent/5 transition-colors">
-              {item}
+            <a key={item.label} href={item.href} onClick={() => setMobileOpen(false)} className="block px-3 py-2.5 text-sm text-foreground rounded-lg hover:bg-accent/5 transition-colors">
+              {item.label}
             </a>
           ))}
           <div className="pt-2 space-y-2">
@@ -532,8 +537,8 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ─── HOW IT WORKS ─── */}
-      <section className="relative py-16 md:py-24 px-4 sm:px-6 bg-background/30 backdrop-blur-sm">
+      {/* ─── HOW IT WORKS / DOCS ─── */}
+      <section id="docs" className="relative py-16 md:py-24 px-4 sm:px-6 bg-background/30 backdrop-blur-sm">
         <div className="mx-auto max-w-7xl">
           <ScrollReveal className="text-center mb-10">
             <span className="text-xs font-semibold tracking-[0.2em] uppercase bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 dark:from-emerald-400 dark:via-teal-400 dark:to-cyan-400 bg-clip-text text-transparent mb-4 block">How it works</span>
@@ -601,8 +606,8 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ─── BENEFITS ─── */}
-      <section className="relative z-10 py-16 md:py-24 px-4 sm:px-6">
+      {/* ─── ENTERPRISE ─── */}
+      <section id="enterprise" className="relative z-10 py-16 md:py-24 px-4 sm:px-6">
         <div className="mx-auto max-w-7xl">
           <div className="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
             <ScrollRevealFromLeft>
@@ -718,7 +723,7 @@ export default function Landing() {
                 Get Started Free<Rocket className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
               </span>
             </Button>
-            <Button variant="outline" size="lg" className="w-full sm:w-auto text-base px-10 h-12 border-border/50 hover:border-indigo-500/30 hover:bg-indigo-500/5 transition-all duration-200">
+            <Button variant="outline" size="lg" onClick={() => document.getElementById('docs')?.scrollIntoView({ behavior: 'smooth' })} className="w-full sm:w-auto text-base px-10 h-12 border-border/50 hover:border-indigo-500/30 hover:bg-indigo-500/5 transition-all duration-200">
               <ExternalLink className="mr-2 w-4 h-4" />View Documentation
             </Button>
           </div>
@@ -741,11 +746,11 @@ export default function Landing() {
               </p>
               <div className="flex items-center gap-2">
                 {[
-                  { icon: Github, href: "#", label: "GitHub" },
-                  { icon: Twitter, href: "#", label: "Twitter" },
-                  { icon: MessageCircle, href: "#", label: "Discord" },
+                  { icon: Github, href: "https://github.com/devsync", label: "GitHub" },
+                  { icon: Twitter, href: "https://twitter.com/devsync", label: "Twitter" },
+                  { icon: MessageCircle, href: "https://discord.gg/devsync", label: "Discord" },
                 ].map(({ icon: Icon, href, label }) => (
-                  <a key={label} href={href} aria-label={label} className="w-9 h-9 rounded-xl bg-muted/50 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-indigo-500/10 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all duration-200">
+                  <a key={label} href={href} target="_blank" rel="noopener noreferrer" aria-label={label} className="w-9 h-9 rounded-xl bg-muted/50 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-indigo-500/10 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all duration-200">
                     <Icon className="w-4 h-4" />
                   </a>
                 ))}
@@ -753,16 +758,16 @@ export default function Landing() {
             </div>
 
             {[
-              { title: "Product", links: ["Features", "Pricing", "Documentation", "Changelog", "API Status"] },
-              { title: "Company", links: ["About", "Blog", "Careers", "Press Kit", "Contact"] },
-              { title: "Legal", links: ["Privacy Policy", "Terms of Service", "Security", "Cookies", "GDPR"] },
+              { title: "Product", links: [{ name: "Features", href: "#features" }, { name: "Pricing", href: "#pricing" }, { name: "Documentation", href: "#docs" }, { name: "Changelog", href: "#" }, { name: "API Status", href: "#" }] },
+              { title: "Company", links: [{ name: "About", href: "#" }, { name: "Blog", href: "#" }, { name: "Careers", href: "#" }, { name: "Press Kit", href: "#" }, { name: "Contact", href: "#" }] },
+              { title: "Legal", links: [{ name: "Privacy Policy", href: "#" }, { name: "Terms of Service", href: "#" }, { name: "Security", href: "#" }, { name: "Cookies", href: "#" }, { name: "GDPR", href: "#" }] },
             ].map((col) => (
               <div key={col.title}>
                 <h4 className="text-xs font-bold uppercase tracking-wider text-foreground mb-4">{col.title}</h4>
                 <ul className="space-y-3">
                   {col.links.map((link) => (
-                    <li key={link}>
-                      <a href="#" className="text-xs md:text-sm text-muted-foreground hover:text-foreground transition-colors hover:underline underline-offset-2">{link}</a>
+                    <li key={link.name}>
+                      <a href={link.href} className="text-xs md:text-sm text-muted-foreground hover:text-foreground transition-colors hover:underline underline-offset-2">{link.name}</a>
                     </li>
                   ))}
                 </ul>
@@ -773,8 +778,8 @@ export default function Landing() {
           <div className="mt-12 pt-8 border-t border-border/30 flex flex-col sm:flex-row items-center justify-between gap-4">
             <p className="text-xs text-muted-foreground">&copy; {new Date().getFullYear()} DevSync. All rights reserved.</p>
             <div className="flex items-center gap-6">
-              {["Twitter", "GitHub", "Discord"].map((social) => (
-                <a key={social} href="#" className="text-xs text-muted-foreground hover:text-foreground transition-colors">{social}</a>
+              {[{ name: "Twitter", href: "https://twitter.com/devsync" }, { name: "GitHub", href: "https://github.com/devsync" }, { name: "Discord", href: "https://discord.gg/devsync" }].map((social) => (
+                <a key={social.name} href={social.href} target="_blank" rel="noopener noreferrer" className="text-xs text-muted-foreground hover:text-foreground transition-colors">{social.name}</a>
               ))}
             </div>
           </div>
