@@ -1,6 +1,7 @@
 package com.devsync.config;
 
 import com.devsync.auth.JwtAuthenticationFilter;
+import com.devsync.auth.RateLimitingFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -20,6 +21,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthFilter;
+    private final RateLimitingFilter rateLimitingFilter;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -34,6 +36,7 @@ public class SecurityConfig {
                 .requestMatchers("/error").permitAll()
                 .anyRequest().authenticated()
             )
+            .addFilterBefore(rateLimitingFilter, JwtAuthenticationFilter.class)
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
