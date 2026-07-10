@@ -10,6 +10,9 @@ export interface UserDto {
   jobTitle: string | null;
   company: string | null;
   location: string | null;
+  githubUrl: string | null;
+  twitterUrl: string | null;
+  websiteUrl: string | null;
   role: string;
   emailVerified: boolean;
   authProvider: string;

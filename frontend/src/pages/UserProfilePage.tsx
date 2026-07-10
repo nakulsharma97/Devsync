@@ -20,19 +20,17 @@ import {
   Rss,
   Sparkles,
 } from "lucide-react";
-import { userService, type User as UserType } from "@/services/userService";
-import { connectionService } from "@/services/connectionService";
-import { conversationService } from "@/services/conversationService";
-import { postService, type Post } from "@/services/postService";
-import { useDevSyncAuth } from "@/contexts/AuthContext";
+import { userService, type UserDto } from "@/services/userService";
+import { postService, type PostDto } from "@/services/postService";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function UserProfilePage() {
   const { userId } = useParams<{ userId: string }>();
   const navigate = useNavigate();
-  const { user: currentUser } = useDevSyncAuth();
+  const { user: currentUser } = useAuth();
 
-  const [profileUser, setProfileUser] = useState<UserType | null>(null);
-  const [posts, setPosts] = useState<Post[]>([]);
+  const [profileUser, setProfileUser] = useState<UserDto | null>(null);
+  const [posts, setPosts] = useState<PostDto[]>([]);
   const [isFollowing, setIsFollowing] = useState(false);
   const [followerCount, setFollowerCount] = useState(0);
   const [followingCount, setFollowingCount] = useState(0);
@@ -44,22 +42,12 @@ export default function UserProfilePage() {
   const fetchProfile = useCallback(async () => {
     if (!userId) return;
     try {
-      const [userData, userPosts, followers, following] = await Promise.all([
-        userService.getUserById(userId),
-        postService.getPostsByUser(userId),
-        connectionService.getFollowerCount(userId),
-        connectionService.getFollowingCount(userId),
+      const [userData, userPosts] = await Promise.all([
+        userService.getUser(userId),
+        postService.getPostsByUser(Number(userId)).catch(() => [] as PostDto[]),
       ]);
       setProfileUser(userData);
       setPosts(userPosts);
-      setFollowerCount(followers);
-      setFollowingCount(following);
-
-      // Check if we follow this user
-      if (!isOwnProfile) {
-        const followingStatus = await connectionService.isFollowing(userId);
-        setIsFollowing(followingStatus);
-      }
     } catch (err) {
       console.error("Failed to load profile:", err);
     }
@@ -70,33 +58,9 @@ export default function UserProfilePage() {
     fetchProfile();
   }, [fetchProfile]);
 
-  const handleToggleFollow = async () => {
-    if (!userId) return;
-    setToggling(true);
-    try {
-      if (isFollowing) {
-        await connectionService.unfollow(userId);
-        setIsFollowing(false);
-        setFollowerCount((c) => Math.max(0, c - 1));
-      } else {
-        await connectionService.follow(userId);
-        setIsFollowing(true);
-        setFollowerCount((c) => c + 1);
-      }
-    } catch (err) {
-      console.error("Failed to toggle follow:", err);
-    }
-    setToggling(false);
-  };
-
   const handleMessage = async () => {
     if (!userId) return;
-    try {
-      const { conversationId } = await conversationService.createOrGet(userId);
-      navigate(`/messages/${conversationId}`);
-    } catch (err) {
-      console.error("Failed to start conversation:", err);
-    }
+    navigate(`/messages/dm_${userId}`);
   };
 
   if (loading) {
@@ -125,8 +89,8 @@ export default function UserProfilePage() {
     );
   }
 
-  const formatDate = (timestamp: number) => {
-    return new Date(timestamp).toLocaleDateString(undefined, {
+  const formatDate = (dateStr: string) => {
+    return new Date(dateStr).toLocaleDateString(undefined, {
       month: "short",
       day: "numeric",
       hour: "2-digit",
@@ -189,31 +153,21 @@ export default function UserProfilePage() {
             </div>
 
             {/* Social links */}
-            {(profileUser.githubUsername || profileUser.linkedinLink || profileUser.portfolioWebsite) && (
+            {(profileUser.githubUrl || profileUser.websiteUrl) && (
               <div className="flex items-center gap-3 mt-2 flex-wrap">
-                {profileUser.githubUsername && (
+                {profileUser.githubUrl && (
                   <a
-                    href={`https://github.com/${profileUser.githubUsername}`}
+                    href={profileUser.githubUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
                   >
-                    <Github className="w-3 h-3" /> {profileUser.githubUsername}
+                    <Github className="w-3 h-3" /> {profileUser.githubUrl.replace('https://github.com/', '')}
                   </a>
                 )}
-                {profileUser.linkedinLink && (
+                {profileUser.websiteUrl && (
                   <a
-                    href={profileUser.linkedinLink}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
-                  >
-                    <Linkedin className="w-3 h-3" /> LinkedIn
-                  </a>
-                )}
-                {profileUser.portfolioWebsite && (
-                  <a
-                    href={profileUser.portfolioWebsite}
+                    href={profileUser.websiteUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
@@ -256,29 +210,6 @@ export default function UserProfilePage() {
               >
                 <MessageCircle className="w-3.5 h-3.5 mr-1.5" /> Message
               </Button>
-              <Button
-                variant={isFollowing ? "outline" : "default"}
-                size="sm"
-                onClick={handleToggleFollow}
-                disabled={toggling}
-                className={`text-xs ${
-                  isFollowing
-                    ? "border-accent/30 text-accent hover:bg-accent/5"
-                    : ""
-                }`}
-              >
-                {toggling ? (
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                ) : isFollowing ? (
-                  <>
-                    <UserCheck className="w-3.5 h-3.5 mr-1.5" /> Following
-                  </>
-                ) : (
-                  <>
-                    <UserPlus className="w-3.5 h-3.5 mr-1.5" /> Follow
-                  </>
-                )}
-              </Button>
             </div>
           )}
         </div>
@@ -306,7 +237,7 @@ export default function UserProfilePage() {
           <div className="space-y-3">
             {posts.map((post) => (
               <div
-                key={post._id}
+                key={post.id}
                 className="border border-border/50 rounded-xl p-4 bg-card hover:border-accent/20 transition-all duration-200"
               >
                 <div className="flex items-center gap-2 mb-2 text-xs text-muted-foreground">
@@ -319,9 +250,9 @@ export default function UserProfilePage() {
                 <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">
                   {post.content}
                 </p>
-                {post.fileUrl && post.fileType?.startsWith("image/") && (
+                {post.imageUrl && (
                   <img
-                    src={post.fileUrl}
+                    src={post.imageUrl}
                     alt="Post attachment"
                     className="mt-3 max-h-60 rounded-lg object-cover border border-border/50"
                     loading="lazy"
@@ -329,10 +260,10 @@ export default function UserProfilePage() {
                 )}
                 <div className="flex items-center gap-4 mt-3 pt-3 border-t border-border/50 text-xs text-muted-foreground">
                   <span className="flex items-center gap-1.5">
-                    <Heart className="w-3.5 h-3.5" /> {post.likeCount} {post.likeCount === 1 ? "like" : "likes"}
+                    <Heart className="w-3.5 h-3.5" /> {post.likeCount || 0} {(post.likeCount || 0) === 1 ? "like" : "likes"}
                   </span>
                   <span className="flex items-center gap-1.5">
-                    <MessageSquare className="w-3.5 h-3.5" /> {post.commentCount} {post.commentCount === 1 ? "comment" : "comments"}
+                    <MessageSquare className="w-3.5 h-3.5" /> {post.commentCount || 0} {(post.commentCount || 0) === 1 ? "comment" : "comments"}
                   </span>
                 </div>
               </div>

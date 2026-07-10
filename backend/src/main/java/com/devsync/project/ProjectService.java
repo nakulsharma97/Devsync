@@ -27,9 +27,20 @@ public class ProjectService {
     public List<ProjectResponse> getUserProjects(String userId) {
         List<Project> owned = projectRepository.findByOwnerId(userId);
         List<Project> member = projectRepository.findProjectsByUserId(userId);
-        return owned.stream()
-                .map(p -> toResponse(p, userId))
-                .toList();
+        // Combine owned and member projects, dedup by ID
+        Set<String> seen = new java.util.HashSet<>();
+        List<ProjectResponse> results = new java.util.ArrayList<>();
+        for (Project p : owned) {
+            if (seen.add(p.getId())) {
+                results.add(toResponse(p, userId));
+            }
+        }
+        for (Project p : member) {
+            if (seen.add(p.getId())) {
+                results.add(toResponse(p, userId));
+            }
+        }
+        return results;
     }
 
     @Transactional

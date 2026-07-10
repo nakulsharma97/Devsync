@@ -1,5 +1,5 @@
 import api from "./api";
-import type { UserDto } from "./authService";
+export type { UserDto } from "./authService";
 
 export interface UpdateUserData {
   fullName?: string;
