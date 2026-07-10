@@ -1,7 +1,6 @@
-// STOMP over SockJS WebSocket service for real-time messaging
+// STOMP over native WebSocket for real-time messaging
 // Handles connection lifecycle, pending subscriptions, and auto-resubscribe on reconnect
 
-import SockJS from "sockjs-client";
 import { Client, type IMessage, type IFrame } from "@stomp/stompjs";
 
 type MessageCallback = (data: any) => void;
@@ -44,7 +43,7 @@ class WebSocketService {
     const wsUrl = import.meta.env.VITE_WS_URL || "http://localhost:8080/ws";
 
     this.client = new Client({
-      webSocketFactory: () => new SockJS(wsUrl),
+      webSocketFactory: () => new WebSocket(wsUrl.replace("http", "ws")),
       connectHeaders: {
         Authorization: `Bearer ${token}`,
         "X-User-Id": userId,
