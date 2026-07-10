@@ -392,9 +392,12 @@ export default function Landing() {
 
       {/* ─── HERO SECTION ─── */}
       <section ref={heroRef} className="relative min-h-screen flex items-center pt-20 overflow-hidden">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1200px] h-[1200px] bg-gradient-to-br from-indigo-500/10 via-purple-500/8 to-pink-500/5 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute top-1/4 -left-48 w-[600px] h-[600px] bg-gradient-to-br from-indigo-500/15 to-transparent rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute bottom-1/4 -right-48 w-[500px] h-[500px] bg-gradient-to-bl from-purple-500/10 to-transparent rounded-full blur-3xl pointer-events-none" />
+        <ErrorBoundary>
+          <Suspense fallback={<div className="absolute inset-0 bg-gradient-to-b from-background via-indigo-950/20 to-background" />}>
+            <Hero3D />
+          </Suspense>
+        </ErrorBoundary>
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-background pointer-events-none z-[1]" />
 
         <div className="mx-auto max-w-6xl px-4 sm:px-6 relative z-10 w-full">
           <div className="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
@@ -433,17 +436,8 @@ export default function Landing() {
               </div>
             </div>
 
-            <div className="hidden lg:block relative">
-              <div className="relative z-10 animate-fade-in-up" style={{ animationDelay: "0.3s" }}>
-                <CodeEditorMockup />
-              </div>
-              <div className="absolute -top-16 -right-16 w-64 h-64 opacity-60 pointer-events-none">
-                <ErrorBoundary>
-                  <Suspense fallback={null}>
-                    <Hero3D />
-                  </Suspense>
-                </ErrorBoundary>
-              </div>
+            <div className="hidden lg:block animate-fade-in-up" style={{ animationDelay: "0.3s" }}>
+              <CodeEditorMockup />
             </div>
           </div>
         </div>
