@@ -12,7 +12,6 @@ import EnterpriseSection from "@/components/EnterpriseSection";
 import PricingSection from "@/components/PricingSection";
 import FinalCtaSection from "@/components/FinalCtaSection";
 import FooterSection from "@/components/FooterSection";
-import AnimatedBackground from "@/components/AnimatedBackground";
 import { keyframesStyle, overlayPresets } from "@/data/landing";
 
 const Hero3D = lazy(() => import("@/components/Hero3D"));
