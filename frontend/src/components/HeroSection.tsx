@@ -1,9 +1,7 @@
-import { lazy, Suspense } from "react";
 import { useNavigate } from "react-router";
 import { Button } from "@/components/ui/button";
+import CodeEditorMockup from "@/components/CodeEditorMockup";
 import { Rocket, Terminal, Check } from "lucide-react";
-
-const RotatingBundle = lazy(() => import("@/components/RotatingBundle"));
 
 export default function HeroSection() {
   const navigate = useNavigate();
@@ -49,20 +47,8 @@ export default function HeroSection() {
             </div>
           </div>
 
-          <div className="hidden lg:flex items-center justify-center h-[400px] animate-fade-in-up" style={{ animationDelay: "0.3s" }}>
-            <div className="w-full h-full relative">
-              {/* Glow behind the bundle */}
-              <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/20 via-purple-500/15 to-transparent rounded-full blur-3xl" />
-              <Suspense
-                fallback={
-                  <div className="w-full h-full flex items-center justify-center">
-                    <div className="w-16 h-16 rounded-full border-2 border-indigo-500/30 border-t-indigo-500 animate-spin" />
-                  </div>
-                }
-              >
-                <RotatingBundle />
-              </Suspense>
-            </div>
+          <div className="hidden lg:block animate-fade-in-up" style={{ animationDelay: "0.3s" }}>
+            <CodeEditorMockup />
           </div>
         </div>
       </div>
