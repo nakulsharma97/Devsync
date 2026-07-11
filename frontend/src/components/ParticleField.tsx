@@ -216,7 +216,7 @@ export default function ParticleField() {
   return (
     <>
       {/* Theme-aware background */}
-      <div className="absolute inset-0 dark:bg-[#050816] bg-white" />
+      <div className="absolute inset-0 dark:bg-[#050816] bg-background" />
 
       {/* Blue ambient gradients — stronger in dark mode */}
       <div

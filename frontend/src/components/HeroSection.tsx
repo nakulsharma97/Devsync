@@ -98,7 +98,7 @@ export default function HeroSection() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.2 }}
-              className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.02] dark:text-slate-200 text-slate-900"
+              className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.02] text-foreground"
             >
               Code.
               <br />
@@ -120,7 +120,7 @@ export default function HeroSection() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.3 }}
-              className="mt-6 text-base sm:text-lg leading-relaxed max-w-lg mx-auto lg:mx-0 dark:text-slate-400 text-slate-600"
+              className="mt-6 text-base sm:text-lg leading-relaxed max-w-lg mx-auto lg:mx-0 text-muted-foreground"
             >
               The developer platform that combines AI-powered coding, real-time
               collaboration, and instant deployment — all in your browser.
@@ -173,7 +173,7 @@ export default function HeroSection() {
                     .getElementById("features")
                     ?.scrollIntoView({ behavior: "smooth" })
                 }
-                className="w-full sm:w-auto text-base px-8 h-12 font-medium transition-all duration-300 dark:text-slate-300 text-slate-700"
+                className="w-full sm:w-auto text-base px-8 h-12 font-medium transition-all duration-300 text-foreground"
                 style={{
                   borderColor: "rgba(99, 102, 241, 0.3)",
                   background: "rgba(99, 102, 241, 0.05)",
@@ -202,7 +202,7 @@ export default function HeroSection() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.5 }}
-              className="mt-6 flex items-center gap-6 justify-center lg:justify-start text-xs dark:text-slate-500 text-slate-500"
+              className="mt-6 flex items-center gap-6 justify-center lg:justify-start text-xs text-muted-foreground"
             >
               <span className="flex items-center gap-1.5">
                 <Check className="w-3.5 h-3.5 text-emerald-500" />
@@ -266,8 +266,7 @@ export default function HeroSection() {
         animate={{ opacity: scrollY > 50 ? 0 : 1 }}
         transition={{ duration: 0.4 }}
         className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2"
-      >
-        <span className="text-xs font-mono dark:text-slate-500 text-slate-400">
+      >          <span className="text-xs font-mono text-muted-foreground">
           Scroll to explore
         </span>
         <motion.div
