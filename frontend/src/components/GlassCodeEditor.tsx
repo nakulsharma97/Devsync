@@ -33,15 +33,25 @@ export default function GlassCodeEditor() {
   const [currentLine, setCurrentLine] = useState(0);
   const [currentChar, setCurrentChar] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
+  const [isDark, setIsDark] = useState(
+    typeof document !== "undefined" && document.documentElement.classList.contains("dark")
+  );
+
+  // Listen for theme changes
+  useEffect(() => {
+    setIsDark(document.documentElement.classList.contains("dark"));
+    const observer = new MutationObserver(() => {
+      setIsDark(document.documentElement.classList.contains("dark"));
+    });
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     let timeout: ReturnType<typeof setTimeout>;
-
     const typeNext = () => {
       if (currentLine >= codeLines.length) return;
-
       const line = codeLines[currentLine];
-
       if (currentChar < line.length) {
         setCurrentChar((c) => c + 1);
         timeout = setTimeout(typeNext, 20 + Math.random() * 30);
@@ -52,17 +62,13 @@ export default function GlassCodeEditor() {
         timeout = setTimeout(typeNext, 200 + Math.random() * 150);
       }
     };
-
-    // Start typing after a brief delay
     const startTimeout = setTimeout(typeNext, 500);
-
     return () => {
       clearTimeout(timeout);
       clearTimeout(startTimeout);
     };
   }, [currentLine, currentChar]);
 
-  // Auto-scroll to keep typed lines visible
   useEffect(() => {
     if (containerRef.current) {
       containerRef.current.scrollTop = containerRef.current.scrollHeight;
@@ -74,6 +80,25 @@ export default function GlassCodeEditor() {
     if (index === currentLine) return codeLines[index].slice(0, currentChar);
     return "";
   };
+
+  // Theme-aware colors
+  const dark = isDark;
+  const bgColor = dark
+    ? "linear-gradient(135deg, rgba(15, 15, 35, 0.85) 0%, rgba(10, 10, 30, 0.9) 100%)"
+    : "linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 249, 252, 0.98) 100%)";
+  const borderColor = dark ? "rgba(99, 102, 241, 0.25)" : "rgba(99, 102, 241, 0.15)";
+  const textColor = dark ? "rgba(200, 210, 250, 0.8)" : "rgba(30, 41, 59, 0.9)";
+  const textDim = dark ? "rgba(200, 210, 250, 0.5)" : "rgba(100, 116, 139, 0.6)";
+  const textMuted = dark ? "rgba(200, 210, 250, 0.15)" : "rgba(148, 163, 184, 0.4)";
+  const lineNumColor = dark ? "rgba(99, 102, 241, 0.25)" : "rgba(99, 102, 241, 0.2)";
+  const activeBg = dark ? "rgba(99, 102, 241, 0.06)" : "rgba(99, 102, 241, 0.04)";
+  const statusColor = dark ? "rgba(165, 180, 252, 0.5)" : "rgba(100, 116, 139, 0.6)";
+  const statusBorder = dark ? "rgba(99, 102, 241, 0.1)" : "rgba(99, 102, 241, 0.08)";
+
+  // Syntax colors
+  const keywordColor = dark ? "rgba(129, 140, 248, 0.8)" : "rgba(99, 102, 241, 0.85)";
+  const stringColor = dark ? "rgba(52, 211, 153, 0.8)" : "rgba(5, 150, 105, 0.85)";
+  const commentColor = dark ? "rgba(52, 211, 153, 0.4)" : "rgba(5, 150, 105, 0.5)";
 
   return (
     <motion.div
@@ -92,36 +117,42 @@ export default function GlassCodeEditor() {
         }}
       />
 
-      {/* Glass editor */}
+      {/* Editor */}
       <div
-        className="relative rounded-2xl border overflow-hidden shadow-2xl backdrop-blur-xl"
+        className="relative rounded-2xl border overflow-hidden shadow-2xl backdrop-blur-xl transition-colors duration-300"
         style={{
-          borderColor: "rgba(99, 102, 241, 0.25)",
-          background:
-            "linear-gradient(135deg, rgba(15, 15, 35, 0.85) 0%, rgba(10, 10, 30, 0.9) 100%)",
-          boxShadow: "0 0 40px rgba(99, 102, 241, 0.08), inset 0 1px 0 rgba(255,255,255,0.05)",
+          borderColor,
+          background: bgColor,
+          boxShadow: dark
+            ? "0 0 40px rgba(99, 102, 241, 0.08), inset 0 1px 0 rgba(255,255,255,0.05)"
+            : "0 0 40px rgba(99, 102, 241, 0.06), inset 0 1px 0 rgba(255,255,255,0.8)",
         }}
       >
         {/* Neon edge glow */}
         <div
           className="absolute inset-0 rounded-2xl pointer-events-none opacity-50"
           style={{
-            boxShadow: "inset 0 0 30px rgba(99, 102, 241, 0.08)",
+            boxShadow: dark
+              ? "inset 0 0 30px rgba(99, 102, 241, 0.08)"
+              : "inset 0 0 30px rgba(99, 102, 241, 0.04)",
           }}
         />
 
         {/* Title bar */}
-        <div className="flex items-center gap-2 px-4 py-3 border-b" style={{ borderColor: "rgba(99, 102, 241, 0.12)" }}>
+        <div
+          className="flex items-center gap-2 px-4 py-3 border-b transition-colors duration-300"
+          style={{ borderColor: dark ? "rgba(99, 102, 241, 0.12)" : "rgba(99, 102, 241, 0.1)" }}
+        >
           <div className="flex items-center gap-1.5">
             <div className="w-2.5 h-2.5 rounded-full bg-red-500/80" />
             <div className="w-2.5 h-2.5 rounded-full bg-amber-500/80" />
             <div className="w-2.5 h-2.5 rounded-full bg-emerald-500/80" />
           </div>
           <div
-            className="flex items-center gap-1.5 ml-3 text-[10px] px-2.5 py-1 rounded-md font-mono"
+            className="flex items-center gap-1.5 ml-3 text-[10px] px-2.5 py-1 rounded-md font-mono transition-colors duration-300"
             style={{
-              color: "rgba(165, 180, 252, 0.6)",
-              background: "rgba(99, 102, 241, 0.08)",
+              color: dark ? "rgba(165, 180, 252, 0.6)" : "rgba(99, 102, 241, 0.7)",
+              background: dark ? "rgba(99, 102, 241, 0.08)" : "rgba(99, 102, 241, 0.06)",
             }}
           >
             <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -132,8 +163,11 @@ export default function GlassCodeEditor() {
           </div>
           <div className="flex-1" />
           <div
-            className="flex items-center gap-1 text-[10px] font-mono px-2 py-1 rounded-full"
-            style={{ color: "rgba(52, 211, 153, 0.7)", background: "rgba(52, 211, 153, 0.08)" }}
+            className="flex items-center gap-1 text-[10px] font-mono px-2 py-1 rounded-full transition-colors duration-300"
+            style={{
+              color: dark ? "rgba(52, 211, 153, 0.7)" : "rgba(5, 150, 105, 0.8)",
+              background: dark ? "rgba(52, 211, 153, 0.08)" : "rgba(5, 150, 105, 0.06)",
+            }}
           >
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
             <span>Ready</span>
@@ -143,21 +177,22 @@ export default function GlassCodeEditor() {
         {/* Code area */}
         <div
           ref={containerRef}
-          className="p-4 md:p-5 font-mono text-[11px] md:text-xs leading-relaxed max-h-[320px] overflow-y-auto scrollbar-thin"
-          style={{ scrollbarWidth: "thin", scrollbarColor: "rgba(99,102,241,0.2) transparent" }}
+          className="p-4 md:p-5 font-mono text-[11px] md:text-xs leading-relaxed max-h-[320px] overflow-y-auto scrollbar-thin transition-colors duration-300"
+          style={{
+            scrollbarWidth: "thin",
+            scrollbarColor: dark ? "rgba(99,102,241,0.2) transparent" : "rgba(99,102,241,0.15) transparent",
+          }}
         >
           <div className="flex">
-            {/* Line numbers */}
             <div
               className="text-right pr-3 select-none space-y-[2px] font-mono"
-              style={{ color: "rgba(99, 102, 241, 0.25)", minWidth: "28px" }}
+              style={{ color: lineNumColor, minWidth: "28px" }}
             >
               {codeLines.map((_, i) => (
                 <div key={i}>{i + 1}</div>
               ))}
             </div>
 
-            {/* Code content */}
             <div className="space-y-[2px] flex-1">
               {codeLines.map((_, i) => {
                 const content = getLineContent(i);
@@ -167,9 +202,9 @@ export default function GlassCodeEditor() {
                 return (
                   <div
                     key={i}
-                    className="flex items-center gap-2 relative"
+                    className="flex items-center gap-2 relative transition-colors duration-300"
                     style={{
-                      background: isActive ? "rgba(99, 102, 241, 0.06)" : "transparent",
+                      background: isActive ? activeBg : "transparent",
                       borderRadius: isActive ? "4px" : "0",
                       paddingLeft: isActive ? "8px" : "0",
                       marginLeft: isActive ? "-8px" : "0",
@@ -178,60 +213,26 @@ export default function GlassCodeEditor() {
                     <span
                       className="transition-colors duration-300"
                       style={{
-                        color: isTyped
-                          ? "rgba(200, 210, 250, 0.8)"
-                          : isActive
-                          ? "rgba(200, 210, 250, 0.5)"
-                          : "rgba(200, 210, 250, 0.15)",
+                        color: isTyped ? textColor : isActive ? textDim : textMuted,
                       }}
                     >
-                      {/* Simple syntax coloring */}
                       {content.split(/(\b(?:import|from|const|let|var|new|await|function|return|if|else|true|false)\b|"[^"]*"|'[^']*')/).map((part, j) => {
                         if (part.startsWith('"') || part.startsWith("'"))
-                          return (
-                            <span key={j} style={{ color: "rgba(52, 211, 153, 0.8)" }}>
-                              {part}
-                            </span>
-                          );
-                        if (
-                          [
-                            "import",
-                            "from",
-                            "const",
-                            "let",
-                            "var",
-                            "new",
-                            "await",
-                            "function",
-                            "return",
-                            "if",
-                            "else",
-                            "true",
-                            "false",
-                          ].includes(part)
-                        )
-                          return (
-                            <span key={j} style={{ color: "rgba(129, 140, 248, 0.8)" }}>
-                              {part}
-                            </span>
-                          );
+                          return <span key={j} style={{ color: stringColor }}>{part}</span>;
+                        if (["import","from","const","let","var","new","await","function","return","if","else","true","false"].includes(part))
+                          return <span key={j} style={{ color: keywordColor }}>{part}</span>;
                         if (part.startsWith("//"))
-                          return (
-                            <span key={j} style={{ color: "rgba(52, 211, 153, 0.4)" }}>
-                              {part}
-                            </span>
-                          );
+                          return <span key={j} style={{ color: commentColor }}>{part}</span>;
                         return <span key={j}>{part}</span>;
                       })}
                     </span>
 
-                    {/* Blinking cursor */}
                     {isActive && (
                       <motion.span
                         animate={{ opacity: [1, 0] }}
                         transition={{ duration: 0.6, repeat: Infinity, repeatType: "reverse" }}
                         className="inline-block w-[2px] h-[14px]"
-                        style={{ background: "rgba(129, 140, 248, 0.9)" }}
+                        style={{ background: dark ? "rgba(129, 140, 248, 0.9)" : "rgba(99, 102, 241, 0.8)" }}
                       />
                     )}
                   </div>
@@ -241,18 +242,20 @@ export default function GlassCodeEditor() {
           </div>
         </div>
 
-        {/* Bottom status bar */}
+        {/* Status bar */}
         <div
-          className="flex items-center justify-between px-4 py-1.5 border-t text-[9px] font-mono"
+          className="flex items-center justify-between px-4 py-1.5 border-t text-[9px] font-mono transition-colors duration-300"
           style={{
-            borderColor: "rgba(99, 102, 241, 0.1)",
-            background: "rgba(99, 102, 241, 0.03)",
-            color: "rgba(165, 180, 252, 0.5)",
+            borderColor: statusBorder,
+            background: dark ? "rgba(99, 102, 241, 0.03)" : "rgba(99, 102, 241, 0.02)",
+            color: statusColor,
           }}
         >
           <div className="flex items-center gap-3">
             <span>TypeScript</span>
-            <span style={{ color: "rgba(52, 211, 153, 0.6)" }}>● 0 errors</span>
+            <span style={{ color: dark ? "rgba(52, 211, 153, 0.6)" : "rgba(5, 150, 105, 0.7)" }}>
+              ● 0 errors
+            </span>
             <span>UTF-8</span>
           </div>
           <div className="flex items-center gap-2">

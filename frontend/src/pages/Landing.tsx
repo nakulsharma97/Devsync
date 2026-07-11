@@ -14,7 +14,7 @@ import { keyframesStyle } from "@/data/landing";
 
 export default function Landing() {
   return (
-    <div className="min-h-screen text-foreground overflow-x-hidden relative">
+    <div className="min-h-screen bg-background text-foreground overflow-x-hidden relative">
       <style>{keyframesStyle}</style>
 
       {/* Premium animated background */}

@@ -2,7 +2,7 @@ import { lazy, Suspense, useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router";
 import { Button } from "@/components/ui/button";
 import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
-import { Rocket, Terminal, Check, ChevronDown } from "lucide-react";
+import { Rocket, Terminal, Check } from "lucide-react";
 import GlassCodeEditor from "@/components/GlassCodeEditor";
 
 const OrganicBlob = lazy(() => import("@/components/OrganicBlob"));
@@ -35,7 +35,6 @@ export default function HeroSection() {
     return () => window.removeEventListener("mousemove", handleMouse);
   }, [mouseX, mouseY]);
 
-  // ── Scroll progress for scroll indicator fade ──
   const [scrollY, setScrollY] = useState(0);
   useEffect(() => {
     const handleScroll = () => setScrollY(window.scrollY);
@@ -46,12 +45,11 @@ export default function HeroSection() {
   return (
     <section
       ref={sectionRef}
-      className="relative min-h-screen flex items-center pt-24 overflow-hidden"
-      style={{ background: "#050816" }}
+      className="relative min-h-screen flex items-center pt-24 overflow-hidden dark:bg-[#050816] bg-gradient-to-b from-slate-50 to-white"
     >
-      {/* Parallax grid layer */}
+      {/* Parallax grid layer - only in dark mode */}
       <motion.div
-        className="absolute inset-0 pointer-events-none"
+        className="absolute inset-0 pointer-events-none hidden dark:block"
         style={{ x: gridX, y: gridY, opacity: 0.4 }}
       >
         <div
@@ -66,7 +64,7 @@ export default function HeroSection() {
 
       <div className="mx-auto max-w-7xl px-4 sm:px-6 relative z-10 w-full">
         <div className="grid lg:grid-cols-2 gap-8 lg:gap-16 items-center">
-          {/* ── Left Side: Text + CTA ── */}
+          {/* ── Left Side ── */}
           <motion.div
             className="text-center lg:text-left"
             style={{ x: textX, y: textY }}
@@ -78,11 +76,10 @@ export default function HeroSection() {
               transition={{ duration: 0.6, delay: 0.1 }}
             >
               <span
-                className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-medium tracking-wide mb-8 border shadow-lg backdrop-blur-sm"
+                className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-medium tracking-wide mb-8 border shadow-lg backdrop-blur-sm dark:text-indigo-300 text-indigo-700"
                 style={{
                   background: "rgba(99, 102, 241, 0.1)",
                   borderColor: "rgba(99, 102, 241, 0.25)",
-                  color: "rgba(165, 180, 252, 0.9)",
                   boxShadow: "0 0 20px rgba(99, 102, 241, 0.1)",
                 }}
               >
@@ -91,8 +88,8 @@ export default function HeroSection() {
                   style={{ background: "#818cf8" }}
                 />
                 Now in Public Beta
-                <span style={{ color: "rgba(99, 102, 241, 0.4)" }}>·</span>
-                <span style={{ color: "rgba(165, 180, 252, 0.6)" }}>50K+ developers</span>
+                <span className="mx-1 opacity-40">·</span>
+                <span className="dark:text-indigo-300/70 text-indigo-500">50K+ developers</span>
               </span>
             </motion.div>
 
@@ -101,8 +98,7 @@ export default function HeroSection() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.2 }}
-              className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.02]"
-              style={{ color: "#e2e8f0" }}
+              className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.02] dark:text-slate-200 text-slate-900"
             >
               Code.
               <br />
@@ -124,8 +120,7 @@ export default function HeroSection() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.3 }}
-              className="mt-6 text-base sm:text-lg leading-relaxed max-w-lg mx-auto lg:mx-0"
-              style={{ color: "rgba(148, 163, 184, 0.8)" }}
+              className="mt-6 text-base sm:text-lg leading-relaxed max-w-lg mx-auto lg:mx-0 dark:text-slate-400 text-slate-600"
             >
               The developer platform that combines AI-powered coding, real-time
               collaboration, and instant deployment — all in your browser.
@@ -160,7 +155,6 @@ export default function HeroSection() {
                   Start Building Free
                   <Rocket className="ml-2 w-4 h-4 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform duration-200" />
                 </span>
-                {/* Shine overlay */}
                 <span
                   className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
                   style={{
@@ -179,10 +173,9 @@ export default function HeroSection() {
                     .getElementById("features")
                     ?.scrollIntoView({ behavior: "smooth" })
                 }
-                className="w-full sm:w-auto text-base px-8 h-12 font-medium transition-all duration-300"
+                className="w-full sm:w-auto text-base px-8 h-12 font-medium transition-all duration-300 dark:text-slate-300 text-slate-700"
                 style={{
                   borderColor: "rgba(99, 102, 241, 0.3)",
-                  color: "rgba(200, 210, 250, 0.9)",
                   background: "rgba(99, 102, 241, 0.05)",
                 }}
                 onMouseEnter={(e) => {
@@ -209,30 +202,28 @@ export default function HeroSection() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.5 }}
-              className="mt-6 flex items-center gap-6 justify-center lg:justify-start text-xs"
-              style={{ color: "rgba(148, 163, 184, 0.5)" }}
+              className="mt-6 flex items-center gap-6 justify-center lg:justify-start text-xs dark:text-slate-500 text-slate-500"
             >
               <span className="flex items-center gap-1.5">
-                <Check className="w-3.5 h-3.5" style={{ color: "rgba(52, 211, 153, 0.6)" }} />
+                <Check className="w-3.5 h-3.5 text-emerald-500" />
                 No credit card
               </span>
               <span className="flex items-center gap-1.5">
-                <Check className="w-3.5 h-3.5" style={{ color: "rgba(52, 211, 153, 0.6)" }} />
+                <Check className="w-3.5 h-3.5 text-emerald-500" />
                 Free tier included
               </span>
               <span className="flex items-center gap-1.5">
-                <Check className="w-3.5 h-3.5" style={{ color: "rgba(52, 211, 153, 0.6)" }} />
+                <Check className="w-3.5 h-3.5 text-emerald-500" />
                 Cancel anytime
               </span>
             </motion.div>
           </motion.div>
 
-          {/* ── Right Side: Blob + Code Editor ── */}
+          {/* ── Right Side ── */}
           <motion.div
             className="hidden lg:flex flex-col items-center gap-6"
             style={{ x: editorX, y: editorY }}
           >
-            {/* Blob centerpiece */}
             <motion.div
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -257,7 +248,6 @@ export default function HeroSection() {
               </Suspense>
             </motion.div>
 
-            {/* Code Editor */}
             <motion.div
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
@@ -277,10 +267,7 @@ export default function HeroSection() {
         transition={{ duration: 0.4 }}
         className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2"
       >
-        <span
-          className="text-xs font-mono"
-          style={{ color: "rgba(148, 163, 184, 0.4)" }}
-        >
+        <span className="text-xs font-mono dark:text-slate-500 text-slate-400">
           Scroll to explore
         </span>
         <motion.div
