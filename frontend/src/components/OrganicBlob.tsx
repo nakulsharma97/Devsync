@@ -1,4 +1,4 @@
-import { Canvas, useFrame, useThree } from "@react-three/fiber";
+import { Canvas, useFrame } from "@react-three/fiber";
 import { MeshDistortMaterial, Environment, Float } from "@react-three/drei";
 import { Suspense, useRef, useMemo, useState, useEffect } from "react";
 import * as THREE from "three";

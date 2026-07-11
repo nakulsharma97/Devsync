@@ -36,17 +36,12 @@ export default function GlassCodeEditor() {
   const [isDark, setIsDark] = useState(
     typeof document !== "undefined" && document.documentElement.classList.contains("dark")
   );
-  const [isHighContrast, setIsHighContrast] = useState(
-    typeof document !== "undefined" && document.documentElement.classList.contains("high-contrast")
-  );
 
-  // Listen for theme + high-contrast changes
+  // Listen for theme changes
   useEffect(() => {
     setIsDark(document.documentElement.classList.contains("dark"));
-    setIsHighContrast(document.documentElement.classList.contains("high-contrast"));
     const observer = new MutationObserver(() => {
       setIsDark(document.documentElement.classList.contains("dark"));
-      setIsHighContrast(document.documentElement.classList.contains("high-contrast"));
     });
     observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
     return () => observer.disconnect();
@@ -86,62 +81,24 @@ export default function GlassCodeEditor() {
     return "";
   };
 
-  // Theme-aware colors — high-contrast overrides to pure black/white
+  // Theme-aware colors
   const dark = isDark;
-  const hc = isHighContrast;
 
-  const bgColor = hc
-    ? dark
-      ? "#0a0a0a"
-      : "#ffffff"
-    : dark
-      ? "linear-gradient(135deg, rgba(15, 15, 35, 0.85) 0%, rgba(10, 10, 30, 0.9) 100%)"
-      : "linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 249, 252, 0.98) 100%)";
+  const bgColor = dark
+    ? "linear-gradient(135deg, rgba(15, 15, 35, 0.85) 0%, rgba(10, 10, 30, 0.9) 100%)"
+    : "linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 249, 252, 0.98) 100%)";
 
-  const borderColor = hc
-    ? dark ? "rgba(255,255,255,0.5)" : "rgba(0,0,0,0.4)"
-    : dark ? "rgba(99, 102, 241, 0.25)" : "rgba(99, 102, 241, 0.15)";
-
-  const textColor = hc
-    ? dark ? "rgba(255,255,255,0.95)" : "rgba(0,0,0,0.95)"
-    : dark ? "rgba(200, 210, 250, 0.8)" : "rgba(30, 41, 59, 0.9)";
-
-  const textDim = hc
-    ? dark ? "rgba(255,255,255,0.7)" : "rgba(0,0,0,0.7)"
-    : dark ? "rgba(200, 210, 250, 0.5)" : "rgba(100, 116, 139, 0.6)";
-
-  const textMuted = hc
-    ? dark ? "rgba(255,255,255,0.5)" : "rgba(0,0,0,0.4)"
-    : dark ? "rgba(200, 210, 250, 0.15)" : "rgba(148, 163, 184, 0.4)";
-
-  const lineNumColor = hc
-    ? dark ? "rgba(255,255,255,0.4)" : "rgba(0,0,0,0.35)"
-    : dark ? "rgba(99, 102, 241, 0.25)" : "rgba(99, 102, 241, 0.2)";
-
-  const activeBg = hc
-    ? dark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.06)"
-    : dark ? "rgba(99, 102, 241, 0.06)" : "rgba(99, 102, 241, 0.04)";
-
-  const statusColor = hc
-    ? dark ? "rgba(255,255,255,0.7)" : "rgba(0,0,0,0.7)"
-    : dark ? "rgba(165, 180, 252, 0.5)" : "rgba(100, 116, 139, 0.6)";
-
-  const statusBorder = hc
-    ? dark ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.15)"
-    : dark ? "rgba(99, 102, 241, 0.1)" : "rgba(99, 102, 241, 0.08)";
-
-  // Syntax colors — stronger in high-contrast, pure black/white text for readability
-  const keywordColor = hc
-    ? dark ? "rgba(180, 190, 255, 0.95)" : "rgba(80, 70, 220, 0.95)"
-    : dark ? "rgba(129, 140, 248, 0.8)" : "rgba(99, 102, 241, 0.85)";
-
-  const stringColor = hc
-    ? dark ? "rgba(80, 230, 140, 0.9)" : "rgba(0, 130, 80, 0.9)"
-    : dark ? "rgba(52, 211, 153, 0.8)" : "rgba(5, 150, 105, 0.85)";
-
-  const commentColor = hc
-    ? dark ? "rgba(80, 230, 140, 0.6)" : "rgba(0, 130, 80, 0.6)"
-    : dark ? "rgba(52, 211, 153, 0.4)" : "rgba(5, 150, 105, 0.5)";
+  const borderColor = dark ? "rgba(99, 102, 241, 0.25)" : "rgba(99, 102, 241, 0.15)";
+  const textColor = dark ? "rgba(200, 210, 250, 0.8)" : "rgba(30, 41, 59, 0.9)";
+  const textDim = dark ? "rgba(200, 210, 250, 0.5)" : "rgba(100, 116, 139, 0.6)";
+  const textMuted = dark ? "rgba(200, 210, 250, 0.15)" : "rgba(148, 163, 184, 0.4)";
+  const lineNumColor = dark ? "rgba(99, 102, 241, 0.25)" : "rgba(99, 102, 241, 0.2)";
+  const activeBg = dark ? "rgba(99, 102, 241, 0.06)" : "rgba(99, 102, 241, 0.04)";
+  const statusColor = dark ? "rgba(165, 180, 252, 0.5)" : "rgba(100, 116, 139, 0.6)";
+  const statusBorder = dark ? "rgba(99, 102, 241, 0.1)" : "rgba(99, 102, 241, 0.08)";
+  const keywordColor = dark ? "rgba(129, 140, 248, 0.8)" : "rgba(99, 102, 241, 0.85)";
+  const stringColor = dark ? "rgba(52, 211, 153, 0.8)" : "rgba(5, 150, 105, 0.85)";
+  const commentColor = dark ? "rgba(52, 211, 153, 0.4)" : "rgba(5, 150, 105, 0.5)";
 
   return (
     <motion.div

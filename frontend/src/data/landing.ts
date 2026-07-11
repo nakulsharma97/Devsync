@@ -189,20 +189,3 @@ export const footerColumns: FooterColumn[] = [
   { title: "Legal", links: [{ name: "Privacy Policy", href: "#" }, { name: "Terms of Service", href: "#" }, { name: "Security", href: "#" }, { name: "Cookies", href: "#" }, { name: "GDPR", href: "#" }] },
 ];
 
-// ─── Overlay Presets ────────────────────────────────────────────
-
-export interface OverlayPreset {
-  intensity: number;
-  color: string;
-  label: string;
-  icon: string;
-}
-
-export const overlayPresets: OverlayPreset[] = [
-  { intensity: 0, color: "#000000", label: "Off", icon: "☀️" },
-  { intensity: 0.35, color: "#000000", label: "Black", icon: "⬛" },
-  { intensity: 0.35, color: "#0a0a2e", label: "Deep Blue", icon: "🔵" },
-  { intensity: 0.3, color: "#1a0a2e", label: "Violet", icon: "🟣" },
-  { intensity: 0.35, color: "#2e0a0a", label: "Ember", icon: "🟤" },
-  { intensity: 0.3, color: "#0a2e1a", label: "Forest", icon: "🟢" },
-];
