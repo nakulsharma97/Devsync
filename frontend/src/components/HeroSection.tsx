@@ -1,64 +1,302 @@
+import { lazy, Suspense, useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router";
 import { Button } from "@/components/ui/button";
-import CodeEditorMockup from "@/components/CodeEditorMockup";
-import { Rocket, Terminal, Check } from "lucide-react";
+import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
+import { Rocket, Terminal, Check, ChevronDown } from "lucide-react";
+import GlassCodeEditor from "@/components/GlassCodeEditor";
+
+const OrganicBlob = lazy(() => import("@/components/OrganicBlob"));
 
 export default function HeroSection() {
   const navigate = useNavigate();
+  const sectionRef = useRef<HTMLDivElement>(null);
+
+  // ── Mouse parallax ──
+  const mouseX = useMotionValue(0.5);
+  const mouseY = useMotionValue(0.5);
+  const springX = useSpring(mouseX, { stiffness: 30, damping: 20 });
+  const springY = useSpring(mouseY, { stiffness: 30, damping: 20 });
+
+  const blobX = useTransform(springX, [0, 1], [-15, 15]);
+  const blobY = useTransform(springY, [0, 1], [-15, 15]);
+  const editorX = useTransform(springX, [0, 1], [10, -10]);
+  const editorY = useTransform(springY, [0, 1], [10, -10]);
+  const textX = useTransform(springX, [0, 1], [-5, 5]);
+  const textY = useTransform(springY, [0, 1], [-5, 5]);
+  const gridX = useTransform(springX, [0, 1], [-20, 20]);
+  const gridY = useTransform(springY, [0, 1], [-20, 20]);
+
+  useEffect(() => {
+    const handleMouse = (e: MouseEvent) => {
+      mouseX.set(e.clientX / window.innerWidth);
+      mouseY.set(e.clientY / window.innerHeight);
+    };
+    window.addEventListener("mousemove", handleMouse);
+    return () => window.removeEventListener("mousemove", handleMouse);
+  }, [mouseX, mouseY]);
+
+  // ── Scroll progress for scroll indicator fade ──
+  const [scrollY, setScrollY] = useState(0);
+  useEffect(() => {
+    const handleScroll = () => setScrollY(window.scrollY);
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   return (
-    <section className="relative min-h-screen flex items-center pt-20 overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-background/40 pointer-events-none" />
+    <section
+      ref={sectionRef}
+      className="relative min-h-screen flex items-center pt-24 overflow-hidden"
+      style={{ background: "#050816" }}
+    >
+      {/* Parallax grid layer */}
+      <motion.div
+        className="absolute inset-0 pointer-events-none"
+        style={{ x: gridX, y: gridY, opacity: 0.4 }}
+      >
+        <div
+          className="absolute inset-0"
+          style={{
+            backgroundImage:
+              "linear-gradient(rgba(99,102,241,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(99,102,241,0.03) 1px, transparent 1px)",
+            backgroundSize: "60px 60px",
+          }}
+        />
+      </motion.div>
 
-      <div className="mx-auto max-w-6xl px-4 sm:px-6 relative z-10 w-full">
-        <div className="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
-          <div className="text-center lg:text-left">
-            <div className="animate-fade-in-up" style={{ animationDelay: "0.1s" }}>
-              <span className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-gradient-to-r from-indigo-500/20 via-purple-500/15 to-pink-500/15 text-indigo-700 dark:text-indigo-300 text-xs font-medium tracking-wide mb-8 border border-indigo-500/25 shadow-lg shadow-indigo-500/10 backdrop-blur-sm">
-                <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 dark:bg-indigo-400" />
-                Now in Public Beta <span className="mx-1 opacity-40">·</span> <span className="text-indigo-600/80 dark:text-indigo-300/70">50K+ developers</span>
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 relative z-10 w-full">
+        <div className="grid lg:grid-cols-2 gap-8 lg:gap-16 items-center">
+          {/* ── Left Side: Text + CTA ── */}
+          <motion.div
+            className="text-center lg:text-left"
+            style={{ x: textX, y: textY }}
+          >
+            {/* Badge */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.1 }}
+            >
+              <span
+                className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-medium tracking-wide mb-8 border shadow-lg backdrop-blur-sm"
+                style={{
+                  background: "rgba(99, 102, 241, 0.1)",
+                  borderColor: "rgba(99, 102, 241, 0.25)",
+                  color: "rgba(165, 180, 252, 0.9)",
+                  boxShadow: "0 0 20px rgba(99, 102, 241, 0.1)",
+                }}
+              >
+                <span
+                  className="w-1.5 h-1.5 rounded-full animate-pulse"
+                  style={{ background: "#818cf8" }}
+                />
+                Now in Public Beta
+                <span style={{ color: "rgba(99, 102, 241, 0.4)" }}>·</span>
+                <span style={{ color: "rgba(165, 180, 252, 0.6)" }}>50K+ developers</span>
               </span>
-            </div>
+            </motion.div>
 
-            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.02] animate-fade-in-up" style={{ animationDelay: "0.2s" }}>
-              Code, Collaborate,<br />
-              <span className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-500 dark:from-indigo-400 dark:via-purple-400 dark:to-pink-400 bg-clip-text text-transparent">Ship at light speed.</span>
-            </h1>
+            {/* Headline */}
+            <motion.h1
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.2 }}
+              className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.02]"
+              style={{ color: "#e2e8f0" }}
+            >
+              Code.
+              <br />
+              Collaborate.
+              <br />
+              <span
+                className="bg-clip-text text-transparent"
+                style={{
+                  backgroundImage:
+                    "linear-gradient(135deg, #818cf8 0%, #6366f1 30%, #a78bfa 60%, #c4b5fd 100%)",
+                }}
+              >
+                Ship at light speed.
+              </span>
+            </motion.h1>
 
-            <p className="mt-6 text-base sm:text-lg text-foreground/70 leading-relaxed max-w-lg mx-auto lg:mx-0 animate-fade-in-up" style={{ animationDelay: "0.3s" }}>
-              The developer platform that combines AI-powered coding, real-time collaboration, and instant deployment — all in your browser.
-            </p>
+            {/* Subtitle */}
+            <motion.p
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.3 }}
+              className="mt-6 text-base sm:text-lg leading-relaxed max-w-lg mx-auto lg:mx-0"
+              style={{ color: "rgba(148, 163, 184, 0.8)" }}
+            >
+              The developer platform that combines AI-powered coding, real-time
+              collaboration, and instant deployment — all in your browser.
+            </motion.p>
 
-            <div className="mt-8 flex flex-col sm:flex-row items-center gap-4 lg:justify-start animate-fade-in-up" style={{ animationDelay: "0.4s" }}>
-              <Button size="lg" onClick={() => navigate("/auth")} className="w-full sm:w-auto text-base px-8 h-12 shadow-xl hover:shadow-2xl transition-all duration-200 bg-gradient-to-r from-indigo-500 to-purple-600 text-white hover:from-indigo-600 hover:to-purple-700 relative overflow-hidden group">
-                <span className="relative z-10 flex items-center">
-                  Start Building Free<Rocket className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
+            {/* CTA Buttons */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.4 }}
+              className="mt-8 flex flex-col sm:flex-row items-center gap-4 lg:justify-start"
+            >
+              <Button
+                size="lg"
+                onClick={() => navigate("/auth")}
+                className="w-full sm:w-auto text-base px-8 h-12 relative overflow-hidden group transition-all duration-300 border-0"
+                style={{
+                  background: "linear-gradient(135deg, #6366f1, #818cf8)",
+                  boxShadow: "0 0 20px rgba(99, 102, 241, 0.3)",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.boxShadow =
+                    "0 0 30px rgba(99, 102, 241, 0.5), 0 0 60px rgba(99, 102, 241, 0.2)";
+                  e.currentTarget.style.transform = "translateY(-2px)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.boxShadow = "0 0 20px rgba(99, 102, 241, 0.3)";
+                  e.currentTarget.style.transform = "translateY(0)";
+                }}
+              >
+                <span className="relative z-10 flex items-center text-white">
+                  Start Building Free
+                  <Rocket className="ml-2 w-4 h-4 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform duration-200" />
                 </span>
+                {/* Shine overlay */}
+                <span
+                  className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                  style={{
+                    background:
+                      "linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent)",
+                    transform: "skewX(-20deg)",
+                  }}
+                />
               </Button>
-              <Button variant="outline" size="lg" onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })} className="w-full sm:w-auto text-base px-8 h-12 border-indigo-500/40 hover:border-indigo-400/60 hover:bg-indigo-500/10 text-foreground font-medium transition-all duration-200">
-                <Terminal className="mr-2 w-4 h-4" />Watch Demo
+
+              <Button
+                variant="outline"
+                size="lg"
+                onClick={() =>
+                  document
+                    .getElementById("features")
+                    ?.scrollIntoView({ behavior: "smooth" })
+                }
+                className="w-full sm:w-auto text-base px-8 h-12 font-medium transition-all duration-300"
+                style={{
+                  borderColor: "rgba(99, 102, 241, 0.3)",
+                  color: "rgba(200, 210, 250, 0.9)",
+                  background: "rgba(99, 102, 241, 0.05)",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = "rgba(99, 102, 241, 0.5)";
+                  e.currentTarget.style.background = "rgba(99, 102, 241, 0.1)";
+                  e.currentTarget.style.boxShadow =
+                    "0 0 20px rgba(99, 102, 241, 0.15)";
+                  e.currentTarget.style.transform = "translateY(-2px)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = "rgba(99, 102, 241, 0.3)";
+                  e.currentTarget.style.background = "rgba(99, 102, 241, 0.05)";
+                  e.currentTarget.style.boxShadow = "none";
+                  e.currentTarget.style.transform = "translateY(0)";
+                }}
+              >
+                <Terminal className="mr-2 w-4 h-4" />
+                Watch Demo
               </Button>
-            </div>
+            </motion.div>
 
-            <div className="mt-6 flex items-center gap-6 justify-center lg:justify-start text-xs text-foreground/60 animate-fade-in-up" style={{ animationDelay: "0.5s" }}>
-              <span className="flex items-center gap-1.5"><Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />No credit card</span>
-              <span className="flex items-center gap-1.5"><Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />Free tier included</span>
-              <span className="flex items-center gap-1.5"><Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />Cancel anytime</span>
-            </div>
-          </div>
+            {/* Trust markers */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.5 }}
+              className="mt-6 flex items-center gap-6 justify-center lg:justify-start text-xs"
+              style={{ color: "rgba(148, 163, 184, 0.5)" }}
+            >
+              <span className="flex items-center gap-1.5">
+                <Check className="w-3.5 h-3.5" style={{ color: "rgba(52, 211, 153, 0.6)" }} />
+                No credit card
+              </span>
+              <span className="flex items-center gap-1.5">
+                <Check className="w-3.5 h-3.5" style={{ color: "rgba(52, 211, 153, 0.6)" }} />
+                Free tier included
+              </span>
+              <span className="flex items-center gap-1.5">
+                <Check className="w-3.5 h-3.5" style={{ color: "rgba(52, 211, 153, 0.6)" }} />
+                Cancel anytime
+              </span>
+            </motion.div>
+          </motion.div>
 
-          <div className="hidden lg:block animate-fade-in-up" style={{ animationDelay: "0.3s" }}>
-            <CodeEditorMockup />
-          </div>
+          {/* ── Right Side: Blob + Code Editor ── */}
+          <motion.div
+            className="hidden lg:flex flex-col items-center gap-6"
+            style={{ x: editorX, y: editorY }}
+          >
+            {/* Blob centerpiece */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 1, delay: 0.3, ease: "easeOut" }}
+              className="w-full max-w-[420px] h-[380px] relative"
+              style={{ x: blobX, y: blobY }}
+            >
+              <Suspense
+                fallback={
+                  <div className="w-full h-full flex items-center justify-center">
+                    <div
+                      className="w-12 h-12 rounded-full border-2 animate-spin"
+                      style={{
+                        borderColor: "rgba(99, 102, 241, 0.2)",
+                        borderTopColor: "#6366f1",
+                      }}
+                    />
+                  </div>
+                }
+              >
+                <OrganicBlob />
+              </Suspense>
+            </motion.div>
+
+            {/* Code Editor */}
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.6, ease: "easeOut" }}
+              className="w-full max-w-[480px]"
+            >
+              <GlassCodeEditor />
+            </motion.div>
+          </motion.div>
         </div>
       </div>
 
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 animate-fade-in" style={{ animationDelay: "2s" }}>
-        <span className="text-xs text-muted-foreground">Scroll to explore</span>
-        <div className="w-5 h-8 rounded-full border border-border/40 flex items-start justify-center p-1 animate-float">
-          <div className="w-1 h-2 rounded-full bg-accent/60" />
-        </div>
-      </div>
+      {/* Scroll indicator */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: scrollY > 50 ? 0 : 1 }}
+        transition={{ duration: 0.4 }}
+        className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2"
+      >
+        <span
+          className="text-xs font-mono"
+          style={{ color: "rgba(148, 163, 184, 0.4)" }}
+        >
+          Scroll to explore
+        </span>
+        <motion.div
+          animate={{ y: [0, 6, 0] }}
+          transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+          className="w-5 h-8 rounded-full flex items-start justify-center p-1"
+          style={{
+            border: "1px solid rgba(99, 102, 241, 0.15)",
+          }}
+        >
+          <div
+            className="w-1 h-2 rounded-full"
+            style={{ background: "rgba(99, 102, 241, 0.3)" }}
+          />
+        </motion.div>
+      </motion.div>
     </section>
   );
 }
