@@ -32,6 +32,26 @@ html { scroll-behavior: smooth; }
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(6px); }
 }
+@keyframes blob {
+  0% { transform: translate(0px, 0px) scale(1); }
+  25% { transform: translate(30px, -50px) scale(1.1); }
+  50% { transform: translate(-20px, 20px) scale(0.9); }
+  75% { transform: translate(40px, -30px) scale(1.05); }
+  100% { transform: translate(0px, 0px) scale(1); }
+}
+@keyframes blob-reverse {
+  0% { transform: translate(0px, 0px) scale(1); }
+  25% { transform: translate(-30px, 40px) scale(0.95); }
+  50% { transform: translate(20px, -20px) scale(1.08); }
+  75% { transform: translate(-40px, 30px) scale(0.92); }
+  100% { transform: translate(0px, 0px) scale(1); }
+}
+.animate-blob {
+  animation: blob 18s ease-in-out infinite;
+}
+.animate-blob-reverse {
+  animation: blob-reverse 15s ease-in-out infinite;
+}
 .animate-fade-in-up {
   animation: fade-in-up 0.6s ease-out both;
 }
