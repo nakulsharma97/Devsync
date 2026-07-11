@@ -16,60 +16,6 @@ import {
 
 export const keyframesStyle = `
 html { scroll-behavior: smooth; }
-@keyframes fade-in-up {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-@keyframes fade-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-@keyframes scale-in {
-  from { opacity: 0; transform: scale(0.95); }
-  to { opacity: 1; transform: scale(1); }
-}
-@keyframes float-scroll {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(6px); }
-}
-@keyframes blob {
-  0% { transform: translate(0px, 0px) scale(1); }
-  25% { transform: translate(30px, -50px) scale(1.1); }
-  50% { transform: translate(-20px, 20px) scale(0.9); }
-  75% { transform: translate(40px, -30px) scale(1.05); }
-  100% { transform: translate(0px, 0px) scale(1); }
-}
-@keyframes blob-reverse {
-  0% { transform: translate(0px, 0px) scale(1); }
-  25% { transform: translate(-30px, 40px) scale(0.95); }
-  50% { transform: translate(20px, -20px) scale(1.08); }
-  75% { transform: translate(-40px, 30px) scale(0.92); }
-  100% { transform: translate(0px, 0px) scale(1); }
-}
-.animate-blob {
-  animation: blob 18s ease-in-out infinite;
-}
-.animate-blob-reverse {
-  animation: blob-reverse 15s ease-in-out infinite;
-}
-.animate-fade-in-up {
-  animation: fade-in-up 0.6s ease-out both;
-}
-.animate-fade-in {
-  animation: fade-in 0.6s ease-out both;
-}
-.animate-scale-in {
-  animation: scale-in 0.6s ease-out both;
-}
-.animate-float {
-  animation: float-scroll 2s ease-in-out infinite;
-}
-.delay-1 { animation-delay: 0.1s; }
-.delay-2 { animation-delay: 0.2s; }
-.delay-3 { animation-delay: 0.3s; }
-.delay-4 { animation-delay: 0.4s; }
-.delay-5 { animation-delay: 0.5s; }
-.delay-6 { animation-delay: 0.6s; }
 `;
 
 // ─── Feature Cards ──────────────────────────────────────────────

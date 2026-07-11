@@ -17,9 +17,6 @@ function OrganicRibbon({ mouse }: { mouse: { x: number; y: number } }) {
     // Y-axis rotation: 15s per loop
     meshRef.current.rotation.y += 0.005;
 
-    // X-axis oscillation
-    meshRef.current.rotation.x += Math.sin(t * 0.3) * 0.002;
-
     // Mouse tilt — smooth follow
     const targetRotX = mouse.y * 0.15;
     const targetRotZ = mouse.x * 0.2;
