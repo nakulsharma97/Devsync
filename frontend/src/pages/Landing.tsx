@@ -1,3 +1,6 @@
+import { useState, lazy, Suspense } from "react";
+import { useNavigate } from "react-router";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import ScrollProgress from "@/components/ScrollProgress";
 import Navbar from "@/components/Navbar";
 import HeroSection from "@/components/HeroSection";
@@ -9,16 +12,24 @@ import EnterpriseSection from "@/components/EnterpriseSection";
 import PricingSection from "@/components/PricingSection";
 import FinalCtaSection from "@/components/FinalCtaSection";
 import FooterSection from "@/components/FooterSection";
-import AnimatedBackground from "@/components/AnimatedBackground";
 import { keyframesStyle } from "@/data/landing";
 
+const Hero3D = lazy(() => import("@/components/Hero3D"));
+
 export default function Landing() {
+  const navigate = useNavigate();
+  const [overlayMode, setOverlayMode] = useState(0);
+
   return (
     <div className="min-h-screen bg-background text-foreground overflow-x-hidden relative">
       <style>{keyframesStyle}</style>
 
-      {/* Animated gradient blob background */}
-      <AnimatedBackground />
+      {/* 3D rotating torus knot background */}
+      <ErrorBoundary>
+        <Suspense fallback={<div className="fixed inset-0 bg-gradient-to-b from-background via-indigo-950/20 to-background" />}>
+          <Hero3D intensity={0} color="#000000" />
+        </Suspense>
+      </ErrorBoundary>
 
       {/* Veil for text readability */}
       <div className="fixed inset-0 bg-gradient-to-t from-background/30 via-transparent to-transparent pointer-events-none z-[1]" />
