@@ -231,6 +231,26 @@ export default function AuthPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [attempted, setAttempted] = useState(false);
 
+  // ── OAuth Callback Handler ───────────────────────────────────
+  // Parse tokens from URL fragment (#access_token=...&refresh_token=...)
+  // after the backend redirects the user back from OAuth provider.
+  useEffect(() => {
+    if (isLoading) return;
+    const hash = window.location.hash;
+    if (hash && hash.includes("access_token=")) {
+      const params = new URLSearchParams(hash.replace("#", ""));
+      const accessToken = params.get("access_token");
+      const refreshToken = params.get("refresh_token");
+      if (accessToken) {
+        localStorage.setItem("accessToken", accessToken);
+        if (refreshToken) localStorage.setItem("refreshToken", refreshToken);
+        // Clear the hash so tokens aren't visible in the URL bar
+        window.location.hash = "";
+        window.location.href = "/dashboard";
+      }
+    }
+  }, [isLoading]);
+
   useEffect(() => {
     if (!isLoading && isAuthenticated) navigate("/dashboard", { replace: true });
   }, [isLoading, isAuthenticated, navigate]);
