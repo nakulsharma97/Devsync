@@ -86,7 +86,10 @@ public class OAuth2Config {
                     ? System.getenv("FRONTEND_URL")
                     : "http://localhost:5173";
 
-            response.sendRedirect(frontendUrl + "/auth/callback?access_token=" + accessToken
+            // Use URL fragment (#) instead of query parameters (?) to prevent tokens
+            // from appearing in server logs, browser history, or Referer headers.
+            // The frontend reads tokens from window.location.hash.
+            response.sendRedirect(frontendUrl + "/auth/callback#access_token=" + accessToken
                     + "&refresh_token=" + refreshToken);
         };
     }

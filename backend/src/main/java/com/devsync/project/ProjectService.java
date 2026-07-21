@@ -86,16 +86,34 @@ public class ProjectService {
     }
 
     @Transactional
-    public void deleteProject(String projectId) {
-        if (!projectRepository.existsById(projectId)) {
-            throw new ResourceNotFoundException("Project", projectId);
+    public void deleteProject(String projectId, String currentUserId) {
+        Project project = projectRepository.findById(projectId)
+                .orElseThrow(() -> new ResourceNotFoundException("Project", projectId));
+
+        // Only the project owner can delete the project
+        if (!project.getOwnerId().equals(currentUserId)) {
+            throw new IllegalArgumentException("Only the project owner can delete this project");
         }
+
         memberRepository.findByProjectId(projectId).forEach(memberRepository::delete);
         projectRepository.deleteById(projectId);
     }
 
     @Transactional
-    public void addMember(String projectId, String userId, String role) {
+    public void addMember(String projectId, String userId, String role, String currentUserId) {
+        Project project = projectRepository.findById(projectId)
+                .orElseThrow(() -> new ResourceNotFoundException("Project", projectId));
+
+        // Only owner or existing members with ADMIN role can add members
+        if (!project.getOwnerId().equals(currentUserId)) {
+            boolean isAdmin = memberRepository.findByProjectIdAndUserId(projectId, currentUserId)
+                    .filter(m -> m.getRole() == ProjectMember.Role.ADMIN)
+                    .isPresent();
+            if (!isAdmin) {
+                throw new IllegalArgumentException("You don't have permission to add members");
+            }
+        }
+
         if (memberRepository.existsByProjectIdAndUserId(projectId, userId)) {
             throw new IllegalArgumentException("User is already a member");
         }
@@ -108,7 +126,20 @@ public class ProjectService {
     }
 
     @Transactional
-    public void removeMember(String projectId, String userId) {
+    public void removeMember(String projectId, String userId, String currentUserId) {
+        Project project = projectRepository.findById(projectId)
+                .orElseThrow(() -> new ResourceNotFoundException("Project", projectId));
+
+        // Only the project owner can remove members
+        if (!project.getOwnerId().equals(currentUserId)) {
+            throw new IllegalArgumentException("Only the project owner can remove members");
+        }
+
+        // Cannot remove the owner themselves
+        if (project.getOwnerId().equals(userId)) {
+            throw new IllegalArgumentException("Cannot remove the project owner");
+        }
+
         ProjectMember member = memberRepository.findByProjectIdAndUserId(projectId, userId)
                 .orElseThrow(() -> new ResourceNotFoundException("ProjectMember", projectId + ":" + userId));
         memberRepository.delete(member);

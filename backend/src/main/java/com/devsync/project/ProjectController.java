@@ -47,8 +47,10 @@ public class ProjectController {
     }
 
     @DeleteMapping("/{projectId}")
-    public ResponseEntity<Void> deleteProject(@PathVariable String projectId) {
-        projectService.deleteProject(projectId);
+    public ResponseEntity<Void> deleteProject(
+            @PathVariable String projectId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        projectService.deleteProject(projectId, userDetails.getUsername());
         return ResponseEntity.noContent().build();
     }
 
@@ -56,16 +58,18 @@ public class ProjectController {
     public ResponseEntity<Void> addMember(
             @PathVariable String projectId,
             @RequestParam String userId,
-            @RequestParam(required = false, defaultValue = "MEMBER") String role) {
-        projectService.addMember(projectId, userId, role);
+            @RequestParam(required = false, defaultValue = "MEMBER") String role,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        projectService.addMember(projectId, userId, role, userDetails.getUsername());
         return ResponseEntity.ok().build();
     }
 
     @DeleteMapping("/{projectId}/members/{userId}")
     public ResponseEntity<Void> removeMember(
             @PathVariable String projectId,
-            @PathVariable String userId) {
-        projectService.removeMember(projectId, userId);
+            @PathVariable String userId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        projectService.removeMember(projectId, userId, userDetails.getUsername());
         return ResponseEntity.noContent().build();
     }
 }

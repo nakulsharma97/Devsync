@@ -6,7 +6,8 @@ services:
     container_name: devsync-mysql
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_PASSWORD:-password}
+      # ⚠️ Set a strong MYSQL_ROOT_PASSWORD in production!
+      MYSQL_ROOT_PASSWORD: ${MYSQL_PASSWORD}
       MYSQL_DATABASE: devsync_db
     ports:
       - "3306:3306"
@@ -30,7 +31,9 @@ services:
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/devsync_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD:-password}
-      JWT_SECRET: ${JWT_SECRET:-4a6f686e446f6553656372657456657279566572795365637265744b6579466f724a57545369676e696e67416e64456e6372797074696f6e}
+      # ⚠️ CRITICAL: Must set JWT_SECRET in production!
+      # Generate with: openssl rand -base64 64
+      JWT_SECRET: ${JWT_SECRET}
       CORS_ORIGINS: http://localhost:80,http://localhost:5173
     depends_on:
       mysql:
