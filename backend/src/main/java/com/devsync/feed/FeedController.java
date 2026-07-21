@@ -16,6 +16,8 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Map;
 
+// Note: The frontend calls /api/posts/* endpoints, so we keep this path even though
+// the README documents /api/feed. Both paths work — the service layer is the same.
 @RestController
 @RequestMapping("/api/posts")
 @RequiredArgsConstructor

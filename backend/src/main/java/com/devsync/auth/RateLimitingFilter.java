@@ -13,9 +13,12 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Simple in-memory rate limiter for authentication endpoints.
+ * Rate limiter for authentication endpoints.
  * Limits requests to 10 per minute per IP address.
- * In production, replace with Redis-based rate limiting.
+ * Also tracks per-user rate limits via request body analysis.
+ *
+ * ⚠️ In-memory only — resets on server restart.
+ * For production deployments, replace with Redis-based rate limiting.
  */
 @Component
 @Order(1)

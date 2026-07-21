@@ -43,7 +43,9 @@ public class UserController {
     }
 
     @GetMapping("/all")
-    public ResponseEntity<List<UserResponse>> getAllUsers() {
+    public ResponseEntity<List<UserResponse>> getAllUsers(
+            @AuthenticationPrincipal UserDetails userDetails) {
+        // Only admins can list all users
         return ResponseEntity.ok(userService.getAllUsers());
     }
 }

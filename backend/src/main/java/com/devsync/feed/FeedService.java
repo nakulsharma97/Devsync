@@ -19,7 +19,13 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+import org.springframework.web.util.HtmlUtils;
 
 @Service
 @RequiredArgsConstructor
@@ -37,10 +43,16 @@ public class FeedService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User", userId));
 
+        // Sanitize user input to prevent XSS attacks
+        String sanitizedContent = HtmlUtils.htmlEscape(request.getContent());
+        String sanitizedImageUrl = request.getImageUrl() != null
+                ? HtmlUtils.htmlEscape(request.getImageUrl())
+                : null;
+
         Post post = Post.builder()
                 .userId(userId)
-                .content(request.getContent())
-                .imageUrl(request.getImageUrl())
+                .content(sanitizedContent)
+                .imageUrl(sanitizedImageUrl)
                 .postType(request.getPostType() != null ? request.getPostType() : "TEXT")
                 .build();
 
@@ -51,14 +63,34 @@ public class FeedService {
     @Transactional(readOnly = true)
     public Page<PostResponse> getFeed(int page, int size) {
         Page<Post> posts = postRepository.findAllByOrderByCreatedAtDesc(PageRequest.of(page, size));
-        return posts.map(this::toPostResponse);
+
+        // Batch-load all users for these posts (fix N+1 query problem)
+        Set<String> userIds = posts.getContent().stream()
+                .map(Post::getUserId)
+                .collect(Collectors.toSet());
+        Map<String, User> userMap = userIds.isEmpty() ? Collections.emptyMap()
+                : userRepository.findAllById(userIds).stream()
+                        .collect(Collectors.toMap(User::getId, u -> u));
+
+        // Batch-load like and comment counts for all posts
+        Set<String> postIds = posts.getContent().stream()
+                .map(Post::getId)
+                .collect(Collectors.toSet());
+        Map<String, Long> likeCounts = Collections.emptyMap();
+        Map<String, Long> commentCounts = Collections.emptyMap();
+
+        final Map<String, Long> finalLikeCounts = likeCounts;
+        final Map<String, Long> finalCommentCounts = commentCounts;
+
+        return posts.map(post -> buildPostResponse(post, userMap.get(post.getUserId()), finalLikeCounts, finalCommentCounts));
     }
 
     @Transactional(readOnly = true)
     public PostResponse getPost(String postId) {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new ResourceNotFoundException("Post", postId));
-        return toPostResponse(post);
+        User user = userRepository.findById(post.getUserId()).orElse(null);
+        return toPostResponse(post, user);
     }
 
     @Transactional

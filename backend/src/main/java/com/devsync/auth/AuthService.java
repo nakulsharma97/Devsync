@@ -11,10 +11,14 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Service
 @RequiredArgsConstructor
 public class AuthService {
+
+    private static final Logger log = LoggerFactory.getLogger(AuthService.class);
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
@@ -99,9 +103,8 @@ public class AuthService {
         try {
             emailService.sendOtpEmail(email, otp);
         } catch (Exception e) {
-            // Fallback: log OTP to console if email fails
-            System.out.println("OTP for " + email + ": " + otp);
-            System.out.println("Email delivery failed: " + e.getMessage());
+            // Log error without exposing the OTP value in logs
+            log.warn("Failed to send OTP email to {}: {}. Consider configuring SMTP credentials.", email, e.getMessage());
         }
     }
 

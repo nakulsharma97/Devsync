@@ -30,6 +30,9 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
+            // CSRF disabled because we use stateless JWT Bearer tokens, not cookies.
+            // All authenticated requests require an Authorization: Bearer <token> header.
+            // If cookie-based auth is ever added, CSRF protection MUST be re-enabled.
             .csrf(csrf -> csrf.disable())
             .cors(cors -> {})
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
