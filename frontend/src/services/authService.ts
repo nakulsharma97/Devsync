@@ -99,4 +99,14 @@ export const authService = {
   isAuthenticated(): boolean {
     return !!localStorage.getItem("accessToken");
   },
+
+  async forgotPassword(email: string): Promise<void> {
+    await api.post("/auth/forgot-password", { email });
+  },
+
+  async loginWithOAuth(provider: string): Promise<void> {
+    // Redirect to the OAuth provider's auth URL
+    window.location.href = `${api.defaults.baseURL}/oauth2/authorization/${provider}`;
+  },
 };
+

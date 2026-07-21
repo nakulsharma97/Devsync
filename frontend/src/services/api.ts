@@ -5,6 +5,40 @@ export function getAuthToken(): string | null {
   return localStorage.getItem("accessToken");
 }
 
+export interface RateLimitState {
+  isRateLimited: boolean;
+  retryAfter: number;
+  retryAt: number | null;
+}
+
+const rateLimitStore: RateLimitState = {
+  isRateLimited: false,
+  retryAfter: 0,
+  retryAt: null,
+};
+
+export function getRateLimitState(): RateLimitState {
+  // Auto-expire if retry window has passed
+  if (rateLimitStore.retryAt && Date.now() > rateLimitStore.retryAt) {
+    rateLimitStore.isRateLimited = false;
+    rateLimitStore.retryAfter = 0;
+    rateLimitStore.retryAt = null;
+  }
+  return { ...rateLimitStore };
+}
+
+export function setRateLimit(seconds: number): void {
+  rateLimitStore.isRateLimited = true;
+  rateLimitStore.retryAfter = seconds;
+  rateLimitStore.retryAt = Date.now() + seconds * 1000;
+}
+
+export function clearRateLimit(): void {
+  rateLimitStore.isRateLimited = false;
+  rateLimitStore.retryAfter = 0;
+  rateLimitStore.retryAt = null;
+}
+
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8080/api";
 
 const api = axios.create({

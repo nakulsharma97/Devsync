@@ -19,7 +19,7 @@ if (import.meta.env.VITE_SENTRY_DSN) {
 
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
-import { DashboardLayout } from "@/components/DashboardLayout";
+import DashboardLayout from "@/components/DashboardLayout";
 import PageTransition from "@/components/PageTransition";
 import Landing from "./pages/Landing";
 import AuthPage from "./pages/Auth";

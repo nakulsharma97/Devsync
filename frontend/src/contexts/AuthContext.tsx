@@ -10,6 +10,9 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, fullName: string, username?: string) => Promise<void>;
   logout: () => void;
+  clearError: () => void;
+  forgotPassword: (email: string) => Promise<void>;
+  loginWithOAuth: (provider: string) => Promise<void>;
   refreshUser: () => Promise<void>;
 }
 
@@ -19,6 +22,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthResponse["user"] | null>(() => authService.getStoredUser());
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const clearError = useCallback(() => {
+    setError(null);
+  }, []);
+
+  const forgotPassword = useCallback(async (email: string) => {
+    setError(null);
+    setIsLoading(true);
+    try {
+      await authService.forgotPassword(email);
+    } catch (err: any) {
+      setError(err.response?.data?.message || err.message || "Failed to send reset link");
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  const loginWithOAuth = useCallback(async (provider: string) => {
+    setError(null);
+    setIsLoading(true);
+    try {
+      await authService.loginWithOAuth(provider);
+    } catch (err: any) {
+      setError(err.response?.data?.message || err.message || "OAuth login failed");
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
   const refreshUser = useCallback(async () => {
     const token = localStorage.getItem("accessToken");
@@ -103,6 +136,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         login,
         register,
         logout,
+        clearError,
+        forgotPassword,
+        loginWithOAuth,
         refreshUser,
       }}
     >

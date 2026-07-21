@@ -27,7 +27,7 @@ const navItems = [
   { to: "/settings", icon: Settings, label: "Settings" },
 ];
 
-export function DashboardLayout() {
+export default function DashboardLayout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
