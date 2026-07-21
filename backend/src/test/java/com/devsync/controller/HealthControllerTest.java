@@ -20,17 +20,11 @@ class HealthControllerTest {
     private MockMvc mockMvc;
 
     @Test
-    void actuatorHealth_ShouldReturn200WithUpStatus() throws Exception {
-        mockMvc.perform(get("/api/actuator/health"))
+    void healthEndpoint_ShouldReturn200WithUpStatus() throws Exception {
+        mockMvc.perform(get("/api/health"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("UP"));
-    }
-
-    @Test
-    void actuatorInfo_ShouldReturnAppInfo() throws Exception {
-        mockMvc.perform(get("/api/actuator/info"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.app.name").value("DevSync Backend"))
-                .andExpect(jsonPath("$.app.version").value("1.0.0"));
+                .andExpect(jsonPath("$.status").value("UP"))
+                .andExpect(jsonPath("$.service").value("devsync-backend"))
+                .andExpect(jsonPath("$.timestamp").exists());
     }
 }
