@@ -72,6 +72,12 @@ public class ProjectService {
     public ProjectResponse updateProject(String projectId, UpdateProjectRequest request, String userId) {
         Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new ResourceNotFoundException("Project", projectId));
+        // Only project owner or admin members can update the project
+        if (!project.getOwnerId().equals(userId)) {
+            boolean isAdmin = memberRepository.findByProjectIdAndUserId(projectId, userId)
+                    .filter(m -> m.getRole() == ProjectMember.Role.ADMIN).isPresent();
+            if (!isAdmin) throw new IllegalArgumentException("No permission to update this project");
+        }
         if (request.getName() != null) project.setName(request.getName());
         if (request.getDescription() != null) project.setDescription(request.getDescription());
         if (request.getStatus() != null) project.setStatus(Project.ProjectStatus.valueOf(request.getStatus()));
