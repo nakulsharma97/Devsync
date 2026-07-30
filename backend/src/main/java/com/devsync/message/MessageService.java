@@ -7,7 +7,6 @@ import com.devsync.message.dto.SendMessageRequest;
 import com.devsync.message.entity.Message;
 import com.devsync.message.repository.MessageRepository;
 import com.devsync.teamroom.entity.TeamRoom;
-import com.devsync.teamroom.entity.TeamRoomParticipant;
 import com.devsync.teamroom.repository.TeamRoomParticipantRepository;
 import com.devsync.teamroom.repository.TeamRoomRepository;
 import com.devsync.user.entity.User;
@@ -44,19 +43,16 @@ public class MessageService {
     }
 
     public List<MessageResponse> getRoomMessages(String roomId, String userId) {
-        // Verify the user is a participant in this room (if it's a room, not DM)
         if (roomId != null && !participantRepository.existsByRoomIdAndUserId(roomId, userId)) {
             throw new IllegalArgumentException("You are not a participant in this room");
         }
-        return messageRepository.findByRoomIdOrderByCreatedAtAsc(roomId, PageRequest.of(0, 100)).stream()
-                .map(this::toResponse)
-                .toList();
+        List<Message> messages = messageRepository.findByRoomIdOrderByCreatedAtAsc(roomId, PageRequest.of(0, 100));
+        return toResponsesWithBatchUsers(messages);
     }
 
     public List<MessageResponse> getConversation(String userId, String otherId, int limit) {
-        return messageRepository.findConversation(userId, otherId, PageRequest.of(0, limit)).stream()
-                .map(this::toResponse)
-                .toList();
+        List<Message> messages = messageRepository.findConversation(userId, otherId, PageRequest.of(0, limit));
+        return toResponsesWithBatchUsers(messages);
     }
 
     public List<ConversationResponse> getConversations(String userId) {
@@ -65,7 +61,6 @@ public class MessageService {
         // Get all team rooms the user is part of
         List<TeamRoom> rooms = roomRepository.findRoomsByUserId(userId);
         for (TeamRoom room : rooms) {
-            // Use pagination to get only the latest message
             List<Message> msgs = messageRepository.findByRoomIdOrderByCreatedAtAsc(room.getId(), PageRequest.of(0, 1));
             Message lastMsg = msgs.isEmpty() ? null : msgs.get(0);
             long count = participantRepository.countByRoomId(room.getId());
@@ -81,7 +76,7 @@ public class MessageService {
                     .build());
         }
 
-        // Find DM partners via direct query — gets users the current user has exchanged messages with
+        // Find DM partners via direct query
         List<String> dmPartnerIds = messageRepository.findDmPartnerIds(userId);
 
         for (String partnerId : dmPartnerIds) {
@@ -117,8 +112,39 @@ public class MessageService {
         return conversations;
     }
 
+    /**
+     * Batch-load all message senders into a user map, then map all messages in one pass.
+     * Eliminates the N+1 query issue where toResponse() calls findById per message.
+     */
+    private List<MessageResponse> toResponsesWithBatchUsers(List<Message> messages) {
+        if (messages.isEmpty()) return List.of();
+
+        // Batch-load ALL unique sender IDs in a single query
+        Set<String> senderIds = messages.stream()
+                .map(Message::getSenderId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+
+        Map<String, User> userMap = senderIds.isEmpty() ? Collections.emptyMap()
+                : userRepository.findAllById(senderIds).stream()
+                        .collect(Collectors.toMap(User::getId, u -> u));
+
+        return messages.stream()
+                .map(msg -> toResponse(msg, userMap))
+                .toList();
+    }
+
     private MessageResponse toResponse(Message message) {
-        User sender = userRepository.findById(message.getSenderId()).orElse(null);
+        User sender = userRepository.findById(message.getSenderId()).orElse(null); // single message, fine
+        return buildResponse(message, sender);
+    }
+
+    private MessageResponse toResponse(Message message, Map<String, User> userMap) {
+        User sender = userMap.get(message.getSenderId());
+        return buildResponse(message, sender);
+    }
+
+    private MessageResponse buildResponse(Message message, User sender) {
         return MessageResponse.builder()
                 .id(message.getId())
                 .senderId(message.getSenderId())
