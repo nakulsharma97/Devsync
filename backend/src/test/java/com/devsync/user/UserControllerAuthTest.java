@@ -5,6 +5,7 @@ import com.devsync.user.dto.UpdateUserRequest;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.autoconfigure.security.oauth2.client.servlet.OAuth2ClientAutoConfiguration;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ActiveProfiles;
@@ -17,7 +18,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @ActiveProfiles("test")
-@WebMvcTest(UserController.class)
+@WebMvcTest(value = UserController.class, excludeAutoConfiguration = OAuth2ClientAutoConfiguration.class)
 class UserControllerAuthTest {
 
     @Autowired private MockMvc mockMvc;
