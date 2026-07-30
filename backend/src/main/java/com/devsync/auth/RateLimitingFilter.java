@@ -23,6 +23,7 @@ import java.util.concurrent.ConcurrentHashMap;
 @Component
 @Order(1)
 public class RateLimitingFilter extends OncePerRequestFilter {
+    // Rate limiting filter - updated for CI trigger
 
     private final Map<String, RateLimitEntry> requestCounts = new ConcurrentHashMap<>();
     private static final int MAX_REQUESTS = 10;
