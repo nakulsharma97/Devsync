@@ -63,7 +63,7 @@ public class FeedService {
         Map<String, User> userMap = userIds.isEmpty() ? Collections.emptyMap()
                 : userRepository.findAllById(userIds).stream().collect(Collectors.toMap(User::getId, u -> u));
 
-        // Batch-load like counts (2 total queries instead of 2N)
+        // Batch-load like counts
         Map<String, Long> likeCounts = postLikeRepository.countLikesByPostIdIn(postIds).stream()
                 .collect(Collectors.toMap(row -> (String) row[0], row -> (Long) row[1]));
 
@@ -117,15 +117,19 @@ public class FeedService {
 
     @Transactional(readOnly = true)
     public List<CommentResponse> getComments(String postId) {
-        return commentRepository.findByPostIdOrderByCreatedAtAsc(postId).stream()
-                .map(c -> toCommentResponse(c, userRepository.findById(c.getUserId()).orElse(null)))
+        List<Comment> comments = commentRepository.findByPostIdOrderByCreatedAtAsc(postId);
+        if (comments.isEmpty()) return List.of();
+
+        // Batch-load all comment authors (fixes remaining N+1 queries)
+        Set<String> userIds = comments.stream().map(Comment::getUserId).collect(Collectors.toSet());
+        Map<String, User> userMap = userIds.isEmpty() ? Collections.emptyMap()
+                : userRepository.findAllById(userIds).stream().collect(Collectors.toMap(User::getId, u -> u));
+
+        return comments.stream()
+                .map(c -> toCommentResponse(c, userMap.get(c.getUserId())))
                 .toList();
     }
 
-    /**
-     * Build a PostResponse using pre-computed counts (for batch-loaded feeds).
-     * Used by getFeed() to avoid N+1 count queries.
-     */
     private PostResponse toPostResponseWithCounts(Post post, User user, long likeCount, long commentCount) {
         PostResponse.UserInfo userInfo = user != null
                 ? PostResponse.UserInfo.builder().id(user.getId()).fullName(user.getFullName()).email(user.getEmail()).username(user.getUsername()).avatarUrl(user.getAvatarUrl()).build()
