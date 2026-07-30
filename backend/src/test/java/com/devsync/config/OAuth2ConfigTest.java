@@ -13,6 +13,7 @@ import org.springframework.security.oauth2.core.user.DefaultOAuth2User;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.util.Collections;
@@ -31,6 +32,7 @@ class OAuth2ConfigTest {
 
     @MockitoBean private UserRepository userRepository;
     @MockitoBean private JwtTokenProvider jwtTokenProvider;
+    @MockitoBean private PasswordEncoder passwordEncoder;
 
     @BeforeEach
     void setUp() {
