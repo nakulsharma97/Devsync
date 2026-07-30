@@ -37,12 +37,12 @@ class ProjectServiceAuthTest {
         projectService = new ProjectService(projectRepository, memberRepository, userRepository);
 
         project = Project.builder()
-                .id("project-1")
                 .name("Test Project")
                 .description("Original description")
                 .ownerId("owner-1")
                 .status(Project.ProjectStatus.ACTIVE)
                 .build();
+        project.setId("project-1");
 
         updateRequest = new UpdateProjectRequest();
         updateRequest.setName("Updated Project");
