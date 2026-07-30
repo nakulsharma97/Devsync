@@ -3,34 +3,41 @@ package com.devsync.auth;
 import com.devsync.auth.dto.*;
 import com.devsync.common.GlobalExceptionHandler;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.context.annotation.Import;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
-import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.test.context.support.WithMockUser;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.when;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@WebMvcTest(AuthController.class)
-@Import(GlobalExceptionHandler.class)
+@ExtendWith(MockitoExtension.class)
 class AuthControllerTest {
 
-    @Autowired private MockMvc mockMvc;
-    @Autowired private ObjectMapper objectMapper;
+    private MockMvc mockMvc;
+    private ObjectMapper objectMapper;
 
-    @MockitoBean private AuthService authService;
-    @MockitoBean private JwtTokenProvider jwtTokenProvider;
-    @MockitoBean private UserDetailsService userDetailsService;
-    @MockitoBean private RateLimitingFilter rateLimitingFilter;
+    @Mock private AuthService authService;
+    @InjectMocks private AuthController authController;
+
+    @BeforeEach
+    void setUp() {
+        objectMapper = new ObjectMapper();
+        objectMapper.registerModule(new JavaTimeModule());
+        mockMvc = MockMvcBuilders.standaloneSetup(authController)
+                .setControllerAdvice(new GlobalExceptionHandler())
+                .build();
+    }
 
     private AuthResponse sampleResponse() {
         return AuthResponse.builder()
@@ -41,99 +48,129 @@ class AuthControllerTest {
     }
 
     @Test
-    @WithMockUser
     void register_shouldReturn200() throws Exception {
         RegisterRequest request = new RegisterRequest();
         request.setEmail("test@test.com");
         request.setPassword("Secure1@pass");
         request.setFullName("Test User");
         when(authService.register(any())).thenReturn(sampleResponse());
-        mockMvc.perform(post("/api/auth/register").contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(request)).with(csrf()))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.accessToken").value("at")).andExpect(jsonPath("$.user.email").value("test@test.com"));
+        mockMvc.perform(post("/api/auth/register")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request))
+                .with(SecurityMockMvcRequestPostProcessors.csrf())
+                .with(SecurityMockMvcRequestPostProcessors.user("test@test.com").roles("USER")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.accessToken").value("at"))
+                .andExpect(jsonPath("$.user.email").value("test@test.com"));
     }
 
     @Test
-    @WithMockUser
     void register_shouldReturn400ForShortPassword() throws Exception {
         RegisterRequest request = new RegisterRequest();
         request.setEmail("test@test.com");
         request.setPassword("123");
         request.setFullName("Test User");
-        mockMvc.perform(post("/api/auth/register").contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(request)).with(csrf()))
+        mockMvc.perform(post("/api/auth/register")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request))
+                .with(SecurityMockMvcRequestPostProcessors.csrf())
+                .with(SecurityMockMvcRequestPostProcessors.user("test@test.com").roles("USER")))
                 .andExpect(status().isBadRequest());
     }
 
     @Test
-    @WithMockUser
     void register_shouldReturn400ForBlankEmail() throws Exception {
         RegisterRequest request = new RegisterRequest();
         request.setEmail("");
         request.setPassword("Secure1@pass");
         request.setFullName("Test User");
-        mockMvc.perform(post("/api/auth/register").contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(request)).with(csrf()))
+        mockMvc.perform(post("/api/auth/register")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request))
+                .with(SecurityMockMvcRequestPostProcessors.csrf())
+                .with(SecurityMockMvcRequestPostProcessors.user("test@test.com").roles("USER")))
                 .andExpect(status().isBadRequest());
     }
 
     @Test
-    @WithMockUser
     void login_shouldReturn200() throws Exception {
         LoginRequest request = new LoginRequest();
         request.setEmail("test@test.com");
         request.setPassword("password123");
         when(authService.login(any())).thenReturn(sampleResponse());
-        mockMvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(request)).with(csrf()))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.accessToken").value("at"));
+        mockMvc.perform(post("/api/auth/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request))
+                .with(SecurityMockMvcRequestPostProcessors.csrf())
+                .with(SecurityMockMvcRequestPostProcessors.user("test@test.com").roles("USER")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.accessToken").value("at"));
     }
 
     @Test
-    @WithMockUser
     void login_shouldReturn400ForMissingPassword() throws Exception {
         LoginRequest request = new LoginRequest();
         request.setEmail("test@test.com");
         request.setPassword("");
-        mockMvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(request)).with(csrf()))
+        mockMvc.perform(post("/api/auth/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request))
+                .with(SecurityMockMvcRequestPostProcessors.csrf())
+                .with(SecurityMockMvcRequestPostProcessors.user("test@test.com").roles("USER")))
                 .andExpect(status().isBadRequest());
     }
 
     @Test
-    @WithMockUser
     void refresh_shouldReturn200() throws Exception {
         RefreshTokenRequest request = new RefreshTokenRequest();
         request.setRefreshToken("some-refresh-token");
         when(authService.refreshToken(any())).thenReturn(sampleResponse());
-        mockMvc.perform(post("/api/auth/refresh").contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(request)).with(csrf()))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.accessToken").value("at"));
+        mockMvc.perform(post("/api/auth/refresh")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request))
+                .with(SecurityMockMvcRequestPostProcessors.csrf())
+                .with(SecurityMockMvcRequestPostProcessors.user("test@test.com").roles("USER")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.accessToken").value("at"));
     }
 
     @Test
-    @WithMockUser
     void refresh_shouldReturn400ForMissingToken() throws Exception {
         RefreshTokenRequest request = new RefreshTokenRequest();
         request.setRefreshToken("");
-        mockMvc.perform(post("/api/auth/refresh").contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(request)).with(csrf()))
+        mockMvc.perform(post("/api/auth/refresh")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request))
+                .with(SecurityMockMvcRequestPostProcessors.csrf())
+                .with(SecurityMockMvcRequestPostProcessors.user("test@test.com").roles("USER")))
                 .andExpect(status().isBadRequest());
     }
 
     @Test
-    @WithMockUser
     void otpSend_shouldReturn200() throws Exception {
-        mockMvc.perform(post("/api/auth/otp/send").param("email", "test@test.com").with(csrf()))
+        mockMvc.perform(post("/api/auth/otp/send")
+                .param("email", "test@test.com")
+                .with(SecurityMockMvcRequestPostProcessors.csrf())
+                .with(SecurityMockMvcRequestPostProcessors.user("test@test.com").roles("USER")))
                 .andExpect(status().isOk());
     }
 
     @Test
-    @WithMockUser
     void otpVerify_shouldReturn200() throws Exception {
         VerifyOtpRequest request = new VerifyOtpRequest();
         request.setEmail("test@test.com");
         request.setOtp("123456");
         when(authService.verifyOtpAndLogin(any())).thenReturn(sampleResponse());
-        mockMvc.perform(post("/api/auth/otp/verify").contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(request)).with(csrf()))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.accessToken").value("at"));
+        mockMvc.perform(post("/api/auth/otp/verify")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request))
+                .with(SecurityMockMvcRequestPostProcessors.csrf())
+                .with(SecurityMockMvcRequestPostProcessors.user("test@test.com").roles("USER")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.accessToken").value("at"));
     }
 
     @Test
-    @WithMockUser
     void oauthCallback_shouldReturn200() throws Exception {
         OAuthCallbackRequest request = new OAuthCallbackRequest();
         request.setEmail("oauth@test.com");
@@ -143,34 +180,44 @@ class AuthControllerTest {
         when(authService.handleOAuthCallback("oauth@test.com", "OAuth User",
                 "https://avatar.test.com/img.png", "github"))
                 .thenReturn(sampleResponse());
-        mockMvc.perform(post("/api/auth/oauth/callback").contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(request)).with(csrf()))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.accessToken").value("at"));
+        mockMvc.perform(post("/api/auth/oauth/callback")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request))
+                .with(SecurityMockMvcRequestPostProcessors.csrf())
+                .with(SecurityMockMvcRequestPostProcessors.user("oauth@test.com").roles("USER")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.accessToken").value("at"));
     }
 
     @Test
-    @WithMockUser
     void oauthCallback_shouldReturn400ForMissingEmail() throws Exception {
         OAuthCallbackRequest request = new OAuthCallbackRequest();
         request.setEmail("");
         request.setFullName("OAuth User");
         request.setProvider("google");
-        mockMvc.perform(post("/api/auth/oauth/callback").contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(request)).with(csrf()))
+        mockMvc.perform(post("/api/auth/oauth/callback")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request))
+                .with(SecurityMockMvcRequestPostProcessors.csrf())
+                .with(SecurityMockMvcRequestPostProcessors.user("oauth@test.com").roles("USER")))
                 .andExpect(status().isBadRequest());
     }
 
     @Test
-    @WithMockUser
     void oauthCallback_shouldReturn400ForMissingProvider() throws Exception {
         OAuthCallbackRequest request = new OAuthCallbackRequest();
         request.setEmail("oauth@test.com");
         request.setFullName("OAuth User");
         request.setProvider("");
-        mockMvc.perform(post("/api/auth/oauth/callback").contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(request)).with(csrf()))
+        mockMvc.perform(post("/api/auth/oauth/callback")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request))
+                .with(SecurityMockMvcRequestPostProcessors.csrf())
+                .with(SecurityMockMvcRequestPostProcessors.user("oauth@test.com").roles("USER")))
                 .andExpect(status().isBadRequest());
     }
 
     @Test
-    @WithMockUser(username = "user-123")
     void getCurrentUser_shouldReturnUser() throws Exception {
         com.devsync.user.dto.UserResponse userResponse =
                 com.devsync.user.dto.UserResponse.builder()
@@ -178,7 +225,8 @@ class AuthControllerTest {
                         .username("meuser").role("USER")
                         .build();
         when(authService.getCurrentUser("user-123")).thenReturn(userResponse);
-        mockMvc.perform(get("/api/auth/me"))
+        mockMvc.perform(get("/api/auth/me")
+                .with(SecurityMockMvcRequestPostProcessors.user("user-123").roles("USER")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value("user-123"))
                 .andExpect(jsonPath("$.email").value("me@test.com"))
