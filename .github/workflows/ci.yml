@@ -68,6 +68,7 @@ jobs:
           SPRING_DATASOURCE_URL: jdbc:mysql://localhost:3306/devsync_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
           SPRING_DATASOURCE_USERNAME: root
           SPRING_DATASOURCE_PASSWORD: password
+          SPRING_DATASOURCE_DRIVER_CLASS_NAME: com.mysql.cj.jdbc.Driver
 
       - name: Upload JaCoCo coverage report
         uses: actions/upload-artifact@v7
