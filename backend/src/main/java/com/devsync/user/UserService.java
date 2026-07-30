@@ -1,6 +1,7 @@
 package com.devsync.user;
 
 import com.devsync.common.ResourceNotFoundException;
+import com.devsync.project.repository.ProjectMemberRepository;
 import com.devsync.user.dto.UpdateUserRequest;
 import com.devsync.user.dto.UserResponse;
 import com.devsync.user.entity.User;
@@ -17,10 +18,37 @@ import java.util.stream.Collectors;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final ProjectMemberRepository projectMemberRepository;
 
     public UserResponse getUserById(String id) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User", id));
+        return toResponse(user);
+    }
+
+    /**
+     * Looks up a user profile but only allows access if the requesting user
+     * has a relationship (shared project) with the target user, or is viewing
+     * their own profile.
+     */
+    public UserResponse getUserByIdWithAuth(String targetUserId, String requestingUserId) {
+        User user = userRepository.findById(targetUserId)
+                .orElseThrow(() -> new ResourceNotFoundException("User", targetUserId));
+
+        // Allow viewing own profile
+        if (targetUserId.equals(requestingUserId)) {
+            return toResponse(user);
+        }
+
+        // Check for shared project membership
+        List<String> requestingProjectIds = projectMemberRepository.findProjectIdsByUserId(requestingUserId);
+        List<String> targetProjectIds = projectMemberRepository.findProjectIdsByUserId(targetUserId);
+
+        boolean shareProject = requestingProjectIds.stream().anyMatch(targetProjectIds::contains);
+        if (!shareProject) {
+            throw new IllegalArgumentException("You do not have a shared project with this user");
+        }
+
         return toResponse(user);
     }
 
