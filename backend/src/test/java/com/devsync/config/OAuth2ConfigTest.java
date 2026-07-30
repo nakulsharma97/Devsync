@@ -55,11 +55,11 @@ class OAuth2ConfigTest {
         );
 
         User user = User.builder()
-                .id("user-oauth-1")
                 .email("oauth@test.com")
                 .fullName("oauthuser")
                 .username("oauthuser")
                 .build();
+        user.setId("user-oauth-1");
 
         when(userRepository.findByEmail("oauth@test.com")).thenReturn(Optional.of(user));
 
@@ -97,11 +97,11 @@ class OAuth2ConfigTest {
         );
 
         User user = User.builder()
-                .id("user-prod")
                 .email("prod@test.com")
                 .fullName("produser")
                 .username("produser")
                 .build();
+        user.setId("user-prod");
 
         when(userRepository.findByEmail("prod@test.com")).thenReturn(Optional.of(user));
 
@@ -154,11 +154,11 @@ class OAuth2ConfigTest {
         );
 
         User user = User.builder()
-                .id("user-token")
                 .email("token@test.com")
                 .fullName("tokenuser")
                 .username("tokenuser")
                 .build();
+        user.setId("user-token");
 
         when(userRepository.findByEmail("token@test.com")).thenReturn(Optional.of(user));
         when(jwtTokenProvider.generateAccessToken("user-token", "token@test.com"))
