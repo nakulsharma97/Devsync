@@ -47,9 +47,13 @@ public class TeamRoomService {
         return toResponse(room);
     }
 
-    public TeamRoomResponse getRoom(String roomId) {
-        return toResponse(roomRepository.findById(roomId)
-                .orElseThrow(() -> new ResourceNotFoundException("TeamRoom", roomId)));
+    public TeamRoomResponse getRoom(String roomId, String userId) {
+        TeamRoom room = roomRepository.findById(roomId)
+                .orElseThrow(() -> new ResourceNotFoundException("TeamRoom", roomId));
+        if (!participantRepository.existsByRoomIdAndUserId(roomId, userId)) {
+            throw new IllegalArgumentException("You are not a participant in this room");
+        }
+        return toResponse(room);
     }
 
     @Transactional
@@ -62,7 +66,10 @@ public class TeamRoomService {
         return toResponse(roomRepository.findById(roomId).get());
     }
 
-    public List<TeamRoomResponse.ParticipantDto> getParticipants(String roomId) {
+    public List<TeamRoomResponse.ParticipantDto> getParticipants(String roomId, String userId) {
+        if (!participantRepository.existsByRoomIdAndUserId(roomId, userId)) {
+            throw new IllegalArgumentException("You are not a participant in this room");
+        }
         return buildParticipantDtos(roomId);
     }
 
@@ -100,7 +107,7 @@ public class TeamRoomService {
                 .id(room.getId()).name(room.getName())
                 .projectId(room.getProjectId()).projectName(projectName)
                 .description(room.getDescription()).createdBy(room.getCreatedBy())
-                .participantCount(count)
+                .participantCount((int) count)
                 .participants(buildParticipantDtos(room.getId()))
                 .createdAt(room.getCreatedAt())
                 .build();

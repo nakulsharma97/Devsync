@@ -32,8 +32,10 @@ public class TeamRoomController {
     }
 
     @GetMapping("/{roomId}")
-    public ResponseEntity<TeamRoomResponse> getRoom(@PathVariable String roomId) {
-        return ResponseEntity.ok(roomService.getRoom(roomId));
+    public ResponseEntity<TeamRoomResponse> getRoom(
+            @PathVariable String roomId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        return ResponseEntity.ok(roomService.getRoom(roomId, userDetails.getUsername()));
     }
 
     @PostMapping("/{roomId}/invite")
@@ -45,7 +47,9 @@ public class TeamRoomController {
     }
 
     @GetMapping("/{roomId}/participants")
-    public ResponseEntity<List<TeamRoomResponse.ParticipantDto>> getParticipants(@PathVariable String roomId) {
-        return ResponseEntity.ok(roomService.getParticipants(roomId));
+    public ResponseEntity<List<TeamRoomResponse.ParticipantDto>> getParticipants(
+            @PathVariable String roomId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        return ResponseEntity.ok(roomService.getParticipants(roomId, userDetails.getUsername()));
     }
 }
