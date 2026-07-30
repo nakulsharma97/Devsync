@@ -36,26 +36,17 @@ public class FeedService {
     private final PostLikeRepository postLikeRepository;
     private final UserRepository userRepository;
 
-    // ── Posts ──────────────────────────────────────────────────
-
     @Transactional
     public PostResponse createPost(String userId, PostRequest request) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User", userId));
-
-        // Sanitize user input to prevent XSS attacks
         String sanitizedContent = HtmlUtils.htmlEscape(request.getContent());
         String sanitizedImageUrl = request.getImageUrl() != null
                 ? HtmlUtils.htmlEscape(request.getImageUrl())
                 : null;
-
         Post post = Post.builder()
-                .userId(userId)
-                .content(sanitizedContent)
-                .imageUrl(sanitizedImageUrl)
-                .postType(request.getPostType() != null ? request.getPostType() : "TEXT")
-                .build();
-
+                .userId(userId).content(sanitizedContent).imageUrl(sanitizedImageUrl)
+                .postType(request.getPostType() != null ? request.getPostType() : "TEXT").build();
         post = postRepository.save(post);
         return toPostResponse(post, user);
     }
@@ -63,43 +54,23 @@ public class FeedService {
     @Transactional(readOnly = true)
     public Page<PostResponse> getFeed(int page, int size) {
         Page<Post> posts = postRepository.findAllByOrderByCreatedAtDesc(PageRequest.of(page, size));
-
-        // Batch-load all users for these posts (fix N+1 query problem)
-        Set<String> userIds = posts.getContent().stream()
-                .map(Post::getUserId)
-                .collect(Collectors.toSet());
+        Set<String> userIds = posts.getContent().stream().map(Post::getUserId).collect(Collectors.toSet());
         Map<String, User> userMap = userIds.isEmpty() ? Collections.emptyMap()
-                : userRepository.findAllById(userIds).stream()
-                        .collect(Collectors.toMap(User::getId, u -> u));
-
-        // Batch-load like and comment counts for all posts
-        Set<String> postIds = posts.getContent().stream()
-                .map(Post::getId)
-                .collect(Collectors.toSet());
-        Map<String, Long> likeCounts = Collections.emptyMap();
-        Map<String, Long> commentCounts = Collections.emptyMap();
-
-        final Map<String, Long> finalLikeCounts = likeCounts;
-        final Map<String, Long> finalCommentCounts = commentCounts;
-
-        return posts.map(post -> buildPostResponse(post, userMap.get(post.getUserId()), finalLikeCounts, finalCommentCounts));
+                : userRepository.findAllById(userIds).stream().collect(Collectors.toMap(User::getId, u -> u));
+        return posts.map(post -> toPostResponse(post, userMap.get(post.getUserId())));
     }
 
     @Transactional(readOnly = true)
     public PostResponse getPost(String postId) {
-        Post post = postRepository.findById(postId)
-                .orElseThrow(() -> new ResourceNotFoundException("Post", postId));
+        Post post = postRepository.findById(postId).orElseThrow(() -> new ResourceNotFoundException("Post", postId));
         User user = userRepository.findById(post.getUserId()).orElse(null);
         return toPostResponse(post, user);
     }
 
     @Transactional
     public void deletePost(String postId, String userId) {
-        Post post = postRepository.findById(postId)
-                .orElseThrow(() -> new ResourceNotFoundException("Post", postId));
-        if (!post.getUserId().equals(userId)) {
-            throw new IllegalArgumentException("You don't have permission to delete this post");
-        }
+        Post post = postRepository.findById(postId).orElseThrow(() -> new ResourceNotFoundException("Post", postId));
+        if (!post.getUserId().equals(userId)) throw new IllegalArgumentException("Cannot delete this post");
         commentRepository.deleteByPostId(postId);
         postRepository.delete(post);
     }
@@ -110,104 +81,46 @@ public class FeedService {
             postLikeRepository.deleteByUserIdAndPostId(userId, postId);
             return false;
         } else {
-            PostLike like = PostLike.builder()
-                    .userId(userId)
-                    .postId(postId)
-                    .build();
-            postLikeRepository.save(like);
+            postLikeRepository.save(PostLike.builder().userId(userId).postId(postId).build());
             return true;
         }
     }
 
     @Transactional(readOnly = true)
-    public long getLikeCount(String postId) {
-        return postLikeRepository.countByPostId(postId);
-    }
-
-    // ── Comments ───────────────────────────────────────────────
+    public long getLikeCount(String postId) { return postLikeRepository.countByPostId(postId); }
 
     @Transactional
     public CommentResponse addComment(String postId, String userId, CommentRequest request) {
-        postRepository.findById(postId)
-                .orElseThrow(() -> new ResourceNotFoundException("Post", postId));
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("User", userId));
-
-        Comment comment = Comment.builder()
-                .userId(userId)
-                .postId(postId)
-                .content(request.getContent())
-                .build();
-
-        comment = commentRepository.save(comment);
+        postRepository.findById(postId).orElseThrow(() -> new ResourceNotFoundException("Post", postId));
+        User user = userRepository.findById(userId).orElseThrow(() -> new ResourceNotFoundException("User", userId));
+        Comment comment = commentRepository.save(Comment.builder().userId(userId).postId(postId).content(request.getContent()).build());
         return toCommentResponse(comment, user);
     }
 
     @Transactional(readOnly = true)
     public List<CommentResponse> getComments(String postId) {
         return commentRepository.findByPostIdOrderByCreatedAtAsc(postId).stream()
-                .map(comment -> {
-                    User user = userRepository.findById(comment.getUserId()).orElse(null);
-                    return toCommentResponse(comment, user);
-                })
+                .map(c -> toCommentResponse(c, userRepository.findById(c.getUserId()).orElse(null)))
                 .toList();
-    }
-
-    // ── Response builders ──────────────────────────────────────
-
-    private PostResponse toPostResponse(Post post) {
-        User user = userRepository.findById(post.getUserId()).orElse(null);
-        return toPostResponse(post, user);
     }
 
     private PostResponse toPostResponse(Post post, User user) {
         PostResponse.UserInfo userInfo = user != null
-                ? PostResponse.UserInfo.builder()
-                        .id(user.getId())
-                        .fullName(user.getFullName())
-                        .email(user.getEmail())
-                        .username(user.getUsername())
-                        .avatarUrl(user.getAvatarUrl())
-                        .build()
-                : PostResponse.UserInfo.builder()
-                        .id(post.getUserId())
-                        .fullName("Unknown")
-                        .email("")
-                        .build();
-
+                ? PostResponse.UserInfo.builder().id(user.getId()).fullName(user.getFullName()).email(user.getEmail()).username(user.getUsername()).avatarUrl(user.getAvatarUrl()).build()
+                : PostResponse.UserInfo.builder().id(post.getUserId()).fullName("Unknown").email("").build();
         return PostResponse.builder()
-                .id(post.getId())
-                .content(post.getContent())
-                .imageUrl(post.getImageUrl())
-                .postType(post.getPostType())
-                .likeCount(postLikeRepository.countByPostId(post.getId()))
-                .commentCount(commentRepository.countByPostId(post.getId()))
-                .createdAt(post.getCreatedAt())
-                .updatedAt(post.getUpdatedAt())
-                .user(userInfo)
+                .id(post.getId()).content(post.getContent()).imageUrl(post.getImageUrl()).postType(post.getPostType())
+                .likeCount(postLikeRepository.countByPostId(post.getId())).commentCount(commentRepository.countByPostId(post.getId()))
+                .createdAt(post.getCreatedAt()).updatedAt(post.getUpdatedAt()).user(userInfo)
                 .build();
     }
 
     private CommentResponse toCommentResponse(Comment comment, User user) {
         PostResponse.UserInfo userInfo = user != null
-                ? PostResponse.UserInfo.builder()
-                        .id(user.getId())
-                        .fullName(user.getFullName())
-                        .email(user.getEmail())
-                        .username(user.getUsername())
-                        .avatarUrl(user.getAvatarUrl())
-                        .build()
-                : PostResponse.UserInfo.builder()
-                        .id(comment.getUserId())
-                        .fullName("Unknown")
-                        .email("")
-                        .build();
-
+                ? PostResponse.UserInfo.builder().id(user.getId()).fullName(user.getFullName()).email(user.getEmail()).username(user.getUsername()).avatarUrl(user.getAvatarUrl()).build()
+                : PostResponse.UserInfo.builder().id(comment.getUserId()).fullName("Unknown").email("").build();
         return CommentResponse.builder()
-                .id(comment.getId())
-                .content(comment.getContent())
-                .createdAt(comment.getCreatedAt())
-                .user(userInfo)
+                .id(comment.getId()).content(comment.getContent()).createdAt(comment.getCreatedAt()).user(userInfo)
                 .build();
     }
 }

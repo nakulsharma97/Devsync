@@ -24,9 +24,7 @@ public class UserController {
     }
 
     @PutMapping("/me")
-    public ResponseEntity<UserResponse> updateMe(
-            @AuthenticationPrincipal UserDetails userDetails,
-            @Valid @RequestBody UpdateUserRequest request) {
+    public ResponseEntity<UserResponse> updateMe(@AuthenticationPrincipal UserDetails userDetails, @Valid @RequestBody UpdateUserRequest request) {
         return ResponseEntity.ok(userService.updateUser(userDetails.getUsername(), request));
     }
 
@@ -36,16 +34,14 @@ public class UserController {
     }
 
     @GetMapping
-    public ResponseEntity<List<UserResponse>> searchUsers(
-            @RequestParam(required = false) String q,
-            @AuthenticationPrincipal UserDetails userDetails) {
+    public ResponseEntity<List<UserResponse>> searchUsers(@RequestParam(required = false) String q, @AuthenticationPrincipal UserDetails userDetails) {
         return ResponseEntity.ok(userService.searchUsers(q, userDetails.getUsername()));
     }
 
     @GetMapping("/all")
-    public ResponseEntity<List<UserResponse>> getAllUsers(
-            @AuthenticationPrincipal UserDetails userDetails) {
-        // Only admins can list all users
+    public ResponseEntity<List<UserResponse>> getAllUsers(@AuthenticationPrincipal UserDetails userDetails) {
+        boolean isAdmin = userDetails.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+        if (!isAdmin) return ResponseEntity.status(403).body(List.of());
         return ResponseEntity.ok(userService.getAllUsers());
     }
 }
