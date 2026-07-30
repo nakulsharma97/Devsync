@@ -167,10 +167,10 @@ class AuthServiceTest {
         request.setPassword("wrong-password");
 
         User user = User.builder()
-                .id("user-id")
                 .email("test@test.com")
                 .password(passwordEncoder.encode("correct-password"))
                 .build();
+        user.setId("user-id");
 
         when(userRepository.findByEmail("test@test.com")).thenReturn(Optional.of(user));
 
@@ -199,12 +199,12 @@ class AuthServiceTest {
         request.setPassword("password123");
 
         User user = User.builder()
-                .id("user-id")
                 .email("test@test.com")
                 .password(passwordEncoder.encode("password123"))
                 .fullName("Test User")
                 .lastLoginAt(null)
                 .build();
+        user.setId("user-id");
 
         when(userRepository.findByEmail("test@test.com")).thenReturn(Optional.of(user));
         when(jwtTokenProvider.generateAccessToken(anyString(), anyString())).thenReturn("at");
