@@ -54,10 +54,28 @@ public class FeedService {
     @Transactional(readOnly = true)
     public Page<PostResponse> getFeed(int page, int size) {
         Page<Post> posts = postRepository.findAllByOrderByCreatedAtDesc(PageRequest.of(page, size));
+        if (posts.isEmpty()) return Page.empty();
+
+        Set<String> postIds = posts.getContent().stream().map(Post::getId).collect(Collectors.toSet());
+
+        // Batch-load users (fixes N+1 user queries)
         Set<String> userIds = posts.getContent().stream().map(Post::getUserId).collect(Collectors.toSet());
         Map<String, User> userMap = userIds.isEmpty() ? Collections.emptyMap()
                 : userRepository.findAllById(userIds).stream().collect(Collectors.toMap(User::getId, u -> u));
-        return posts.map(post -> toPostResponse(post, userMap.get(post.getUserId())));
+
+        // Batch-load like counts (2 total queries instead of 2N)
+        Map<String, Long> likeCounts = postLikeRepository.countLikesByPostIdIn(postIds).stream()
+                .collect(Collectors.toMap(row -> (String) row[0], row -> (Long) row[1]));
+
+        // Batch-load comment counts
+        Map<String, Long> commentCounts = commentRepository.countCommentsByPostIdIn(postIds).stream()
+                .collect(Collectors.toMap(row -> (String) row[0], row -> (Long) row[1]));
+
+        return posts.map(post -> toPostResponseWithCounts(
+                post,
+                userMap.get(post.getUserId()),
+                likeCounts.getOrDefault(post.getId(), 0L),
+                commentCounts.getOrDefault(post.getId(), 0L)));
     }
 
     @Transactional(readOnly = true)
@@ -102,6 +120,21 @@ public class FeedService {
         return commentRepository.findByPostIdOrderByCreatedAtAsc(postId).stream()
                 .map(c -> toCommentResponse(c, userRepository.findById(c.getUserId()).orElse(null)))
                 .toList();
+    }
+
+    /**
+     * Build a PostResponse using pre-computed counts (for batch-loaded feeds).
+     * Used by getFeed() to avoid N+1 count queries.
+     */
+    private PostResponse toPostResponseWithCounts(Post post, User user, long likeCount, long commentCount) {
+        PostResponse.UserInfo userInfo = user != null
+                ? PostResponse.UserInfo.builder().id(user.getId()).fullName(user.getFullName()).email(user.getEmail()).username(user.getUsername()).avatarUrl(user.getAvatarUrl()).build()
+                : PostResponse.UserInfo.builder().id(post.getUserId()).fullName("Unknown").email("").build();
+        return PostResponse.builder()
+                .id(post.getId()).content(post.getContent()).imageUrl(post.getImageUrl()).postType(post.getPostType())
+                .likeCount(likeCount).commentCount(commentCount)
+                .createdAt(post.getCreatedAt()).updatedAt(post.getUpdatedAt()).user(userInfo)
+                .build();
     }
 
     private PostResponse toPostResponse(Post post, User user) {
