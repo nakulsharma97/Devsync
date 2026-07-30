@@ -34,7 +34,7 @@ class AuthControllerTest {
 
     // Test-specific security config: disables CSRF and permits /api/auth/**
     // to match the production SecurityConfig rules.
-    @org.springframework.boot.test.context.TestConfiguration
+    @org.springframework.context.annotation.Configuration
     static class TestSecurityConfig {
         @Bean
         public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
