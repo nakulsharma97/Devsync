@@ -9,6 +9,7 @@ import com.devsync.feed.entity.Comment;
 import com.devsync.feed.entity.Post;
 import com.devsync.feed.repository.CommentRepository;
 import com.devsync.feed.repository.PostLikeRepository;
+import com.devsync.feed.entity.PostLike;
 import com.devsync.feed.repository.PostRepository;
 import com.devsync.user.entity.User;
 import com.devsync.user.repository.UserRepository;
@@ -415,7 +416,8 @@ class FeedServiceTest {
 
     @Test
     void getComments_shouldReturnCommentsWithBatchLoadedUsers() {
-        User user2 = User.builder().id("user-2").email("user2@example.com").fullName("User Two").username("user2").build();
+        User user2 = User.builder().email("user2@example.com").fullName("User Two").username("user2").build();
+        user2.setId("user-2");
         Comment c2 = Comment.builder().userId("user-2").postId("post-1").content("Nice!").build();
         c2.setId("comment-2");
         c2.setCreatedAt(Instant.now());
