@@ -43,8 +43,12 @@ public class MessageService {
         return toResponse(message);
     }
 
-    public List<MessageResponse> getRoomMessages(String roomId, int limit) {
-        return messageRepository.findByRoomIdOrderByCreatedAtAsc(roomId, PageRequest.of(0, limit)).stream()
+    public List<MessageResponse> getRoomMessages(String roomId, String userId) {
+        // Verify the user is a participant in this room (if it's a room, not DM)
+        if (roomId != null && !participantRepository.existsByRoomIdAndUserId(roomId, userId)) {
+            throw new IllegalArgumentException("You are not a participant in this room");
+        }
+        return messageRepository.findByRoomIdOrderByCreatedAtAsc(roomId, PageRequest.of(0, 100)).stream()
                 .map(this::toResponse)
                 .toList();
     }
@@ -56,16 +60,17 @@ public class MessageService {
     }
 
     public List<ConversationResponse> getConversations(String userId) {
-        List<ConversationResponse> conversations = new ArrayList<>();
+        Set<ConversationResponse> conversationSet = new LinkedHashSet<>();
 
         // Get all team rooms the user is part of
         List<TeamRoom> rooms = roomRepository.findRoomsByUserId(userId);
         for (TeamRoom room : rooms) {
-            List<Message> msgs = messageRepository.findByRoomIdOrderByCreatedAtAsc(room.getId());
-            Message lastMsg = msgs.isEmpty() ? null : msgs.get(msgs.size() - 1);
+            // Use pagination to get only the latest message
+            List<Message> msgs = messageRepository.findByRoomIdOrderByCreatedAtAsc(room.getId(), PageRequest.of(0, 1));
+            Message lastMsg = msgs.isEmpty() ? null : msgs.get(0);
             long count = participantRepository.countByRoomId(room.getId());
 
-            conversations.add(ConversationResponse.builder()
+            conversationSet.add(ConversationResponse.builder()
                     .id("room_" + room.getId())
                     .type("room")
                     .name(room.getName())
@@ -76,21 +81,10 @@ public class MessageService {
                     .build());
         }
 
-        // Get all unique DM partners
-        List<Message> sentDMs = messageRepository.findReceivedDMs(userId);
-        Set<String> dmPartners = new HashSet<>();
-        dmPartners.addAll(messageRepository.findConversation(userId, "", PageRequest.of(0, 1000)).stream()
-                .filter(m -> m.getRoomId() == null)
-                .map(m -> m.getSenderId().equals(userId) ? m.getReceiverId() : m.getSenderId())
-                .collect(Collectors.toSet()));
+        // Find DM partners via direct query — gets users the current user has exchanged messages with
+        List<String> dmPartnerIds = messageRepository.findDmPartnerIds(userId);
 
-        // Actually, get DM partners more efficiently
-        List<Message> allRelatedMessages = new ArrayList<>();
-        for (String roomId : messageRepository.findDistinctRoomIds()) {
-            allRelatedMessages.addAll(messageRepository.findByRoomIdOrderByCreatedAtAsc(roomId, PageRequest.of(0, 1)));
-        }
-
-        for (String partnerId : dmPartners) {
+        for (String partnerId : dmPartnerIds) {
             if (partnerId == null || partnerId.equals(userId)) continue;
             Optional<User> partnerOpt = userRepository.findById(partnerId);
             if (partnerOpt.isEmpty()) continue;
@@ -99,7 +93,7 @@ public class MessageService {
             List<Message> dmMsgs = messageRepository.findConversation(userId, partnerId, PageRequest.of(0, 1));
             Message lastMsg = dmMsgs.isEmpty() ? null : dmMsgs.get(0);
 
-            conversations.add(ConversationResponse.builder()
+            conversationSet.add(ConversationResponse.builder()
                     .id("dm_" + partnerId)
                     .type("direct")
                     .name(partner.getFullName())
@@ -112,6 +106,7 @@ public class MessageService {
                     .build());
         }
 
+        List<ConversationResponse> conversations = new ArrayList<>(conversationSet);
         conversations.sort((a, b) -> {
             if (a.getLastMessageAt() == null && b.getLastMessageAt() == null) return 0;
             if (a.getLastMessageAt() == null) return 1;
