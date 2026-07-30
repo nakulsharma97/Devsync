@@ -15,6 +15,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -27,18 +30,13 @@ public class ProjectService {
     public List<ProjectResponse> getUserProjects(String userId) {
         List<Project> owned = projectRepository.findByOwnerId(userId);
         List<Project> member = projectRepository.findProjectsByUserId(userId);
-        // Combine owned and member projects, dedup by ID
         Set<String> seen = new java.util.HashSet<>();
         List<ProjectResponse> results = new java.util.ArrayList<>();
         for (Project p : owned) {
-            if (seen.add(p.getId())) {
-                results.add(toResponse(p, userId));
-            }
+            if (seen.add(p.getId())) results.add(toResponse(p, userId));
         }
         for (Project p : member) {
-            if (seen.add(p.getId())) {
-                results.add(toResponse(p, userId));
-            }
+            if (seen.add(p.getId())) results.add(toResponse(p, userId));
         }
         return results;
     }
@@ -74,13 +72,11 @@ public class ProjectService {
     public ProjectResponse updateProject(String projectId, UpdateProjectRequest request, String userId) {
         Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new ResourceNotFoundException("Project", projectId));
-
         if (request.getName() != null) project.setName(request.getName());
         if (request.getDescription() != null) project.setDescription(request.getDescription());
         if (request.getStatus() != null) project.setStatus(Project.ProjectStatus.valueOf(request.getStatus()));
         if (request.getRepositoryUrl() != null) project.setRepositoryUrl(request.getRepositoryUrl());
         if (request.getImageUrl() != null) project.setImageUrl(request.getImageUrl());
-
         project = projectRepository.save(project);
         return toResponse(project, userId);
     }
@@ -89,12 +85,8 @@ public class ProjectService {
     public void deleteProject(String projectId, String currentUserId) {
         Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new ResourceNotFoundException("Project", projectId));
-
-        // Only the project owner can delete the project
-        if (!project.getOwnerId().equals(currentUserId)) {
+        if (!project.getOwnerId().equals(currentUserId))
             throw new IllegalArgumentException("Only the project owner can delete this project");
-        }
-
         memberRepository.findByProjectId(projectId).forEach(memberRepository::delete);
         projectRepository.deleteById(projectId);
     }
@@ -103,43 +95,26 @@ public class ProjectService {
     public void addMember(String projectId, String userId, String role, String currentUserId) {
         Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new ResourceNotFoundException("Project", projectId));
-
-        // Only owner or existing members with ADMIN role can add members
         if (!project.getOwnerId().equals(currentUserId)) {
             boolean isAdmin = memberRepository.findByProjectIdAndUserId(projectId, currentUserId)
-                    .filter(m -> m.getRole() == ProjectMember.Role.ADMIN)
-                    .isPresent();
-            if (!isAdmin) {
-                throw new IllegalArgumentException("You don't have permission to add members");
-            }
+                    .filter(m -> m.getRole() == ProjectMember.Role.ADMIN).isPresent();
+            if (!isAdmin) throw new IllegalArgumentException("No permission to add members");
         }
-
-        if (memberRepository.existsByProjectIdAndUserId(projectId, userId)) {
+        if (memberRepository.existsByProjectIdAndUserId(projectId, userId))
             throw new IllegalArgumentException("User is already a member");
-        }
-        ProjectMember member = ProjectMember.builder()
-                .projectId(projectId)
-                .userId(userId)
-                .role(ProjectMember.Role.valueOf(role != null ? role : "MEMBER"))
-                .build();
-        memberRepository.save(member);
+        memberRepository.save(ProjectMember.builder()
+                .projectId(projectId).userId(userId)
+                .role(ProjectMember.Role.valueOf(role != null ? role : "MEMBER")).build());
     }
 
     @Transactional
     public void removeMember(String projectId, String userId, String currentUserId) {
         Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new ResourceNotFoundException("Project", projectId));
-
-        // Only the project owner can remove members
-        if (!project.getOwnerId().equals(currentUserId)) {
+        if (!project.getOwnerId().equals(currentUserId))
             throw new IllegalArgumentException("Only the project owner can remove members");
-        }
-
-        // Cannot remove the owner themselves
-        if (project.getOwnerId().equals(userId)) {
+        if (project.getOwnerId().equals(userId))
             throw new IllegalArgumentException("Cannot remove the project owner");
-        }
-
         ProjectMember member = memberRepository.findByProjectIdAndUserId(projectId, userId)
                 .orElseThrow(() -> new ResourceNotFoundException("ProjectMember", projectId + ":" + userId));
         memberRepository.delete(member);
@@ -147,15 +122,17 @@ public class ProjectService {
 
     private ProjectResponse toResponse(Project project, String currentUserId) {
         List<ProjectMember> members = memberRepository.findByProjectId(project.getId());
-        long memberCount = members.size();
+
+        // Batch-load all member users (fixes N+1)
+        Set<String> userIds = members.stream().map(ProjectMember::getUserId).collect(Collectors.toSet());
+        Map<String, User> userMap = userRepository.findAllById(userIds).stream()
+                .collect(Collectors.toMap(User::getId, u -> u));
 
         List<ProjectResponse.MemberDto> memberDtos = members.stream()
                 .map(m -> {
-                    User user = userRepository.findById(m.getUserId()).orElse(null);
+                    User user = userMap.get(m.getUserId());
                     return ProjectResponse.MemberDto.builder()
-                            .id(m.getId())
-                            .userId(m.getUserId())
-                            .role(m.getRole().name())
+                            .id(m.getId()).userId(m.getUserId()).role(m.getRole().name())
                             .fullName(user != null ? user.getFullName() : "Unknown")
                             .email(user != null ? user.getEmail() : "")
                             .avatarUrl(user != null ? user.getAvatarUrl() : null)
@@ -164,17 +141,11 @@ public class ProjectService {
                 .toList();
 
         return ProjectResponse.builder()
-                .id(project.getId())
-                .name(project.getName())
-                .description(project.getDescription())
-                .ownerId(project.getOwnerId())
-                .status(project.getStatus().name())
-                .repositoryUrl(project.getRepositoryUrl())
-                .imageUrl(project.getImageUrl())
-                .memberCount((int) memberCount)
-                .members(memberDtos)
-                .createdAt(project.getCreatedAt())
-                .updatedAt(project.getUpdatedAt())
+                .id(project.getId()).name(project.getName()).description(project.getDescription())
+                .ownerId(project.getOwnerId()).status(project.getStatus().name())
+                .repositoryUrl(project.getRepositoryUrl()).imageUrl(project.getImageUrl())
+                .memberCount(members.size()).members(memberDtos)
+                .createdAt(project.getCreatedAt()).updatedAt(project.getUpdatedAt())
                 .build();
     }
 }

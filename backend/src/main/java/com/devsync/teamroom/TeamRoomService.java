@@ -1,8 +1,6 @@
 package com.devsync.teamroom;
 
 import com.devsync.common.ResourceNotFoundException;
-import com.devsync.project.entity.Project;
-import com.devsync.project.repository.ProjectRepository;
 import com.devsync.teamroom.dto.CreateRoomRequest;
 import com.devsync.teamroom.dto.InviteRequest;
 import com.devsync.teamroom.dto.TeamRoomResponse;
@@ -17,6 +15,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -36,51 +37,44 @@ public class TeamRoomService {
     @Transactional
     public TeamRoomResponse createRoom(CreateRoomRequest request, String createdBy) {
         TeamRoom room = TeamRoom.builder()
-                .name(request.getName())
-                .projectId(request.getProjectId())
-                .description(request.getDescription())
-                .createdBy(createdBy)
+                .name(request.getName()).projectId(request.getProjectId())
+                .description(request.getDescription()).createdBy(createdBy)
                 .build();
         room = roomRepository.save(room);
-
-        TeamRoomParticipant creator = TeamRoomParticipant.builder()
-                .roomId(room.getId())
-                .userId(createdBy)
-                .build();
-        participantRepository.save(creator);
-
+        participantRepository.save(TeamRoomParticipant.builder().roomId(room.getId()).userId(createdBy).build());
         return toResponse(room);
     }
 
     public TeamRoomResponse getRoom(String roomId) {
-        TeamRoom room = roomRepository.findById(roomId)
-                .orElseThrow(() -> new ResourceNotFoundException("TeamRoom", roomId));
-        return toResponse(room);
+        return toResponse(roomRepository.findById(roomId)
+                .orElseThrow(() -> new ResourceNotFoundException("TeamRoom", roomId)));
     }
 
     @Transactional
     public TeamRoomResponse inviteToRoom(String roomId, InviteRequest request, String invitedBy) {
-        TeamRoom room = roomRepository.findById(roomId)
-                .orElseThrow(() -> new ResourceNotFoundException("TeamRoom", roomId));
-
-        if (participantRepository.existsByRoomIdAndUserId(roomId, request.getUserId())) {
+        roomRepository.findById(roomId).orElseThrow(() -> new ResourceNotFoundException("TeamRoom", roomId));
+        if (participantRepository.existsByRoomIdAndUserId(roomId, request.getUserId()))
             throw new IllegalArgumentException("User is already a participant");
-        }
-
-        TeamRoomParticipant participant = TeamRoomParticipant.builder()
-                .roomId(roomId)
-                .userId(request.getUserId())
-                .invitedBy(invitedBy)
-                .build();
-        participantRepository.save(participant);
-
-        return toResponse(room);
+        participantRepository.save(TeamRoomParticipant.builder()
+                .roomId(roomId).userId(request.getUserId()).invitedBy(invitedBy).build());
+        return toResponse(roomRepository.findById(roomId).get());
     }
 
     public List<TeamRoomResponse.ParticipantDto> getParticipants(String roomId) {
-        return participantRepository.findByRoomId(roomId).stream()
+        return buildParticipantDtos(roomId);
+    }
+
+    private List<TeamRoomResponse.ParticipantDto> buildParticipantDtos(String roomId) {
+        List<TeamRoomParticipant> participants = participantRepository.findByRoomId(roomId);
+        if (participants.isEmpty()) return List.of();
+
+        Set<String> userIds = participants.stream().map(TeamRoomParticipant::getUserId).collect(Collectors.toSet());
+        Map<String, User> userMap = userRepository.findAllById(userIds).stream()
+                .collect(Collectors.toMap(User::getId, u -> u));
+
+        return participants.stream()
                 .map(p -> {
-                    User user = userRepository.findById(p.getUserId()).orElse(null);
+                    User user = userMap.get(p.getUserId());
                     return TeamRoomResponse.ParticipantDto.builder()
                             .userId(p.getUserId())
                             .fullName(user != null ? user.getFullName() : "Unknown")
@@ -96,32 +90,16 @@ public class TeamRoomService {
         long count = participantRepository.countByRoomId(room.getId());
         String projectName = null;
         if (room.getProjectId() != null) {
-            projectRepository.findById(room.getProjectId())
-                    .ifPresent(p -> projectName = p.getName());
+            projectName = projectRepository.findById(room.getProjectId())
+                    .map(Project::getName).orElse(null);
         }
 
-        List<TeamRoomResponse.ParticipantDto> participants = participantRepository.findByRoomId(room.getId()).stream()
-                .map(p -> {
-                    User user = userRepository.findById(p.getUserId()).orElse(null);
-                    return TeamRoomResponse.ParticipantDto.builder()
-                            .userId(p.getUserId())
-                            .fullName(user != null ? user.getFullName() : "Unknown")
-                            .email(user != null ? user.getEmail() : "")
-                            .avatarUrl(user != null ? user.getAvatarUrl() : null)
-                            .invitedBy(p.getInvitedBy())
-                            .build();
-                })
-                .toList();
-
         return TeamRoomResponse.builder()
-                .id(room.getId())
-                .name(room.getName())
-                .projectId(room.getProjectId())
-                .projectName(projectName)
-                .description(room.getDescription())
-                .createdBy(room.getCreatedBy())
+                .id(room.getId()).name(room.getName())
+                .projectId(room.getProjectId()).projectName(projectName)
+                .description(room.getDescription()).createdBy(room.getCreatedBy())
                 .participantCount(count)
-                .participants(participants)
+                .participants(buildParticipantDtos(room.getId()))
                 .createdAt(room.getCreatedAt())
                 .build();
     }

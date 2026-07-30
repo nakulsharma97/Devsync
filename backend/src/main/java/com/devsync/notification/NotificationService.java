@@ -33,61 +33,40 @@ public class NotificationService {
     public void markAsRead(String notificationId, String userId) {
         Notification notification = notificationRepository.findById(notificationId)
                 .orElseThrow(() -> new ResourceNotFoundException("Notification", notificationId));
-        if (!notification.getUserId().equals(userId)) {
+        if (!notification.getUserId().equals(userId))
             throw new IllegalArgumentException("Not your notification");
-        }
         notification.setRead(true);
         notificationRepository.save(notification);
     }
 
     @Transactional
     public void markAllAsRead(String userId) {
-        List<Notification> unread = notificationRepository.findByUserIdAndReadFalseOrderByCreatedAtDesc(userId);
-        unread.forEach(n -> n.setRead(true));
-        notificationRepository.saveAll(unread);
+        notificationRepository.markAllAsRead(userId);
     }
 
     @Transactional
-    public NotificationResponse createNotification(
-            String userId, String type, String title, String message,
+    public NotificationResponse createNotification(String userId, String type, String title, String message,
             String actorId, String actorName, String actorAvatar,
             String referenceId, String referenceType, String actionUrl) {
 
-        Notification notification = Notification.builder()
-                .userId(userId)
-                .type(type)
-                .title(title)
-                .message(message)
-                .actorId(actorId)
-                .actorName(actorName)
-                .actorAvatar(actorAvatar)
-                .referenceId(referenceId)
-                .referenceType(referenceType)
-                .actionUrl(actionUrl)
-                .build();
+        Notification notification = notificationRepository.save(Notification.builder()
+                .userId(userId).type(type).title(title).message(message)
+                .actorId(actorId).actorName(actorName).actorAvatar(actorAvatar)
+                .referenceId(referenceId).referenceType(referenceType).actionUrl(actionUrl)
+                .build());
 
-        notification = notificationRepository.save(notification);
         NotificationResponse response = toResponse(notification);
-
-        // Push real-time notification via WebSocket
         messagingTemplate.convertAndSendToUser(userId, "/queue/notifications", response);
-
         return response;
     }
 
     private NotificationResponse toResponse(Notification notification) {
         return NotificationResponse.builder()
-                .id(notification.getId())
-                .type(notification.getType())
-                .title(notification.getTitle())
-                .message(notification.getMessage())
-                .actorId(notification.getActorId())
-                .actorName(notification.getActorName())
-                .actorAvatar(notification.getActorAvatar())
-                .referenceId(notification.getReferenceId())
-                .referenceType(notification.getReferenceType())
-                .read(notification.isRead())
-                .actionUrl(notification.getActionUrl())
+                .id(notification.getId()).type(notification.getType()).title(notification.getTitle())
+                .message(notification.getMessage()).actorId(notification.getActorId())
+                .actorName(notification.getActorName()).actorAvatar(notification.getActorAvatar())
+                .referenceId(notification.getReferenceId()).referenceType(notification.getReferenceType())
+                .read(notification.isRead()).actionUrl(notification.getActionUrl())
                 .createdAt(notification.getCreatedAt())
                 .build();
     }

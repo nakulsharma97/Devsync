@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -56,11 +57,7 @@ public class UserService {
                     .map(this::toResponse)
                     .toList();
         }
-        return userRepository.findAll().stream()
-                .filter(u -> !u.getId().equals(excludeUserId))
-                .filter(u -> u.getFullName().toLowerCase().contains(query.toLowerCase())
-                        || u.getEmail().toLowerCase().contains(query.toLowerCase())
-                        || (u.getUsername() != null && u.getUsername().toLowerCase().contains(query.toLowerCase())))
+        return userRepository.searchUsers(query, excludeUserId).stream()
                 .map(this::toResponse)
                 .toList();
     }

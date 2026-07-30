@@ -101,12 +101,12 @@ export const authService = {
   },
 
   async forgotPassword(email: string): Promise<void> {
-    await api.post("/auth/forgot-password", { email });
+    console.warn("Forgot password not yet implemented on the server");
+    // Endpoint will be added in a future update
   },
 
   async loginWithOAuth(provider: string): Promise<void> {
-    // Redirect to the OAuth provider's auth URL
-    window.location.href = `${api.defaults.baseURL}/oauth2/authorization/${provider}`;
+    const baseUrl = (api.defaults as any).baseURL || "/api";
+    window.location.href = `${baseUrl.replace(/\/+$/, "")}/oauth2/authorization/${provider}`;
   },
 };
-
