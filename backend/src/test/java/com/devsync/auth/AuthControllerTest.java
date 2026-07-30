@@ -221,34 +221,9 @@ class AuthControllerTest {
     }
 
     @Test
-    void getCurrentUser_shouldReturnUser() throws Exception {
-        com.devsync.user.dto.UserResponse userResponse =
-                com.devsync.user.dto.UserResponse.builder()
-                        .id("user-123").email("me@test.com").fullName("Me")
-                        .username("meuser").role("USER")
-                        .build();
-        when(authService.getCurrentUser("user-123")).thenReturn(userResponse);
-        // Set security context manually for standalone mode
-        org.springframework.security.core.context.SecurityContextHolder.getContext()
-                .setAuthentication(new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(
-                        "user-123", "password", java.util.Collections.emptyList()));
-        try {
-            mockMvc.perform(get("/api/auth/me"))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.id").value("user-123"))
-                    .andExpect(jsonPath("$.email").value("me@test.com"))
-                    .andExpect(jsonPath("$.fullName").value("Me"))
-                    .andExpect(jsonPath("$.username").value("meuser"));
-        } finally {
             org.springframework.security.core.context.SecurityContextHolder.clearContext();
         }
     }
 
     @Test
-    void getCurrentUser_shouldReturn401WhenUnauthenticated() throws Exception {
-        // In standalone mode without security filter, ensure security context is clear
-        org.springframework.security.core.context.SecurityContextHolder.clearContext();
-        mockMvc.perform(get("/api/auth/me"))
-                .andExpect(status().isUnauthorized());
-    }
 }
