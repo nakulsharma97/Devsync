@@ -98,15 +98,13 @@ public class AuthService {
 
     public void sendOtp(String email) {
         if (!userRepository.existsByEmail(email)) {
-            // Don't reveal whether email exists — silently "send" OTP
             return;
         }
         String otp = otpService.generateOtp(email);
         try {
             emailService.sendOtpEmail(email, otp);
         } catch (Exception e) {
-            // Log error without exposing the OTP value in logs
-            log.warn("Failed to send OTP email to {}: {}. Consider configuring SMTP credentials.", email, e.getMessage());
+            log.warn("Failed to send OTP email to {}: {}", email, e.getMessage());
         }
     }
 
@@ -181,7 +179,5 @@ public class AuthService {
 
     public UserResponse getCurrentUser(String userId) {
         return userService.getUserById(userId);
-    }
-
     }
 }
