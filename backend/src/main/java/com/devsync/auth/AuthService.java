@@ -1,6 +1,7 @@
 package com.devsync.auth;
 
 import com.devsync.auth.dto.*;
+import com.devsync.user.UserService;
 import com.devsync.user.dto.UserResponse;
 import com.devsync.user.entity.User;
 import com.devsync.user.repository.UserRepository;
@@ -25,6 +26,7 @@ public class AuthService {
     private final JwtTokenProvider jwtTokenProvider;
     private final OtpService otpService;
     private final EmailService emailService;
+    private final UserService userService;
 
     @Transactional
     public AuthResponse register(RegisterRequest request) {
@@ -178,30 +180,8 @@ public class AuthService {
     }
 
     public UserResponse getCurrentUser(String userId) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new AuthException("User not found"));
-        return toUserResponse(user);
+        return userService.getUserById(userId);
     }
 
-    private UserResponse toUserResponse(User user) {
-        return UserResponse.builder()
-                .id(user.getId())
-                .email(user.getEmail())
-                .fullName(user.getFullName())
-                .username(user.getUsername())
-                .avatarUrl(user.getAvatarUrl())
-                .bio(user.getBio())
-                .jobTitle(user.getJobTitle())
-                .company(user.getCompany())
-                .location(user.getLocation())
-                .githubUrl(user.getGithubUrl())
-                .twitterUrl(user.getTwitterUrl())
-                .websiteUrl(user.getWebsiteUrl())
-                .role(user.getRole().name())
-                .emailVerified(user.isEmailVerified())
-                .authProvider(user.getAuthProvider())
-                .createdAt(user.getCreatedAt())
-                .lastLoginAt(user.getLastLoginAt())
-                .build();
     }
 }
