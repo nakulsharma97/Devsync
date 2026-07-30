@@ -43,6 +43,7 @@ function App() {
           <Routes>
             <Route path="/" element={<Landing />} />
             <Route path="/auth" element={<AuthPage />} />
+            <Route path="/auth/callback" element={<AuthPage />} />
             <Route
               element={
                 <ProtectedRoute>

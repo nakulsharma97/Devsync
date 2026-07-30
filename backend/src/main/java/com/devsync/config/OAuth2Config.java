@@ -89,7 +89,7 @@ public class OAuth2Config {
             // Use URL fragment (#) instead of query parameters (?) to prevent tokens
             // from appearing in server logs, browser history, or Referer headers.
             // The frontend reads tokens from window.location.hash.
-            response.sendRedirect(frontendUrl + "/auth/callback#access_token=" + accessToken
+            response.sendRedirect(frontendUrl + "/auth#access_token=" + accessToken
                     + "&refresh_token=" + refreshToken);
         };
     }
