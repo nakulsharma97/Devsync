@@ -12,7 +12,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors;
-import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
+
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
@@ -37,7 +37,6 @@ class AuthControllerTest {
         objectMapper.registerModule(new JavaTimeModule());
         mockMvc = MockMvcBuilders.standaloneSetup(authController)
                 .setControllerAdvice(new GlobalExceptionHandler())
-                .apply(org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity())
                 .build();
     }
 
@@ -227,17 +226,26 @@ class AuthControllerTest {
                         .username("meuser").role("USER")
                         .build();
         when(authService.getCurrentUser("user-123")).thenReturn(userResponse);
-        mockMvc.perform(get("/api/auth/me")
-                .with(SecurityMockMvcRequestPostProcessors.user("user-123").roles("USER")))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value("user-123"))
-                .andExpect(jsonPath("$.email").value("me@test.com"))
-                .andExpect(jsonPath("$.fullName").value("Me"))
-                .andExpect(jsonPath("$.username").value("meuser"));
+        // Set security context manually for standalone mode
+        org.springframework.security.core.context.SecurityContextHolder.getContext()
+                .setAuthentication(new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(
+                        "user-123", "password", java.util.Collections.emptyList()));
+        try {
+            mockMvc.perform(get("/api/auth/me"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.id").value("user-123"))
+                    .andExpect(jsonPath("$.email").value("me@test.com"))
+                    .andExpect(jsonPath("$.fullName").value("Me"))
+                    .andExpect(jsonPath("$.username").value("meuser"));
+        } finally {
+            org.springframework.security.core.context.SecurityContextHolder.clearContext();
+        }
     }
 
     @Test
     void getCurrentUser_shouldReturn401WhenUnauthenticated() throws Exception {
+        // In standalone mode without security filter, ensure security context is clear
+        org.springframework.security.core.context.SecurityContextHolder.clearContext();
         mockMvc.perform(get("/api/auth/me"))
                 .andExpect(status().isUnauthorized());
     }
