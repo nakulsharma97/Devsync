@@ -10,6 +10,8 @@ import com.devsync.kanban.entity.Task;
 import com.devsync.kanban.repository.BoardColumnRepository;
 import com.devsync.kanban.repository.BoardRepository;
 import com.devsync.kanban.repository.TaskRepository;
+import com.devsync.project.entity.Project;
+import com.devsync.project.repository.ProjectRepository;
 import com.devsync.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -27,6 +29,7 @@ public class BoardService {
     private final BoardColumnRepository columnRepository;
     private final TaskRepository taskRepository;
     private final UserRepository userRepository;
+    private final ProjectRepository projectRepository;
 
     public BoardResponse getBoard(String boardId) {
         Board board = boardRepository.findById(boardId)
@@ -36,48 +39,35 @@ public class BoardService {
 
     public BoardResponse getProjectBoard(String projectId) {
         List<Board> boards = boardRepository.findByProjectId(projectId);
-        if (boards.isEmpty()) {
-            return null;
-        }
-        return toResponse(boards.get(0));
+        return boards.isEmpty() ? null : toResponse(boards.get(0));
     }
 
     @Transactional
     public BoardResponse createBoard(String name, String projectId, String createdBy, List<String> columnNames) {
-        Board board = Board.builder()
-                .name(name)
-                .projectId(projectId)
-                .createdBy(createdBy)
-                .build();
-        board = boardRepository.save(board);
+        Board board = boardRepository.save(Board.builder()
+                .name(name).projectId(projectId).createdBy(createdBy).build());
 
         for (int i = 0; i < columnNames.size(); i++) {
-            BoardColumn column = BoardColumn.builder()
-                    .boardId(board.getId())
-                    .name(columnNames.get(i))
-                    .position(i)
-                    .build();
-            columnRepository.save(column);
+            columnRepository.save(BoardColumn.builder()
+                    .boardId(board.getId()).name(columnNames.get(i)).position(i).build());
         }
-
         return toResponse(board);
     }
 
     @Transactional
     public BoardResponse.TaskDto createTask(CreateTaskRequest request) {
-        Task task = Task.builder()
-                .title(request.getTitle())
-                .description(request.getDescription())
+        // Use MAX(position) + 1 to avoid race conditions
+        int nextPosition = taskRepository.findMaxPositionByColumnId(request.getColumnId()).orElse(-1) + 1;
+
+        Task task = taskRepository.save(Task.builder()
+                .title(request.getTitle()).description(request.getDescription())
                 .columnId(request.getColumnId())
                 .boardId(getBoardIdFromColumn(request.getColumnId()))
-                .position(countTasksInColumn(request.getColumnId()))
+                .position(nextPosition)
                 .assigneeId(request.getAssigneeId())
-                .priority(request.getPriority() != null ?
-                        Task.Priority.valueOf(request.getPriority()) : Task.Priority.MEDIUM)
-                .dueDate(request.getDueDate())
-                .labels(request.getLabels())
-                .build();
-        task = taskRepository.save(task);
+                .priority(request.getPriority() != null ? Task.Priority.valueOf(request.getPriority()) : Task.Priority.MEDIUM)
+                .dueDate(request.getDueDate()).labels(request.getLabels())
+                .build());
         return toTaskDto(task);
     }
 
@@ -91,35 +81,30 @@ public class BoardService {
         task.setPosition(request.getNewPosition());
         taskRepository.save(task);
 
-        // Reorder tasks in old column
         if (!oldColumnId.equals(request.getNewColumnId())) {
-            List<Task> oldColumnTasks = taskRepository.findByColumnIdOrderByPositionAsc(oldColumnId);
-            for (int i = 0; i < oldColumnTasks.size(); i++) {
-                oldColumnTasks.get(i).setPosition(i);
-            }
-            taskRepository.saveAll(oldColumnTasks);
+            reorderColumn(oldColumnId);
         }
+        reorderColumn(request.getNewColumnId());
+    }
 
-        // Reorder tasks in new column
-        List<Task> newColumnTasks = taskRepository.findByColumnIdOrderByPositionAsc(request.getNewColumnId());
-        for (int i = 0; i < newColumnTasks.size(); i++) {
-            newColumnTasks.get(i).setPosition(i);
+    private void reorderColumn(String columnId) {
+        List<Task> tasks = taskRepository.findByColumnIdOrderByPositionAsc(columnId);
+        for (int i = 0; i < tasks.size(); i++) {
+            tasks.get(i).setPosition(i);
         }
-        taskRepository.saveAll(newColumnTasks);
+        taskRepository.saveAll(tasks);
     }
 
     @Transactional
     public Task updateTask(String taskId, CreateTaskRequest request) {
         Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new ResourceNotFoundException("Task", taskId));
-
         if (request.getTitle() != null) task.setTitle(request.getTitle());
         if (request.getDescription() != null) task.setDescription(request.getDescription());
         if (request.getAssigneeId() != null) task.setAssigneeId(request.getAssigneeId());
         if (request.getPriority() != null) task.setPriority(Task.Priority.valueOf(request.getPriority()));
         if (request.getDueDate() != null) task.setDueDate(request.getDueDate());
         if (request.getLabels() != null) task.setLabels(request.getLabels());
-
         return taskRepository.save(task);
     }
 
@@ -129,68 +114,38 @@ public class BoardService {
     }
 
     private String getBoardIdFromColumn(String columnId) {
-        BoardColumn column = columnRepository.findById(columnId)
-                .orElseThrow(() -> new ResourceNotFoundException("BoardColumn", columnId));
-        return column.getBoardId();
-    }
-
-    private int countTasksInColumn(String columnId) {
-        return taskRepository.findByColumnIdOrderByPositionAsc(columnId).size();
+        return columnRepository.findById(columnId)
+                .orElseThrow(() -> new ResourceNotFoundException("BoardColumn", columnId)).getBoardId();
     }
 
     private BoardResponse toResponse(Board board) {
         List<BoardColumn> columns = columnRepository.findByBoardIdOrderByPositionAsc(board.getId());
         List<BoardResponse.ColumnDto> columnDtos = columns.stream()
-                .map(col -> {
-                    List<Task> tasks = taskRepository.findByColumnIdOrderByPositionAsc(col.getId());
-                    return BoardResponse.ColumnDto.builder()
-                            .id(col.getId())
-                            .name(col.getName())
-                            .position(col.getPosition())
-                            .color(col.getColor())
-                            .tasks(tasks.stream().map(this::toTaskDto).toList())
-                            .build();
-                })
+                .map(col -> BoardResponse.ColumnDto.builder()
+                        .id(col.getId()).name(col.getName()).position(col.getPosition()).color(col.getColor())
+                        .tasks(taskRepository.findByColumnIdOrderByPositionAsc(col.getId()).stream()
+                                .map(this::toTaskDto).toList())
+                        .build())
                 .toList();
-
         return BoardResponse.builder()
-                .id(board.getId())
-                .name(board.getName())
-                .projectId(board.getProjectId())
-                .description(board.getDescription())
-                .columns(columnDtos)
-                .createdAt(board.getCreatedAt())
-                .build();
+                .id(board.getId()).name(board.getName()).projectId(board.getProjectId())
+                .description(board.getDescription()).columns(columnDtos)
+                .createdAt(board.getCreatedAt()).build();
     }
 
     private BoardResponse.TaskDto toTaskDto(Task task) {
-        String assigneeName = null;
-        String assigneeAvatar = null;
+        String assigneeName = null, assigneeAvatar = null;
         if (task.getAssigneeId() != null) {
             var user = userRepository.findById(task.getAssigneeId()).orElse(null);
-            if (user != null) {
-                assigneeName = user.getFullName();
-                assigneeAvatar = user.getAvatarUrl();
-            }
+            if (user != null) { assigneeName = user.getFullName(); assigneeAvatar = user.getAvatarUrl(); }
         }
-
-        List<String> labelsList = task.getLabels() != null && !task.getLabels().isBlank()
-                ? Arrays.asList(task.getLabels().split(","))
-                : List.of();
-
         return BoardResponse.TaskDto.builder()
-                .id(task.getId())
-                .title(task.getTitle())
-                .description(task.getDescription())
-                .columnId(task.getColumnId())
-                .position(task.getPosition())
-                .assigneeId(task.getAssigneeId())
-                .assigneeName(assigneeName)
-                .assigneeAvatar(assigneeAvatar)
-                .priority(task.getPriority().name())
-                .dueDate(task.getDueDate())
-                .labels(labelsList)
-                .createdAt(task.getCreatedAt())
-                .build();
+                .id(task.getId()).title(task.getTitle()).description(task.getDescription())
+                .columnId(task.getColumnId()).position(task.getPosition())
+                .assigneeId(task.getAssigneeId()).assigneeName(assigneeName).assigneeAvatar(assigneeAvatar)
+                .priority(task.getPriority().name()).dueDate(task.getDueDate())
+                .labels(task.getLabels() != null && !task.getLabels().isBlank()
+                        ? Arrays.asList(task.getLabels().split(",")) : List.of())
+                .createdAt(task.getCreatedAt()).build();
     }
 }
