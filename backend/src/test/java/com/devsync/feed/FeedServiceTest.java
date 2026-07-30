@@ -57,13 +57,13 @@ class FeedServiceTest {
         feedService = new FeedService(postRepository, commentRepository, postLikeRepository, userRepository);
 
         testUser = User.builder()
-                .id("user-1")
                 .email("user@example.com")
                 .fullName("Test User")
                 .username("testuser")
                 .avatarUrl("https://avatar.example.com/user-1")
                 .bio("A test user")
                 .build();
+        testUser.setId("user-1");
 
         // BaseEntity sets id via @GeneratedValue, but for mocks we construct directly
         testPost = Post.builder()
@@ -192,7 +192,8 @@ class FeedServiceTest {
         post2.setCreatedAt(Instant.now());
         post2.setUpdatedAt(Instant.now());
 
-        User user2 = User.builder().id("user-2").email("user2@example.com").fullName("User Two").build();
+        User user2 = User.builder().email("user2@example.com").fullName("User Two").build();
+        user2.setId("user-2");
 
         Page<Post> page = new PageImpl<>(List.of(testPost, post2));
         when(postRepository.findAllByOrderByCreatedAtDesc(PageRequest.of(0, 20))).thenReturn(page);
