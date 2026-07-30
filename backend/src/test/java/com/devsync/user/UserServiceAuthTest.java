@@ -33,19 +33,20 @@ class UserServiceAuthTest {
         userService = new UserService(userRepository, projectMemberRepository);
 
         targetUser = User.builder()
-                .id("user-2")
                 .email("other@example.com")
                 .fullName("Other User")
                 .username("otheruser")
                 .role(User.Role.USER)
                 .build();
+        targetUser.setId("user-2");
     }
 
     @Test
     void getUserByIdWithAuth_shouldSucceed_WhenOwnProfile() {
         User me = User.builder()
-                .id("user-1").email("me@test.com").fullName("Me")
+                .email("me@test.com").fullName("Me")
                 .username("meuser").role(User.Role.USER).build();
+        me.setId("user-1");
 
         when(userRepository.findById("user-1")).thenReturn(Optional.of(me));
 
@@ -105,8 +106,9 @@ class UserServiceAuthTest {
     void getUserByIdWithAuth_shouldSucceed_WhenBothHaveNoProjects() {
         // Edge case: neither user is in any project, but they're viewing own profile
         User me = User.builder()
-                .id("user-1").email("me@test.com").fullName("Me")
+                .email("me@test.com").fullName("Me")
                 .username("meuser").role(User.Role.USER).build();
+        me.setId("user-1");
 
         when(userRepository.findById("user-1")).thenReturn(Optional.of(me));
 
