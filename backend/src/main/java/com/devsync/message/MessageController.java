@@ -27,9 +27,8 @@ public class MessageController {
     @GetMapping("/room/{roomId}")
     public ResponseEntity<List<MessageResponse>> getRoomMessages(
             @PathVariable String roomId,
-            @RequestParam(defaultValue = "100") int limit,
             @AuthenticationPrincipal UserDetails userDetails) {
-        return ResponseEntity.ok(messageService.getRoomMessages(roomId, limit, userDetails.getUsername()));
+        return ResponseEntity.ok(messageService.getRoomMessages(roomId, userDetails.getUsername()));
     }
 
     @GetMapping("/dm/{otherUserId}")

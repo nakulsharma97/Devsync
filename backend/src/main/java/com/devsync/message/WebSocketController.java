@@ -2,6 +2,7 @@ package com.devsync.message;
 
 import com.devsync.message.dto.MessageResponse;
 import com.devsync.message.dto.SendMessageRequest;
+import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
@@ -22,14 +23,11 @@ public class WebSocketController {
         MessageResponse response = messageService.sendMessage(request, userId);
 
         if (request.getRoomId() != null) {
-            // Send to room topic
             messagingTemplate.convertAndSend("/topic/room/" + request.getRoomId(), response);
         }
 
         if (request.getReceiverId() != null) {
-            // Send to specific user
             messagingTemplate.convertAndSendToUser(request.getReceiverId(), "/queue/messages", response);
-            // Also send back to sender
             messagingTemplate.convertAndSendToUser(userId, "/queue/messages", response);
         }
     }
@@ -47,5 +45,11 @@ public class WebSocketController {
         }
     }
 
-    public record TypingIndicator(String roomId, String receiverId, String userId, boolean typing) {}
+    @Data
+    public static class TypingIndicator {
+        private String roomId;
+        private String receiverId;
+        private String userId;
+        private boolean typing;
+    }
 }
