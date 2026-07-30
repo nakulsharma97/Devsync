@@ -9,6 +9,8 @@ import com.devsync.teamroom.entity.TeamRoomParticipant;
 import com.devsync.teamroom.repository.TeamRoomParticipantRepository;
 import com.devsync.teamroom.repository.TeamRoomRepository;
 import com.devsync.user.entity.User;
+import com.devsync.project.entity.Project;
+import com.devsync.project.repository.ProjectRepository;
 import com.devsync.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
