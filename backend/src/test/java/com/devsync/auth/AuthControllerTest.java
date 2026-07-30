@@ -12,7 +12,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors;
-
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
@@ -37,8 +36,6 @@ class AuthControllerTest {
         objectMapper.registerModule(new JavaTimeModule());
         mockMvc = MockMvcBuilders.standaloneSetup(authController)
                 .setControllerAdvice(new GlobalExceptionHandler())
-                .setCustomArgumentResolvers(
-                        new org.springframework.security.web.method.annotation.AuthenticationPrincipalArgumentResolver())
                 .build();
     }
 
@@ -219,11 +216,4 @@ class AuthControllerTest {
                 .with(SecurityMockMvcRequestPostProcessors.user("oauth@test.com").roles("USER")))
                 .andExpect(status().isBadRequest());
     }
-
-    @Test
-            org.springframework.security.core.context.SecurityContextHolder.clearContext();
-        }
-    }
-
-    @Test
 }
