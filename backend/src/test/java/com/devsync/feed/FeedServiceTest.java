@@ -124,7 +124,6 @@ class FeedServiceTest {
         verify(postRepository).save(postCaptor.capture());
         Post saved = postCaptor.getValue();
         assertThat(saved.getUserId()).isEqualTo("user-1");
-        assertThat(saved.getContent()).isNotEqualTo("Hello DevSync!").contains("Hello DevSync!");
         // Content is HTML-escaped but there's nothing to escape, so should be same
         assertThat(saved.getContent()).isEqualTo("Hello DevSync!");
     }
