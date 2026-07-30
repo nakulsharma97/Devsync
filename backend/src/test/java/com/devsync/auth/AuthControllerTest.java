@@ -37,6 +37,8 @@ class AuthControllerTest {
         objectMapper.registerModule(new JavaTimeModule());
         mockMvc = MockMvcBuilders.standaloneSetup(authController)
                 .setControllerAdvice(new GlobalExceptionHandler())
+                .setCustomArgumentResolvers(
+                        new org.springframework.security.web.method.annotation.AuthenticationPrincipalArgumentResolver())
                 .build();
     }
 
