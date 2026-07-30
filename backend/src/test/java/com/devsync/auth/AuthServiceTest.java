@@ -143,11 +143,11 @@ class AuthServiceTest {
         request.setPassword("password123");
 
         User user = User.builder()
-                .id("user-id")
                 .email("test@test.com")
                 .password(passwordEncoder.encode("password123"))
                 .fullName("Test User")
                 .build();
+        user.setId("user-id");
 
         when(userRepository.findByEmail("test@test.com")).thenReturn(Optional.of(user));
         when(jwtTokenProvider.generateAccessToken("user-id", "test@test.com")).thenReturn("at");
@@ -224,9 +224,9 @@ class AuthServiceTest {
         request.setRefreshToken("valid-refresh-token");
 
         User user = User.builder()
-                .id("user-id")
                 .email("test@test.com")
                 .build();
+        user.setId("user-id");
 
         when(jwtTokenProvider.validateToken("valid-refresh-token")).thenReturn(true);
         when(jwtTokenProvider.getUserIdFromToken("valid-refresh-token")).thenReturn("user-id");
@@ -256,7 +256,8 @@ class AuthServiceTest {
 
     @Test
     void sendOtp_shouldGenerateAndSend() {
-        User user = User.builder().id("uid").email("otp@test.com").build();
+        User user = User.builder().email("otp@test.com").build();
+        user.setId("uid");
         when(userRepository.existsByEmail("otp@test.com")).thenReturn(true);
         when(otpService.generateOtp("otp@test.com")).thenReturn("123456");
 
@@ -283,11 +284,11 @@ class AuthServiceTest {
         request.setOtp("123456");
 
         User user = User.builder()
-                .id("user-id")
                 .email("otp@test.com")
                 .fullName("OTP User")
                 .emailVerified(false)
                 .build();
+        user.setId("user-id");
 
         when(otpService.validateOtp("otp@test.com", "123456")).thenReturn(true);
         when(userRepository.findByEmail("otp@test.com")).thenReturn(Optional.of(user));
