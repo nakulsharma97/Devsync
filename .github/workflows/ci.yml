@@ -26,7 +26,7 @@ jobs:
       - name: Run auth unit tests
         run: |
           cd backend
-          mvn test -B -Dtest="com.devsync.auth.*" -pl .
+          mvn test -B -Dtest="**/auth/*Test" -pl .
 
       - name: Publish auth test results
         uses: dorny/test-reporter@v3
