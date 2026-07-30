@@ -40,8 +40,10 @@ public class BoardController {
     }
 
     @PostMapping("/tasks")
-    public ResponseEntity<BoardResponse.TaskDto> createTask(@Valid @RequestBody CreateTaskRequest request) {
-        return ResponseEntity.ok(boardService.createTask(request));
+    public ResponseEntity<BoardResponse.TaskDto> createTask(
+            @Valid @RequestBody CreateTaskRequest request,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        return ResponseEntity.ok(boardService.createTask(request, userDetails.getUsername()));
     }
 
     @PutMapping("/tasks/position")
@@ -56,7 +58,6 @@ public class BoardController {
             @Valid @RequestBody CreateTaskRequest request,
             @AuthenticationPrincipal UserDetails userDetails) {
         boardService.updateTask(taskId, request, userDetails.getUsername());
-        // Reload and return the task from the board
         BoardResponse board = boardService.getBoard(getBoardIdFromColumn(request.getColumnId()));
         return board.getColumns().stream()
                 .flatMap(c -> c.getTasks().stream())
@@ -75,6 +76,6 @@ public class BoardController {
     }
 
     private String getBoardIdFromColumn(String columnId) {
-        return columnId; // Simplified — the columnId IS the board lookup key in context
+        return columnId;
     }
 }

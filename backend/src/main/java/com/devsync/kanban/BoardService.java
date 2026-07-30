@@ -56,12 +56,15 @@ public class BoardService {
     }
 
     @Transactional
-    public BoardResponse.TaskDto createTask(CreateTaskRequest request) {
+    public BoardResponse.TaskDto createTask(CreateTaskRequest request, String userId) {
+        String boardId = getBoardIdFromColumn(request.getColumnId());
+        verifyBoardAccess(boardId, userId);
+
         int nextPosition = taskRepository.findMaxPositionByColumnId(request.getColumnId()).orElse(-1) + 1;
         Task task = taskRepository.save(Task.builder()
                 .title(request.getTitle()).description(request.getDescription())
                 .columnId(request.getColumnId())
-                .boardId(getBoardIdFromColumn(request.getColumnId()))
+                .boardId(boardId)
                 .position(nextPosition)
                 .assigneeId(request.getAssigneeId())
                 .priority(request.getPriority() != null ? Task.Priority.valueOf(request.getPriority()) : Task.Priority.MEDIUM)
@@ -105,21 +108,12 @@ public class BoardService {
         taskRepository.deleteById(taskId);
     }
 
-    /**
-     * Verifies that the user has permission to modify tasks in the project
-     * associated with the given board. User must be the project owner or an
-     * admin member of the project.
-     */
     private void verifyBoardAccess(String boardId, String userId) {
         Board board = boardRepository.findById(boardId)
                 .orElseThrow(() -> new ResourceNotFoundException("Board", boardId));
         Project project = projectRepository.findById(board.getProjectId())
                 .orElseThrow(() -> new ResourceNotFoundException("Project", board.getProjectId()));
-
-        // Project owner always has access
         if (project.getOwnerId().equals(userId)) return;
-
-        // Check if user is an admin member of the project
         boolean isAdmin = projectMemberRepository.findByProjectIdAndUserId(board.getProjectId(), userId)
                 .filter(m -> m.getRole() == ProjectMember.Role.ADMIN || m.getRole() == ProjectMember.Role.OWNER)
                 .isPresent();
