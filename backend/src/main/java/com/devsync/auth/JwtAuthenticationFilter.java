@@ -10,15 +10,11 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
-import org.springframework.core.annotation.Order;
-import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 
-@Component
-@Order(1)
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
@@ -38,9 +34,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
             SecurityContextHolder.getContext().setAuthentication(auth);
         }
-        // If token is invalid/expired/missing, continue without auth context.
-        // Spring Security handles 401 for protected endpoints.
-        // This ensures public endpoints work even with a bad token in the header.
         filterChain.doFilter(request, response);
     }
 
