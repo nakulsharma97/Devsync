@@ -14,17 +14,10 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Import;
-import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.web.SecurityFilterChain;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(AuthController.class)
-@Import(AuthControllerTest.TestSecurityConfig.class)
-@AutoConfigureMockMvc
 class AuthControllerTest {
 
     @Autowired private MockMvc mockMvc;
@@ -35,17 +28,6 @@ class AuthControllerTest {
     // Test-specific security config: disables CSRF and permits /api/auth/**
     // to match the production SecurityConfig rules.
     @org.springframework.context.annotation.Configuration
-    static class TestSecurityConfig {
-        @Bean
-        public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-            http
-                .csrf(csrf -> csrf.disable())
-                .authorizeHttpRequests(auth -> auth
-                    .requestMatchers("/api/auth/**").permitAll()
-                    .anyRequest().authenticated()
-                );
-            return http.build();
-        }
     }
 
     private AuthResponse sampleResponse() {
@@ -69,7 +51,8 @@ class AuthControllerTest {
 
         mockMvc.perform(post("/api/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+                        .content(objectMapper.writeValueAsString(request))
+                        .with(csrf()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.accessToken").value("at"))
                 .andExpect(jsonPath("$.user.email").value("test@test.com"));
@@ -84,7 +67,8 @@ class AuthControllerTest {
 
         mockMvc.perform(post("/api/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+                        .content(objectMapper.writeValueAsString(request))
+                        .with(csrf()))
                 .andExpect(status().isBadRequest());
     }
 
@@ -97,7 +81,8 @@ class AuthControllerTest {
 
         mockMvc.perform(post("/api/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+                        .content(objectMapper.writeValueAsString(request))
+                        .with(csrf()))
                 .andExpect(status().isBadRequest());
     }
 
@@ -162,7 +147,8 @@ class AuthControllerTest {
     @Test
     void otpSend_shouldReturn200() throws Exception {
         mockMvc.perform(post("/api/auth/otp/send")
-                        .param("email", "test@test.com"))
+                        .param("email", "test@test.com")
+                        .with(csrf()))
                 .andExpect(status().isOk());
     }
 
