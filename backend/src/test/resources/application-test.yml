@@ -13,6 +13,16 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.H2Dialect
     show-sql: false
+  security:
+    oauth2:
+      client:
+        registration:
+          github:
+            client-id: test-client-id
+            client-secret: test-client-secret
+          google:
+            client-id: test-client-id
+            client-secret: test-client-secret
 
 app:
   jwt:
