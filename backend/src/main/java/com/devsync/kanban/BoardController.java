@@ -3,7 +3,6 @@ package com.devsync.kanban;
 import com.devsync.kanban.dto.BoardResponse;
 import com.devsync.kanban.dto.CreateTaskRequest;
 import com.devsync.kanban.dto.UpdateTaskPositionRequest;
-import com.devsync.kanban.entity.Task;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -28,10 +27,7 @@ public class BoardController {
     @GetMapping("/project/{projectId}")
     public ResponseEntity<BoardResponse> getProjectBoard(@PathVariable String projectId) {
         BoardResponse board = boardService.getProjectBoard(projectId);
-        if (board == null) {
-            return ResponseEntity.noContent().build();
-        }
-        return ResponseEntity.ok(board);
+        return board == null ? ResponseEntity.noContent().build() : ResponseEntity.ok(board);
     }
 
     @PostMapping
@@ -57,23 +53,28 @@ public class BoardController {
     @PutMapping("/tasks/{taskId}")
     public ResponseEntity<BoardResponse.TaskDto> updateTask(
             @PathVariable String taskId,
-            @Valid @RequestBody CreateTaskRequest request) {
-        Task task = boardService.updateTask(taskId, request);
-        return ResponseEntity.ok(boardService.getBoard(getBoardIdFromColumn(request.getColumnId()))
-                .getColumns().stream()
+            @Valid @RequestBody CreateTaskRequest request,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        boardService.updateTask(taskId, request, userDetails.getUsername());
+        // Reload and return the task from the board
+        BoardResponse board = boardService.getBoard(getBoardIdFromColumn(request.getColumnId()));
+        return board.getColumns().stream()
                 .flatMap(c -> c.getTasks().stream())
                 .filter(t -> t.getId().equals(taskId))
                 .findFirst()
-                .orElseThrow());
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 
     @DeleteMapping("/tasks/{taskId}")
-    public ResponseEntity<Void> deleteTask(@PathVariable String taskId) {
-        boardService.deleteTask(taskId);
+    public ResponseEntity<Void> deleteTask(
+            @PathVariable String taskId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        boardService.deleteTask(taskId, userDetails.getUsername());
         return ResponseEntity.noContent().build();
     }
 
     private String getBoardIdFromColumn(String columnId) {
-        return columnId; // Simplified — would need column lookup
+        return columnId; // Simplified — the columnId IS the board lookup key in context
     }
 }

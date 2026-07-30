@@ -11,13 +11,14 @@ import com.devsync.kanban.repository.BoardColumnRepository;
 import com.devsync.kanban.repository.BoardRepository;
 import com.devsync.kanban.repository.TaskRepository;
 import com.devsync.project.entity.Project;
+import com.devsync.project.entity.ProjectMember;
+import com.devsync.project.repository.ProjectMemberRepository;
 import com.devsync.project.repository.ProjectRepository;
 import com.devsync.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -30,6 +31,7 @@ public class BoardService {
     private final TaskRepository taskRepository;
     private final UserRepository userRepository;
     private final ProjectRepository projectRepository;
+    private final ProjectMemberRepository projectMemberRepository;
 
     public BoardResponse getBoard(String boardId) {
         Board board = boardRepository.findById(boardId)
@@ -46,7 +48,6 @@ public class BoardService {
     public BoardResponse createBoard(String name, String projectId, String createdBy, List<String> columnNames) {
         Board board = boardRepository.save(Board.builder()
                 .name(name).projectId(projectId).createdBy(createdBy).build());
-
         for (int i = 0; i < columnNames.size(); i++) {
             columnRepository.save(BoardColumn.builder()
                     .boardId(board.getId()).name(columnNames.get(i)).position(i).build());
@@ -56,9 +57,7 @@ public class BoardService {
 
     @Transactional
     public BoardResponse.TaskDto createTask(CreateTaskRequest request) {
-        // Use MAX(position) + 1 to avoid race conditions
         int nextPosition = taskRepository.findMaxPositionByColumnId(request.getColumnId()).orElse(-1) + 1;
-
         Task task = taskRepository.save(Task.builder()
                 .title(request.getTitle()).description(request.getDescription())
                 .columnId(request.getColumnId())
@@ -75,30 +74,20 @@ public class BoardService {
     public void updateTaskPosition(UpdateTaskPositionRequest request) {
         Task task = taskRepository.findById(request.getTaskId())
                 .orElseThrow(() -> new ResourceNotFoundException("Task", request.getTaskId()));
-
         String oldColumnId = task.getColumnId();
         task.setColumnId(request.getNewColumnId());
         task.setPosition(request.getNewPosition());
         taskRepository.save(task);
-
-        if (!oldColumnId.equals(request.getNewColumnId())) {
-            reorderColumn(oldColumnId);
-        }
+        if (!oldColumnId.equals(request.getNewColumnId())) reorderColumn(oldColumnId);
         reorderColumn(request.getNewColumnId());
     }
 
-    private void reorderColumn(String columnId) {
-        List<Task> tasks = taskRepository.findByColumnIdOrderByPositionAsc(columnId);
-        for (int i = 0; i < tasks.size(); i++) {
-            tasks.get(i).setPosition(i);
-        }
-        taskRepository.saveAll(tasks);
-    }
-
     @Transactional
-    public Task updateTask(String taskId, CreateTaskRequest request) {
+    public Task updateTask(String taskId, CreateTaskRequest request, String userId) {
         Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new ResourceNotFoundException("Task", taskId));
+        verifyBoardAccess(task.getBoardId(), userId);
+
         if (request.getTitle() != null) task.setTitle(request.getTitle());
         if (request.getDescription() != null) task.setDescription(request.getDescription());
         if (request.getAssigneeId() != null) task.setAssigneeId(request.getAssigneeId());
@@ -109,8 +98,40 @@ public class BoardService {
     }
 
     @Transactional
-    public void deleteTask(String taskId) {
+    public void deleteTask(String taskId, String userId) {
+        Task task = taskRepository.findById(taskId)
+                .orElseThrow(() -> new ResourceNotFoundException("Task", taskId));
+        verifyBoardAccess(task.getBoardId(), userId);
         taskRepository.deleteById(taskId);
+    }
+
+    /**
+     * Verifies that the user has permission to modify tasks in the project
+     * associated with the given board. User must be the project owner or an
+     * admin member of the project.
+     */
+    private void verifyBoardAccess(String boardId, String userId) {
+        Board board = boardRepository.findById(boardId)
+                .orElseThrow(() -> new ResourceNotFoundException("Board", boardId));
+        Project project = projectRepository.findById(board.getProjectId())
+                .orElseThrow(() -> new ResourceNotFoundException("Project", board.getProjectId()));
+
+        // Project owner always has access
+        if (project.getOwnerId().equals(userId)) return;
+
+        // Check if user is an admin member of the project
+        boolean isAdmin = projectMemberRepository.findByProjectIdAndUserId(board.getProjectId(), userId)
+                .filter(m -> m.getRole() == ProjectMember.Role.ADMIN || m.getRole() == ProjectMember.Role.OWNER)
+                .isPresent();
+        if (!isAdmin) {
+            throw new IllegalArgumentException("You don't have permission to modify tasks in this project");
+        }
+    }
+
+    private void reorderColumn(String columnId) {
+        List<Task> tasks = taskRepository.findByColumnIdOrderByPositionAsc(columnId);
+        for (int i = 0; i < tasks.size(); i++) tasks.get(i).setPosition(i);
+        taskRepository.saveAll(tasks);
     }
 
     private String getBoardIdFromColumn(String columnId) {
