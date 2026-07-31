@@ -60,7 +60,7 @@ public class UserService {
         if (request.getFullName() != null) user.setFullName(request.getFullName());
         if (request.getUsername() != null) {
             if (!user.getUsername().equals(request.getUsername()) &&
-                    userRepository.existsByUsername(request.getUsername())) {
+                    userRepository.countByUsername(request.getUsername()) > 0) {
                 throw new IllegalArgumentException("Username already taken");
             }
             user.setUsername(request.getUsername());
