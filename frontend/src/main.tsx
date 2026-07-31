@@ -2,7 +2,7 @@ import * as Sentry from "@sentry/react";
 import { Toaster } from "@/components/ui/sonner";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import { BrowserRouter, Route, Routes } from "react-router";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router";
 import { ThemeProvider } from "next-themes";
 import "./index.css";
 
@@ -33,6 +33,7 @@ import Notifications from "./pages/Notifications";
 import BoardPage from "./pages/BoardPage";
 import Feed from "./pages/Feed";
 import SearchPage from "./pages/SearchPage";
+import Admin from "./pages/Admin";
 
 function App() {
   return (
@@ -61,6 +62,8 @@ function App() {
               <Route path="/notifications" element={<Notifications />} />
               <Route path="/feed" element={<Feed />} />
               <Route path="/search" element={<SearchPage />} />
+              <Route path="/admin/dashboard" element={<Admin />} />
+              <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
