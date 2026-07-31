@@ -1,5 +1,6 @@
 package com.devsync.kanban;
 
+import com.devsync.kanban.dto.BoardResponse;
 import com.devsync.kanban.dto.CreateTaskRequest;
 import com.devsync.kanban.dto.UpdateTaskPositionRequest;
 import com.devsync.kanban.entity.Board;
