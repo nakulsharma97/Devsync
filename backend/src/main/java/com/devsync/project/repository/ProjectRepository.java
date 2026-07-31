@@ -17,7 +17,7 @@ public interface ProjectRepository extends JpaRepository<Project, String> {
 
     List<Project> findTop5ByOrderByCreatedAtDesc();
 
-    List<Project> findTop5ByOrderByCreatedAtDescAndDeletedFalse();
+    List<Project> findTop5ByDeletedFalseOrderByCreatedAtDesc();
 
     long countByDeletedFalse();
 
