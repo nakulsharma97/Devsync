@@ -314,4 +314,92 @@ class AuthServiceTest {
                 .isInstanceOf(AuthException.class)
                 .hasMessageContaining("Invalid or expired OTP");
     }
+    // ── Blocked / Deleted account enforcement ─────────────────
+
+    @Test
+    void login_shouldThrow_WhenAccountBlocked() {
+        LoginRequest request = new LoginRequest();
+        request.setEmail("blocked@test.com");
+        request.setPassword("password123");
+
+        User user = User.builder()
+                .email("blocked@test.com")
+                .password(passwordEncoder.encode("password123"))
+                .fullName("Blocked User")
+                .blocked(true)
+                .build();
+        user.setId("user-id");
+
+        when(userRepository.findByEmail("blocked@test.com")).thenReturn(Optional.of(user));
+
+        assertThatThrownBy(() -> authService.login(request))
+                .isInstanceOf(AuthException.class)
+                .hasMessageContaining("blocked");
+
+        verify(jwtTokenProvider, never()).generateAccessToken(anyString(), anyString());
+    }
+
+    @Test
+    void login_shouldThrow_WhenAccountDeleted() {
+        LoginRequest request = new LoginRequest();
+        request.setEmail("deleted@test.com");
+        request.setPassword("password123");
+
+        User user = User.builder()
+                .email("deleted@test.com")
+                .password(passwordEncoder.encode("password123"))
+                .fullName("Deleted User")
+                .deleted(true)
+                .build();
+        user.setId("user-id");
+
+        when(userRepository.findByEmail("deleted@test.com")).thenReturn(Optional.of(user));
+
+        assertThatThrownBy(() -> authService.login(request))
+                .isInstanceOf(AuthException.class)
+                .hasMessageContaining("deleted");
+    }
+
+    @Test
+    void refreshToken_shouldThrow_WhenAccountBlocked() {
+        RefreshTokenRequest request = new RefreshTokenRequest();
+        request.setRefreshToken("valid-refresh-token");
+
+        User user = User.builder()
+                .email("test@test.com")
+                .blocked(true)
+                .build();
+        user.setId("user-id");
+
+        when(jwtTokenProvider.validateToken("valid-refresh-token")).thenReturn(true);
+        when(jwtTokenProvider.getUserIdFromToken("valid-refresh-token")).thenReturn("user-id");
+        when(userRepository.findById("user-id")).thenReturn(Optional.of(user));
+
+        assertThatThrownBy(() -> authService.refreshToken(request))
+                .isInstanceOf(AuthException.class)
+                .hasMessageContaining("blocked");
+
+        verify(jwtTokenProvider, never()).generateAccessToken(anyString(), anyString());
+    }
+
+    @Test
+    void verifyOtpAndLogin_shouldThrow_WhenAccountBlocked() {
+        VerifyOtpRequest request = new VerifyOtpRequest();
+        request.setEmail("otp@test.com");
+        request.setOtp("123456");
+
+        User user = User.builder()
+                .email("otp@test.com")
+                .fullName("OTP User")
+                .blocked(true)
+                .build();
+        user.setId("user-id");
+
+        when(otpService.validateOtp("otp@test.com", "123456")).thenReturn(true);
+        when(userRepository.findByEmail("otp@test.com")).thenReturn(Optional.of(user));
+
+        assertThatThrownBy(() -> authService.verifyOtpAndLogin(request))
+                .isInstanceOf(AuthException.class)
+                .hasMessageContaining("blocked");
+    }
 }

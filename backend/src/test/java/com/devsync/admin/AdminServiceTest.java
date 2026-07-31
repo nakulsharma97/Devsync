@@ -1,8 +1,11 @@
 package com.devsync.admin;
 
 import com.devsync.admin.dto.AdminPostResponse;
+import com.devsync.admin.dto.AdminUserDetail;
+import com.devsync.admin.dto.AdminUserListItem;
 import com.devsync.admin.dto.AdminUserResponse;
 import com.devsync.admin.dto.DashboardResponse;
+import com.devsync.common.PageResponse;
 import com.devsync.common.ResourceNotFoundException;
 import com.devsync.feed.entity.Post;
 import com.devsync.feed.repository.CommentRepository;
@@ -19,6 +22,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 import java.time.Instant;
 import java.util.Collections;
@@ -88,6 +94,106 @@ class AdminServiceTest {
         assertThat(users).hasSize(2);
         assertThat(users.get(0).getPostCount()).isEqualTo(3);
         assertThat(users.get(1).getPostCount()).isEqualTo(0);
+    }
+
+    @Test
+    void getUsersPage_shouldReturnPagedResults() {
+        User u1 = userWithId("u1");
+        User u2 = userWithId("u2");
+        PageImpl<User> page = new PageImpl<>(List.of(u1, u2), PageRequest.of(0, 10), 2);
+        when(userRepository.searchAdminUsers(isNull(), isNull(), isNull(), any(Pageable.class)))
+                .thenReturn(page);
+
+        PageResponse<AdminUserListItem> result = adminService.getUsersPage(0, 10, "createdAt", "desc", null, null, null);
+
+        assertThat(result.getContent()).hasSize(2);
+        assertThat(result.getPage()).isZero();
+        assertThat(result.getSize()).isEqualTo(10);
+        assertThat(result.getTotalElements()).isEqualTo(2);
+        assertThat(result.getTotalPages()).isEqualTo(1);
+        assertThat(result.isLast()).isTrue();
+    }
+
+    @Test
+    void getUsersPage_shouldMapStatusFromBlockedFlag() {
+        User blocked = userWithId("u1");
+        blocked.setBlocked(true);
+        PageImpl<User> page = new PageImpl<>(List.of(blocked), PageRequest.of(0, 10), 1);
+        when(userRepository.searchAdminUsers(isNull(), isNull(), eq("BLOCKED"), any(Pageable.class)))
+                .thenReturn(page);
+
+        PageResponse<AdminUserListItem> result = adminService.getUsersPage(0, 10, null, null, null, null, "blocked");
+
+        assertThat(result.getContent().get(0).getStatus()).isEqualTo("BLOCKED");
+    }
+
+    @Test
+    void getUsersPage_shouldThrow_ForInvalidRoleFilter() {
+        assertThatThrownBy(() -> adminService.getUsersPage(0, 10, null, null, null, "SUPERADMIN", null))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Invalid role filter");
+    }
+
+    @Test
+    void getUserDetail_shouldAggregateProjectsTeamsAndCounts() {
+        User user = userWithId("u1");
+        when(userRepository.findById("u1")).thenReturn(Optional.of(user));
+        when(projectRepository.findProjectsByUserId("u1")).thenReturn(List.of());
+        when(projectRepository.findByOwnerId("u1")).thenReturn(List.of());
+        when(teamRoomRepository.findRoomsByUserId("u1")).thenReturn(List.of());
+        when(postRepository.countByUserId("u1")).thenReturn(5L);
+        when(messageRepository.countMessagesByUserId("u1")).thenReturn(12L);
+
+        AdminUserDetail detail = adminService.getUserDetail("u1");
+
+        assertThat(detail.getId()).isEqualTo("u1");
+        assertThat(detail.getPostsCount()).isEqualTo(5);
+        assertThat(detail.getMessagesCount()).isEqualTo(12);
+        assertThat(detail.getStatus()).isEqualTo("ACTIVE");
+        assertThat(detail.getProjectsJoined()).isEmpty();
+        assertThat(detail.getProjectsOwned()).isEmpty();
+        assertThat(detail.getTeams()).isEmpty();
+    }
+
+    @Test
+    void getUserDetail_shouldThrow_WhenUserNotFound() {
+        when(userRepository.findById("ghost")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> adminService.getUserDetail("ghost"))
+                .isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    @Test
+    void deleteUser_shouldSoftDeleteUser() {
+        User user = userWithId("u1");
+        when(userRepository.findById("u1")).thenReturn(Optional.of(user));
+        when(userRepository.save(any(User.class))).thenReturn(user);
+
+        adminService.deleteUser("u1", "admin-1");
+
+        assertThat(user.isDeleted()).isTrue();
+        assertThat(user.getDeletedAt()).isNotNull();
+        verify(userRepository).save(user);
+    }
+
+    @Test
+    void deleteUser_shouldThrow_WhenSelfDelete() {
+        User admin = userWithId("admin-1");
+        when(userRepository.findById("admin-1")).thenReturn(Optional.of(admin));
+
+        assertThatThrownBy(() -> adminService.deleteUser("admin-1", "admin-1"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("cannot delete your own account");
+
+        verify(userRepository, never()).save(any());
+    }
+
+    @Test
+    void deleteUser_shouldThrow_WhenUserNotFound() {
+        when(userRepository.findById("ghost")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> adminService.deleteUser("ghost", "admin-1"))
+                .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test
