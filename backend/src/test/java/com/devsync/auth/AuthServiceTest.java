@@ -53,8 +53,8 @@ class AuthServiceTest {
         request.setFullName("New User");
         request.setUsername("newuser");
 
-        when(userRepository.existsByEmail("new@test.com")).thenReturn(false);
-        when(userRepository.existsByUsername("newuser")).thenReturn(false);
+        when(userRepository.countByEmail("new@test.com")).thenReturn(0L);
+        when(userRepository.countByUsername("newuser")).thenReturn(0L);
         when(userRepository.save(any(User.class))).thenAnswer(invocation -> {
             User saved = invocation.getArgument(0);
             saved.setId("user-uuid-123");
@@ -87,7 +87,7 @@ class AuthServiceTest {
         request.setPassword("password123");
         request.setFullName("Taken User");
 
-        when(userRepository.existsByEmail("taken@test.com")).thenReturn(true);
+        when(userRepository.countByEmail("taken@test.com")).thenReturn(1L);
 
         assertThatThrownBy(() -> authService.register(request))
                 .isInstanceOf(AuthException.class)
@@ -102,8 +102,8 @@ class AuthServiceTest {
         request.setFullName("Test User");
         request.setUsername("occupied");
 
-        when(userRepository.existsByEmail("user@test.com")).thenReturn(false);
-        when(userRepository.existsByUsername("occupied")).thenReturn(true);
+        when(userRepository.countByEmail("user@test.com")).thenReturn(0L);
+        when(userRepository.countByUsername("occupied")).thenReturn(1L);
 
         assertThatThrownBy(() -> authService.register(request))
                 .isInstanceOf(AuthException.class)
@@ -118,8 +118,8 @@ class AuthServiceTest {
         request.setFullName("Jane Doe");
         request.setUsername(null);
 
-        when(userRepository.existsByEmail("jane@example.com")).thenReturn(false);
-        when(userRepository.existsByUsername("jane")).thenReturn(false);
+        when(userRepository.countByEmail("jane@example.com")).thenReturn(0L);
+        when(userRepository.countByUsername("jane")).thenReturn(0L);
         when(userRepository.save(any(User.class))).thenAnswer(inv -> {
             User u = inv.getArgument(0);
             u.setId("id-456");
@@ -258,7 +258,7 @@ class AuthServiceTest {
     void sendOtp_shouldGenerateAndSend() {
         User user = User.builder().email("otp@test.com").build();
         user.setId("uid");
-        when(userRepository.existsByEmail("otp@test.com")).thenReturn(true);
+        when(userRepository.countByEmail("otp@test.com")).thenReturn(1L);
         when(otpService.generateOtp("otp@test.com")).thenReturn("123456");
 
         authService.sendOtp("otp@test.com");
@@ -269,7 +269,7 @@ class AuthServiceTest {
 
     @Test
     void sendOtp_shouldNotRevealIfEmailMissing() {
-        when(userRepository.existsByEmail("missing@test.com")).thenReturn(false);
+        when(userRepository.countByEmail("missing@test.com")).thenReturn(0L);
 
         authService.sendOtp("missing@test.com");
 

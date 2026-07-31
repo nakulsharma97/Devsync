@@ -30,11 +30,11 @@ public class AuthService {
 
     @Transactional
     public AuthResponse register(RegisterRequest request) {
-        if (userRepository.existsByEmail(request.getEmail())) {
+        if (userRepository.countByEmail(request.getEmail()) > 0) {
             throw new AuthException("Email already in use", HttpStatus.CONFLICT);
         }
 
-        if (request.getUsername() != null && userRepository.existsByUsername(request.getUsername())) {
+        if (request.getUsername() != null && userRepository.countByUsername(request.getUsername()) > 0) {
             throw new AuthException("Username already taken", HttpStatus.CONFLICT);
         }
 
@@ -43,7 +43,7 @@ public class AuthService {
             username = request.getEmail().split("@")[0];
             String baseUsername = username;
             int suffix = 1;
-            while (userRepository.existsByUsername(username)) {
+            while (userRepository.countByUsername(username) > 0) {
                 username = baseUsername + suffix++;
             }
         }
@@ -97,7 +97,7 @@ public class AuthService {
     }
 
     public void sendOtp(String email) {
-        if (!userRepository.existsByEmail(email)) {
+        if (userRepository.countByEmail(email) == 0) {
             return;
         }
         String otp = otpService.generateOtp(email);
@@ -134,7 +134,7 @@ public class AuthService {
             String username = email.split("@")[0];
             String baseUsername = username;
             int suffix = 1;
-            while (userRepository.existsByUsername(username)) {
+            while (userRepository.countByUsername(username) > 0) {
                 username = baseUsername + suffix++;
             }
 

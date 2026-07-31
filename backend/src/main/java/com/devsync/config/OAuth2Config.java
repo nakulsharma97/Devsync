@@ -47,7 +47,7 @@ public class OAuth2Config {
                 String username = email.split("@")[0];
                 String base = username;
                 int suffix = 1;
-                while (userRepository.existsByUsername(username)) {
+                while (userRepository.countByUsername(username) > 0) {
                     username = base + suffix++;
                 }
                 user = User.builder()
