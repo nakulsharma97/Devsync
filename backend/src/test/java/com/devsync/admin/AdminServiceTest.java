@@ -506,7 +506,7 @@ class AdminServiceTest {
     void deleteProject_shouldThrow_WhenProjectNotFound() {
         when(projectRepository.findById("ghost")).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> adminService.deleteProject("ghost"))
+        assertThatThrownBy(() -> adminService.deleteProject("ghost", "admin-1"))
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 
