@@ -1,5 +1,6 @@
 package com.devsync.project;
 
+import com.devsync.activity.ActivityService;
 import com.devsync.project.dto.CreateProjectRequest;
 import com.devsync.project.dto.UpdateProjectRequest;
 import com.devsync.project.entity.Project;
@@ -27,6 +28,7 @@ class ProjectServiceAuthTest {
     @Mock private ProjectRepository projectRepository;
     @Mock private ProjectMemberRepository memberRepository;
     @Mock private UserRepository userRepository;
+    @Mock private ActivityService activityService;
 
     private ProjectService projectService;
     private Project project;
@@ -34,7 +36,7 @@ class ProjectServiceAuthTest {
 
     @BeforeEach
     void setUp() {
-        projectService = new ProjectService(projectRepository, memberRepository, userRepository);
+        projectService = new ProjectService(projectRepository, memberRepository, userRepository, activityService);
 
         project = Project.builder()
                 .name("Test Project")

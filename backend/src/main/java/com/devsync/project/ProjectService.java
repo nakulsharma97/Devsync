@@ -1,5 +1,7 @@
 package com.devsync.project;
 
+import com.devsync.activity.ActivityService;
+import com.devsync.activity.entity.ActivityType;
 import com.devsync.common.ResourceNotFoundException;
 import com.devsync.project.dto.CreateProjectRequest;
 import com.devsync.project.dto.ProjectResponse;
@@ -26,6 +28,7 @@ public class ProjectService {
     private final ProjectRepository projectRepository;
     private final ProjectMemberRepository memberRepository;
     private final UserRepository userRepository;
+    private final ActivityService activityService;
 
     public List<ProjectResponse> getUserProjects(String userId) {
         List<Project> owned = projectRepository.findByOwnerId(userId);
@@ -59,6 +62,8 @@ public class ProjectService {
                 .build();
         memberRepository.save(ownerMember);
 
+        activityService.record(ownerId, project.getId(), ActivityType.PROJECT_CREATED,
+                "Project created", project.getName(), null);
         return toResponse(project, ownerId);
     }
 
@@ -93,6 +98,8 @@ public class ProjectService {
         if (request.getRepositoryUrl() != null) project.setRepositoryUrl(request.getRepositoryUrl());
         if (request.getImageUrl() != null) project.setImageUrl(request.getImageUrl());
         project = projectRepository.save(project);
+        activityService.record(userId, projectId, ActivityType.PROJECT_UPDATED,
+                "Project updated", project.getName(), null);
         return toResponse(project, userId);
     }
 
@@ -104,6 +111,8 @@ public class ProjectService {
             throw new IllegalArgumentException("Only the project owner can delete this project");
         memberRepository.findByProjectId(projectId).forEach(memberRepository::delete);
         projectRepository.deleteById(projectId);
+        activityService.record(currentUserId, projectId, ActivityType.PROJECT_DELETED,
+                "Project deleted", project.getName(), null);
     }
 
     @Transactional
@@ -120,6 +129,8 @@ public class ProjectService {
         memberRepository.save(ProjectMember.builder()
                 .projectId(projectId).userId(userId)
                 .role(ProjectMember.Role.valueOf(role != null ? role : "MEMBER")).build());
+        activityService.record(currentUserId, projectId, ActivityType.USER_JOINED_PROJECT,
+                "User joined project", userId, null);
     }
 
     @Transactional
@@ -133,6 +144,8 @@ public class ProjectService {
         ProjectMember member = memberRepository.findByProjectIdAndUserId(projectId, userId)
                 .orElseThrow(() -> new ResourceNotFoundException("ProjectMember", projectId + ":" + userId));
         memberRepository.delete(member);
+        activityService.record(currentUserId, projectId, ActivityType.USER_LEFT_PROJECT,
+                "User left project", userId, null);
     }
 
     private ProjectResponse toResponse(Project project, String currentUserId) {

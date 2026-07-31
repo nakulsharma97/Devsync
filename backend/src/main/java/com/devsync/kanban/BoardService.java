@@ -1,5 +1,7 @@
 package com.devsync.kanban;
 
+import com.devsync.activity.ActivityService;
+import com.devsync.activity.entity.ActivityType;
 import com.devsync.common.ResourceNotFoundException;
 import com.devsync.kanban.dto.BoardResponse;
 import com.devsync.kanban.dto.CreateTaskRequest;
@@ -32,6 +34,7 @@ public class BoardService {
     private final UserRepository userRepository;
     private final ProjectRepository projectRepository;
     private final ProjectMemberRepository projectMemberRepository;
+    private final ActivityService activityService;
 
     public BoardResponse getBoard(String boardId) {
         Board board = boardRepository.findById(boardId)
@@ -70,11 +73,18 @@ public class BoardService {
                 .priority(request.getPriority() != null ? Task.Priority.valueOf(request.getPriority()) : Task.Priority.MEDIUM)
                 .dueDate(request.getDueDate()).labels(request.getLabels())
                 .build());
+        String projectId = projectIdOfBoard(boardId);
+        activityService.record(userId, projectId, ActivityType.TASK_CREATED,
+                "Task created", task.getTitle(), null);
+        if (request.getAssigneeId() != null && !request.getAssigneeId().equals(userId)) {
+            activityService.record(userId, projectId, ActivityType.TASK_ASSIGNED,
+                    "Task assigned", task.getTitle(), null);
+        }
         return toTaskDto(task);
     }
 
     @Transactional
-    public void updateTaskPosition(UpdateTaskPositionRequest request) {
+    public void updateTaskPosition(UpdateTaskPositionRequest request, String userId) {
         Task task = taskRepository.findById(request.getTaskId())
                 .orElseThrow(() -> new ResourceNotFoundException("Task", request.getTaskId()));
         verifyTaskProjectEditable(task);
@@ -84,6 +94,14 @@ public class BoardService {
         taskRepository.save(task);
         if (!oldColumnId.equals(request.getNewColumnId())) reorderColumn(oldColumnId);
         reorderColumn(request.getNewColumnId());
+
+        String projectId = projectIdOfBoard(task.getBoardId());
+        String columnName = columnRepository.findById(request.getNewColumnId())
+                .map(BoardColumn::getName).orElse("");
+        ActivityType type = isDoneColumn(columnName) ? ActivityType.TASK_COMPLETED : ActivityType.TASK_MOVED;
+        activityService.record(userId, projectId, type,
+                type == ActivityType.TASK_COMPLETED ? "Task completed" : "Task moved",
+                task.getTitle(), null);
     }
 
     @Transactional
@@ -98,7 +116,10 @@ public class BoardService {
         if (request.getPriority() != null) task.setPriority(Task.Priority.valueOf(request.getPriority()));
         if (request.getDueDate() != null) task.setDueDate(request.getDueDate());
         if (request.getLabels() != null) task.setLabels(request.getLabels());
-        return taskRepository.save(task);
+        task = taskRepository.save(task);
+        activityService.record(userId, projectIdOfBoard(task.getBoardId()), ActivityType.TASK_UPDATED,
+                "Task updated", task.getTitle(), null);
+        return task;
     }
 
     @Transactional
@@ -106,7 +127,19 @@ public class BoardService {
         Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new ResourceNotFoundException("Task", taskId));
         verifyBoardAccess(task.getBoardId(), userId);
+        String projectId = projectIdOfBoard(task.getBoardId());
         taskRepository.deleteById(taskId);
+        activityService.record(userId, projectId, ActivityType.TASK_DELETED,
+                "Task deleted", task.getTitle(), null);
+    }
+
+    private String projectIdOfBoard(String boardId) {
+        return boardRepository.findById(boardId).map(Board::getProjectId).orElse(null);
+    }
+
+    private boolean isDoneColumn(String name) {
+        String n = name == null ? "" : name.toLowerCase();
+        return n.contains("done") || n.contains("complete");
     }
 
     private void verifyBoardAccess(String boardId, String userId) {

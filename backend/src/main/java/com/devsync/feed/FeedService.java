@@ -1,5 +1,7 @@
 package com.devsync.feed;
 
+import com.devsync.activity.ActivityService;
+import com.devsync.activity.entity.ActivityType;
 import com.devsync.common.ResourceNotFoundException;
 import com.devsync.feed.dto.CommentRequest;
 import com.devsync.feed.dto.CommentResponse;
@@ -35,6 +37,7 @@ public class FeedService {
     private final CommentRepository commentRepository;
     private final PostLikeRepository postLikeRepository;
     private final UserRepository userRepository;
+    private final ActivityService activityService;
 
     @Transactional
     public PostResponse createPost(String userId, PostRequest request) {
@@ -48,6 +51,8 @@ public class FeedService {
                 .userId(userId).content(sanitizedContent).imageUrl(sanitizedImageUrl)
                 .postType(request.getPostType() != null ? request.getPostType() : "TEXT").build();
         post = postRepository.save(post);
+        activityService.record(userId, null, ActivityType.POST_CREATED,
+                "Post created", snippet(post.getContent()), null);
         return toPostResponse(post, user);
     }
 
@@ -118,6 +123,8 @@ public class FeedService {
         postRepository.findById(postId).orElseThrow(() -> new ResourceNotFoundException("Post", postId));
         User user = userRepository.findById(userId).orElseThrow(() -> new ResourceNotFoundException("User", userId));
         Comment comment = commentRepository.save(Comment.builder().userId(userId).postId(postId).content(request.getContent()).build());
+        activityService.record(userId, null, ActivityType.COMMENT_ADDED,
+                "Comment added", snippet(comment.getContent()), null);
         return toCommentResponse(comment, user);
     }
 
@@ -158,6 +165,12 @@ public class FeedService {
                 .likeCount(postLikeRepository.countByPostId(post.getId())).commentCount(commentRepository.countByPostId(post.getId()))
                 .createdAt(post.getCreatedAt()).updatedAt(post.getUpdatedAt()).user(userInfo)
                 .build();
+    }
+
+    private String snippet(String content) {
+        if (content == null) return "";
+        String trimmed = content.trim().replaceAll("\\s+", " ");
+        return trimmed.length() > 80 ? trimmed.substring(0, 80) + "..." : trimmed;
     }
 
     private CommentResponse toCommentResponse(Comment comment, User user) {

@@ -1,5 +1,8 @@
 package com.devsync.auth;
 
+import com.devsync.audit.AuditLogService;
+import com.devsync.audit.entity.AuditAction;
+import com.devsync.audit.entity.AuditStatus;
 import com.devsync.auth.dto.*;
 import com.devsync.user.UserService;
 import com.devsync.user.dto.UserResponse;
@@ -27,6 +30,7 @@ public class AuthService {
     private final OtpService otpService;
     private final EmailService emailService;
     private final UserService userService;
+    private final AuditLogService auditLogService;
 
     @Transactional
     public AuthResponse register(RegisterRequest request) {
@@ -61,43 +65,61 @@ public class AuthService {
         String accessToken = jwtTokenProvider.generateAccessToken(user.getId(), user.getEmail());
         String refreshToken = jwtTokenProvider.generateRefreshToken(user.getId());
 
+        auditLogService.record(user.getId(), user.getId(), AuditAction.REGISTER, AuditStatus.SUCCESS,
+                "New account registered: " + user.getEmail());
         return buildAuthResponse(user, accessToken, refreshToken);
     }
 
     public AuthResponse login(LoginRequest request) {
-        User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new AuthException("Invalid email or password"));
+        try {
+            User user = userRepository.findByEmail(request.getEmail())
+                    .orElseThrow(() -> new AuthException("Invalid email or password"));
 
-        if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-            throw new AuthException("Invalid email or password");
+            if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+                throw new AuthException("Invalid email or password");
+            }
+
+            ensureAccountActive(user);
+
+            user.setLastLoginAt(Instant.now());
+            userRepository.save(user);
+
+            String accessToken = jwtTokenProvider.generateAccessToken(user.getId(), user.getEmail());
+            String refreshToken = jwtTokenProvider.generateRefreshToken(user.getId());
+
+            auditLogService.record(user.getId(), user.getId(), AuditAction.LOGIN_SUCCESS, AuditStatus.SUCCESS,
+                    "Login successful for " + request.getEmail());
+            return buildAuthResponse(user, accessToken, refreshToken);
+        } catch (AuthException ex) {
+            auditLogService.record(null, null, AuditAction.LOGIN_FAILURE, AuditStatus.FAILURE,
+                    "Failed login attempt for " + request.getEmail() + ": " + ex.getMessage());
+            throw ex;
         }
-
-        ensureAccountActive(user);
-
-        user.setLastLoginAt(Instant.now());
-        userRepository.save(user);
-
-        String accessToken = jwtTokenProvider.generateAccessToken(user.getId(), user.getEmail());
-        String refreshToken = jwtTokenProvider.generateRefreshToken(user.getId());
-
-        return buildAuthResponse(user, accessToken, refreshToken);
     }
 
     public AuthResponse refreshToken(RefreshTokenRequest request) {
-        if (!jwtTokenProvider.validateToken(request.getRefreshToken())) {
-            throw new AuthException("Invalid or expired refresh token");
+        try {
+            if (!jwtTokenProvider.validateToken(request.getRefreshToken())) {
+                throw new AuthException("Invalid or expired refresh token");
+            }
+
+            String userId = jwtTokenProvider.getUserIdFromToken(request.getRefreshToken());
+            User user = userRepository.findById(userId)
+                    .orElseThrow(() -> new AuthException("User not found"));
+
+            ensureAccountActive(user);
+
+            String accessToken = jwtTokenProvider.generateAccessToken(user.getId(), user.getEmail());
+            String refreshToken = jwtTokenProvider.generateRefreshToken(user.getId());
+
+            auditLogService.record(user.getId(), user.getId(), AuditAction.JWT_REFRESH, AuditStatus.SUCCESS,
+                    "Token refreshed for " + user.getEmail());
+            return buildAuthResponse(user, accessToken, refreshToken);
+        } catch (AuthException ex) {
+            auditLogService.record(null, null, AuditAction.JWT_REFRESH, AuditStatus.FAILURE,
+                    "Refresh token rejected: " + ex.getMessage());
+            throw ex;
         }
-
-        String userId = jwtTokenProvider.getUserIdFromToken(request.getRefreshToken());
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new AuthException("User not found"));
-
-        ensureAccountActive(user);
-
-        String accessToken = jwtTokenProvider.generateAccessToken(user.getId(), user.getEmail());
-        String refreshToken = jwtTokenProvider.generateRefreshToken(user.getId());
-
-        return buildAuthResponse(user, accessToken, refreshToken);
     }
 
     public void sendOtp(String email) {
@@ -129,6 +151,8 @@ public class AuthService {
         String accessToken = jwtTokenProvider.generateAccessToken(user.getId(), user.getEmail());
         String refreshToken = jwtTokenProvider.generateRefreshToken(user.getId());
 
+        auditLogService.record(user.getId(), user.getId(), AuditAction.OTP_VERIFIED, AuditStatus.SUCCESS,
+                "OTP login for " + user.getEmail());
         return buildAuthResponse(user, accessToken, refreshToken);
     }
 
@@ -165,7 +189,16 @@ public class AuthService {
         String accessToken = jwtTokenProvider.generateAccessToken(user.getId(), user.getEmail());
         String refreshToken = jwtTokenProvider.generateRefreshToken(user.getId());
 
+        auditLogService.record(user.getId(), user.getId(), AuditAction.OAUTH_LOGIN, AuditStatus.SUCCESS,
+                "OAuth login via " + provider + " for " + user.getEmail());
         return buildAuthResponse(user, accessToken, refreshToken);
+    }
+
+    /**
+     * Records a logout audit entry. Token invalidation is handled client-side.
+     */
+    public void logout(String userId) {
+        auditLogService.record(userId, userId, AuditAction.LOGOUT, AuditStatus.SUCCESS, "User logged out");
     }
 
     /**

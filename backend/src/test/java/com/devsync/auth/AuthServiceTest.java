@@ -1,5 +1,6 @@
 package com.devsync.auth;
 
+import com.devsync.audit.AuditLogService;
 import com.devsync.auth.dto.*;
 import com.devsync.user.UserService;
 import com.devsync.user.entity.User;
@@ -32,6 +33,7 @@ class AuthServiceTest {
     @Mock private UserService userService;
 
     @Mock private EmailService emailService;
+    @Mock private AuditLogService auditLogService;
 
     private final PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
     private AuthService authService;
@@ -40,7 +42,7 @@ class AuthServiceTest {
 
     @BeforeEach
     void setUp() {
-        authService = new AuthService(userRepository, passwordEncoder, jwtTokenProvider, otpService, emailService, userService);
+        authService = new AuthService(userRepository, passwordEncoder, jwtTokenProvider, otpService, emailService, userService, auditLogService);
     }
 
     // ── Register ─────────────────────────────────────────────

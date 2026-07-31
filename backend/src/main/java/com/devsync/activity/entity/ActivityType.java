@@ -1,0 +1,13 @@
+package com.devsync.activity.entity;
+
+/**
+ * Every tracked event inside DevSync. Stored as an enum (never as a free-form string)
+ * so the timeline can be filtered and grouped reliably.
+ */
+public enum ActivityType {
+    PROJECT_CREATED, PROJECT_UPDATED, PROJECT_ARCHIVED, PROJECT_RESTORED, PROJECT_DELETED,
+    USER_JOINED_PROJECT, USER_LEFT_PROJECT,
+    TASK_CREATED, TASK_ASSIGNED, TASK_UPDATED, TASK_MOVED, TASK_COMPLETED, TASK_DELETED,
+    MESSAGE_SENT, POST_CREATED, COMMENT_ADDED, FILE_UPLOADED,
+    ROLE_CHANGED, USER_BLOCKED, USER_UNBLOCKED
+}
