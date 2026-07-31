@@ -63,12 +63,14 @@ public class MessageService {
         if (roomId != null && !participantRepository.existsByRoomIdAndUserId(roomId, userId)) {
             throw new IllegalArgumentException("You are not a participant in this room");
         }
-        List<Message> messages = messageRepository.findByRoomIdOrderByCreatedAtAsc(roomId, PageRequest.of(0, 100));
+        List<Message> messages = messageRepository.findByRoomIdOrderByCreatedAtAsc(roomId, PageRequest.of(0, 100))
+                .stream().filter(m -> !m.isHidden()).toList();
         return toResponsesWithBatchUsers(messages);
     }
 
     public List<MessageResponse> getConversation(String userId, String otherId, int limit) {
-        List<Message> messages = messageRepository.findConversation(userId, otherId, PageRequest.of(0, limit));
+        List<Message> messages = messageRepository.findConversation(userId, otherId, PageRequest.of(0, limit))
+                .stream().filter(m -> !m.isHidden()).toList();
         return toResponsesWithBatchUsers(messages);
     }
 
