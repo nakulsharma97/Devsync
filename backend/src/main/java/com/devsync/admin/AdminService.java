@@ -1,7 +1,14 @@
 package com.devsync.admin;
 
+import com.devsync.admin.dto.AdminActivityItem;
+import com.devsync.admin.dto.AdminKanbanStats;
 import com.devsync.admin.dto.AdminPostAuthor;
 import com.devsync.admin.dto.AdminPostResponse;
+import com.devsync.admin.dto.AdminProjectDetail;
+import com.devsync.admin.dto.AdminProjectListItem;
+import com.devsync.admin.dto.AdminProjectMember;
+import com.devsync.admin.dto.AdminProjectOwner;
+import com.devsync.admin.dto.AdminProjectStats;
 import com.devsync.admin.dto.AdminProjectSummary;
 import com.devsync.admin.dto.AdminTeamSummary;
 import com.devsync.admin.dto.AdminUserDetail;
@@ -17,10 +24,18 @@ import com.devsync.feed.entity.Post;
 import com.devsync.feed.repository.CommentRepository;
 import com.devsync.feed.repository.PostLikeRepository;
 import com.devsync.feed.repository.PostRepository;
+import com.devsync.kanban.entity.Board;
+import com.devsync.kanban.entity.BoardColumn;
+import com.devsync.kanban.entity.Task;
+import com.devsync.kanban.repository.BoardColumnRepository;
+import com.devsync.kanban.repository.BoardRepository;
 import com.devsync.kanban.repository.TaskRepository;
 import com.devsync.message.repository.MessageRepository;
 import com.devsync.project.entity.Project;
+import com.devsync.project.entity.ProjectMember;
+import com.devsync.project.repository.ProjectMemberRepository;
 import com.devsync.project.repository.ProjectRepository;
+import com.devsync.teamroom.entity.TeamRoom;
 import com.devsync.teamroom.repository.TeamRoomRepository;
 import com.devsync.user.entity.User;
 import com.devsync.user.repository.UserRepository;
@@ -34,7 +49,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -55,13 +73,16 @@ public class AdminService {
     private final MessageRepository messageRepository;
     private final CommentRepository commentRepository;
     private final PostLikeRepository postLikeRepository;
+    private final ProjectMemberRepository projectMemberRepository;
+    private final BoardRepository boardRepository;
+    private final BoardColumnRepository boardColumnRepository;
 
     @Transactional(readOnly = true)
     public DashboardResponse getDashboard() {
         long totalUsers = userRepository.count();
         long activeUsers = userRepository.countActiveUsers(Instant.now().minus(ACTIVE_WINDOW_DAYS, ChronoUnit.DAYS));
         long blockedUsers = userRepository.countByBlockedTrue();
-        long totalProjects = projectRepository.count();
+        long totalProjects = projectRepository.countByDeletedFalse();
         long totalTeams = teamRoomRepository.count();
         long totalTasks = taskRepository.count();
         long totalMessages = messageRepository.count();
@@ -71,7 +92,7 @@ public class AdminService {
                 .stream()
                 .map(this::toUserSummary)
                 .toList();
-        List<AdminProjectSummary> recentProjects = projectRepository.findTop5ByOrderByCreatedAtDesc()
+        List<AdminProjectSummary> recentProjects = projectRepository.findTop5ByOrderByCreatedAtDescAndDeletedFalse()
                 .stream()
                 .map(this::toProjectSummary)
                 .toList();
@@ -102,7 +123,7 @@ public class AdminService {
         return PlatformStatsResponse.builder()
                 .totalUsers(userRepository.count())
                 .totalPosts(postRepository.count())
-                .totalProjects(projectRepository.count())
+                .totalProjects(projectRepository.countByDeletedFalse())
                 .totalTeams(teamRoomRepository.count())
                 .totalConnections(0)
                 .build();
@@ -124,10 +145,6 @@ public class AdminService {
                 .toList();
     }
 
-    /**
-     * Paginated, sortable, searchable admin user list.
-     * Filters: search (fullName/username/email), role (USER|ADMIN), status (ACTIVE|BLOCKED|DELETED).
-     */
     @Transactional(readOnly = true)
     public PageResponse<AdminUserListItem> getUsersPage(int page, int size, String sortBy, String sortDir,
                                                         String search, String role, String status) {
@@ -164,10 +181,6 @@ public class AdminService {
                 .build();
     }
 
-    /**
-     * Full admin view of a single user: profile, role, status, projects,
-     * teams and content activity counts. No N+1 (batch queries only).
-     */
     @Transactional(readOnly = true)
     public AdminUserDetail getUserDetail(String userId) {
         User user = userRepository.findById(userId)
@@ -211,9 +224,6 @@ public class AdminService {
                 .build();
     }
 
-    /**
-     * Soft-delete a user: marks the account as deleted (keeps related data).
-     */
     @Transactional
     public void deleteUser(String userId, String currentUserId) {
         User user = userRepository.findById(userId)
@@ -290,6 +300,357 @@ public class AdminService {
         postLikeRepository.deleteByPostId(postId);
         commentRepository.deleteByPostId(postId);
         postRepository.deleteById(postId);
+    }
+
+    /**
+     * Project statistics for the admin projects header: total / active / archived / public / private.
+     */
+    @Transactional(readOnly = true)
+    public AdminProjectStats getProjectStats() {
+        return AdminProjectStats.builder()
+                .total(projectRepository.countByDeletedFalse())
+                .active(projectRepository.countByStatusAndDeletedFalse(Project.ProjectStatus.ACTIVE))
+                .archived(projectRepository.countByStatusAndDeletedFalse(Project.ProjectStatus.ARCHIVED))
+                .publicCount(projectRepository.countByVisibilityAndDeletedFalse(Project.ProjectVisibility.PUBLIC))
+                .privateCount(projectRepository.countByVisibilityAndDeletedFalse(Project.ProjectVisibility.PRIVATE))
+                .build();
+    }
+
+    /**
+     * Paginated, searchable, filterable admin project list.
+     * Filters: search (name/owner name/owner email), visibility, status (incl. DELETED via soft-delete flag).
+     * Sorts: newest/oldest/mostActive via JPQL; mostMembers/mostTasks computed in-memory per page.
+     * Batch queries only - no N+1.
+     */
+    @Transactional(readOnly = true)
+    public PageResponse<AdminProjectListItem> getProjectsPage(int page, int size, String sortBy, String sortDir,
+                                                              String search, String visibility, String status) {
+        int safePage = Math.max(page, 0);
+        int safeSize = Math.min(Math.max(size, 1), MAX_PAGE_SIZE);
+        String sortField = normalizeProjectSortField(sortBy);
+        Sort.Direction direction = "asc".equalsIgnoreCase(sortDir) ? Sort.Direction.ASC : Sort.Direction.DESC;
+        Pageable pageable = PageRequest.of(safePage, safeSize, Sort.by(direction, sortField));
+
+        Project.ProjectVisibility visFilter = parseVisibility(visibility);
+        Project.ProjectStatus statusFilter = parseProjectStatus(status);
+        boolean deleted = "DELETED".equalsIgnoreCase(status);
+        String searchFilter = (search == null || search.isBlank()) ? null : search.trim();
+
+        Page<Project> projects = projectRepository.searchAdminProjects(searchFilter, visFilter, statusFilter, deleted, pageable);
+
+        List<Project> content = projects.getContent();
+        Map<String, Long> memberCounts = memberCounts(content);
+        Map<String, Long> taskCounts = taskCounts(content);
+        Map<String, Long> postCounts = postCounts(content);
+        Map<String, User> ownerMap = ownerMap(content);
+
+        List<AdminProjectListItem> items = content.stream()
+                .map(p -> toProjectListItem(p, memberCounts, taskCounts, postCounts, ownerMap))
+                .collect(Collectors.toCollection(ArrayList::new));
+
+        String sortKey = sortBy == null ? "" : sortBy.toLowerCase();
+        if (sortKey.contains("member")) {
+            items.sort(Comparator.comparingLong(AdminProjectListItem::getMembersCount).reversed());
+        } else if (sortKey.contains("task")) {
+            items.sort(Comparator.comparingLong(AdminProjectListItem::getTasksCount).reversed());
+        }
+
+        return PageResponse.<AdminProjectListItem>builder()
+                .content(items)
+                .page(projects.getNumber())
+                .size(projects.getSize())
+                .totalElements(projects.getTotalElements())
+                .totalPages(projects.getTotalPages())
+                .last(projects.isLast())
+                .build();
+    }
+
+    /**
+     * Full admin view of a project: owner, members, kanban stats, posts/messages counts and recent activity.
+     * Uses batch queries only - no N+1.
+     */
+    @Transactional(readOnly = true)
+    public AdminProjectDetail getProjectDetail(String projectId) {
+        Project project = projectRepository.findById(projectId)
+                .orElseThrow(() -> new ResourceNotFoundException("Project", projectId));
+
+        User owner = userRepository.findById(project.getOwnerId()).orElse(null);
+        AdminProjectOwner ownerDto = owner != null ? toOwner(owner)
+                : AdminProjectOwner.builder().id(project.getOwnerId()).fullName("Unknown").build();
+
+        List<ProjectMember> members = projectMemberRepository.findByProjectId(projectId);
+        Map<String, User> userMap = members.isEmpty() ? Collections.emptyMap()
+                : userRepository.findAllById(members.stream().map(ProjectMember::getUserId).collect(Collectors.toSet()))
+                        .stream().collect(Collectors.toMap(User::getId, u -> u));
+        List<AdminProjectMember> memberDtos = members.stream()
+                .map(m -> {
+                    User memberUser = userMap.get(m.getUserId());
+                    return AdminProjectMember.builder()
+                            .userId(m.getUserId())
+                            .fullName(memberUser != null ? memberUser.getFullName() : "Unknown")
+                            .email(memberUser != null ? memberUser.getEmail() : null)
+                            .avatarUrl(memberUser != null ? memberUser.getAvatarUrl() : null)
+                            .role(m.getRole().name())
+                            .build();
+                })
+                .toList();
+
+        Set<String> memberIds = members.stream().map(ProjectMember::getUserId).collect(Collectors.toSet());
+        long postsCount = memberIds.isEmpty() ? 0 : postRepository.countPostsByUserIdIn(memberIds).stream()
+                .mapToLong(row -> (Long) row[1])
+                .sum();
+
+        return AdminProjectDetail.builder()
+                .id(project.getId())
+                .name(project.getName())
+                .description(project.getDescription())
+                .owner(ownerDto)
+                .visibility(project.getVisibility() != null ? project.getVisibility().name() : "PUBLIC")
+                .status(project.getStatus() != null ? project.getStatus().name() : "ACTIVE")
+                .memberCount(members.size())
+                .members(memberDtos)
+                .kanbanStats(kanbanStats(projectId))
+                .postsCount(postsCount)
+                .messagesCount(messagesCount(projectId))
+                .recentActivity(recentActivity(projectId))
+                .createdAt(project.getCreatedAt())
+                .updatedAt(project.getUpdatedAt())
+                .build();
+    }
+
+    @Transactional
+    public AdminProjectListItem archiveProject(String projectId) {
+        Project project = getEditableProject(projectId);
+        project.setStatus(Project.ProjectStatus.ARCHIVED);
+        projectRepository.save(project);
+        return toProjectListItem(project);
+    }
+
+    @Transactional
+    public AdminProjectListItem restoreProject(String projectId) {
+        Project project = getEditableProject(projectId);
+        project.setStatus(Project.ProjectStatus.ACTIVE);
+        projectRepository.save(project);
+        return toProjectListItem(project);
+    }
+
+    @Transactional
+    public AdminProjectListItem setProjectVisibility(String projectId, String visibility) {
+        Project.ProjectVisibility parsed = parseVisibility(visibility);
+        if (parsed == null) {
+            throw new IllegalArgumentException("Visibility is required");
+        }
+        Project project = getEditableProject(projectId);
+        project.setVisibility(parsed);
+        projectRepository.save(project);
+        return toProjectListItem(project);
+    }
+
+    @Transactional
+    public void deleteProject(String projectId) {
+        Project project = projectRepository.findById(projectId)
+                .orElseThrow(() -> new ResourceNotFoundException("Project", projectId));
+        project.setDeleted(true);
+        project.setDeletedAt(Instant.now());
+        projectRepository.save(project);
+    }
+
+    private Project getEditableProject(String projectId) {
+        Project project = projectRepository.findById(projectId)
+                .orElseThrow(() -> new ResourceNotFoundException("Project", projectId));
+        if (project.isDeleted()) {
+            throw new IllegalArgumentException("Project is deleted and cannot be modified");
+        }
+        return project;
+    }
+
+    private Map<String, Long> memberCounts(List<Project> projects) {
+        Set<String> ids = projects.stream().map(Project::getId).collect(Collectors.toSet());
+        if (ids.isEmpty()) return Collections.emptyMap();
+        return projectMemberRepository.countMembersByProjectIdIn(ids).stream()
+                .collect(Collectors.toMap(row -> (String) row[0], row -> (Long) row[1]));
+    }
+
+    private Map<String, Long> taskCounts(List<Project> projects) {
+        Set<String> projectIds = projects.stream().map(Project::getId).collect(Collectors.toSet());
+        if (projectIds.isEmpty()) return Collections.emptyMap();
+        List<Board> boards = boardRepository.findByProjectIdIn(projectIds);
+        if (boards.isEmpty()) return Collections.emptyMap();
+        Map<String, Long> perBoard = taskRepository.countTasksByBoardIdIn(
+                        boards.stream().map(Board::getId).collect(Collectors.toSet()))
+                .stream().collect(Collectors.toMap(row -> (String) row[0], row -> (Long) row[1]));
+        Map<String, Long> result = new HashMap<>();
+        for (Board b : boards) {
+            result.merge(b.getProjectId(), perBoard.getOrDefault(b.getId(), 0L), Long::sum);
+        }
+        return result;
+    }
+
+    private Map<String, Long> postCounts(List<Project> projects) {
+        Set<String> projectIds = projects.stream().map(Project::getId).collect(Collectors.toSet());
+        if (projectIds.isEmpty()) return Collections.emptyMap();
+        List<ProjectMember> members = projectMemberRepository.findByProjectIdIn(projectIds);
+        if (members.isEmpty()) return Collections.emptyMap();
+        Map<String, Long> perUser = postRepository.countPostsByUserIdIn(
+                        members.stream().map(ProjectMember::getUserId).collect(Collectors.toSet()))
+                .stream().collect(Collectors.toMap(row -> (String) row[0], row -> (Long) row[1]));
+        Map<String, Long> result = new HashMap<>();
+        for (ProjectMember m : members) {
+            result.merge(m.getProjectId(), perUser.getOrDefault(m.getUserId(), 0L), Long::sum);
+        }
+        return result;
+    }
+
+    private Map<String, User> ownerMap(List<Project> projects) {
+        Set<String> ownerIds = projects.stream().map(Project::getOwnerId).collect(Collectors.toSet());
+        if (ownerIds.isEmpty()) return Collections.emptyMap();
+        return userRepository.findAllById(ownerIds).stream()
+                .collect(Collectors.toMap(User::getId, u -> u));
+    }
+
+    private AdminProjectListItem toProjectListItem(Project p) {
+        return toProjectListItem(p, memberCounts(List.of(p)), taskCounts(List.of(p)),
+                postCounts(List.of(p)), ownerMap(List.of(p)));
+    }
+
+    private AdminProjectListItem toProjectListItem(Project p, Map<String, Long> memberCounts,
+                                                   Map<String, Long> taskCounts, Map<String, Long> postCounts,
+                                                   Map<String, User> ownerMap) {
+        User owner = ownerMap.get(p.getOwnerId());
+        return AdminProjectListItem.builder()
+                .id(p.getId())
+                .name(p.getName())
+                .description(p.getDescription())
+                .ownerId(p.getOwnerId())
+                .ownerName(owner != null ? owner.getFullName() : "Unknown")
+                .ownerEmail(owner != null ? owner.getEmail() : null)
+                .ownerAvatarUrl(owner != null ? owner.getAvatarUrl() : null)
+                .visibility(p.getVisibility() != null ? p.getVisibility().name() : "PUBLIC")
+                .status(p.getStatus() != null ? p.getStatus().name() : "ACTIVE")
+                .membersCount(memberCounts.getOrDefault(p.getId(), 0L))
+                .tasksCount(taskCounts.getOrDefault(p.getId(), 0L))
+                .postsCount(postCounts.getOrDefault(p.getId(), 0L))
+                .createdAt(p.getCreatedAt())
+                .updatedAt(p.getUpdatedAt())
+                .build();
+    }
+
+    private AdminProjectOwner toOwner(User user) {
+        return AdminProjectOwner.builder()
+                .id(user.getId())
+                .fullName(user.getFullName())
+                .email(user.getEmail())
+                .username(user.getUsername())
+                .avatarUrl(user.getAvatarUrl())
+                .build();
+    }
+
+    private AdminKanbanStats kanbanStats(String projectId) {
+        List<Board> boards = boardRepository.findByProjectId(projectId);
+        if (boards.isEmpty()) {
+            return AdminKanbanStats.builder().totalTasks(0).completedTasks(0).pendingTasks(0).build();
+        }
+        List<String> boardIds = boards.stream().map(Board::getId).toList();
+        Map<String, BoardColumn> columnMap = boardColumnRepository.findByBoardIdIn(boardIds).stream()
+                .collect(Collectors.toMap(BoardColumn::getId, c -> c));
+        List<Task> tasks = taskRepository.findByBoardIdIn(boardIds);
+        long completed = tasks.stream()
+                .filter(t -> {
+                    BoardColumn col = columnMap.get(t.getColumnId());
+                    return col != null && isDoneColumn(col.getName());
+                })
+                .count();
+        return AdminKanbanStats.builder()
+                .totalTasks(tasks.size())
+                .completedTasks(completed)
+                .pendingTasks(tasks.size() - completed)
+                .build();
+    }
+
+    private boolean isDoneColumn(String name) {
+        String n = name == null ? "" : name.toLowerCase();
+        return n.contains("done") || n.contains("complete");
+    }
+
+    private long messagesCount(String projectId) {
+        List<String> roomIds = teamRoomRepository.findByProjectId(projectId).stream()
+                .map(TeamRoom::getId)
+                .toList();
+        if (roomIds.isEmpty()) return 0;
+        return messageRepository.countByRoomIdIn(roomIds);
+    }
+
+    private List<AdminActivityItem> recentActivity(String projectId) {
+        List<Board> boards = boardRepository.findByProjectId(projectId);
+        List<String> boardIds = boards.stream().map(Board::getId).toList();
+        List<String> roomIds = teamRoomRepository.findByProjectId(projectId).stream()
+                .map(TeamRoom::getId)
+                .toList();
+
+        List<AdminActivityItem> items = new ArrayList<>();
+        if (!boardIds.isEmpty()) {
+            taskRepository.findTop5ByBoardIdInOrderByUpdatedAtDesc(boardIds).forEach(t ->
+                    items.add(AdminActivityItem.builder()
+                            .type("TASK")
+                            .title("Task updated: " + t.getTitle())
+                            .timestamp(t.getUpdatedAt())
+                            .build()));
+        }
+        if (!roomIds.isEmpty()) {
+            messageRepository.findTop5ByRoomIdInOrderByCreatedAtDesc(roomIds).forEach(m ->
+                    items.add(AdminActivityItem.builder()
+                            .type("MESSAGE")
+                            .title("New message: " + snippet(m.getContent()))
+                            .timestamp(m.getCreatedAt())
+                            .build()));
+        }
+        items.sort((a, b) -> {
+            if (a.getTimestamp() == null && b.getTimestamp() == null) return 0;
+            if (a.getTimestamp() == null) return 1;
+            if (b.getTimestamp() == null) return -1;
+            return b.getTimestamp().compareTo(a.getTimestamp());
+        });
+        return items.stream().limit(10).toList();
+    }
+
+    private String snippet(String content) {
+        if (content == null) return "";
+        String trimmed = content.trim().replaceAll("\\s+", " ");
+        return trimmed.length() > 60 ? trimmed.substring(0, 60) + "..." : trimmed;
+    }
+
+    private Project.ProjectVisibility parseVisibility(String visibility) {
+        if (visibility == null || visibility.isBlank()) {
+            return null;
+        }
+        try {
+            return Project.ProjectVisibility.valueOf(visibility.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Invalid visibility filter: " + visibility);
+        }
+    }
+
+    private Project.ProjectStatus parseProjectStatus(String status) {
+        if (status == null || status.isBlank() || "DELETED".equalsIgnoreCase(status)) {
+            return null;
+        }
+        try {
+            return Project.ProjectStatus.valueOf(status.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Invalid status filter: " + status);
+        }
+    }
+
+    private String normalizeProjectSortField(String sortBy) {
+        if (sortBy == null || sortBy.isBlank()) {
+            return "createdAt";
+        }
+        return switch (sortBy.toLowerCase()) {
+            case "name" -> "name";
+            case "oldest" -> "createdAt";
+            case "mostactive", "most_active", "updatedat", "updated" -> "updatedAt";
+            default -> "createdAt";
+        };
     }
 
     private User.Role normalizeRole(String role) {

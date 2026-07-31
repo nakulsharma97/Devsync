@@ -65,6 +65,9 @@ public class ProjectService {
     public ProjectResponse getProject(String projectId, String userId) {
         Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new ResourceNotFoundException("Project", projectId));
+        if (project.isDeleted()) {
+            throw new ResourceNotFoundException("Project", projectId);
+        }
         return toResponse(project, userId);
     }
 
@@ -72,6 +75,12 @@ public class ProjectService {
     public ProjectResponse updateProject(String projectId, UpdateProjectRequest request, String userId) {
         Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new ResourceNotFoundException("Project", projectId));
+        if (project.isDeleted()) {
+            throw new ResourceNotFoundException("Project", projectId);
+        }
+        if (project.getStatus() == Project.ProjectStatus.ARCHIVED) {
+            throw new IllegalArgumentException("Archived projects cannot be edited");
+        }
         // Only project owner or admin members can update the project
         if (!project.getOwnerId().equals(userId)) {
             boolean isAdmin = memberRepository.findByProjectIdAndUserId(projectId, userId)

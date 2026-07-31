@@ -6,6 +6,8 @@ import com.devsync.message.dto.MessageResponse;
 import com.devsync.message.dto.SendMessageRequest;
 import com.devsync.message.entity.Message;
 import com.devsync.message.repository.MessageRepository;
+import com.devsync.project.entity.Project;
+import com.devsync.project.repository.ProjectRepository;
 import com.devsync.teamroom.entity.TeamRoom;
 import com.devsync.teamroom.repository.TeamRoomParticipantRepository;
 import com.devsync.teamroom.repository.TeamRoomRepository;
@@ -27,9 +29,24 @@ public class MessageService {
     private final UserRepository userRepository;
     private final TeamRoomRepository roomRepository;
     private final TeamRoomParticipantRepository participantRepository;
+    private final ProjectRepository projectRepository;
 
     @Transactional
     public MessageResponse sendMessage(SendMessageRequest request, String senderId) {
+        if (request.getRoomId() != null) {
+            roomRepository.findById(request.getRoomId()).ifPresent(room -> {
+                if (room.getProjectId() != null) {
+                    projectRepository.findById(room.getProjectId()).ifPresent(project -> {
+                        if (project.isDeleted()) {
+                            throw new ResourceNotFoundException("Project", project.getId());
+                        }
+                        if (project.getStatus() == Project.ProjectStatus.ARCHIVED) {
+                            throw new IllegalArgumentException("This project is archived and messaging is disabled");
+                        }
+                    });
+                }
+            });
+        }
         Message message = Message.builder()
                 .senderId(senderId)
                 .roomId(request.getRoomId())

@@ -4,6 +4,8 @@ import com.devsync.common.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.Instant;
+
 @Entity
 @Table(name = "projects")
 @Getter
@@ -27,6 +29,18 @@ public class Project extends BaseEntity {
     @Builder.Default
     private ProjectStatus status = ProjectStatus.ACTIVE;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    @Builder.Default
+    private ProjectVisibility visibility = ProjectVisibility.PUBLIC;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean deleted = false;
+
+    @Column(name = "deleted_at")
+    private Instant deletedAt;
+
     @Column(name = "repository_url")
     private String repositoryUrl;
 
@@ -35,5 +49,9 @@ public class Project extends BaseEntity {
 
     public enum ProjectStatus {
         ACTIVE, ARCHIVED, COMPLETED
+    }
+
+    public enum ProjectVisibility {
+        PUBLIC, PRIVATE
     }
 }

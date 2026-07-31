@@ -1,5 +1,12 @@
 package com.devsync.admin;
 
+import com.devsync.admin.dto.AdminActivityItem;
+import com.devsync.admin.dto.AdminKanbanStats;
+import com.devsync.admin.dto.AdminProjectDetail;
+import com.devsync.admin.dto.AdminProjectListItem;
+import com.devsync.admin.dto.AdminProjectMember;
+import com.devsync.admin.dto.AdminProjectOwner;
+import com.devsync.admin.dto.AdminProjectStats;
 import com.devsync.admin.dto.AdminProjectSummary;
 import com.devsync.admin.dto.AdminUserListItem;
 import com.devsync.admin.dto.AdminUserSummary;
@@ -10,6 +17,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -22,6 +30,7 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -48,6 +57,16 @@ class AdminControllerTest {
                 .recentProjects(List.of(AdminProjectSummary.builder()
                         .id("p1").name("DevSync").status("ACTIVE")
                         .ownerId("u1").createdAt(Instant.now()).build()))
+                .build();
+    }
+
+    private AdminProjectListItem sampleProjectItem() {
+        return AdminProjectListItem.builder()
+                .id("p1").name("DevSync").description("Collab platform")
+                .ownerId("u1").ownerName("Dev User").ownerEmail("dev@test.com")
+                .visibility("PUBLIC").status("ACTIVE")
+                .membersCount(3).tasksCount(7).postsCount(2)
+                .createdAt(Instant.now()).updatedAt(Instant.now())
                 .build();
     }
 
@@ -192,6 +211,176 @@ class AdminControllerTest {
     @WithMockUser
     void deleteUser_shouldReturn403_ForNormalUser() throws Exception {
         mockMvc.perform(delete("/api/admin/users/u1"))
+                .andExpect(status().isForbidden());
+    }
+
+    // ---------- Admin Project Management endpoints ----------
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void projectsPage_shouldReturn200_ForAdmin() throws Exception {
+        PageResponse<AdminProjectListItem> page = PageResponse.<AdminProjectListItem>builder()
+                .content(List.of(sampleProjectItem()))
+                .page(0).size(10).totalElements(1).totalPages(1).last(true)
+                .build();
+        when(adminService.getProjectsPage(anyInt(), anyInt(), any(), any(), any(), any(), any()))
+                .thenReturn(page);
+
+        mockMvc.perform(get("/api/admin/projects")
+                        .param("page", "0").param("size", "10")
+                        .param("sortBy", "newest").param("sortDir", "desc")
+                        .param("search", "dev").param("visibility", "PUBLIC")
+                        .param("status", "ACTIVE"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].name").value("DevSync"))
+                .andExpect(jsonPath("$.content[0].membersCount").value(3))
+                .andExpect(jsonPath("$.content[0].tasksCount").value(7))
+                .andExpect(jsonPath("$.totalElements").value(1))
+                .andExpect(jsonPath("$.totalPages").value(1));
+    }
+
+    @Test
+    @WithMockUser
+    void projectsPage_shouldReturn403_ForNormalUser() throws Exception {
+        mockMvc.perform(get("/api/admin/projects"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void projectStats_shouldReturn200_ForAdmin() throws Exception {
+        when(adminService.getProjectStats()).thenReturn(AdminProjectStats.builder()
+                .total(10).active(7).archived(2).publicCount(6).privateCount(4).build());
+
+        mockMvc.perform(get("/api/admin/projects/stats"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.total").value(10))
+                .andExpect(jsonPath("$.active").value(7))
+                .andExpect(jsonPath("$.archived").value(2))
+                .andExpect(jsonPath("$.publicCount").value(6))
+                .andExpect(jsonPath("$.privateCount").value(4));
+    }
+
+    @Test
+    @WithMockUser
+    void projectStats_shouldReturn403_ForNormalUser() throws Exception {
+        mockMvc.perform(get("/api/admin/projects/stats"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void projectDetail_shouldReturn200_ForAdmin() throws Exception {
+        AdminProjectDetail detail = AdminProjectDetail.builder()
+                .id("p1").name("DevSync").description("Collab platform")
+                .owner(AdminProjectOwner.builder().id("u1").fullName("Dev User").email("dev@test.com").build())
+                .visibility("PUBLIC").status("ACTIVE").memberCount(1)
+                .members(List.of(AdminProjectMember.builder()
+                        .userId("u1").fullName("Dev User").role("OWNER").build()))
+                .kanbanStats(AdminKanbanStats.builder().totalTasks(7).completedTasks(3).pendingTasks(4).build())
+                .postsCount(2).messagesCount(5)
+                .recentActivity(List.of(AdminActivityItem.builder()
+                        .type("TASK").title("Task updated: Ship it").timestamp(Instant.now()).build()))
+                .createdAt(Instant.now()).updatedAt(Instant.now())
+                .build();
+        when(adminService.getProjectDetail("p1")).thenReturn(detail);
+
+        mockMvc.perform(get("/api/admin/projects/p1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name").value("DevSync"))
+                .andExpect(jsonPath("$.owner.fullName").value("Dev User"))
+                .andExpect(jsonPath("$.kanbanStats.completedTasks").value(3))
+                .andExpect(jsonPath("$.messagesCount").value(5))
+                .andExpect(jsonPath("$.recentActivity[0].type").value("TASK"));
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void projectDetail_shouldReturn404_WhenNotFound() throws Exception {
+        when(adminService.getProjectDetail("ghost"))
+                .thenThrow(new ResourceNotFoundException("Project", "ghost"));
+
+        mockMvc.perform(get("/api/admin/projects/ghost"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @WithMockUser
+    void projectDetail_shouldReturn403_ForNormalUser() throws Exception {
+        mockMvc.perform(get("/api/admin/projects/p1"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void archiveProject_shouldReturn200_ForAdmin() throws Exception {
+        when(adminService.archiveProject("p1")).thenReturn(sampleProjectItem());
+
+        mockMvc.perform(put("/api/admin/projects/p1/archive"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("ACTIVE"));
+    }
+
+    @Test
+    @WithMockUser
+    void archiveProject_shouldReturn403_ForNormalUser() throws Exception {
+        mockMvc.perform(put("/api/admin/projects/p1/archive"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void restoreProject_shouldReturn200_ForAdmin() throws Exception {
+        when(adminService.restoreProject("p1")).thenReturn(sampleProjectItem());
+
+        mockMvc.perform(put("/api/admin/projects/p1/restore"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name").value("DevSync"));
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void updateVisibility_shouldReturn200_ForAdmin() throws Exception {
+        AdminProjectListItem item = sampleProjectItem();
+        item.setVisibility("PRIVATE");
+        when(adminService.setProjectVisibility("p1", "PRIVATE")).thenReturn(item);
+
+        mockMvc.perform(put("/api/admin/projects/p1/visibility")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"visibility\":\"PRIVATE\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.visibility").value("PRIVATE"));
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void updateVisibility_shouldReturn400_WhenBlank() throws Exception {
+        mockMvc.perform(put("/api/admin/projects/p1/visibility")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"visibility\":\"\"}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @WithMockUser
+    void updateVisibility_shouldReturn403_ForNormalUser() throws Exception {
+        mockMvc.perform(put("/api/admin/projects/p1/visibility")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"visibility\":\"PRIVATE\"}"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void deleteProject_shouldReturn204_ForAdmin() throws Exception {
+        mockMvc.perform(delete("/api/admin/projects/p1"))
+                .andExpect(status().isNoContent());
+    }
+
+    @Test
+    @WithMockUser
+    void deleteProject_shouldReturn403_ForNormalUser() throws Exception {
+        mockMvc.perform(delete("/api/admin/projects/p1"))
                 .andExpect(status().isForbidden());
     }
 }

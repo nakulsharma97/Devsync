@@ -77,6 +77,7 @@ public class BoardService {
     public void updateTaskPosition(UpdateTaskPositionRequest request) {
         Task task = taskRepository.findById(request.getTaskId())
                 .orElseThrow(() -> new ResourceNotFoundException("Task", request.getTaskId()));
+        verifyTaskProjectEditable(task);
         String oldColumnId = task.getColumnId();
         task.setColumnId(request.getNewColumnId());
         task.setPosition(request.getNewPosition());
@@ -113,12 +114,34 @@ public class BoardService {
                 .orElseThrow(() -> new ResourceNotFoundException("Board", boardId));
         Project project = projectRepository.findById(board.getProjectId())
                 .orElseThrow(() -> new ResourceNotFoundException("Project", board.getProjectId()));
+        ensureProjectEditable(project);
         if (project.getOwnerId().equals(userId)) return;
         boolean isAdmin = projectMemberRepository.findByProjectIdAndUserId(board.getProjectId(), userId)
                 .filter(m -> m.getRole() == ProjectMember.Role.ADMIN || m.getRole() == ProjectMember.Role.OWNER)
                 .isPresent();
         if (!isAdmin) {
             throw new IllegalArgumentException("You don't have permission to modify tasks in this project");
+        }
+    }
+
+    private void verifyTaskProjectEditable(Task task) {
+        Board board = boardRepository.findById(task.getBoardId())
+                .orElseThrow(() -> new ResourceNotFoundException("Board", task.getBoardId()));
+        Project project = projectRepository.findById(board.getProjectId())
+                .orElseThrow(() -> new ResourceNotFoundException("Project", board.getProjectId()));
+        ensureProjectEditable(project);
+    }
+
+    /**
+     * Archived projects become read-only: no task create/edit/move/delete.
+     * Deleted (soft-deleted) projects are treated as not found.
+     */
+    private void ensureProjectEditable(Project project) {
+        if (project.isDeleted()) {
+            throw new ResourceNotFoundException("Project", project.getId());
+        }
+        if (project.getStatus() == Project.ProjectStatus.ARCHIVED) {
+            throw new IllegalArgumentException("This project is archived and is read-only");
         }
     }
 
