@@ -15,6 +15,7 @@ import {
   Code2,
   TrendingUp,
   Shield,
+  Flag,
 } from "lucide-react";
 import { notificationService } from "@/services/notificationService";
 import { conversationService } from "@/services/conversationService";
@@ -35,6 +36,7 @@ const navItems = [
   { to: "/admin/dashboard", icon: Shield, label: "Admin Dashboard" },
   { to: "/admin/users", icon: Users, label: "Admin Users" },
   { to: "/admin/projects", icon: FolderGit2, label: "Admin Projects" },
+  { to: "/admin/reports", icon: Flag, label: "Admin Reports" },
   { to: "/settings", icon: Settings, label: "Settings" },
 ];
 
