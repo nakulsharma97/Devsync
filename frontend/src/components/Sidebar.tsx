@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { notificationService } from "@/services/notificationService";
 import { conversationService } from "@/services/conversationService";
+import { useAuth } from "@/contexts/AuthContext";
 
 const navItems = [
   { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
@@ -31,12 +32,13 @@ const navItems = [
   { to: "/bookmarks", icon: Bookmark, label: "Bookmarks" },
   { to: "/search", icon: Search, label: "Search" },
   { to: "/messages", icon: MessageCircle, label: "Messages" },
-  { to: "/admin", icon: Shield, label: "Admin" },
+  { to: "/admin/dashboard", icon: Shield, label: "Admin Dashboard" },
   { to: "/settings", icon: Settings, label: "Settings" },
 ];
 
 export function Sidebar() {
   const location = useLocation();
+  const { user } = useAuth();
   const [unreadCount, setUnreadCount] = useState(0);
   const [msgUnreadCount, setMsgUnreadCount] = useState(0);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -75,6 +77,10 @@ export function Sidebar() {
     fetchCount();
   }, [location.pathname, fetchCount]);
 
+  const visibleItems = navItems.filter(
+    (item) => item.label !== "Admin Dashboard" || user?.role === "ADMIN"
+  );
+
   return (
     <aside className="fixed left-0 top-0 bottom-0 w-56 border-r border-border/30 bg-sidebar z-40 flex flex-col">
       {/* Logo */}
@@ -87,7 +93,7 @@ export function Sidebar() {
 
       {/* Navigation */}
       <nav className="flex-1 py-3 px-2.5 space-y-0.5 overflow-y-auto">
-        {navItems.map((item) => (
+        {visibleItems.map((item) => (
           <NavLink
             key={item.to}
             to={item.to}
