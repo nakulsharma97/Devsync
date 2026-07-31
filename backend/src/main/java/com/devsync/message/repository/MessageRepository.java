@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.Collection;
 import java.util.List;
 
 public interface MessageRepository extends JpaRepository<Message, String> {
@@ -25,4 +26,8 @@ public interface MessageRepository extends JpaRepository<Message, String> {
 
     @Query("SELECT COUNT(m) FROM Message m WHERE m.senderId = :userId OR m.receiverId = :userId")
     long countMessagesByUserId(@Param("userId") String userId);
+
+    long countByRoomIdIn(Collection<String> roomIds);
+
+    List<Message> findTop5ByRoomIdInOrderByCreatedAtDesc(Collection<String> roomIds);
 }
