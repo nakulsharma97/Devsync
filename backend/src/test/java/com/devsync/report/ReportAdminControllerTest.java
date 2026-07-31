@@ -141,7 +141,7 @@ class ReportAdminControllerTest {
     }
 
     @Test
-    @WithMockUser(roles = "ADMIN")
+    @WithMockUser(username = "admin1", roles = "ADMIN")
     void reviewReport_shouldReturn200_ForAdmin() throws Exception {
         when(reportAdminService.reviewReport("r1", "RESOLVED", "admin1"))
                 .thenReturn(sampleDetail());
@@ -163,7 +163,7 @@ class ReportAdminControllerTest {
     }
 
     @Test
-    @WithMockUser(roles = "ADMIN")
+    @WithMockUser(username = "admin1", roles = "ADMIN")
     void moderate_shouldReturn200_ForAdmin() throws Exception {
         when(reportAdminService.moderate("r1", "BLOCK_USER", null, "admin1"))
                 .thenReturn(sampleDetail());
