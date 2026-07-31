@@ -300,6 +300,73 @@ export interface AdminReportsQuery {
   entityType?: string;
 }
 
+// ---------- Activity & Audit Logs types ----------
+
+export interface ActivityUser {
+  id: string;
+  fullName: string;
+  username?: string | null;
+  avatarUrl?: string | null;
+}
+
+export interface ActivityItem {
+  id: string;
+  user: ActivityUser;
+  projectId?: string | null;
+  activityType: string;
+  title: string;
+  description?: string | null;
+  createdAt: string;
+}
+
+export interface AdminActivityStats {
+  todayCount: number;
+  projects: number;
+  tasks: number;
+  messages: number;
+}
+
+export interface AdminActivityQuery {
+  page?: number;
+  size?: number;
+  projectId?: string;
+  userId?: string;
+  activityType?: string;
+  from?: string;
+  to?: string;
+}
+
+export type AuditStatus = "SUCCESS" | "FAILURE";
+
+export interface AuditLogItem {
+  id: string;
+  performedBy?: string | null;
+  performedByName?: string | null;
+  targetUserId?: string | null;
+  targetUserName?: string | null;
+  action: string;
+  status: AuditStatus;
+  ipAddress?: string | null;
+  device?: string | null;
+  browser?: string | null;
+  details?: string | null;
+  createdAt: string;
+}
+
+export interface AuditLogQuery {
+  page?: number;
+  size?: number;
+  sortBy?: string;
+  sortDir?: "asc" | "desc";
+  search?: string;
+  action?: string;
+  status?: string;
+  adminId?: string;
+  userId?: string;
+  from?: string;
+  to?: string;
+}
+
 // ---------- Frontend helper types ----------
 
 export interface CreateReportInput {
@@ -470,5 +537,39 @@ export const adminService = {
   async createReport(input: CreateReportInput): Promise<ReportResponse> {
     const res = await api.post("/reports", input);
     return res.data?.data;
+  },
+
+  // ---------- Activity & Audit Logs ----------
+
+  async getAdminActivity(query: AdminActivityQuery = {}): Promise<PageResponse<ActivityItem>> {
+    const res = await api.get("/admin/activity", { params: query });
+    return res.data;
+  },
+
+  async getAdminActivityStats(): Promise<AdminActivityStats> {
+    const res = await api.get("/admin/activity/stats");
+    return res.data;
+  },
+
+  async getAuditLogs(query: AuditLogQuery = {}): Promise<PageResponse<AuditLogItem>> {
+    const res = await api.get("/admin/audit-logs", { params: query });
+    return res.data;
+  },
+
+  async getAuditLogDetail(id: string): Promise<AuditLogItem> {
+    const res = await api.get(`/admin/audit-logs/${id}`);
+    return res.data;
+  },
+
+  async exportAuditLogsCsv(query: AuditLogQuery = {}): Promise<void> {
+    const res = await api.get("/admin/audit-logs/export", { params: query, responseType: "blob" });
+    const url = window.URL.createObjectURL(new Blob([res.data]));
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "audit-logs.csv";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
   },
 };

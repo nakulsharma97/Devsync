@@ -37,6 +37,8 @@ import Admin from "./pages/Admin";
 import AdminUsers from "./pages/AdminUsers";
 import AdminProjects from "./pages/AdminProjects";
 import AdminReports from "./pages/AdminReports";
+import AdminActivity from "./pages/AdminActivity";
+import AdminAuditLogs from "./pages/AdminAuditLogs";
 
 function App() {
   return (
@@ -69,6 +71,8 @@ function App() {
               <Route path="/admin/users" element={<AdminUsers />} />
               <Route path="/admin/projects" element={<AdminProjects />} />
               <Route path="/admin/reports" element={<AdminReports />} />
+              <Route path="/admin/activity" element={<AdminActivity />} />
+              <Route path="/admin/audit-logs" element={<AdminAuditLogs />} />
               <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
             </Route>
             <Route path="*" element={<NotFound />} />
