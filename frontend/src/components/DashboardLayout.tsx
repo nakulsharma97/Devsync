@@ -12,6 +12,7 @@ import {
   X,
   Search,
   Rss,
+  Shield,
 } from "lucide-react";
 import { useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router";
@@ -78,6 +79,23 @@ export default function DashboardLayout() {
               {item.label}
             </NavLink>
           ))}
+
+          {user?.role === "ADMIN" && (
+            <NavLink
+              to="/admin/dashboard"
+              onClick={() => setSidebarOpen(false)}
+              className={({ isActive }) =>
+                `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 ${
+                  isActive
+                    ? "bg-indigo-500/10 text-indigo-400 font-medium"
+                    : "text-muted-foreground hover:text-foreground hover:bg-accent/5"
+                }`
+              }
+            >
+              <Shield className="w-4 h-4" />
+              Admin Dashboard
+            </NavLink>
+          )}
         </nav>
 
         <div className="absolute bottom-0 left-0 right-0 p-3 border-t border-border/40">
