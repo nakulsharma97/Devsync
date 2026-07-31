@@ -1,5 +1,6 @@
 package com.devsync.message;
 
+import com.devsync.message.dto.MessageResponse;
 import com.devsync.message.dto.SendMessageRequest;
 import com.devsync.message.entity.Message;
 import com.devsync.message.repository.MessageRepository;
