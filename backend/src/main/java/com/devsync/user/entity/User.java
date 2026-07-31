@@ -64,6 +64,10 @@ public class User extends BaseEntity {
     @Builder.Default
     private String authProvider = "email";
 
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean blocked = false;
+
     @Column(name = "last_login_at")
     private Instant lastLoginAt;
 
