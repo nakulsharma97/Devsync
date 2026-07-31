@@ -15,6 +15,8 @@ import {
   Shield,
   Users,
   Flag,
+  Activity,
+  ScrollText,
 } from "lucide-react";
 import { useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router";
@@ -139,6 +141,34 @@ export default function DashboardLayout() {
               >
                 <Flag className="w-4 h-4" />
                 Admin Reports
+              </NavLink>
+              <NavLink
+                to="/admin/activity"
+                onClick={() => setSidebarOpen(false)}
+                className={({ isActive }) =>
+                  `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 ${
+                    isActive
+                      ? "bg-indigo-500/10 text-indigo-400 font-medium"
+                      : "text-muted-foreground hover:text-foreground hover:bg-accent/5"
+                  }`
+                }
+              >
+                <Activity className="w-4 h-4" />
+                Admin Activity
+              </NavLink>
+              <NavLink
+                to="/admin/audit-logs"
+                onClick={() => setSidebarOpen(false)}
+                className={({ isActive }) =>
+                  `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 ${
+                    isActive
+                      ? "bg-indigo-500/10 text-indigo-400 font-medium"
+                      : "text-muted-foreground hover:text-foreground hover:bg-accent/5"
+                  }`
+                }
+              >
+                <ScrollText className="w-4 h-4" />
+                Admin Audit Logs
               </NavLink>
             </>
           )}

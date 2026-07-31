@@ -16,6 +16,8 @@ import {
   TrendingUp,
   Shield,
   Flag,
+  Activity,
+  ScrollText,
 } from "lucide-react";
 import { notificationService } from "@/services/notificationService";
 import { conversationService } from "@/services/conversationService";
@@ -37,6 +39,8 @@ const navItems = [
   { to: "/admin/users", icon: Users, label: "Admin Users" },
   { to: "/admin/projects", icon: FolderGit2, label: "Admin Projects" },
   { to: "/admin/reports", icon: Flag, label: "Admin Reports" },
+  { to: "/admin/activity", icon: Activity, label: "Admin Activity" },
+  { to: "/admin/audit-logs", icon: ScrollText, label: "Admin Audit Logs" },
   { to: "/settings", icon: Settings, label: "Settings" },
 ];
 
