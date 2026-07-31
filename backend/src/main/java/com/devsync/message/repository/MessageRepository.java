@@ -22,4 +22,7 @@ public interface MessageRepository extends JpaRepository<Message, String> {
 
     @Query("SELECT m FROM Message m WHERE m.senderId = :userId OR m.receiverId = :userId OR m.roomId IN :roomIds ORDER BY m.createdAt DESC")
     List<Message> findRecentMessages(@Param("userId") String userId, @Param("roomIds") List<String> roomIds, Pageable pageable);
+
+    @Query("SELECT COUNT(m) FROM Message m WHERE m.senderId = :userId OR m.receiverId = :userId")
+    long countMessagesByUserId(@Param("userId") String userId);
 }

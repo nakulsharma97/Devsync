@@ -68,6 +68,13 @@ public class User extends BaseEntity {
     @Builder.Default
     private boolean blocked = false;
 
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean deleted = false;
+
+    @Column(name = "deleted_at")
+    private Instant deletedAt;
+
     @Column(name = "last_login_at")
     private Instant lastLoginAt;
 
