@@ -92,7 +92,7 @@ public class AdminService {
                 .stream()
                 .map(this::toUserSummary)
                 .toList();
-        List<AdminProjectSummary> recentProjects = projectRepository.findTop5ByOrderByCreatedAtDescAndDeletedFalse()
+        List<AdminProjectSummary> recentProjects = projectRepository.findTop5ByDeletedFalseOrderByCreatedAtDesc()
                 .stream()
                 .map(this::toProjectSummary)
                 .toList();
