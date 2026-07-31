@@ -21,4 +21,8 @@ public class Comment extends BaseEntity {
 
     @Column(columnDefinition = "TEXT", nullable = false)
     private String content;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean hidden = false;
 }

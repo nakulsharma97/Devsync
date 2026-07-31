@@ -54,12 +54,15 @@ public class FeedService {
     @Transactional(readOnly = true)
     public Page<PostResponse> getFeed(int page, int size) {
         Page<Post> posts = postRepository.findAllByOrderByCreatedAtDesc(PageRequest.of(page, size));
-        if (posts.isEmpty()) return Page.empty();
+        List<Post> visible = posts.getContent().stream()
+                .filter(p -> !p.isHidden())
+                .toList();
+        if (visible.isEmpty()) return Page.empty();
 
-        Set<String> postIds = posts.getContent().stream().map(Post::getId).collect(Collectors.toSet());
+        Set<String> postIds = visible.stream().map(Post::getId).collect(Collectors.toSet());
 
         // Batch-load users (fixes N+1 user queries)
-        Set<String> userIds = posts.getContent().stream().map(Post::getUserId).collect(Collectors.toSet());
+        Set<String> userIds = visible.stream().map(Post::getUserId).collect(Collectors.toSet());
         Map<String, User> userMap = userIds.isEmpty() ? Collections.emptyMap()
                 : userRepository.findAllById(userIds).stream().collect(Collectors.toMap(User::getId, u -> u));
 
@@ -71,16 +74,19 @@ public class FeedService {
         Map<String, Long> commentCounts = commentRepository.countCommentsByPostIdIn(postIds).stream()
                 .collect(Collectors.toMap(row -> (String) row[0], row -> (Long) row[1]));
 
-        return posts.map(post -> toPostResponseWithCounts(
-                post,
-                userMap.get(post.getUserId()),
-                likeCounts.getOrDefault(post.getId(), 0L),
-                commentCounts.getOrDefault(post.getId(), 0L)));
+        return new org.springframework.data.domain.PageImpl<>(visible.stream()
+                .map(post -> toPostResponseWithCounts(
+                        post,
+                        userMap.get(post.getUserId()),
+                        likeCounts.getOrDefault(post.getId(), 0L),
+                        commentCounts.getOrDefault(post.getId(), 0L)))
+                .toList(), posts.getPageable(), visible.size());
     }
 
     @Transactional(readOnly = true)
     public PostResponse getPost(String postId) {
         Post post = postRepository.findById(postId).orElseThrow(() -> new ResourceNotFoundException("Post", postId));
+        if (post.isHidden()) throw new ResourceNotFoundException("Post", postId);
         User user = userRepository.findById(post.getUserId()).orElse(null);
         return toPostResponse(post, user);
     }
@@ -117,7 +123,9 @@ public class FeedService {
 
     @Transactional(readOnly = true)
     public List<CommentResponse> getComments(String postId) {
-        List<Comment> comments = commentRepository.findByPostIdOrderByCreatedAtAsc(postId);
+        List<Comment> comments = commentRepository.findByPostIdOrderByCreatedAtAsc(postId).stream()
+                .filter(c -> !c.isHidden())
+                .toList();
         if (comments.isEmpty()) return List.of();
 
         // Batch-load all comment authors (fixes remaining N+1 queries)

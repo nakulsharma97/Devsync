@@ -25,4 +25,8 @@ public class Post extends BaseEntity {
     @Column(name = "post_type", nullable = false)
     @Builder.Default
     private String postType = "TEXT";
+
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean hidden = false;
 }

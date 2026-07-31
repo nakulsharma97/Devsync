@@ -32,4 +32,8 @@ public class Message extends BaseEntity {
     @Column(name = "is_system_message")
     @Builder.Default
     private boolean systemMessage = false;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean hidden = false;
 }
