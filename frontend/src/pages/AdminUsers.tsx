@@ -453,7 +453,7 @@ export default function AdminUsers() {
                               {u.status === "BLOCKED" ? (
                                 <DropdownMenuItem
                                   onClick={() => confirmUnblock(u)}
-                                  disabled={busyId === u.id || isSelf(u.id) || u.status === "DELETED"}
+                                  disabled={busyId === u.id || isSelf(u.id)}
                                   className="text-emerald-500 focus:text-emerald-500"
                                 >
                                   <ShieldCheck className="w-3.5 h-3.5 mr-2" /> Unblock
