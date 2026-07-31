@@ -72,6 +72,8 @@ public class AuthService {
             throw new AuthException("Invalid email or password");
         }
 
+        ensureAccountActive(user);
+
         user.setLastLoginAt(Instant.now());
         userRepository.save(user);
 
@@ -89,6 +91,8 @@ public class AuthService {
         String userId = jwtTokenProvider.getUserIdFromToken(request.getRefreshToken());
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new AuthException("User not found"));
+
+        ensureAccountActive(user);
 
         String accessToken = jwtTokenProvider.generateAccessToken(user.getId(), user.getEmail());
         String refreshToken = jwtTokenProvider.generateRefreshToken(user.getId());
@@ -115,6 +119,8 @@ public class AuthService {
 
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new AuthException("User not found"));
+
+        ensureAccountActive(user);
 
         user.setLastLoginAt(Instant.now());
         user.setEmailVerified(true);
@@ -149,6 +155,7 @@ public class AuthService {
                     .build();
             user = userRepository.save(user);
         } else {
+            ensureAccountActive(user);
             if (avatarUrl != null) user.setAvatarUrl(avatarUrl);
             if (fullName != null) user.setFullName(fullName);
             user.setLastLoginAt(Instant.now());
@@ -159,6 +166,18 @@ public class AuthService {
         String refreshToken = jwtTokenProvider.generateRefreshToken(user.getId());
 
         return buildAuthResponse(user, accessToken, refreshToken);
+    }
+
+    /**
+     * Blocks login/refresh for blocked or deleted accounts.
+     */
+    private void ensureAccountActive(User user) {
+        if (user.isDeleted()) {
+            throw new AuthException("This account has been deleted", HttpStatus.FORBIDDEN);
+        }
+        if (user.isBlocked()) {
+            throw new AuthException("Your account has been blocked. Please contact support.", HttpStatus.FORBIDDEN);
+        }
     }
 
     private AuthResponse buildAuthResponse(User user, String accessToken, String refreshToken) {
