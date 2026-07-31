@@ -123,4 +123,18 @@ class JwtAuthenticationFilterTest {
 
         verify(filterChain).doFilter(request, response);
     }
+    @Test
+    void doFilter_shouldNotSetAuthentication_WhenUserBlocked() throws Exception {
+        when(request.getHeader("Authorization")).thenReturn("Bearer valid-jwt-token");
+        when(jwtTokenProvider.validateToken("valid-jwt-token")).thenReturn(true);
+        when(jwtTokenProvider.getUserIdFromToken("valid-jwt-token")).thenReturn("blocked-123");
+        when(userDetailsService.loadUserByUsername("blocked-123"))
+                .thenThrow(new org.springframework.security.authentication.DisabledException("Account is blocked"));
+
+        filter.doFilterInternal(request, response, filterChain);
+
+        var auth = SecurityContextHolder.getContext().getAuthentication();
+        assertThat(auth).isNull();
+        verify(filterChain).doFilter(request, response);
+    }
 }
