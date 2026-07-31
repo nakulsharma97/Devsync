@@ -21,6 +21,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Instant;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -79,7 +80,8 @@ class AdminServiceTest {
         User u1 = userWithId("u1");
         User u2 = userWithId("u2");
         when(userRepository.findAll()).thenReturn(List.of(u1, u2));
-        when(postRepository.countPostsByUserIdIn(anySet())).thenReturn(List.of(new Object[]{"u1", 3L}));
+        when(postRepository.countPostsByUserIdIn(anySet()))
+                .thenReturn(Collections.singletonList(new Object[]{"u1", 3L}));
 
         List<AdminUserResponse> users = adminService.getAllUsers();
 
@@ -95,8 +97,10 @@ class AdminServiceTest {
         User author = userWithId("u1");
         when(postRepository.findAllByOrderByCreatedAtDesc()).thenReturn(List.of(post));
         when(userRepository.findAllById(anySet())).thenReturn(List.of(author));
-        when(postLikeRepository.countLikesByPostIdIn(anySet())).thenReturn(List.of(new Object[]{"p1", 5L}));
-        when(commentRepository.countCommentsByPostIdIn(anySet())).thenReturn(List.of(new Object[]{"p1", 2L}));
+        when(postLikeRepository.countLikesByPostIdIn(anySet()))
+                .thenReturn(Collections.singletonList(new Object[]{"p1", 5L}));
+        when(commentRepository.countCommentsByPostIdIn(anySet()))
+                .thenReturn(Collections.singletonList(new Object[]{"p1", 2L}));
 
         List<AdminPostResponse> posts = adminService.getAllPosts();
 
