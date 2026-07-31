@@ -33,14 +33,14 @@ public class DataInitializer implements CommandLineRunner {
     }
 
     private void seedDefaultAdmin() {
-        if (userRepository.existsByEmail(adminSeedEmail)) {
+        if (userRepository.countByEmail(adminSeedEmail) > 0) {
             return;
         }
 
         String username = "admin";
         String baseUsername = username;
         int suffix = 1;
-        while (userRepository.existsByUsername(username)) {
+        while (userRepository.countByUsername(username) > 0) {
             username = baseUsername + suffix++;
         }
 
