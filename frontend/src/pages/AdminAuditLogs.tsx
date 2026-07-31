@@ -138,9 +138,9 @@ export default function AdminAuditLogs() {
         search: searchInput || undefined,
         action: actionFilter || undefined,
         status: statusFilter || undefined,
-        user: userFilter || undefined,
+        userId: userFilter || undefined,
       });
-      setData(res.data);
+      setData(res);
     } catch (e: any) {
       setError(e?.response?.data?.message || "Failed to load audit logs.");
       toast.error("Failed to load audit logs");
