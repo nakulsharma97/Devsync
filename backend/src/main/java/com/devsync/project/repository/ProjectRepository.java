@@ -12,4 +12,6 @@ public interface ProjectRepository extends JpaRepository<Project, String> {
 
     @Query("SELECT p FROM Project p JOIN ProjectMember pm ON p.id = pm.projectId WHERE pm.userId = :userId")
     List<Project> findProjectsByUserId(@Param("userId") String userId);
+
+    List<Project> findTop5ByOrderByCreatedAtDesc();
 }
