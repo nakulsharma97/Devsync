@@ -72,6 +72,68 @@ export interface PlatformStats {
   totalConnections: number;
 }
 
+export type UserStatus = "ACTIVE" | "BLOCKED" | "DELETED";
+
+export interface AdminUserListItem {
+  id: string;
+  avatarUrl?: string | null;
+  fullName: string;
+  username?: string | null;
+  email: string;
+  role: string;
+  status: UserStatus;
+  createdAt: string;
+  lastLoginAt?: string | null;
+}
+
+export interface AdminTeamSummary {
+  id: string;
+  name: string;
+  createdAt: string;
+}
+
+export interface AdminUserDetail {
+  id: string;
+  email: string;
+  fullName: string;
+  username?: string | null;
+  avatarUrl?: string | null;
+  bio?: string | null;
+  jobTitle?: string | null;
+  company?: string | null;
+  location?: string | null;
+  role: string;
+  status: UserStatus;
+  emailVerified: boolean;
+  authProvider: string;
+  createdAt: string;
+  lastLoginAt?: string | null;
+  projectsJoined: AdminProjectSummary[];
+  projectsOwned: AdminProjectSummary[];
+  teams: AdminTeamSummary[];
+  postsCount: number;
+  messagesCount: number;
+}
+
+export interface PageResponse<T> {
+  content: T[];
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+  last: boolean;
+}
+
+export interface AdminUsersQuery {
+  page?: number;
+  size?: number;
+  sortBy?: string;
+  sortDir?: "asc" | "desc";
+  search?: string;
+  role?: string;
+  status?: string;
+}
+
 export const adminService = {
   async isAdmin(): Promise<boolean> {
     try {
@@ -118,6 +180,20 @@ export const adminService = {
     } catch {
       return [];
     }
+  },
+
+  async getUsersPage(query: AdminUsersQuery = {}): Promise<PageResponse<AdminUserListItem>> {
+    const res = await api.get("/admin/users/paged", { params: query });
+    return res.data;
+  },
+
+  async getUserDetail(userId: string): Promise<AdminUserDetail> {
+    const res = await api.get(`/admin/users/${userId}`);
+    return res.data;
+  },
+
+  async deleteUser(userId: string): Promise<void> {
+    await api.delete(`/admin/users/${userId}`);
   },
 
   async getAllPosts(): Promise<AdminPost[]> {

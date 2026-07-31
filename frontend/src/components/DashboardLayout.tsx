@@ -13,6 +13,7 @@ import {
   Search,
   Rss,
   Shield,
+  Users,
 } from "lucide-react";
 import { useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router";
@@ -81,20 +82,36 @@ export default function DashboardLayout() {
           ))}
 
           {user?.role === "ADMIN" && (
-            <NavLink
-              to="/admin/dashboard"
-              onClick={() => setSidebarOpen(false)}
-              className={({ isActive }) =>
-                `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 ${
-                  isActive
-                    ? "bg-indigo-500/10 text-indigo-400 font-medium"
-                    : "text-muted-foreground hover:text-foreground hover:bg-accent/5"
-                }`
-              }
-            >
-              <Shield className="w-4 h-4" />
-              Admin Dashboard
-            </NavLink>
+            <>
+              <NavLink
+                to="/admin/dashboard"
+                onClick={() => setSidebarOpen(false)}
+                className={({ isActive }) =>
+                  `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 ${
+                    isActive
+                      ? "bg-indigo-500/10 text-indigo-400 font-medium"
+                      : "text-muted-foreground hover:text-foreground hover:bg-accent/5"
+                  }`
+                }
+              >
+                <Shield className="w-4 h-4" />
+                Admin Dashboard
+              </NavLink>
+              <NavLink
+                to="/admin/users"
+                onClick={() => setSidebarOpen(false)}
+                className={({ isActive }) =>
+                  `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 ${
+                    isActive
+                      ? "bg-indigo-500/10 text-indigo-400 font-medium"
+                      : "text-muted-foreground hover:text-foreground hover:bg-accent/5"
+                  }`
+                }
+              >
+                <Users className="w-4 h-4" />
+                Admin Users
+              </NavLink>
+            </>
           )}
         </nav>
 
