@@ -1,10 +1,13 @@
 package com.devsync.admin;
 
 import com.devsync.admin.dto.AdminPostResponse;
+import com.devsync.admin.dto.AdminUserDetail;
+import com.devsync.admin.dto.AdminUserListItem;
 import com.devsync.admin.dto.AdminUserResponse;
 import com.devsync.admin.dto.DashboardResponse;
 import com.devsync.admin.dto.PlatformStatsResponse;
 import com.devsync.admin.dto.UpdateRoleRequest;
+import com.devsync.common.PageResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -40,6 +43,31 @@ public class AdminController {
     @GetMapping("/users")
     public ResponseEntity<List<AdminUserResponse>> getUsers() {
         return ResponseEntity.ok(adminService.getAllUsers());
+    }
+
+    @GetMapping("/users/paged")
+    public ResponseEntity<PageResponse<AdminUserListItem>> getUsersPage(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String sortBy,
+            @RequestParam(required = false) String sortDir,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String role,
+            @RequestParam(required = false) String status) {
+        return ResponseEntity.ok(adminService.getUsersPage(page, size, sortBy, sortDir, search, role, status));
+    }
+
+    @GetMapping("/users/{userId}")
+    public ResponseEntity<AdminUserDetail> getUserDetail(@PathVariable String userId) {
+        return ResponseEntity.ok(adminService.getUserDetail(userId));
+    }
+
+    @DeleteMapping("/users/{userId}")
+    public ResponseEntity<Void> deleteUser(
+            @PathVariable String userId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        adminService.deleteUser(userId, userDetails.getUsername());
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/posts")

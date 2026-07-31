@@ -3,10 +3,15 @@ package com.devsync.admin;
 import com.devsync.admin.dto.AdminPostAuthor;
 import com.devsync.admin.dto.AdminPostResponse;
 import com.devsync.admin.dto.AdminProjectSummary;
+import com.devsync.admin.dto.AdminTeamSummary;
+import com.devsync.admin.dto.AdminUserDetail;
+import com.devsync.admin.dto.AdminUserListItem;
 import com.devsync.admin.dto.AdminUserResponse;
 import com.devsync.admin.dto.AdminUserSummary;
 import com.devsync.admin.dto.DashboardResponse;
 import com.devsync.admin.dto.PlatformStatsResponse;
+import com.devsync.admin.dto.UserStatus;
+import com.devsync.common.PageResponse;
 import com.devsync.common.ResourceNotFoundException;
 import com.devsync.feed.entity.Post;
 import com.devsync.feed.repository.CommentRepository;
@@ -20,6 +25,10 @@ import com.devsync.teamroom.repository.TeamRoomRepository;
 import com.devsync.user.entity.User;
 import com.devsync.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -36,6 +45,7 @@ import java.util.stream.Collectors;
 public class AdminService {
 
     private static final long ACTIVE_WINDOW_DAYS = 30;
+    private static final int MAX_PAGE_SIZE = 100;
 
     private final UserRepository userRepository;
     private final ProjectRepository projectRepository;
@@ -112,6 +122,110 @@ public class AdminService {
         return users.stream()
                 .map(user -> toAdminUserResponse(user, postCounts.getOrDefault(user.getId(), 0L)))
                 .toList();
+    }
+
+    /**
+     * Paginated, sortable, searchable admin user list.
+     * Filters: search (fullName/username/email), role (USER|ADMIN), status (ACTIVE|BLOCKED|DELETED).
+     */
+    @Transactional(readOnly = true)
+    public PageResponse<AdminUserListItem> getUsersPage(int page, int size, String sortBy, String sortDir,
+                                                        String search, String role, String status) {
+        int safePage = Math.max(page, 0);
+        int safeSize = Math.min(Math.max(size, 1), MAX_PAGE_SIZE);
+        String sortField = normalizeSortField(sortBy);
+        Sort.Direction direction = "asc".equalsIgnoreCase(sortDir) ? Sort.Direction.ASC : Sort.Direction.DESC;
+        Pageable pageable = PageRequest.of(safePage, safeSize, Sort.by(direction, sortField));
+
+        User.Role roleFilter = null;
+        if (role != null && !role.isBlank()) {
+            try {
+                roleFilter = User.Role.valueOf(role.toUpperCase());
+            } catch (IllegalArgumentException e) {
+                throw new IllegalArgumentException("Invalid role filter: " + role);
+            }
+        }
+        String statusFilter = (status == null || status.isBlank()) ? null : status.toUpperCase();
+        String searchFilter = (search == null || search.isBlank()) ? null : search.trim();
+
+        Page<User> users = userRepository.searchAdminUsers(searchFilter, roleFilter, statusFilter, pageable);
+
+        List<AdminUserListItem> items = users.getContent().stream()
+                .map(this::toAdminUserListItem)
+                .toList();
+
+        return PageResponse.<AdminUserListItem>builder()
+                .content(items)
+                .page(users.getNumber())
+                .size(users.getSize())
+                .totalElements(users.getTotalElements())
+                .totalPages(users.getTotalPages())
+                .last(users.isLast())
+                .build();
+    }
+
+    /**
+     * Full admin view of a single user: profile, role, status, projects,
+     * teams and content activity counts. No N+1 (batch queries only).
+     */
+    @Transactional(readOnly = true)
+    public AdminUserDetail getUserDetail(String userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User", userId));
+
+        List<AdminProjectSummary> joined = projectRepository.findProjectsByUserId(userId).stream()
+                .map(this::toProjectSummary)
+                .toList();
+        List<AdminProjectSummary> owned = projectRepository.findByOwnerId(userId).stream()
+                .map(this::toProjectSummary)
+                .toList();
+        List<AdminTeamSummary> teams = teamRoomRepository.findRoomsByUserId(userId).stream()
+                .map(room -> AdminTeamSummary.builder()
+                        .id(room.getId())
+                        .name(room.getName())
+                        .createdAt(room.getCreatedAt())
+                        .build())
+                .toList();
+
+        return AdminUserDetail.builder()
+                .id(user.getId())
+                .email(user.getEmail())
+                .fullName(user.getFullName())
+                .username(user.getUsername())
+                .avatarUrl(user.getAvatarUrl())
+                .bio(user.getBio())
+                .jobTitle(user.getJobTitle())
+                .company(user.getCompany())
+                .location(user.getLocation())
+                .role(user.getRole().name())
+                .status(toStatus(user).name())
+                .emailVerified(user.isEmailVerified())
+                .authProvider(user.getAuthProvider())
+                .createdAt(user.getCreatedAt())
+                .lastLoginAt(user.getLastLoginAt())
+                .projectsJoined(joined)
+                .projectsOwned(owned)
+                .teams(teams)
+                .postsCount(postRepository.countByUserId(userId))
+                .messagesCount(messageRepository.countMessagesByUserId(userId))
+                .build();
+    }
+
+    /**
+     * Soft-delete a user: marks the account as deleted (keeps related data).
+     */
+    @Transactional
+    public void deleteUser(String userId, String currentUserId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User", userId));
+
+        if (userId.equals(currentUserId)) {
+            throw new IllegalArgumentException("You cannot delete your own account");
+        }
+
+        user.setDeleted(true);
+        user.setDeletedAt(Instant.now());
+        userRepository.save(user);
     }
 
     @Transactional(readOnly = true)
@@ -192,6 +306,30 @@ public class AdminService {
         }
     }
 
+    private String normalizeSortField(String sortBy) {
+        if (sortBy == null || sortBy.isBlank()) {
+            return "createdAt";
+        }
+        return switch (sortBy.toLowerCase()) {
+            case "fullname", "name" -> "fullName";
+            case "username" -> "username";
+            case "email" -> "email";
+            case "role" -> "role";
+            case "lastlogin", "lastloginat" -> "lastLoginAt";
+            default -> "createdAt";
+        };
+    }
+
+    private UserStatus toStatus(User user) {
+        if (user.isDeleted()) {
+            return UserStatus.DELETED;
+        }
+        if (user.isBlocked()) {
+            return UserStatus.BLOCKED;
+        }
+        return UserStatus.ACTIVE;
+    }
+
     private AdminUserSummary toUserSummary(User user) {
         return AdminUserSummary.builder()
                 .id(user.getId())
@@ -202,6 +340,20 @@ public class AdminService {
                 .role(user.getRole().name())
                 .blocked(user.isBlocked())
                 .createdAt(user.getCreatedAt())
+                .build();
+    }
+
+    private AdminUserListItem toAdminUserListItem(User user) {
+        return AdminUserListItem.builder()
+                .id(user.getId())
+                .avatarUrl(user.getAvatarUrl())
+                .fullName(user.getFullName())
+                .username(user.getUsername())
+                .email(user.getEmail())
+                .role(user.getRole().name())
+                .status(toStatus(user).name())
+                .createdAt(user.getCreatedAt())
+                .lastLoginAt(user.getLastLoginAt())
                 .build();
     }
 
