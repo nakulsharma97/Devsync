@@ -1,5 +1,8 @@
 package com.devsync.admin;
 
+import com.devsync.activity.ActivityService;
+import com.devsync.activity.dto.ActivityResponse;
+import com.devsync.activity.dto.AdminActivityStats;
 import com.devsync.admin.dto.AdminPostResponse;
 import com.devsync.admin.dto.AdminProjectDetail;
 import com.devsync.admin.dto.AdminProjectListItem;
@@ -11,13 +14,21 @@ import com.devsync.admin.dto.DashboardResponse;
 import com.devsync.admin.dto.PlatformStatsResponse;
 import com.devsync.admin.dto.UpdateRoleRequest;
 import com.devsync.admin.dto.UpdateVisibilityRequest;
+import com.devsync.audit.AuditLogService;
+import com.devsync.audit.dto.AuditLogResponse;
 import com.devsync.common.PageResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
+
+import java.nio.charset.StandardCharsets;
 
 import java.util.List;
 import java.util.Map;
@@ -28,6 +39,8 @@ import java.util.Map;
 public class AdminController {
 
     private final AdminService adminService;
+    private final ActivityService activityService;
+    private final AuditLogService auditLogService;
 
     @GetMapping("/dashboard")
     public ResponseEntity<DashboardResponse> getDashboard() {
@@ -132,25 +145,93 @@ public class AdminController {
     }
 
     @PutMapping("/projects/{projectId}/archive")
-    public ResponseEntity<AdminProjectListItem> archiveProject(@PathVariable String projectId) {
-        return ResponseEntity.ok(adminService.archiveProject(projectId));
+    public ResponseEntity<AdminProjectListItem> archiveProject(
+            @PathVariable String projectId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        return ResponseEntity.ok(adminService.archiveProject(projectId, userDetails.getUsername()));
     }
 
     @PutMapping("/projects/{projectId}/restore")
-    public ResponseEntity<AdminProjectListItem> restoreProject(@PathVariable String projectId) {
-        return ResponseEntity.ok(adminService.restoreProject(projectId));
+    public ResponseEntity<AdminProjectListItem> restoreProject(
+            @PathVariable String projectId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        return ResponseEntity.ok(adminService.restoreProject(projectId, userDetails.getUsername()));
     }
 
     @PutMapping("/projects/{projectId}/visibility")
     public ResponseEntity<AdminProjectListItem> updateProjectVisibility(
             @PathVariable String projectId,
-            @Valid @RequestBody UpdateVisibilityRequest request) {
-        return ResponseEntity.ok(adminService.setProjectVisibility(projectId, request.getVisibility()));
+            @Valid @RequestBody UpdateVisibilityRequest request,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        return ResponseEntity.ok(adminService.setProjectVisibility(projectId, request.getVisibility(), userDetails.getUsername()));
     }
 
     @DeleteMapping("/projects/{projectId}")
-    public ResponseEntity<Void> deleteProject(@PathVariable String projectId) {
-        adminService.deleteProject(projectId);
+    public ResponseEntity<Void> deleteProject(
+            @PathVariable String projectId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        adminService.deleteProject(projectId, userDetails.getUsername());
         return ResponseEntity.noContent().build();
+    }
+
+    // ---------- Admin Activity Timeline ----------
+
+    @GetMapping("/activity")
+    public ResponseEntity<PageResponse<ActivityResponse>> getAdminActivity(
+            @RequestParam(required = false) String projectId,
+            @RequestParam(required = false) String userId,
+            @RequestParam(required = false) String activityType,
+            @RequestParam(required = false) String from,
+            @RequestParam(required = false) String to,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return ResponseEntity.ok(activityService.getAdminActivities(
+                projectId, userId, activityType, from, to, page, size));
+    }
+
+    @GetMapping("/activity/stats")
+    public ResponseEntity<AdminActivityStats> getAdminActivityStats() {
+        return ResponseEntity.ok(activityService.getAdminActivityStats());
+    }
+
+    // ---------- Admin Audit Logs ----------
+
+    @GetMapping("/audit-logs")
+    public ResponseEntity<PageResponse<AuditLogResponse>> getAuditLogs(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) String sortBy,
+            @RequestParam(required = false) String sortDir,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String action,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String adminId,
+            @RequestParam(required = false) String userId,
+            @RequestParam(required = false) String from,
+            @RequestParam(required = false) String to) {
+        return ResponseEntity.ok(auditLogService.getLogs(
+                page, size, sortBy, sortDir, search, action, status, adminId, userId, from, to));
+    }
+
+    @GetMapping("/audit-logs/export")
+    public ResponseEntity<byte[]> exportAuditLogs(
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String action,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String adminId,
+            @RequestParam(required = false) String userId,
+            @RequestParam(required = false) String from,
+            @RequestParam(required = false) String to) {
+        List<AuditLogResponse> logs = auditLogService.exportLogs(search, action, status, adminId, userId, from, to);
+        String csv = auditLogService.toCsv(logs);
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.parseMediaType("text/csv"));
+        headers.setContentDisposition(ContentDisposition.attachment().filename("audit-logs.csv").build());
+        return new ResponseEntity<>(csv.getBytes(StandardCharsets.UTF_8), headers, HttpStatus.OK);
+    }
+
+    @GetMapping("/audit-logs/{id}")
+    public ResponseEntity<AuditLogResponse> getAuditLog(@PathVariable String id) {
+        return ResponseEntity.ok(auditLogService.getLog(id));
     }
 }

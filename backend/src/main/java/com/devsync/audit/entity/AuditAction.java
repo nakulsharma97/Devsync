@@ -1,0 +1,26 @@
+package com.devsync.audit.entity;
+
+/**
+ * Security-sensitive events recorded in the audit log.
+ */
+public enum AuditAction {
+    REGISTER,
+    LOGIN_SUCCESS,
+    LOGIN_FAILURE,
+    JWT_REFRESH,
+    LOGOUT,
+    PASSWORD_CHANGED,
+    PASSWORD_RESET,
+    EMAIL_CHANGED,
+    OTP_VERIFIED,
+    OAUTH_LOGIN,
+    ROLE_CHANGED,
+    ADMIN_CREATED,
+    USER_BLOCKED,
+    USER_UNBLOCKED,
+    USER_DELETED,
+    PROJECT_DELETED,
+    PROJECT_ARCHIVED,
+    PROJECT_RESTORED,
+    VISIBILITY_CHANGED
+}

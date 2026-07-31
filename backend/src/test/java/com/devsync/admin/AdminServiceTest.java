@@ -1,6 +1,8 @@
 package com.devsync.admin;
 
+import com.devsync.activity.ActivityService;
 import com.devsync.admin.dto.AdminPostResponse;
+import com.devsync.audit.AuditLogService;
 import com.devsync.admin.dto.AdminProjectDetail;
 import com.devsync.admin.dto.AdminProjectListItem;
 import com.devsync.admin.dto.AdminProjectStats;
@@ -62,6 +64,8 @@ class AdminServiceTest {
     @Mock private ProjectMemberRepository projectMemberRepository;
     @Mock private BoardRepository boardRepository;
     @Mock private BoardColumnRepository boardColumnRepository;
+    @Mock private ActivityService activityService;
+    @Mock private AuditLogService auditLogService;
 
     private AdminService adminService;
 
@@ -69,7 +73,8 @@ class AdminServiceTest {
     void setUp() {
         adminService = new AdminService(userRepository, projectRepository, teamRoomRepository,
                 taskRepository, postRepository, messageRepository, commentRepository, postLikeRepository,
-                projectMemberRepository, boardRepository, boardColumnRepository);
+                projectMemberRepository, boardRepository, boardColumnRepository,
+                activityService, auditLogService);
     }
 
     @Test
@@ -446,7 +451,7 @@ class AdminServiceTest {
         when(projectRepository.findById("p1")).thenReturn(Optional.of(p1));
         when(projectRepository.save(any(Project.class))).thenReturn(p1);
 
-        AdminProjectListItem item = adminService.archiveProject("p1");
+        AdminProjectListItem item = adminService.archiveProject("p1", "admin-1");
 
         assertThat(p1.getStatus()).isEqualTo(Project.ProjectStatus.ARCHIVED);
         assertThat(item.getStatus()).isEqualTo("ARCHIVED");
@@ -459,7 +464,7 @@ class AdminServiceTest {
         when(projectRepository.findById("p1")).thenReturn(Optional.of(p1));
         when(projectRepository.save(any(Project.class))).thenReturn(p1);
 
-        AdminProjectListItem item = adminService.restoreProject("p1");
+        AdminProjectListItem item = adminService.restoreProject("p1", "admin-1");
 
         assertThat(p1.getStatus()).isEqualTo(Project.ProjectStatus.ACTIVE);
         assertThat(item.getStatus()).isEqualTo("ACTIVE");
@@ -471,7 +476,7 @@ class AdminServiceTest {
         when(projectRepository.findById("p1")).thenReturn(Optional.of(p1));
         when(projectRepository.save(any(Project.class))).thenReturn(p1);
 
-        AdminProjectListItem item = adminService.setProjectVisibility("p1", "PRIVATE");
+        AdminProjectListItem item = adminService.setProjectVisibility("p1", "PRIVATE", "admin-1");
 
         assertThat(p1.getVisibility()).isEqualTo(Project.ProjectVisibility.PRIVATE);
         assertThat(item.getVisibility()).isEqualTo("PRIVATE");
@@ -479,7 +484,7 @@ class AdminServiceTest {
 
     @Test
     void setProjectVisibility_shouldThrow_WhenBlank() {
-        assertThatThrownBy(() -> adminService.setProjectVisibility("p1", " "))
+        assertThatThrownBy(() -> adminService.setProjectVisibility("p1", " ", "admin-1"))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Visibility is required");
     }
@@ -490,7 +495,7 @@ class AdminServiceTest {
         when(projectRepository.findById("p1")).thenReturn(Optional.of(p1));
         when(projectRepository.save(any(Project.class))).thenReturn(p1);
 
-        adminService.deleteProject("p1");
+        adminService.deleteProject("p1", "admin-1");
 
         assertThat(p1.isDeleted()).isTrue();
         assertThat(p1.getDeletedAt()).isNotNull();
@@ -511,7 +516,7 @@ class AdminServiceTest {
         p1.setDeleted(true);
         when(projectRepository.findById("p1")).thenReturn(Optional.of(p1));
 
-        assertThatThrownBy(() -> adminService.archiveProject("p1"))
+        assertThatThrownBy(() -> adminService.archiveProject("p1", "admin-1"))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("deleted");
     }

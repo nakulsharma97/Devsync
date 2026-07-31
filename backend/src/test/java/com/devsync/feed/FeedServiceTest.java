@@ -1,5 +1,6 @@
 package com.devsync.feed;
 
+import com.devsync.activity.ActivityService;
 import com.devsync.common.ResourceNotFoundException;
 import com.devsync.feed.dto.CommentRequest;
 import com.devsync.feed.dto.CommentResponse;
@@ -43,6 +44,7 @@ class FeedServiceTest {
     @Mock private CommentRepository commentRepository;
     @Mock private PostLikeRepository postLikeRepository;
     @Mock private UserRepository userRepository;
+    @Mock private ActivityService activityService;
 
     @Captor private ArgumentCaptor<Post> postCaptor;
 
@@ -55,7 +57,7 @@ class FeedServiceTest {
 
     @BeforeEach
     void setUp() {
-        feedService = new FeedService(postRepository, commentRepository, postLikeRepository, userRepository);
+        feedService = new FeedService(postRepository, commentRepository, postLikeRepository, userRepository, activityService);
 
         testUser = User.builder()
                 .email("user@example.com")

@@ -1,6 +1,11 @@
 package com.devsync.admin;
 
+import com.devsync.activity.ActivityService;
+import com.devsync.activity.entity.ActivityType;
 import com.devsync.admin.dto.AdminActivityItem;
+import com.devsync.audit.AuditLogService;
+import com.devsync.audit.entity.AuditAction;
+import com.devsync.audit.entity.AuditStatus;
 import com.devsync.admin.dto.AdminKanbanStats;
 import com.devsync.admin.dto.AdminPostAuthor;
 import com.devsync.admin.dto.AdminPostResponse;
@@ -76,6 +81,8 @@ public class AdminService {
     private final ProjectMemberRepository projectMemberRepository;
     private final BoardRepository boardRepository;
     private final BoardColumnRepository boardColumnRepository;
+    private final ActivityService activityService;
+    private final AuditLogService auditLogService;
 
     @Transactional(readOnly = true)
     public DashboardResponse getDashboard() {
@@ -236,6 +243,8 @@ public class AdminService {
         user.setDeleted(true);
         user.setDeletedAt(Instant.now());
         userRepository.save(user);
+        auditLogService.record(currentUserId, userId, AuditAction.USER_DELETED, AuditStatus.SUCCESS,
+                "Deleted user: " + user.getEmail() + " (" + userId + ")");
     }
 
     @Transactional(readOnly = true)
@@ -276,6 +285,14 @@ public class AdminService {
 
         user.setRole(newRole);
         userRepository.save(user);
+        activityService.record(currentUserId, null, ActivityType.ROLE_CHANGED,
+                "Role changed", user.getFullName() + " -> " + newRole.name(), null);
+        auditLogService.record(currentUserId, userId, AuditAction.ROLE_CHANGED, AuditStatus.SUCCESS,
+                "Changed role of " + user.getEmail() + " to " + newRole.name());
+        if (newRole == User.Role.ADMIN) {
+            auditLogService.record(currentUserId, userId, AuditAction.ADMIN_CREATED, AuditStatus.SUCCESS,
+                    "Granted ADMIN role to " + user.getEmail());
+        }
         return toAdminUserResponse(user, postRepository.countByUserId(user.getId()));
     }
 
@@ -290,6 +307,17 @@ public class AdminService {
 
         user.setBlocked(blocked);
         userRepository.save(user);
+        if (blocked) {
+            activityService.record(currentUserId, null, ActivityType.USER_BLOCKED,
+                    "User blocked", user.getFullName(), null);
+            auditLogService.record(currentUserId, userId, AuditAction.USER_BLOCKED, AuditStatus.SUCCESS,
+                    "Blocked user: " + user.getEmail());
+        } else {
+            activityService.record(currentUserId, null, ActivityType.USER_UNBLOCKED,
+                    "User unblocked", user.getFullName(), null);
+            auditLogService.record(currentUserId, userId, AuditAction.USER_UNBLOCKED, AuditStatus.SUCCESS,
+                    "Unblocked user: " + user.getEmail());
+        }
         return toAdminUserResponse(user, postRepository.countByUserId(user.getId()));
     }
 
@@ -419,23 +447,31 @@ public class AdminService {
     }
 
     @Transactional
-    public AdminProjectListItem archiveProject(String projectId) {
+    public AdminProjectListItem archiveProject(String projectId, String adminId) {
         Project project = getEditableProject(projectId);
         project.setStatus(Project.ProjectStatus.ARCHIVED);
         projectRepository.save(project);
+        activityService.record(adminId, projectId, ActivityType.PROJECT_ARCHIVED,
+                "Project archived", project.getName(), null);
+        auditLogService.record(adminId, null, AuditAction.PROJECT_ARCHIVED, AuditStatus.SUCCESS,
+                "Archived project: " + project.getName() + " (" + projectId + ")");
         return toProjectListItem(project);
     }
 
     @Transactional
-    public AdminProjectListItem restoreProject(String projectId) {
+    public AdminProjectListItem restoreProject(String projectId, String adminId) {
         Project project = getEditableProject(projectId);
         project.setStatus(Project.ProjectStatus.ACTIVE);
         projectRepository.save(project);
+        activityService.record(adminId, projectId, ActivityType.PROJECT_RESTORED,
+                "Project restored", project.getName(), null);
+        auditLogService.record(adminId, null, AuditAction.PROJECT_RESTORED, AuditStatus.SUCCESS,
+                "Restored project: " + project.getName() + " (" + projectId + ")");
         return toProjectListItem(project);
     }
 
     @Transactional
-    public AdminProjectListItem setProjectVisibility(String projectId, String visibility) {
+    public AdminProjectListItem setProjectVisibility(String projectId, String visibility, String adminId) {
         Project.ProjectVisibility parsed = parseVisibility(visibility);
         if (parsed == null) {
             throw new IllegalArgumentException("Visibility is required");
@@ -443,16 +479,24 @@ public class AdminService {
         Project project = getEditableProject(projectId);
         project.setVisibility(parsed);
         projectRepository.save(project);
+        activityService.record(adminId, projectId, ActivityType.PROJECT_UPDATED,
+                "Project visibility changed", project.getName(), null);
+        auditLogService.record(adminId, null, AuditAction.VISIBILITY_CHANGED, AuditStatus.SUCCESS,
+                "Visibility changed to " + parsed + " for project: " + project.getName() + " (" + projectId + ")");
         return toProjectListItem(project);
     }
 
     @Transactional
-    public void deleteProject(String projectId) {
+    public void deleteProject(String projectId, String adminId) {
         Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new ResourceNotFoundException("Project", projectId));
         project.setDeleted(true);
         project.setDeletedAt(Instant.now());
         projectRepository.save(project);
+        activityService.record(adminId, projectId, ActivityType.PROJECT_DELETED,
+                "Project deleted", project.getName(), null);
+        auditLogService.record(adminId, null, AuditAction.PROJECT_DELETED, AuditStatus.SUCCESS,
+                "Deleted project: " + project.getName() + " (" + projectId + ")");
     }
 
     private Project getEditableProject(String projectId) {

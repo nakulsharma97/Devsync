@@ -1,5 +1,7 @@
 package com.devsync.message;
 
+import com.devsync.activity.ActivityService;
+import com.devsync.activity.entity.ActivityType;
 import com.devsync.common.ResourceNotFoundException;
 import com.devsync.message.dto.ConversationResponse;
 import com.devsync.message.dto.MessageResponse;
@@ -30,12 +32,15 @@ public class MessageService {
     private final TeamRoomRepository roomRepository;
     private final TeamRoomParticipantRepository participantRepository;
     private final ProjectRepository projectRepository;
+    private final ActivityService activityService;
 
     @Transactional
     public MessageResponse sendMessage(SendMessageRequest request, String senderId) {
+        String[] projectId = {null};
         if (request.getRoomId() != null) {
             roomRepository.findById(request.getRoomId()).ifPresent(room -> {
                 if (room.getProjectId() != null) {
+                    projectId[0] = room.getProjectId();
                     projectRepository.findById(room.getProjectId()).ifPresent(project -> {
                         if (project.isDeleted()) {
                             throw new ResourceNotFoundException("Project", project.getId());
@@ -56,6 +61,8 @@ public class MessageService {
                 .systemMessage(request.isSystemMessage())
                 .build();
         message = messageRepository.save(message);
+        activityService.record(senderId, projectId[0], ActivityType.MESSAGE_SENT,
+                "Message sent", snippet(message.getContent()), null);
         return toResponse(message);
     }
 
@@ -129,6 +136,12 @@ public class MessageService {
         });
 
         return conversations;
+    }
+
+    private String snippet(String content) {
+        if (content == null) return "";
+        String trimmed = content.trim().replaceAll("\\s+", " ");
+        return trimmed.length() > 80 ? trimmed.substring(0, 80) + "..." : trimmed;
     }
 
     /**

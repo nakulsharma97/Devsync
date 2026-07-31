@@ -1,5 +1,6 @@
 package com.devsync.kanban;
 
+import com.devsync.activity.ActivityService;
 import com.devsync.kanban.dto.BoardResponse;
 import com.devsync.kanban.dto.CreateTaskRequest;
 import com.devsync.kanban.dto.UpdateTaskPositionRequest;
@@ -33,13 +34,14 @@ class BoardServiceTest {
     @Mock private UserRepository userRepository;
     @Mock private ProjectRepository projectRepository;
     @Mock private ProjectMemberRepository projectMemberRepository;
+    @Mock private ActivityService activityService;
 
     private BoardService boardService;
 
     @BeforeEach
     void setUp() {
         boardService = new BoardService(boardRepository, columnRepository, taskRepository,
-                userRepository, projectRepository, projectMemberRepository);
+                userRepository, projectRepository, projectMemberRepository, activityService);
     }
 
     @Test
@@ -119,7 +121,7 @@ class BoardServiceTest {
         UpdateTaskPositionRequest request = mock(UpdateTaskPositionRequest.class);
         when(request.getTaskId()).thenReturn("t1");
 
-        assertThatThrownBy(() -> boardService.updateTaskPosition(request))
+        assertThatThrownBy(() -> boardService.updateTaskPosition(request, "u1"))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("archived");
 

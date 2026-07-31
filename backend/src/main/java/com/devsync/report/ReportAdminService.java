@@ -165,9 +165,9 @@ public class ReportAdminService {
             case BLOCK_USER -> adminService.setUserBlocked(entityId, true, adminId);
             case UNBLOCK_USER -> adminService.setUserBlocked(entityId, false, adminId);
             case DELETE_USER -> adminService.deleteUser(entityId, adminId);
-            case ARCHIVE_PROJECT -> adminService.archiveProject(entityId);
-            case DELETE_PROJECT -> adminService.deleteProject(entityId);
-            case SET_VISIBILITY -> adminService.setProjectVisibility(entityId, value);
+            case ARCHIVE_PROJECT -> adminService.archiveProject(entityId, adminId);
+            case DELETE_PROJECT -> adminService.deleteProject(entityId, adminId);
+            case SET_VISIBILITY -> adminService.setProjectVisibility(entityId, value, adminId);
             case DELETE_POST -> adminService.deletePost(entityId);
             case HIDE_POST -> setPostHidden(entityId, true);
             case RESTORE_POST -> setPostHidden(entityId, false);

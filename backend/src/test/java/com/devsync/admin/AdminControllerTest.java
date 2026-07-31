@@ -1,5 +1,9 @@
 package com.devsync.admin;
 
+import com.devsync.activity.ActivityService;
+import com.devsync.activity.dto.ActivityResponse;
+import com.devsync.activity.dto.ActivityUserDto;
+import com.devsync.activity.dto.AdminActivityStats;
 import com.devsync.admin.dto.AdminActivityItem;
 import com.devsync.admin.dto.AdminKanbanStats;
 import com.devsync.admin.dto.AdminProjectDetail;
@@ -11,6 +15,8 @@ import com.devsync.admin.dto.AdminProjectSummary;
 import com.devsync.admin.dto.AdminUserListItem;
 import com.devsync.admin.dto.AdminUserSummary;
 import com.devsync.admin.dto.DashboardResponse;
+import com.devsync.audit.AuditLogService;
+import com.devsync.audit.dto.AuditLogResponse;
 import com.devsync.common.PageResponse;
 import com.devsync.common.ResourceNotFoundException;
 import org.junit.jupiter.api.Test;
@@ -31,6 +37,7 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -44,6 +51,12 @@ class AdminControllerTest {
 
     @MockitoBean
     private AdminService adminService;
+
+    @MockitoBean
+    private ActivityService activityService;
+
+    @MockitoBean
+    private AuditLogService auditLogService;
 
     private DashboardResponse sampleDashboard() {
         return DashboardResponse.builder()
@@ -314,7 +327,7 @@ class AdminControllerTest {
     @Test
     @WithMockUser(roles = "ADMIN")
     void archiveProject_shouldReturn200_ForAdmin() throws Exception {
-        when(adminService.archiveProject("p1")).thenReturn(sampleProjectItem());
+        when(adminService.archiveProject(eq("p1"), anyString())).thenReturn(sampleProjectItem());
 
         mockMvc.perform(put("/api/admin/projects/p1/archive"))
                 .andExpect(status().isOk())
@@ -331,7 +344,7 @@ class AdminControllerTest {
     @Test
     @WithMockUser(roles = "ADMIN")
     void restoreProject_shouldReturn200_ForAdmin() throws Exception {
-        when(adminService.restoreProject("p1")).thenReturn(sampleProjectItem());
+        when(adminService.restoreProject(eq("p1"), anyString())).thenReturn(sampleProjectItem());
 
         mockMvc.perform(put("/api/admin/projects/p1/restore"))
                 .andExpect(status().isOk())
@@ -343,7 +356,7 @@ class AdminControllerTest {
     void updateVisibility_shouldReturn200_ForAdmin() throws Exception {
         AdminProjectListItem item = sampleProjectItem();
         item.setVisibility("PRIVATE");
-        when(adminService.setProjectVisibility("p1", "PRIVATE")).thenReturn(item);
+        when(adminService.setProjectVisibility(eq("p1"), eq("PRIVATE"), anyString())).thenReturn(item);
 
         mockMvc.perform(put("/api/admin/projects/p1/visibility")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -381,6 +394,115 @@ class AdminControllerTest {
     @WithMockUser
     void deleteProject_shouldReturn403_ForNormalUser() throws Exception {
         mockMvc.perform(delete("/api/admin/projects/p1"))
+                .andExpect(status().isForbidden());
+    }
+
+    // ---------- Admin Activity & Audit Log endpoints ----------
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void adminActivity_shouldReturn200_ForAdmin() throws Exception {
+        PageResponse<ActivityResponse> page = PageResponse.<ActivityResponse>builder()
+                .content(List.of(ActivityResponse.builder()
+                        .id("a1").projectId("p1").activityType("TASK_CREATED")
+                        .title("Task created").createdAt(Instant.now())
+                        .user(ActivityUserDto.builder().id("u1").fullName("Dev User").build())
+                        .build()))
+                .page(0).size(20).totalElements(1).totalPages(1).last(true)
+                .build();
+        when(activityService.getAdminActivities(any(), any(), any(), any(), any(), anyInt(), anyInt()))
+                .thenReturn(page);
+
+        mockMvc.perform(get("/api/admin/activity")
+                        .param("projectId", "p1")
+                        .param("activityType", "TASK_CREATED"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].activityType").value("TASK_CREATED"))
+                .andExpect(jsonPath("$.content[0].user.fullName").value("Dev User"))
+                .andExpect(jsonPath("$.totalElements").value(1));
+    }
+
+    @Test
+    @WithMockUser
+    void adminActivity_shouldReturn403_ForNormalUser() throws Exception {
+        mockMvc.perform(get("/api/admin/activity"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void adminActivityStats_shouldReturn200_ForAdmin() throws Exception {
+        when(activityService.getAdminActivityStats()).thenReturn(AdminActivityStats.builder()
+                .todayCount(10).projects(3).tasks(4).messages(2).build());
+
+        mockMvc.perform(get("/api/admin/activity/stats"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.todayCount").value(10))
+                .andExpect(jsonPath("$.projects").value(3))
+                .andExpect(jsonPath("$.tasks").value(4))
+                .andExpect(jsonPath("$.messages").value(2));
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void auditLogs_shouldReturn200_ForAdmin() throws Exception {
+        PageResponse<AuditLogResponse> page = PageResponse.<AuditLogResponse>builder()
+                .content(List.of(AuditLogResponse.builder()
+                        .id("l1").performedByName("Admin One").targetUserName("Dev User")
+                        .action("ROLE_CHANGED").status("SUCCESS").ipAddress("127.0.0.1")
+                        .createdAt(Instant.now()).build()))
+                .page(0).size(20).totalElements(1).totalPages(1).last(true)
+                .build();
+        when(auditLogService.getLogs(anyInt(), anyInt(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+                .thenReturn(page);
+
+        mockMvc.perform(get("/api/admin/audit-logs")
+                        .param("search", "dev")
+                        .param("action", "ROLE_CHANGED"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].action").value("ROLE_CHANGED"))
+                .andExpect(jsonPath("$.content[0].performedByName").value("Admin One"));
+    }
+
+    @Test
+    @WithMockUser
+    void auditLogs_shouldReturn403_ForNormalUser() throws Exception {
+        mockMvc.perform(get("/api/admin/audit-logs"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void auditLogDetail_shouldReturn200_ForAdmin() throws Exception {
+        when(auditLogService.getLog("l1")).thenReturn(AuditLogResponse.builder()
+                .id("l1").action("LOGIN_SUCCESS").status("SUCCESS").ipAddress("127.0.0.1")
+                .createdAt(Instant.now()).build());
+
+        mockMvc.perform(get("/api/admin/audit-logs/l1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.action").value("LOGIN_SUCCESS"))
+                .andExpect(jsonPath("$.ipAddress").value("127.0.0.1"));
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void auditLogExport_shouldReturnCsv_ForAdmin() throws Exception {
+        when(auditLogService.exportLogs(any(), any(), any(), any(), any(), any(), any()))
+                .thenReturn(List.of(AuditLogResponse.builder()
+                        .id("l1").action("LOGIN_SUCCESS").status("SUCCESS")
+                        .createdAt(Instant.now()).build()));
+        when(auditLogService.toCsv(anyList())).thenReturn("id,created_at,action\nl1,,LOGIN_SUCCESS\n");
+
+        mockMvc.perform(get("/api/admin/audit-logs/export"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith("text/csv"))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("LOGIN_SUCCESS")));
+    }
+
+    @Test
+    @WithMockUser
+    void auditLogExport_shouldReturn403_ForNormalUser() throws Exception {
+        mockMvc.perform(get("/api/admin/audit-logs/export"))
                 .andExpect(status().isForbidden());
     }
 }

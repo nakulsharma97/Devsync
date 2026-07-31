@@ -47,8 +47,9 @@ public class BoardController {
     }
 
     @PutMapping("/tasks/position")
-    public ResponseEntity<Void> updateTaskPosition(@Valid @RequestBody UpdateTaskPositionRequest request) {
-        boardService.updateTaskPosition(request);
+    public ResponseEntity<Void> updateTaskPosition(@Valid @RequestBody UpdateTaskPositionRequest request,
+                                                  @AuthenticationPrincipal UserDetails userDetails) {
+        boardService.updateTaskPosition(request, userDetails.getUsername());
         return ResponseEntity.ok().build();
     }
 

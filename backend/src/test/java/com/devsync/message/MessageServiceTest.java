@@ -1,5 +1,6 @@
 package com.devsync.message;
 
+import com.devsync.activity.ActivityService;
 import com.devsync.message.dto.MessageResponse;
 import com.devsync.message.dto.SendMessageRequest;
 import com.devsync.message.entity.Message;
@@ -30,13 +31,14 @@ class MessageServiceTest {
     @Mock private TeamRoomRepository roomRepository;
     @Mock private TeamRoomParticipantRepository participantRepository;
     @Mock private ProjectRepository projectRepository;
+    @Mock private ActivityService activityService;
 
     private MessageService messageService;
 
     @BeforeEach
     void setUp() {
         messageService = new MessageService(messageRepository, userRepository, roomRepository,
-                participantRepository, projectRepository);
+                participantRepository, projectRepository, activityService);
     }
 
     @Test
