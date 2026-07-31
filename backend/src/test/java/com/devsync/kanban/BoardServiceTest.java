@@ -99,7 +99,7 @@ class BoardServiceTest {
         when(request.getColumnId()).thenReturn("c1");
         when(request.getTitle()).thenReturn("Build feature");
 
-        BoardResponse.TaskDto dto = boardService.createTask(request, "u1");
+        BoardResponse.TaskDto dto = boardService.createTask(request, "owner1");
 
         org.assertj.core.api.Assertions.assertThat(dto.getTitle()).isEqualTo("Build feature");
     }

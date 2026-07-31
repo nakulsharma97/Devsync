@@ -83,7 +83,7 @@ class AdminServiceTest {
         when(messageRepository.count()).thenReturn(90L);
         when(postRepository.count()).thenReturn(15L);
         when(userRepository.findTop5ByOrderByCreatedAtDesc()).thenReturn(List.of());
-        when(projectRepository.findTop5ByOrderByCreatedAtDescAndDeletedFalse()).thenReturn(List.of());
+        when(projectRepository.findTop5ByDeletedFalseOrderByCreatedAtDesc()).thenReturn(List.of());
 
         DashboardResponse dashboard = adminService.getDashboard();
 
@@ -409,15 +409,15 @@ class AdminServiceTest {
         done.setId("col-done");
         BoardColumn todo = BoardColumn.builder().boardId("b1").name("To Do").position(0).build();
         todo.setId("col-todo");
-        when(boardColumnRepository.findByBoardIdIn(anySet())).thenReturn(List.of(done, todo));
+        when(boardColumnRepository.findByBoardIdIn(anyList())).thenReturn(List.of(done, todo));
         Task t1 = Task.builder().title("Ship").columnId("col-done").boardId("b1").build();
         Task t2 = Task.builder().title("Plan").columnId("col-todo").boardId("b1").build();
-        when(taskRepository.findByBoardIdIn(anySet())).thenReturn(List.of(t1, t2));
+        when(taskRepository.findByBoardIdIn(anyList())).thenReturn(List.of(t1, t2));
 
         TeamRoom room = TeamRoom.builder().projectId("p1").createdBy("owner1").build();
         room.setId("r1");
         when(teamRoomRepository.findByProjectId("p1")).thenReturn(Collections.singletonList(room));
-        when(messageRepository.countByRoomIdIn(anySet())).thenReturn(5L);
+        when(messageRepository.countByRoomIdIn(anyList())).thenReturn(5L);
 
         AdminProjectDetail detail = adminService.getProjectDetail("p1");
 
