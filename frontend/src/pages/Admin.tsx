@@ -1,22 +1,27 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import {
-  Shield,
-  Users,
-  Rss,
-  Trash2,
-  Loader2,
-  FolderGit2,
-  UserPlus,
-  UserCog,
+  Shield, Users, FolderGit2, Rss, UserPlus, ListTodo, MessagesSquare, Ban, Activity, Trash2, Loader2,
 } from "lucide-react";
-import { adminService, type AdminUser, type AdminPost, type PlatformStats } from "@/services/adminService";
+import {
+  adminService,
+  type AdminDashboard,
+  type AdminPost,
+  type AdminUser,
+  type PlatformStats,
+} from "@/services/adminService";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+} from "@/components/ui/table";
 import { toast } from "sonner";
 
 export default function Admin() {
   const navigate = useNavigate();
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
+  const [dashboard, setDashboard] = useState<AdminDashboard | null>(null);
   const [stats, setStats] = useState<PlatformStats | null>(null);
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [posts, setPosts] = useState<AdminPost[]>([]);
@@ -24,6 +29,7 @@ export default function Admin() {
   const [loading, setLoading] = useState(true);
   const [deletingPost, setDeletingPost] = useState<string | null>(null);
   const [changingRole, setChangingRole] = useState<string | null>(null);
+  const [togglingBlock, setTogglingBlock] = useState<string | null>(null);
 
   useEffect(() => {
     const checkAccess = async () => {
@@ -31,11 +37,13 @@ export default function Admin() {
         const admin = await adminService.isAdmin();
         setIsAdmin(admin);
         if (admin) {
-          const [platformStats, allUsers, allPosts] = await Promise.all([
+          const [dash, platformStats, allUsers, allPosts] = await Promise.all([
+            adminService.getDashboard(),
             adminService.getPlatformStats(),
             adminService.getAllUsers(),
             adminService.getAllPosts(),
           ]);
+          setDashboard(dash);
           setStats(platformStats);
           setUsers(allUsers);
           setPosts(allPosts);
@@ -65,10 +73,8 @@ export default function Admin() {
   const handleRoleChange = async (userId: string, newRole: string) => {
     setChangingRole(userId);
     try {
-      await adminService.updateUserRole(userId, newRole);
-      setUsers((prev) =>
-        prev.map((u) => (u.id === userId ? { ...u, role: newRole } : u)),
-      );
+      const updated = await adminService.updateUserRole(userId, newRole);
+      setUsers((prev) => prev.map((u) => (u.id === userId ? updated : u)));
       toast.success(`Role updated to ${newRole}`);
     } catch {
       toast.error("Failed to update role");
@@ -77,12 +83,56 @@ export default function Admin() {
     }
   };
 
+  const handleToggleBlock = async (user: AdminUser) => {
+    setTogglingBlock(user.id);
+    try {
+      const updated = await adminService.setUserBlocked(user.id, !user.blocked);
+      setUsers((prev) => prev.map((u) => (u.id === user.id ? updated : u)));
+      toast.success(updated.blocked ? "User blocked" : "User unblocked");
+    } catch {
+      toast.error("Failed to update block status");
+    } finally {
+      setTogglingBlock(null);
+    }
+  };
+
+  const roleBadge = (role: string) =>
+    role === "ADMIN" ? (
+      <Badge variant="outline" className="bg-purple-500/10 text-purple-500 border-purple-500/20">ADMIN</Badge>
+    ) : (
+      <Badge variant="outline" className="bg-blue-500/10 text-blue-500 border-blue-500/20">USER</Badge>
+    );
+
+  const statusBadge = (status: string) => {
+    const styles: Record<string, string> = {
+      ACTIVE: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20",
+      ARCHIVED: "bg-amber-500/10 text-amber-500 border-amber-500/20",
+      COMPLETED: "bg-blue-500/10 text-blue-500 border-blue-500/20",
+    };
+    return (
+      <Badge variant="outline" className={styles[status] || "bg-secondary text-secondary-foreground"}>{status}</Badge>
+    );
+  };
+
+  const statCards = dashboard
+    ? [
+        { icon: Users, label: "Total Users", value: dashboard.totalUsers, color: "text-blue-500" },
+        { icon: Activity, label: "Active Users", value: dashboard.activeUsers, color: "text-emerald-500" },
+        { icon: Ban, label: "Blocked Users", value: dashboard.blockedUsers, color: "text-red-500" },
+        { icon: FolderGit2, label: "Projects", value: dashboard.totalProjects, color: "text-indigo-500" },
+        { icon: UserPlus, label: "Teams", value: dashboard.totalTeams, color: "text-amber-500" },
+        { icon: ListTodo, label: "Tasks", value: dashboard.totalTasks, color: "text-violet-500" },
+        { icon: Rss, label: "Posts", value: dashboard.totalPosts, color: "text-purple-500" },
+        { icon: MessagesSquare, label: "Messages", value: dashboard.totalMessages, color: "text-cyan-500" },
+      ]
+    : [];
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
         <div className="flex flex-col items-center gap-3">
           <div className="w-8 h-8 rounded-full border-2 border-accent/30 border-t-accent animate-spin" />
-          <p className="text-sm text-muted-foreground">Checking access...</p>
+          <p className="text-sm text-muted-foreground">Loading admin dashboard...</p>
         </div>
       </div>
     );
@@ -98,8 +148,7 @@ export default function Admin() {
           <div>
             <h2 className="text-lg font-semibold text-foreground">Access Denied</h2>
             <p className="text-sm text-muted-foreground mt-1">
-              You don't have admin privileges. Contact the platform owner if you
-              believe this is a mistake.
+              You don't have admin privileges. Contact the platform owner if you believe this is a mistake.
             </p>
           </div>
           <Button size="sm" variant="outline" onClick={() => navigate("/dashboard")} className="text-sm">
@@ -111,56 +160,115 @@ export default function Admin() {
   }
 
   return (
-    <div className="relative">
-      {/* Background decoration */}
+    <div className="relative space-y-8">
       <div className="absolute -top-20 -right-20 w-72 h-72 bg-gradient-to-bl from-accent/[0.03] to-transparent rounded-full blur-3xl pointer-events-none" />
 
-      {/* Header */}
-      <div className="mb-8">
+      <div>
         <div className="flex items-center gap-2 mb-1">
           <div className="w-5 h-5 rounded-md bg-accent/10 flex items-center justify-center">
             <Shield className="w-3 h-3 text-accent" />
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">Admin Panel</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">Admin Dashboard</h1>
         </div>
-        <p className="ml-7 text-sm text-muted-foreground">
-          Manage users, moderate content, and view platform stats
-        </p>
+        <p className="ml-7 text-sm text-muted-foreground">Platform overview, user management, and content moderation</p>
       </div>
 
-      {/* Platform Stats */}
-      {stats && (
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-8">
-          {[
-            { icon: Users, label: "Users", value: stats.totalUsers, color: "text-blue-500" },
-            { icon: Rss, label: "Posts", value: stats.totalPosts, color: "text-purple-500" },
-            { icon: FolderGit2, label: "Projects", value: stats.totalProjects, color: "text-accent" },
-            { icon: UserPlus, label: "Connections", value: stats.totalConnections, color: "text-green-500" },
-            { icon: UserCog, label: "Teams", value: stats.totalTeams, color: "text-amber-500" },
-          ].map((s) => (
-            <div
-              key={s.label}
-              className="bg-card border border-border/50 rounded-xl p-4 flex flex-col items-center text-center gap-2"
-            >
-              <s.icon className={`w-5 h-5 ${s.color}`} />
-              <span className="text-xl font-bold text-foreground">{s.value}</span>
-              <span className="text-xs text-muted-foreground">{s.label}</span>
-            </div>
-          ))}
-        </div>
-      )}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+        {statCards.map((s) => (
+          <Card key={s.label} className="gap-2 py-4 border-border/50 hover:border-accent/30 transition-colors">
+            <CardContent className="px-4 flex items-center justify-between gap-2">
+              <div className="min-w-0">
+                <p className="text-xs text-muted-foreground truncate">{s.label}</p>
+                <p className="text-2xl font-bold mt-1">{s.value.toLocaleString()}</p>
+              </div>
+              <div className="w-9 h-9 rounded-lg bg-accent/5 flex items-center justify-center shrink-0">
+                <s.icon className={`w-4 h-4 ${s.color}`} />
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
 
-      {/* Tabs */}
-      <div className="flex items-center gap-1 mb-6 border-b border-border/50">
+      <div className="grid lg:grid-cols-2 gap-6">
+        <Card className="border-border/50 gap-0 overflow-hidden">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-sm font-semibold text-foreground">Recent Users</CardTitle>
+          </CardHeader>
+          <CardContent className="px-0">
+            <Table>
+              <TableHeader>
+                <TableRow><TableHead>User</TableHead><TableHead>Role</TableHead><TableHead className="text-right">Joined</TableHead></TableRow>
+              </TableHeader>
+              <TableBody>
+                {(dashboard?.recentUsers || []).map((u) => (
+                  <TableRow key={u.id}>
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-accent/20 to-accent/5 flex items-center justify-center ring-1 ring-accent/20 shrink-0 overflow-hidden">
+                          {u.avatarUrl ? <img src={u.avatarUrl} alt="" className="w-full h-full object-cover" /> : <Users className="w-3.5 h-3.5 text-accent" />}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-foreground truncate">{u.fullName}</p>
+                          <p className="text-xs text-muted-foreground truncate">@{u.username || "—"}</p>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        {roleBadge(u.role)}
+                        {u.blocked && <Badge variant="destructive" className="text-[10px] px-1.5">Blocked</Badge>}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right text-xs text-muted-foreground">{new Date(u.createdAt).toLocaleDateString()}</TableCell>
+                  </TableRow>
+                ))}
+                {(dashboard?.recentUsers || []).length === 0 && (
+                  <TableRow><TableCell colSpan={3} className="text-center text-sm text-muted-foreground py-8">No users yet</TableCell></TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+
+        <Card className="border-border/50 gap-0 overflow-hidden">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-sm font-semibold text-foreground">Recent Projects</CardTitle>
+          </CardHeader>
+          <CardContent className="px-0">
+            <Table>
+              <TableHeader>
+                <TableRow><TableHead>Project</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Created</TableHead></TableRow>
+              </TableHeader>
+              <TableBody>
+                {(dashboard?.recentProjects || []).map((p) => (
+                  <TableRow key={p.id}>
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500/20 to-purple-500/20 flex items-center justify-center shrink-0">
+                          <FolderGit2 className="w-4 h-4 text-indigo-400" />
+                        </div>
+                        <p className="text-sm font-medium text-foreground truncate">{p.name}</p>
+                      </div>
+                    </TableCell>
+                    <TableCell>{statusBadge(p.status)}</TableCell>
+                    <TableCell className="text-right text-xs text-muted-foreground">{new Date(p.createdAt).toLocaleDateString()}</TableCell>
+                  </TableRow>
+                ))}
+                {(dashboard?.recentProjects || []).length === 0 && (
+                  <TableRow><TableCell colSpan={3} className="text-center text-sm text-muted-foreground py-8">No projects yet</TableCell></TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="flex items-center gap-1 border-b border-border/50">
         {(["overview", "users", "posts"] as const).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
-            className={`px-3 py-2.5 text-xs border-b-2 transition-colors capitalize ${
-              tab === t
-                ? "border-accent text-accent"
-                : "border-transparent text-muted-foreground hover:text-foreground"
-            }`}
+            className={`px-3 py-2.5 text-xs border-b-2 transition-colors capitalize ${tab === t ? "border-accent text-accent" : "border-transparent text-muted-foreground hover:text-foreground"}`}
           >
             {t === "overview" && "📊 "}
             {t === "users" && "👥 "}
@@ -170,94 +278,80 @@ export default function Admin() {
         ))}
       </div>
 
-      {/* Tab Content */}
       {tab === "overview" && (
-        <div className="bg-card border border-border/50 rounded-xl p-6">
-          <h3 className="text-sm font-semibold text-foreground mb-4">Platform Overview</h3>
-          <div className="space-y-3">
-            <p className="text-sm text-muted-foreground">
-              Welcome to the admin panel. Use the tabs above to manage users and moderate content.
-            </p>
-            <div className="grid sm:grid-cols-2 gap-3">
+        <Card className="border-border/50">
+          <CardHeader className="pb-4"><CardTitle className="text-sm font-semibold text-foreground">Platform Overview</CardTitle></CardHeader>
+          <CardContent>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
               <div className="border border-border/50 rounded-lg p-4">
                 <p className="text-xs text-muted-foreground mb-1">Total Users</p>
-                <p className="text-2xl font-bold text-foreground">{stats?.totalUsers ?? 0}</p>
+                <p className="text-2xl font-bold text-foreground">{dashboard?.totalUsers ?? 0}</p>
               </div>
               <div className="border border-border/50 rounded-lg p-4">
-                <p className="text-xs text-muted-foreground mb-1">Engagement Rate</p>
+                <p className="text-xs text-muted-foreground mb-1">Active Rate</p>
                 <p className="text-2xl font-bold text-foreground">
-                  {stats && stats.totalUsers > 0
-                    ? ((stats.totalConnections / (stats.totalUsers * 2)) * 100).toFixed(1) + "%"
-                    : "0%"}
+                  {dashboard && dashboard.totalUsers > 0 ? Math.round((dashboard.activeUsers / dashboard.totalUsers) * 100) + "%" : "0%"}
                 </p>
               </div>
               <div className="border border-border/50 rounded-lg p-4">
                 <p className="text-xs text-muted-foreground mb-1">Avg Posts per User</p>
                 <p className="text-2xl font-bold text-foreground">
-                  {stats && stats.totalUsers > 0
-                    ? (stats.totalPosts / stats.totalUsers).toFixed(1)
-                    : "0"}
+                  {dashboard && dashboard.totalUsers > 0 ? (dashboard.totalPosts / dashboard.totalUsers).toFixed(1) : "0"}
                 </p>
               </div>
               <div className="border border-border/50 rounded-lg p-4">
-                <p className="text-xs text-muted-foreground mb-1">Teams Active</p>
-                <p className="text-2xl font-bold text-foreground">{stats?.totalTeams ?? 0}</p>
+                <p className="text-xs text-muted-foreground mb-1">Blocked Users</p>
+                <p className="text-2xl font-bold text-foreground">{dashboard?.blockedUsers ?? 0}</p>
               </div>
             </div>
-          </div>
-        </div>
+            {stats && (
+              <p className="text-xs text-muted-foreground mt-4">
+                {stats.totalConnections} connections · {stats.totalPosts} posts · {stats.totalProjects} projects · {stats.totalTeams} teams
+              </p>
+            )}
+          </CardContent>
+        </Card>
       )}
 
       {tab === "users" && (
         <div className="space-y-2">
           {users.length === 0 ? (
-            <div className="border border-border/50 rounded-xl p-10 text-center text-sm text-muted-foreground bg-card">
-              No users found.
-            </div>
+            <div className="border border-border/50 rounded-xl p-10 text-center text-sm text-muted-foreground bg-card">No users found.</div>
           ) : (
             users.map((user) => (
-              <div
-                key={user.id}
-                className="bg-card border border-border/50 rounded-xl p-4 flex items-center gap-4 hover:border-accent/20 transition-colors"
-              >
+              <div key={user.id} className="bg-card border border-border/50 rounded-xl p-4 flex items-center gap-4 hover:border-accent/20 transition-colors">
                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-accent/20 to-accent/5 flex items-center justify-center ring-1 ring-accent/20 shrink-0 overflow-hidden">
-                  {user.avatarUrl ? (
-                    <img src={user.avatarUrl} alt="" className="w-full h-full object-cover" />
-                  ) : (
-                    <Users className="w-4 h-4 text-accent" />
-                  )}
+                  {user.avatarUrl ? <img src={user.avatarUrl} alt="" className="w-full h-full object-cover" /> : <Users className="w-4 h-4 text-accent" />}
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-foreground truncate">{user.fullName}</p>
-                  <p className="text-xs text-muted-foreground truncate">
-                    @{user.username} · {user.email}
-                  </p>
+                  <p className="text-xs text-muted-foreground truncate">@{user.username} · {user.email}</p>
                   <p className="text-xs text-muted-foreground">
-                    {user.postCount} posts · {user.followerCount} followers
+                    {user.postCount} posts · {user.followerCount} followers{user.blocked && " · blocked"}
                   </p>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
-                  <span
-                    className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                      user.role === "ADMIN"
-                        ? "bg-purple-500/10 text-purple-500 border border-purple-500/20"
-                        : "bg-blue-500/10 text-blue-500 border border-blue-500/20"
-                    }`}
-                  >
-                    {user.role}
-                  </span>
+                  {roleBadge(user.role)}
                   <select
                     value={user.role}
                     onChange={(e) => handleRoleChange(user.id, e.target.value)}
                     disabled={changingRole === user.id}
                     className="text-xs bg-background border border-border/50 rounded-lg px-2 py-1 text-foreground"
                   >
-                    <option value="DEVELOPER">Developer</option>
+                    <option value="USER">User</option>
                     <option value="ADMIN">Admin</option>
                   </select>
-                  {changingRole === user.id && (
-                    <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />
-                  )}
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className={user.blocked ? "text-emerald-500 hover:text-emerald-600" : "text-muted-foreground hover:text-destructive"}
+                    onClick={() => handleToggleBlock(user)}
+                    disabled={togglingBlock === user.id}
+                  >
+                    {togglingBlock === user.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Ban className="w-3.5 h-3.5" />}
+                    <span className="ml-1">{user.blocked ? "Unblock" : "Block"}</span>
+                  </Button>
+                  {changingRole === user.id && <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />}
                 </div>
               </div>
             ))
@@ -268,22 +362,15 @@ export default function Admin() {
       {tab === "posts" && (
         <div className="space-y-2">
           {posts.length === 0 ? (
-            <div className="border border-border/50 rounded-xl p-10 text-center text-sm text-muted-foreground bg-card">
-              No posts found.
-            </div>
+            <div className="border border-border/50 rounded-xl p-10 text-center text-sm text-muted-foreground bg-card">No posts found.</div>
           ) : (
             posts.map((post) => (
-              <div
-                key={post.id}
-                className="bg-card border border-border/50 rounded-xl p-4 hover:border-accent/20 transition-colors"
-              >
+              <div key={post.id} className="bg-card border border-border/50 rounded-xl p-4 hover:border-accent/20 transition-colors">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
                     <p className="text-sm text-foreground line-clamp-2">{post.content}</p>
                     <p className="text-xs text-muted-foreground mt-1">
-                      By {post.author?.fullName || "Unknown"} · {post.likeCount} likes ·{" "}
-                      {post.commentCount} comments ·{" "}
-                      {new Date(post.createdAt).toLocaleDateString()}
+                      By {post.author?.fullName || "Unknown"} · {post.likeCount} likes · {post.commentCount} comments · {new Date(post.createdAt).toLocaleDateString()}
                     </p>
                   </div>
                   <button
@@ -291,11 +378,7 @@ export default function Admin() {
                     disabled={deletingPost === post.id}
                     className="shrink-0 p-1.5 text-muted-foreground hover:text-destructive transition-colors rounded-lg hover:bg-destructive/5"
                   >
-                    {deletingPost === post.id ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <Trash2 className="w-4 h-4" />
-                    )}
+                    {deletingPost === post.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
                   </button>
                 </div>
               </div>
