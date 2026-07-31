@@ -34,6 +34,7 @@ const navItems = [
   { to: "/messages", icon: MessageCircle, label: "Messages" },
   { to: "/admin/dashboard", icon: Shield, label: "Admin Dashboard" },
   { to: "/admin/users", icon: Users, label: "Admin Users" },
+  { to: "/admin/projects", icon: FolderGit2, label: "Admin Projects" },
   { to: "/settings", icon: Settings, label: "Settings" },
 ];
 

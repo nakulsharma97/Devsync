@@ -134,6 +134,88 @@ export interface AdminUsersQuery {
   status?: string;
 }
 
+// ---------- Admin Project Management types ----------
+
+export interface AdminProjectOwner {
+  id: string;
+  fullName: string;
+  email?: string | null;
+  username?: string | null;
+  avatarUrl?: string | null;
+}
+
+export interface AdminProjectMember {
+  userId: string;
+  fullName: string;
+  email?: string | null;
+  avatarUrl?: string | null;
+  role: string;
+}
+
+export interface AdminKanbanStats {
+  totalTasks: number;
+  completedTasks: number;
+  pendingTasks: number;
+}
+
+export interface AdminActivityItem {
+  type: string;
+  title: string;
+  timestamp: string;
+}
+
+export interface AdminProjectListItem {
+  id: string;
+  name: string;
+  description?: string | null;
+  ownerId: string;
+  ownerName: string;
+  ownerEmail?: string | null;
+  ownerAvatarUrl?: string | null;
+  visibility: string;
+  status: string;
+  membersCount: number;
+  tasksCount: number;
+  postsCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AdminProjectDetail {
+  id: string;
+  name: string;
+  description?: string | null;
+  owner: AdminProjectOwner;
+  visibility: string;
+  status: string;
+  memberCount: number;
+  members: AdminProjectMember[];
+  kanbanStats: AdminKanbanStats;
+  postsCount: number;
+  messagesCount: number;
+  recentActivity: AdminActivityItem[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AdminProjectStats {
+  total: number;
+  active: number;
+  archived: number;
+  publicCount: number;
+  privateCount: number;
+}
+
+export interface AdminProjectsQuery {
+  page?: number;
+  size?: number;
+  sortBy?: string;
+  sortDir?: "asc" | "desc";
+  search?: string;
+  visibility?: string;
+  status?: string;
+}
+
 export const adminService = {
   async isAdmin(): Promise<boolean> {
     try {
@@ -217,5 +299,41 @@ export const adminService = {
 
   async deletePost(postId: string): Promise<void> {
     await api.delete(`/admin/posts/${postId}`);
+  },
+
+  // ---------- Admin Project Management ----------
+
+  async getProjectsPage(query: AdminProjectsQuery = {}): Promise<PageResponse<AdminProjectListItem>> {
+    const res = await api.get("/admin/projects", { params: query });
+    return res.data;
+  },
+
+  async getProjectStats(): Promise<AdminProjectStats> {
+    const res = await api.get("/admin/projects/stats");
+    return res.data;
+  },
+
+  async getProjectDetail(projectId: string): Promise<AdminProjectDetail> {
+    const res = await api.get(`/admin/projects/${projectId}`);
+    return res.data;
+  },
+
+  async archiveProject(projectId: string): Promise<AdminProjectListItem> {
+    const res = await api.put(`/admin/projects/${projectId}/archive`);
+    return res.data;
+  },
+
+  async restoreProject(projectId: string): Promise<AdminProjectListItem> {
+    const res = await api.put(`/admin/projects/${projectId}/restore`);
+    return res.data;
+  },
+
+  async setProjectVisibility(projectId: string, visibility: string): Promise<AdminProjectListItem> {
+    const res = await api.put(`/admin/projects/${projectId}/visibility`, { visibility });
+    return res.data;
+  },
+
+  async deleteProject(projectId: string): Promise<void> {
+    await api.delete(`/admin/projects/${projectId}`);
   },
 };

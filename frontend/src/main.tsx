@@ -35,6 +35,7 @@ import Feed from "./pages/Feed";
 import SearchPage from "./pages/SearchPage";
 import Admin from "./pages/Admin";
 import AdminUsers from "./pages/AdminUsers";
+import AdminProjects from "./pages/AdminProjects";
 
 function App() {
   return (
@@ -65,6 +66,7 @@ function App() {
               <Route path="/search" element={<SearchPage />} />
               <Route path="/admin/dashboard" element={<Admin />} />
               <Route path="/admin/users" element={<AdminUsers />} />
+              <Route path="/admin/projects" element={<AdminProjects />} />
               <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
             </Route>
             <Route path="*" element={<NotFound />} />
