@@ -216,6 +216,109 @@ export interface AdminProjectsQuery {
   status?: string;
 }
 
+// ---------- Admin Reports & Moderation types ----------
+
+export type ReportEntityType = "USER" | "PROJECT" | "POST" | "COMMENT" | "MESSAGE";
+export type ReportReason =
+  | "SPAM"
+  | "HARASSMENT"
+  | "INAPPROPRIATE_CONTENT"
+  | "FAKE_ACCOUNT"
+  | "COPYRIGHT"
+  | "ABUSE"
+  | "OTHER";
+export type ReportStatus = "PENDING" | "UNDER_REVIEW" | "RESOLVED" | "REJECTED";
+
+export interface AdminReporter {
+  id: string;
+  fullName: string;
+  email: string;
+  username?: string | null;
+  avatarUrl?: string | null;
+}
+
+export interface AdminReportListItem {
+  id: string;
+  reporter: AdminReporter;
+  entityType: ReportEntityType;
+  entityId: string;
+  entityTitle: string;
+  reason: ReportReason;
+  status: ReportStatus;
+  createdAt: string;
+}
+
+export interface AdminReportDetail {
+  id: string;
+  reporter: AdminReporter;
+  entityType: ReportEntityType;
+  entityId: string;
+  entityTitle: string;
+  entityOwnerId?: string | null;
+  entityOwnerName?: string | null;
+  reason: ReportReason;
+  description?: string | null;
+  status: ReportStatus;
+  reviewedBy?: string | null;
+  reviewedByName?: string | null;
+  reviewedAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AdminReportStats {
+  total: number;
+  pending: number;
+  underReview: number;
+  resolved: number;
+  rejected: number;
+}
+
+export type ModerationAction =
+  | "BLOCK_USER"
+  | "UNBLOCK_USER"
+  | "DELETE_USER"
+  | "ARCHIVE_PROJECT"
+  | "DELETE_PROJECT"
+  | "SET_VISIBILITY"
+  | "DELETE_POST"
+  | "HIDE_POST"
+  | "RESTORE_POST"
+  | "DELETE_COMMENT"
+  | "RESTORE_COMMENT"
+  | "DELETE_MESSAGE"
+  | "HIDE_MESSAGE";
+
+export interface AdminReportsQuery {
+  page?: number;
+  size?: number;
+  sortBy?: string;
+  sortDir?: "asc" | "desc";
+  search?: string;
+  status?: string;
+  reason?: string;
+  entityType?: string;
+}
+
+// ---------- Frontend helper types ----------
+
+export interface CreateReportInput {
+  entityType: ReportEntityType;
+  entityId: string;
+  reason: ReportReason;
+  description?: string;
+}
+
+export interface ReportResponse {
+  id: string;
+  entityType: ReportEntityType;
+  entityId: string;
+  reason: ReportReason;
+  description?: string;
+  status: ReportStatus;
+  createdAt: string;
+}
+
 export const adminService = {
   async isAdmin(): Promise<boolean> {
     try {
@@ -335,5 +438,37 @@ export const adminService = {
 
   async deleteProject(projectId: string): Promise<void> {
     await api.delete(`/admin/projects/${projectId}`);
+  },
+
+  // ---------- Reports & Moderation ----------
+
+  async getReportsPage(query: AdminReportsQuery = {}): Promise<PageResponse<AdminReportListItem>> {
+    const res = await api.get("/admin/reports", { params: query });
+    return res.data;
+  },
+
+  async getReportStats(): Promise<AdminReportStats> {
+    const res = await api.get("/admin/reports/stats");
+    return res.data;
+  },
+
+  async getReportDetail(reportId: string): Promise<AdminReportDetail> {
+    const res = await api.get(`/admin/reports/${reportId}`);
+    return res.data;
+  },
+
+  async reviewReport(reportId: string, status: ReportStatus): Promise<AdminReportDetail> {
+    const res = await api.put(`/admin/reports/${reportId}/review`, { status });
+    return res.data;
+  },
+
+  async moderateReport(reportId: string, action: ModerationAction, value?: string): Promise<AdminReportDetail> {
+    const res = await api.put(`/admin/reports/${reportId}/moderate`, { action, value });
+    return res.data;
+  },
+
+  async createReport(input: CreateReportInput): Promise<ReportResponse> {
+    const res = await api.post("/reports", input);
+    return res.data?.data;
   },
 };

@@ -14,6 +14,7 @@ import {
   Rss,
   Shield,
   Users,
+  Flag,
 } from "lucide-react";
 import { useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router";
@@ -124,6 +125,20 @@ export default function DashboardLayout() {
               >
                 <FolderKanban className="w-4 h-4" />
                 Admin Projects
+              </NavLink>
+              <NavLink
+                to="/admin/reports"
+                onClick={() => setSidebarOpen(false)}
+                className={({ isActive }) =>
+                  `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 ${
+                    isActive
+                      ? "bg-indigo-500/10 text-indigo-400 font-medium"
+                      : "text-muted-foreground hover:text-foreground hover:bg-accent/5"
+                  }`
+                }
+              >
+                <Flag className="w-4 h-4" />
+                Admin Reports
               </NavLink>
             </>
           )}
