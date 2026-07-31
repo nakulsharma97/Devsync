@@ -33,6 +33,7 @@ const navItems = [
   { to: "/search", icon: Search, label: "Search" },
   { to: "/messages", icon: MessageCircle, label: "Messages" },
   { to: "/admin/dashboard", icon: Shield, label: "Admin Dashboard" },
+  { to: "/admin/users", icon: Users, label: "Admin Users" },
   { to: "/settings", icon: Settings, label: "Settings" },
 ];
 
@@ -78,7 +79,7 @@ export function Sidebar() {
   }, [location.pathname, fetchCount]);
 
   const visibleItems = navItems.filter(
-    (item) => item.label !== "Admin Dashboard" || user?.role === "ADMIN"
+    (item) => !item.label.startsWith("Admin") || user?.role === "ADMIN"
   );
 
   return (
