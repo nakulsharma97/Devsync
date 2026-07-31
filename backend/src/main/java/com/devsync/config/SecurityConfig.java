@@ -56,7 +56,7 @@ public class SecurityConfig {
                 )
                 .successHandler(oAuth2Config.oAuth2SuccessHandler())
             )
-            .addFilterBefore(rateLimitingFilter, JwtAuthenticationFilter.class)
+            .addFilterBefore(rateLimitingFilter, UsernamePasswordAuthenticationFilter.class)
             .addFilterBefore(jwtAuthFilter(), UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
