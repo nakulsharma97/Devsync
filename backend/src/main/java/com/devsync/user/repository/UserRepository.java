@@ -16,6 +16,9 @@ import java.util.Optional;
 public interface UserRepository extends JpaRepository<User, String> {
     Optional<User> findByEmail(String email);
 
+    @Query("SELECT u FROM User u WHERE LOWER(u.email) = LOWER(:value) OR LOWER(u.username) = LOWER(:value)")
+    Optional<User> findByEmailOrUsername(@Param("value") String value);
+
     long countByEmail(String email);
     long countByUsername(String username);
 

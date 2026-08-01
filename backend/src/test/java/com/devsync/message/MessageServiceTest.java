@@ -1,10 +1,12 @@
 package com.devsync.message;
 
 import com.devsync.activity.ActivityService;
+import com.devsync.attachment.AttachmentService;
 import com.devsync.message.dto.MessageResponse;
 import com.devsync.message.dto.SendMessageRequest;
 import com.devsync.message.entity.Message;
 import com.devsync.message.repository.MessageRepository;
+import com.devsync.presence.PresenceService;
 import com.devsync.project.entity.Project;
 import com.devsync.project.repository.ProjectRepository;
 import com.devsync.teamroom.entity.TeamRoom;
@@ -32,13 +34,16 @@ class MessageServiceTest {
     @Mock private TeamRoomParticipantRepository participantRepository;
     @Mock private ProjectRepository projectRepository;
     @Mock private ActivityService activityService;
+    @Mock private AttachmentService attachmentService;
+    @Mock private PresenceService presenceService;
 
     private MessageService messageService;
 
     @BeforeEach
     void setUp() {
         messageService = new MessageService(messageRepository, userRepository, roomRepository,
-                participantRepository, projectRepository, activityService);
+                participantRepository, projectRepository, activityService,
+                attachmentService, presenceService);
     }
 
     @Test

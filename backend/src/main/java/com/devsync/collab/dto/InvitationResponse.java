@@ -1,4 +1,4 @@
-package com.devsync.message.dto;
+package com.devsync.collab.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -11,17 +11,18 @@ import java.time.Instant;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class MessageResponse {
+public class InvitationResponse {
     private String id;
+    private String projectId;
+    private String projectName;
     private String senderId;
     private String senderName;
     private String senderAvatar;
-    private String roomId;
     private String receiverId;
-    private String content;
-    private String messageType;
-    private boolean systemMessage;
-    private String attachmentId;
-    private com.devsync.attachment.dto.AttachmentResponse attachment;
+    private String receiverName;
+    private String receiverAvatar;
+    private String status;
+    private String message;
+    private Instant expiresAt;
     private Instant createdAt;
 }

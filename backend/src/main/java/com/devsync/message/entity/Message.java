@@ -36,4 +36,7 @@ public class Message extends BaseEntity {
     @Column(nullable = false)
     @Builder.Default
     private boolean hidden = false;
+
+    @Column(name = "attachment_id")
+    private String attachmentId;
 }

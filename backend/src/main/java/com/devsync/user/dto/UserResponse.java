@@ -29,4 +29,6 @@ public class UserResponse {
     private String authProvider;
     private Instant createdAt;
     private Instant lastLoginAt;
+    private String presenceStatus;
+    private Instant lastActiveAt;
 }

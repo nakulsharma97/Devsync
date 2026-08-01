@@ -3,6 +3,8 @@ package com.devsync.project;
 import com.devsync.activity.ActivityService;
 import com.devsync.activity.entity.ActivityType;
 import com.devsync.common.ResourceNotFoundException;
+import com.devsync.notification.NotificationService;
+import com.devsync.presence.PresenceService;
 import com.devsync.project.dto.CreateProjectRequest;
 import com.devsync.project.dto.ProjectResponse;
 import com.devsync.project.dto.UpdateProjectRequest;
@@ -13,9 +15,11 @@ import com.devsync.project.repository.ProjectRepository;
 import com.devsync.user.entity.User;
 import com.devsync.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -25,15 +29,19 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class ProjectService {
 
+    private static final int DISCOVER_LIMIT = 50;
+
     private final ProjectRepository projectRepository;
     private final ProjectMemberRepository memberRepository;
     private final UserRepository userRepository;
     private final ActivityService activityService;
+    private final NotificationService notificationService;
+    private final PresenceService presenceService;
 
     public List<ProjectResponse> getUserProjects(String userId) {
         List<Project> owned = projectRepository.findByOwnerId(userId);
         List<Project> member = projectRepository.findProjectsByUserId(userId);
-        Set<String> seen = new java.util.HashSet<>();
+        Set<String> seen = new HashSet<>();
         List<ProjectResponse> results = new java.util.ArrayList<>();
         for (Project p : owned) {
             if (seen.add(p.getId())) results.add(toResponse(p, userId));
@@ -42,6 +50,32 @@ public class ProjectService {
             if (seen.add(p.getId())) results.add(toResponse(p, userId));
         }
         return results;
+    }
+
+    /**
+     * Discover PUBLIC projects for the network/discover page. Batch-loads members
+     * and users so there are no N+1 queries across the result set.
+     */
+    public List<ProjectResponse> discoverPublicProjects(String search, String userId) {
+        List<Project> projects = projectRepository.discoverPublicProjects(
+                Project.ProjectStatus.ACTIVE,
+                Project.ProjectVisibility.PUBLIC,
+                search == null || search.isBlank() ? null : search.trim(),
+                PageRequest.of(0, DISCOVER_LIMIT));
+        if (projects.isEmpty()) return List.of();
+
+        Set<String> projectIds = projects.stream().map(Project::getId).collect(Collectors.toSet());
+        List<ProjectMember> allMembers = memberRepository.findByProjectIdIn(projectIds);
+        Map<String, List<ProjectMember>> membersByProject = allMembers.stream()
+                .collect(Collectors.groupingBy(ProjectMember::getProjectId));
+        Set<String> userIds = allMembers.stream().map(ProjectMember::getUserId).collect(Collectors.toSet());
+        Map<String, User> userMap = userIds.isEmpty() ? java.util.Collections.emptyMap()
+                : userRepository.findAllById(userIds).stream()
+                        .collect(Collectors.toMap(User::getId, u -> u));
+
+        return projects.stream()
+                .map(p -> toResponse(p, membersByProject.getOrDefault(p.getId(), List.of()), userMap, null))
+                .toList();
     }
 
     @Transactional
@@ -67,22 +101,21 @@ public class ProjectService {
         return toResponse(project, ownerId);
     }
 
+    /**
+     * Visibility rules: PUBLIC projects are visible to everyone; PRIVATE projects
+     * are visible only to members, the owner, or platform admins.
+     */
     public ProjectResponse getProject(String projectId, String userId) {
-        Project project = projectRepository.findById(projectId)
-                .orElseThrow(() -> new ResourceNotFoundException("Project", projectId));
-        if (project.isDeleted()) {
-            throw new ResourceNotFoundException("Project", projectId);
+        Project project = findActive(projectId);
+        if (!canView(project, userId)) {
+            throw new IllegalArgumentException("This project is private");
         }
         return toResponse(project, userId);
     }
 
     @Transactional
     public ProjectResponse updateProject(String projectId, UpdateProjectRequest request, String userId) {
-        Project project = projectRepository.findById(projectId)
-                .orElseThrow(() -> new ResourceNotFoundException("Project", projectId));
-        if (project.isDeleted()) {
-            throw new ResourceNotFoundException("Project", projectId);
-        }
+        Project project = findActive(projectId);
         if (project.getStatus() == Project.ProjectStatus.ARCHIVED) {
             throw new IllegalArgumentException("Archived projects cannot be edited");
         }
@@ -105,8 +138,7 @@ public class ProjectService {
 
     @Transactional
     public void deleteProject(String projectId, String currentUserId) {
-        Project project = projectRepository.findById(projectId)
-                .orElseThrow(() -> new ResourceNotFoundException("Project", projectId));
+        Project project = findActive(projectId);
         if (!project.getOwnerId().equals(currentUserId))
             throw new IllegalArgumentException("Only the project owner can delete this project");
         memberRepository.findByProjectId(projectId).forEach(memberRepository::delete);
@@ -117,8 +149,7 @@ public class ProjectService {
 
     @Transactional
     public void addMember(String projectId, String userId, String role, String currentUserId) {
-        Project project = projectRepository.findById(projectId)
-                .orElseThrow(() -> new ResourceNotFoundException("Project", projectId));
+        Project project = findActive(projectId);
         if (!project.getOwnerId().equals(currentUserId)) {
             boolean isAdmin = memberRepository.findByProjectIdAndUserId(projectId, currentUserId)
                     .filter(m -> m.getRole() == ProjectMember.Role.ADMIN).isPresent();
@@ -131,12 +162,12 @@ public class ProjectService {
                 .role(ProjectMember.Role.valueOf(role != null ? role : "MEMBER")).build());
         activityService.record(currentUserId, projectId, ActivityType.USER_JOINED_PROJECT,
                 "User joined project", userId, null);
+        notifyMemberAdded(project, userId, currentUserId);
     }
 
     @Transactional
     public void removeMember(String projectId, String userId, String currentUserId) {
-        Project project = projectRepository.findById(projectId)
-                .orElseThrow(() -> new ResourceNotFoundException("Project", projectId));
+        Project project = findActive(projectId);
         if (!project.getOwnerId().equals(currentUserId))
             throw new IllegalArgumentException("Only the project owner can remove members");
         if (project.getOwnerId().equals(userId))
@@ -146,16 +177,142 @@ public class ProjectService {
         memberRepository.delete(member);
         activityService.record(currentUserId, projectId, ActivityType.USER_LEFT_PROJECT,
                 "User left project", userId, null);
+        notifyMemberRemoved(project, userId, currentUserId);
     }
 
-    private ProjectResponse toResponse(Project project, String currentUserId) {
+    /**
+     * PUBLIC projects: an authenticated user joins immediately (used by the Join button).
+     * PRIVATE projects should go through JoinRequestService instead.
+     */
+    @Transactional
+    public void joinPublicProject(String projectId, String userId) {
+        Project project = findActive(projectId);
+        if (project.getVisibility() != Project.ProjectVisibility.PUBLIC) {
+            throw new IllegalArgumentException("This project is private - request to join instead");
+        }
+        if (memberRepository.existsByProjectIdAndUserId(projectId, userId)) {
+            throw new IllegalArgumentException("You are already a member of this project");
+        }
+        memberRepository.save(ProjectMember.builder()
+                .projectId(projectId).userId(userId).role(ProjectMember.Role.MEMBER).build());
+        activityService.record(userId, projectId, ActivityType.USER_JOINED_PROJECT,
+                "User joined project", project.getName(), null);
+        notifyMemberAdded(project, userId, userId);
+    }
+
+    @Transactional
+    public void updateMemberRole(String projectId, String memberUserId, String role, String currentUserId) {
+        Project project = findActive(projectId);
+        if (!project.getOwnerId().equals(currentUserId)) {
+            throw new IllegalArgumentException("Only the project owner can change member roles");
+        }
+        if (project.getOwnerId().equals(memberUserId)) {
+            throw new IllegalArgumentException("Cannot change the role of the project owner");
+        }
+        ProjectMember.Role newRole = parseMemberRole(role);
+        ProjectMember member = memberRepository.findByProjectIdAndUserId(projectId, memberUserId)
+                .orElseThrow(() -> new ResourceNotFoundException("ProjectMember", projectId + ":" + memberUserId));
+        member.setRole(newRole);
+        memberRepository.save(member);
+
+        User memberUser = userRepository.findById(memberUserId).orElse(null);
+        activityService.record(currentUserId, projectId, ActivityType.MEMBER_ROLE_CHANGED,
+                "Member role changed",
+                (memberUser != null ? memberUser.getFullName() : memberUserId) + " -> " + newRole, null);
+        notificationService.createNotification(
+                memberUserId, "MEMBER_ROLE_CHANGED", "Role changed",
+                "Your role in " + project.getName() + " is now " + newRole,
+                currentUserId, "", null, projectId, "project", "/projects/" + projectId);
+    }
+
+    @Transactional
+    public ProjectResponse changeVisibility(String projectId, String visibility, String currentUserId) {
+        Project project = findActive(projectId);
+        if (!project.getOwnerId().equals(currentUserId)) {
+            boolean isAdmin = memberRepository.findByProjectIdAndUserId(projectId, currentUserId)
+                    .filter(m -> m.getRole() == ProjectMember.Role.ADMIN).isPresent();
+            if (!isAdmin) throw new IllegalArgumentException("Only the project owner or an admin can change visibility");
+        }
+        Project.ProjectVisibility newVisibility = Project.ProjectVisibility.valueOf(visibility);
+        project.setVisibility(newVisibility);
+        projectRepository.save(project);
+
+        activityService.record(currentUserId, projectId, ActivityType.PROJECT_VISIBILITY_CHANGED,
+                "Project visibility changed", newVisibility.name(), null);
+        List<ProjectMember> members = memberRepository.findByProjectId(projectId);
+        for (ProjectMember m : members) {
+            if (m.getUserId().equals(currentUserId)) continue;
+            notificationService.createNotification(
+                    m.getUserId(), "PROJECT_VISIBILITY_CHANGED", "Project visibility changed",
+                    project.getName() + " is now " + newVisibility.name().toLowerCase(),
+                    currentUserId, "", null, projectId, "project", "/projects/" + projectId);
+        }
+        return toResponse(project, currentUserId);
+    }
+
+    private void notifyMemberAdded(Project project, String addedUserId, String actorId) {
+        User added = userRepository.findById(addedUserId).orElse(null);
+        User actor = userRepository.findById(actorId).orElse(null);
+        if (added == null || addedUserId.equals(actorId)) return;
+        notificationService.createNotification(
+                addedUserId, "MEMBER_ADDED", "Added to project",
+                (actor != null ? actor.getFullName() : "Someone") + " added you to " + project.getName(),
+                actorId, actor != null ? actor.getFullName() : "",
+                actor != null ? actor.getAvatarUrl() : null,
+                project.getId(), "project", "/projects/" + project.getId());
+    }
+
+    private void notifyMemberRemoved(Project project, String removedUserId, String actorId) {
+        User actor = userRepository.findById(actorId).orElse(null);
+        notificationService.createNotification(
+                removedUserId, "MEMBER_REMOVED", "Removed from project",
+                "You were removed from " + project.getName(),
+                actorId, actor != null ? actor.getFullName() : "",
+                actor != null ? actor.getAvatarUrl() : null,
+                project.getId(), "project", "/projects/" + project.getId());
+    }
+
+    private boolean canView(Project project, String userId) {
+        if (project.getVisibility() == Project.ProjectVisibility.PUBLIC) return true;
+        User user = userRepository.findById(userId).orElse(null);
+        if (user != null && user.getRole() == User.Role.ADMIN) return true;
+        return memberRepository.existsByProjectIdAndUserId(project.getId(), userId);
+    }
+
+    private ProjectMember.Role parseMemberRole(String role) {
+        if (role == null) throw new IllegalArgumentException("Role is required");
+        ProjectMember.Role parsed = ProjectMember.Role.valueOf(role);
+        if (parsed == ProjectMember.Role.OWNER) {
+            throw new IllegalArgumentException("Cannot assign the OWNER role");
+        }
+        return parsed;
+    }
+
+    private Project findActive(String projectId) {
+        Project project = projectRepository.findById(projectId)
+                .orElseThrow(() -> new ResourceNotFoundException("Project", projectId));
+        if (project.isDeleted()) {
+            throw new ResourceNotFoundException("Project", projectId);
+        }
+        return project;
+    }
+
+    private ProjectResponse toResponse(Project project, String userId) {
         List<ProjectMember> members = memberRepository.findByProjectId(project.getId());
-
-        // Batch-load all member users (fixes N+1)
         Set<String> userIds = members.stream().map(ProjectMember::getUserId).collect(Collectors.toSet());
-        Map<String, User> userMap = userRepository.findAllById(userIds).stream()
-                .collect(Collectors.toMap(User::getId, u -> u));
+        Map<String, User> userMap = userIds.isEmpty() ? java.util.Collections.emptyMap()
+                : userRepository.findAllById(userIds).stream()
+                        .collect(Collectors.toMap(User::getId, u -> u));
+        String currentUserRole = members.stream()
+                .filter(m -> m.getUserId().equals(userId))
+                .map(m -> m.getRole().name())
+                .findFirst()
+                .orElse(null);
+        return toResponse(project, members, userMap, currentUserRole);
+    }
 
+    private ProjectResponse toResponse(Project project, List<ProjectMember> members,
+                                       Map<String, User> userMap, String currentUserRole) {
         List<ProjectResponse.MemberDto> memberDtos = members.stream()
                 .map(m -> {
                     User user = userMap.get(m.getUserId());
@@ -164,6 +321,10 @@ public class ProjectService {
                             .fullName(user != null ? user.getFullName() : "Unknown")
                             .email(user != null ? user.getEmail() : "")
                             .avatarUrl(user != null ? user.getAvatarUrl() : null)
+                            .username(user != null ? user.getUsername() : null)
+                            .presenceStatus(user != null ? presenceService.effectiveStatus(user) : "OFFLINE")
+                            .lastActiveAt(user != null ? user.getLastActiveAt() : null)
+                            .lastLoginAt(user != null ? user.getLastLoginAt() : null)
                             .build();
                 })
                 .toList();
@@ -171,6 +332,8 @@ public class ProjectService {
         return ProjectResponse.builder()
                 .id(project.getId()).name(project.getName()).description(project.getDescription())
                 .ownerId(project.getOwnerId()).status(project.getStatus().name())
+                .visibility(project.getVisibility() != null ? project.getVisibility().name() : "PUBLIC")
+                .currentUserRole(currentUserRole)
                 .repositoryUrl(project.getRepositoryUrl()).imageUrl(project.getImageUrl())
                 .memberCount(members.size()).members(memberDtos)
                 .createdAt(project.getCreatedAt()).updatedAt(project.getUpdatedAt())

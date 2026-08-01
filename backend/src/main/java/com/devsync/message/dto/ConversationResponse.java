@@ -25,6 +25,8 @@ public class ConversationResponse {
     // For direct messages
     private String otherUserId;
     private String otherUserName;
+    private String otherUserPresence;
+    private java.time.Instant otherUserLastActiveAt;
 
     // For room messages
     private String roomId;

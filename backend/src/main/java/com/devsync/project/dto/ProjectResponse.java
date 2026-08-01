@@ -22,6 +22,8 @@ public class ProjectResponse {
     private String imageUrl;
     private int memberCount;
     private List<MemberDto> members;
+    private String visibility;
+    private String currentUserRole;
     private Instant createdAt;
     private Instant updatedAt;
 
@@ -36,5 +38,9 @@ public class ProjectResponse {
         private String fullName;
         private String email;
         private String avatarUrl;
+        private String username;
+        private String presenceStatus;
+        private java.time.Instant lastActiveAt;
+        private java.time.Instant lastLoginAt;
     }
 }
