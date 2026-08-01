@@ -1,6 +1,7 @@
 package com.devsync.project.repository;
 
 import com.devsync.project.entity.Project;
+import java.time.Instant;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -46,4 +47,19 @@ public interface ProjectRepository extends JpaRepository<Project, String> {
                                          @Param("visibility") Project.ProjectVisibility visibility,
                                          @Param("search") String search,
                                          Pageable pageable);
+
+    @Query("SELECT p FROM Project p WHERE p.deleted = false AND " +
+            "(p.visibility = :visibility OR p.ownerId = :userId OR " +
+            "EXISTS (SELECT 1 FROM ProjectMember pm WHERE pm.projectId = p.id AND pm.userId = :userId)) " +
+            "AND (:keyword IS NULL OR LOWER(p.name) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+            "OR LOWER(p.description) LIKE LOWER(CONCAT('%', :keyword, '%')))")
+    List<Project> searchProjectsForUser(@Param("keyword") String keyword,
+                                        @Param("userId") String userId,
+                                        @Param("visibility") Project.ProjectVisibility visibility,
+                                        Pageable pageable);
+
+    long countByOwnerId(String ownerId);
+
+    long countByCreatedAtBetween(Instant from, Instant to);
+
 }

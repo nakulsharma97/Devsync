@@ -5,6 +5,7 @@ import com.devsync.kanban.dto.CreateTaskRequest;
 import com.devsync.kanban.dto.UpdateTaskPositionRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -74,6 +75,20 @@ public class BoardController {
             @AuthenticationPrincipal UserDetails userDetails) {
         boardService.deleteTask(taskId, userDetails.getUsername());
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/project/{projectId}/tasks")
+    public ResponseEntity<Page<BoardResponse.TaskDto>> filterTasks(
+            @PathVariable String projectId,
+            @RequestParam(required = false) String priority,
+            @RequestParam(required = false) String label,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        return ResponseEntity.ok(boardService.filterTasks(projectId, priority, label, status, keyword,
+                page, size, userDetails.getUsername()));
     }
 
     private String getBoardIdFromColumn(String columnId) {

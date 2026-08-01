@@ -1,6 +1,8 @@
 package com.devsync.kanban.repository;
 
 import com.devsync.kanban.entity.Task;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -23,4 +25,36 @@ public interface TaskRepository extends JpaRepository<Task, String> {
     List<Task> findByBoardIdIn(Collection<String> boardIds);
 
     List<Task> findTop5ByBoardIdInOrderByUpdatedAtDesc(Collection<String> boardIds);
+
+    @Query("SELECT t FROM Task t WHERE (:keyword IS NULL OR LOWER(t.title) LIKE LOWER(CONCAT('%', :keyword, '%'))) " +
+            "AND t.boardId IN (SELECT b.id FROM Board b WHERE b.projectId IN " +
+            "(SELECT pm.projectId FROM ProjectMember pm WHERE pm.userId = :userId))")
+    List<Task> searchTasksForUser(@Param("keyword") String keyword, @Param("userId") String userId,
+                                  Pageable pageable);
+
+    @Query("SELECT t FROM Task t WHERE t.boardId IN :boardIds " +
+            "AND (:priority IS NULL OR t.priority = :priority) " +
+            "AND (:label IS NULL OR t.labels LIKE CONCAT('%', :label, '%')) " +
+            "AND (:status IS NULL OR t.columnId IN (SELECT c.id FROM BoardColumn c " +
+            "   WHERE c.boardId = t.boardId AND LOWER(c.name) LIKE LOWER(CONCAT('%', :status, '%')))) " +
+            "AND (:keyword IS NULL OR LOWER(t.title) LIKE LOWER(CONCAT('%', :keyword, '%')))")
+    Page<Task> findFilteredTasks(@Param("boardIds") Collection<String> boardIds,
+                                 @Param("priority") Task.Priority priority,
+                                 @Param("label") String label,
+                                 @Param("status") String status,
+                                 @Param("keyword") String keyword,
+                                 Pageable pageable);
+
+    @Query("SELECT COUNT(t) FROM Task t WHERE t.boardId IN :boardIds " +
+            "AND (:priority IS NULL OR t.priority = :priority) " +
+            "AND (:label IS NULL OR t.labels LIKE CONCAT('%', :label, '%')) " +
+            "AND (:status IS NULL OR t.columnId IN (SELECT c.id FROM BoardColumn c " +
+            "   WHERE c.boardId = t.boardId AND LOWER(c.name) LIKE LOWER(CONCAT('%', :status, '%')))) " +
+            "AND (:keyword IS NULL OR LOWER(t.title) LIKE LOWER(CONCAT('%', :keyword, '%')))")
+    long countFilteredTasks(@Param("boardIds") Collection<String> boardIds,
+                            @Param("priority") Task.Priority priority,
+                            @Param("label") String label,
+                            @Param("status") String status,
+                            @Param("keyword") String keyword);
+
 }

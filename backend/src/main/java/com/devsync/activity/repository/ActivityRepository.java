@@ -33,4 +33,18 @@ public interface ActivityRepository extends JpaRepository<Activity, String> {
     long countByCreatedAtAfter(Instant since);
 
     long countByActivityTypeInAndCreatedAtAfter(Collection<ActivityType> types, Instant since);
+
+    long countByUserIdAndActivityType(String userId, ActivityType activityType);
+
+    long countByProjectIdAndCreatedAtBetween(String projectId, Instant from, Instant to);
+
+    long countByUserIdAndCreatedAtBetween(String userId, Instant from, Instant to);
+
+    long countByActivityTypeAndCreatedAtBetween(ActivityType activityType, Instant from, Instant to);
+
+    long countByCreatedAtBetween(Instant from, Instant to);
+
+    @Query("SELECT a.createdAt FROM Activity a WHERE a.userId = :userId AND a.createdAt >= :since")
+    List<Instant> findCreatedAtsSince(@Param("userId") String userId, @Param("since") Instant since);
+
 }
