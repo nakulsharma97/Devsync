@@ -9,6 +9,7 @@ import org.springframework.web.socket.messaging.SessionConnectedEvent;
 import org.springframework.web.socket.messaging.SessionDisconnectEvent;
 
 import java.security.Principal;
+import java.util.Map;
 
 /**
  * Automatically flips a user's presence when they connect to / disconnect from
