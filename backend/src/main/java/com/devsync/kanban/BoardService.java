@@ -18,6 +18,8 @@ import com.devsync.project.repository.ProjectMemberRepository;
 import com.devsync.project.repository.ProjectRepository;
 import com.devsync.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -131,6 +133,43 @@ public class BoardService {
         taskRepository.deleteById(taskId);
         activityService.record(userId, projectId, ActivityType.TASK_DELETED,
                 "Task deleted", task.getTitle(), null);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<BoardResponse.TaskDto> filterTasks(String projectId, String priority, String label,
+                                                   String status, String keyword, int page, int size,
+                                                   String userId) {
+        Project project = projectRepository.findById(projectId)
+                .filter(p -> !p.isDeleted())
+                .orElseThrow(() -> new ResourceNotFoundException("Project", projectId));
+        if (!canViewProject(project, userId)) {
+            throw new IllegalArgumentException("You are not a member of this project");
+        }
+        List<String> boardIds = boardRepository.findByProjectId(projectId).stream()
+                .map(Board::getId).toList();
+        if (boardIds.isEmpty()) {
+            return Page.empty();
+        }
+        Task.Priority prio = null;
+        if (priority != null && !priority.isBlank()) {
+            try {
+                prio = Task.Priority.valueOf(priority.trim().toUpperCase());
+            } catch (IllegalArgumentException e) {
+                throw new IllegalArgumentException("Invalid priority (LOW, MEDIUM, HIGH, CRITICAL)");
+            }
+        }
+        String lbl = (label == null || label.isBlank()) ? null : label.trim();
+        String st = (status == null || status.isBlank()) ? null : status.trim();
+        String kw = (keyword == null || keyword.isBlank()) ? null : keyword.trim();
+        PageRequest pageable = PageRequest.of(Math.max(page, 0), Math.min(Math.max(size, 1), 100));
+        return taskRepository.findFilteredTasks(boardIds, prio, lbl, st, kw, pageable).map(this::toTaskDto);
+    }
+
+    private boolean canViewProject(Project project, String userId) {
+        if (project.getOwnerId().equals(userId)) return true;
+        var user = userRepository.findById(userId).orElse(null);
+        if (user != null && user.getRole() == com.devsync.user.entity.User.Role.ADMIN) return true;
+        return projectMemberRepository.existsByProjectIdAndUserId(project.getId(), userId);
     }
 
     private String projectIdOfBoard(String boardId) {

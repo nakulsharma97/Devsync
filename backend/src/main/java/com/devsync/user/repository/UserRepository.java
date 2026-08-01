@@ -1,5 +1,6 @@
 package com.devsync.user.repository;
 
+import com.devsync.presence.PresenceStatus;
 import com.devsync.user.entity.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -45,4 +46,9 @@ public interface UserRepository extends JpaRepository<User, String> {
                                 @Param("role") User.Role role,
                                 @Param("status") String status,
                                 Pageable pageable);
+
+    long countByPresenceStatus(PresenceStatus presenceStatus);
+
+    long countByCreatedAtBetween(Instant from, Instant to);
+
 }

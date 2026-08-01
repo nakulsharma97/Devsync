@@ -37,4 +37,7 @@ public interface ReportRepository extends JpaRepository<Report, String> {
                                     Pageable pageable);
 
     long countByStatus(ReportStatus status);
+
+    long countByCreatedAtBetween(Instant from, Instant to);
+
 }

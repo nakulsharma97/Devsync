@@ -30,4 +30,11 @@ public interface MessageRepository extends JpaRepository<Message, String> {
     long countByRoomIdIn(Collection<String> roomIds);
 
     List<Message> findTop5ByRoomIdInOrderByCreatedAtDesc(Collection<String> roomIds);
+
+    @Query("SELECT m FROM Message m WHERE (:keyword IS NULL OR LOWER(m.content) LIKE LOWER(CONCAT('%', :keyword, '%'))) " +
+            "AND (m.senderId = :userId OR m.receiverId = :userId OR " +
+            "m.roomId IN (SELECT tp.roomId FROM TeamRoomParticipant tp WHERE tp.userId = :userId))")
+    List<Message> searchMessagesForUser(@Param("keyword") String keyword, @Param("userId") String userId,
+                                        Pageable pageable);
+
 }
