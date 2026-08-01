@@ -13,4 +13,5 @@ public class SendMessageRequest {
 
     private String messageType;
     private boolean systemMessage;
+    private String attachmentId;
 }

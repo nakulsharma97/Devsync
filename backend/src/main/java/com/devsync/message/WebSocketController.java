@@ -2,6 +2,7 @@ package com.devsync.message;
 
 import com.devsync.message.dto.MessageResponse;
 import com.devsync.message.dto.SendMessageRequest;
+import com.devsync.presence.PresenceService;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.handler.annotation.MessageMapping;
@@ -16,6 +17,7 @@ public class WebSocketController {
 
     private final SimpMessagingTemplate messagingTemplate;
     private final MessageService messageService;
+    private final PresenceService presenceService;
 
     @MessageMapping("/chat.send")
     public void sendMessage(@Payload SendMessageRequest request, Authentication auth) {
@@ -43,6 +45,19 @@ public class WebSocketController {
         if (indicator.getReceiverId() != null) {
             messagingTemplate.convertAndSendToUser(indicator.getReceiverId(), "/queue/typing", indicator);
         }
+    }
+
+    @MessageMapping("/presence")
+    public void presence(@Payload PresenceMessage message, Authentication auth) {
+        String userId = auth.getName();
+        presenceService.updateStatus(userId, message.getStatus());
+        messagingTemplate.convertAndSend("/topic/presence",
+                Map.of("userId", userId, "status", message.getStatus()));
+    }
+
+    @Data
+    public static class PresenceMessage {
+        private String status;
     }
 
     @Data

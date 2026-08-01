@@ -2,7 +2,10 @@ package com.devsync.message;
 
 import com.devsync.activity.ActivityService;
 import com.devsync.activity.entity.ActivityType;
+import com.devsync.attachment.AttachmentService;
+import com.devsync.attachment.dto.AttachmentResponse;
 import com.devsync.common.ResourceNotFoundException;
+import com.devsync.presence.PresenceService;
 import com.devsync.message.dto.ConversationResponse;
 import com.devsync.message.dto.MessageResponse;
 import com.devsync.message.dto.SendMessageRequest;
@@ -33,6 +36,8 @@ public class MessageService {
     private final TeamRoomParticipantRepository participantRepository;
     private final ProjectRepository projectRepository;
     private final ActivityService activityService;
+    private final AttachmentService attachmentService;
+    private final PresenceService presenceService;
 
     @Transactional
     public MessageResponse sendMessage(SendMessageRequest request, String senderId) {
@@ -59,6 +64,7 @@ public class MessageService {
                 .content(request.getContent())
                 .messageType(request.getMessageType() != null ? request.getMessageType() : "text")
                 .systemMessage(request.isSystemMessage())
+                .attachmentId(request.getAttachmentId())
                 .build();
         message = messageRepository.save(message);
         activityService.record(senderId, projectId[0], ActivityType.MESSAGE_SENT,
@@ -120,6 +126,8 @@ public class MessageService {
                     .name(partner.getFullName())
                     .otherUserId(partnerId)
                     .otherUserName(partner.getFullName())
+                    .otherUserPresence(presenceService.effectiveStatus(partner))
+                    .otherUserLastActiveAt(partner.getLastActiveAt())
                     .avatarUrl(partner.getAvatarUrl())
                     .lastMessage(lastMsg != null ? lastMsg.getContent() : null)
                     .lastMessageAt(lastMsg != null ? lastMsg.getCreatedAt() : partner.getCreatedAt())
@@ -161,22 +169,35 @@ public class MessageService {
                 : userRepository.findAllById(senderIds).stream()
                         .collect(Collectors.toMap(User::getId, u -> u));
 
+        Set<String> attachmentIds = messages.stream()
+                .map(Message::getAttachmentId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        Map<String, AttachmentResponse> attachmentMap = attachmentService.batchByIds(attachmentIds);
+
         return messages.stream()
-                .map(msg -> toResponse(msg, userMap))
+                .map(msg -> toResponse(msg, userMap, attachmentMap))
                 .toList();
     }
 
     private MessageResponse toResponse(Message message) {
         User sender = userRepository.findById(message.getSenderId()).orElse(null); // single message, fine
-        return buildResponse(message, sender);
+        AttachmentResponse attachment = message.getAttachmentId() != null
+                ? attachmentService.batchByIds(Set.of(message.getAttachmentId())).get(message.getAttachmentId())
+                : null;
+        return buildResponse(message, sender, attachment);
     }
 
-    private MessageResponse toResponse(Message message, Map<String, User> userMap) {
+    private MessageResponse toResponse(Message message, Map<String, User> userMap,
+                                       Map<String, AttachmentResponse> attachmentMap) {
         User sender = userMap.get(message.getSenderId());
-        return buildResponse(message, sender);
+        AttachmentResponse attachment = message.getAttachmentId() != null
+                ? attachmentMap.get(message.getAttachmentId())
+                : null;
+        return buildResponse(message, sender, attachment);
     }
 
-    private MessageResponse buildResponse(Message message, User sender) {
+    private MessageResponse buildResponse(Message message, User sender, AttachmentResponse attachment) {
         return MessageResponse.builder()
                 .id(message.getId())
                 .senderId(message.getSenderId())
@@ -187,6 +208,8 @@ public class MessageService {
                 .content(message.getContent())
                 .messageType(message.getMessageType())
                 .systemMessage(message.isSystemMessage())
+                .attachmentId(message.getAttachmentId())
+                .attachment(attachment)
                 .createdAt(message.getCreatedAt())
                 .build();
     }

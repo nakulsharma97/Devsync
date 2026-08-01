@@ -36,4 +36,14 @@ public interface ProjectRepository extends JpaRepository<Project, String> {
                                       @Param("status") Project.ProjectStatus status,
                                       @Param("deleted") boolean deleted,
                                       Pageable pageable);
+
+    @Query("SELECT p FROM Project p WHERE p.deleted = false AND p.status = :status " +
+            "AND p.visibility = :visibility " +
+            "AND (:search IS NULL OR LOWER(p.name) LIKE LOWER(CONCAT('%', :search, '%')) " +
+            "OR LOWER(p.description) LIKE LOWER(CONCAT('%', :search, '%'))) " +
+            "ORDER BY p.createdAt DESC")
+    List<Project> discoverPublicProjects(@Param("status") Project.ProjectStatus status,
+                                         @Param("visibility") Project.ProjectVisibility visibility,
+                                         @Param("search") String search,
+                                         Pageable pageable);
 }

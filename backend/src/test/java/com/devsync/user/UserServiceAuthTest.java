@@ -1,6 +1,7 @@
 package com.devsync.user;
 
 import com.devsync.common.ResourceNotFoundException;
+import com.devsync.presence.PresenceService;
 import com.devsync.project.repository.ProjectMemberRepository;
 import com.devsync.user.dto.UserResponse;
 import com.devsync.user.entity.User;
@@ -24,13 +25,14 @@ class UserServiceAuthTest {
 
     @Mock private UserRepository userRepository;
     @Mock private ProjectMemberRepository projectMemberRepository;
+    @Mock private PresenceService presenceService;
 
     private UserService userService;
     private User targetUser;
 
     @BeforeEach
     void setUp() {
-        userService = new UserService(userRepository, projectMemberRepository);
+        userService = new UserService(userRepository, projectMemberRepository, presenceService);
 
         targetUser = User.builder()
                 .email("other@example.com")

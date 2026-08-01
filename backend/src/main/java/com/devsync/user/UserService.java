@@ -1,6 +1,7 @@
 package com.devsync.user;
 
 import com.devsync.common.ResourceNotFoundException;
+import com.devsync.presence.PresenceService;
 import com.devsync.project.repository.ProjectMemberRepository;
 import com.devsync.user.dto.UpdateUserRequest;
 import com.devsync.user.dto.UserResponse;
@@ -19,6 +20,7 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final ProjectMemberRepository projectMemberRepository;
+    private final PresenceService presenceService;
 
     public UserResponse getUserById(String id) {
         User user = userRepository.findById(id)
@@ -115,6 +117,8 @@ public class UserService {
                 .authProvider(user.getAuthProvider())
                 .createdAt(user.getCreatedAt())
                 .lastLoginAt(user.getLastLoginAt())
+                .presenceStatus(presenceService.effectiveStatus(user))
+                .lastActiveAt(user.getLastActiveAt())
                 .build();
     }
 }

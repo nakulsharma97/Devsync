@@ -1,5 +1,6 @@
 package com.devsync.project;
 
+import com.devsync.admin.dto.UpdateVisibilityRequest;
 import com.devsync.project.dto.CreateProjectRequest;
 import com.devsync.project.dto.ProjectResponse;
 import com.devsync.project.dto.UpdateProjectRequest;
@@ -22,6 +23,13 @@ public class ProjectController {
     @GetMapping
     public ResponseEntity<List<ProjectResponse>> getMyProjects(@AuthenticationPrincipal UserDetails userDetails) {
         return ResponseEntity.ok(projectService.getUserProjects(userDetails.getUsername()));
+    }
+
+    @GetMapping("/discover")
+    public ResponseEntity<List<ProjectResponse>> discover(
+            @RequestParam(required = false) String search,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        return ResponseEntity.ok(projectService.discoverPublicProjects(search, userDetails.getUsername()));
     }
 
     @PostMapping
@@ -71,5 +79,32 @@ public class ProjectController {
             @AuthenticationPrincipal UserDetails userDetails) {
         projectService.removeMember(projectId, userId, userDetails.getUsername());
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{projectId}/join")
+    public ResponseEntity<Void> join(
+            @PathVariable String projectId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        projectService.joinPublicProject(projectId, userDetails.getUsername());
+        return ResponseEntity.ok().build();
+    }
+
+    @PutMapping("/{projectId}/members/{userId}/role")
+    public ResponseEntity<Void> updateMemberRole(
+            @PathVariable String projectId,
+            @PathVariable String userId,
+            @RequestParam String role,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        projectService.updateMemberRole(projectId, userId, role, userDetails.getUsername());
+        return ResponseEntity.ok().build();
+    }
+
+    @PutMapping("/{projectId}/visibility")
+    public ResponseEntity<ProjectResponse> changeVisibility(
+            @PathVariable String projectId,
+            @Valid @RequestBody UpdateVisibilityRequest request,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        return ResponseEntity.ok(projectService.changeVisibility(
+                projectId, request.getVisibility(), userDetails.getUsername()));
     }
 }

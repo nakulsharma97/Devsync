@@ -1,6 +1,7 @@
 package com.devsync.user.entity;
 
 import com.devsync.common.BaseEntity;
+import com.devsync.presence.PresenceStatus;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -77,6 +78,14 @@ public class User extends BaseEntity {
 
     @Column(name = "last_login_at")
     private Instant lastLoginAt;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "presence_status", nullable = false)
+    @Builder.Default
+    private PresenceStatus presenceStatus = PresenceStatus.OFFLINE;
+
+    @Column(name = "last_active_at")
+    private Instant lastActiveAt;
 
     public enum Role {
         USER, ADMIN
