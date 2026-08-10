@@ -36,10 +36,10 @@ import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 
 @Service
@@ -74,22 +74,30 @@ public class AnalyticsService {
 
         List<Board> boards = boardRepository.findByProjectId(projectId);
         Set<String> boardIds = boards.stream().map(Board::getId).collect(Collectors.toSet());
-        List<Task> tasks = boardIds.isEmpty() ? List.of() : taskRepository.findByBoardIdIn(boardIds);
         List<BoardColumn> columns = boardIds.isEmpty() ? List.of() : columnRepository.findByBoardIdIn(boardIds);
         Set<String> doneColumnIds = columns.stream()
                 .filter(c -> isDone(c.getName()))
                 .map(BoardColumn::getId)
                 .collect(Collectors.toSet());
 
-        long completed = tasks.stream().filter(t -> doneColumnIds.contains(t.getColumnId())).count();
-        List<Task> pending = tasks.stream().filter(t -> !doneColumnIds.contains(t.getColumnId())).toList();
-        long overdue = pending.stream()
-                .filter(t -> t.getDueDate() != null && t.getDueDate().isBefore(Instant.now()))
-                .count();
-        int completionPct = tasks.isEmpty() ? 0 : (int) Math.round(completed * 100.0 / tasks.size());
-        Map<String, Long> tasksPerMember = tasks.stream()
-                .filter(t -> t.getAssigneeId() != null)
-                .collect(Collectors.groupingBy(Task::getAssigneeId, Collectors.counting()));
+        // All task statistics are aggregated in the database - never loaded into memory.
+        long total = boardIds.isEmpty() ? 0 : taskRepository.countByBoardIdIn(boardIds);
+        long completed = doneColumnIds.isEmpty() ? 0 : taskRepository.countByColumnIdIn(doneColumnIds);
+        long pending = total - completed;
+        long overdue;
+        if (total == 0) {
+            overdue = 0;
+        } else if (doneColumnIds.isEmpty()) {
+            overdue = taskRepository.countByBoardIdInAndDueDateBefore(boardIds, Instant.now());
+        } else {
+            overdue = taskRepository.countByBoardIdInAndColumnIdNotInAndDueDateBefore(
+                    boardIds, doneColumnIds, Instant.now());
+        }
+        int completionPct = total == 0 ? 0 : (int) Math.round(completed * 100.0 / total);
+        Map<String, Long> tasksPerMember = boardIds.isEmpty()
+                ? Map.of()
+                : taskRepository.countGroupedByAssignee(boardIds).stream()
+                        .collect(Collectors.toMap(row -> (String) row[0], row -> (Long) row[1]));
 
         List<String> roomIds = teamRoomRepository.findByProjectId(projectId).stream()
                 .map(TeamRoom::getId).toList();
@@ -102,20 +110,22 @@ public class AnalyticsService {
                 .projectId(projectId)
                 .totalMembers(memberRepository.countByProjectId(projectId))
                 .completedTasks(completed)
-                .pendingTasks(pending.size())
+                .pendingTasks(pending)
                 .overdueTasks(overdue)
                 .completionPercentage(completionPct)
                 .tasksPerMember(tasksPerMember)
                 .messagesSent(messagesSent)
                 .postsCreated(postsCreated)
-                .activityTrend(dailySeries((start, end) ->
-                        activityRepository.countByProjectIdAndCreatedAtBetween(projectId, start, end), TREND_DAYS))
+                .activityTrend(dailySeries(toDayMap(activityRepository.countGroupedByDay(
+                        startOfDayMinusDays(TREND_DAYS - 1L), startOfDayPlusDays(1))), TREND_DAYS))
                 .build();
     }
 
     @Transactional(readOnly = true)
     public AdminAnalyticsResponse getAdminAnalytics() {
         Instant since30 = Instant.now().minus(Duration.ofDays(30));
+        Instant trendStart = startOfDayMinusDays(TREND_DAYS - 1L);
+        Instant trendEnd = startOfDayPlusDays(1);
         return AdminAnalyticsResponse.builder()
                 .totalUsers(userRepository.count())
                 .activeUsers(userRepository.countActiveUsers(since30))
@@ -128,12 +138,14 @@ public class AnalyticsService {
                 .totalPosts(postRepository.count())
                 .totalReports(reportRepository.count())
                 .activeSessions(userRepository.countByPresenceStatus(PresenceStatus.ONLINE))
-                .userGrowth(monthlySeries(userRepository::countByCreatedAtBetween, GROWTH_MONTHS))
-                .projectGrowth(monthlySeries(projectRepository::countByCreatedAtBetween, GROWTH_MONTHS))
-                .taskCompletionTrend(dailySeries((start, end) ->
-                        activityRepository.countByActivityTypeAndCreatedAtBetween(ActivityType.TASK_COMPLETED, start, end), TREND_DAYS))
-                .dailyActivity(dailySeries(activityRepository::countByCreatedAtBetween, TREND_DAYS))
-                .reportsTrend(dailySeries(reportRepository::countByCreatedAtBetween, TREND_DAYS))
+                .userGrowth(monthlySeries(toMonthMap(userRepository.countGroupedByDay(
+                        startOfMonth(-(GROWTH_MONTHS - 1)), startOfMonth(1))), GROWTH_MONTHS))
+                .projectGrowth(monthlySeries(toMonthMap(projectRepository.countGroupedByDay(
+                        startOfMonth(-(GROWTH_MONTHS - 1)), startOfMonth(1))), GROWTH_MONTHS))
+                .taskCompletionTrend(dailySeries(toDayMap(activityRepository.countGroupedByDayAndType(
+                        ActivityType.TASK_COMPLETED, trendStart, trendEnd)), TREND_DAYS))
+                .dailyActivity(dailySeries(toDayMap(activityRepository.countGroupedByDay(trendStart, trendEnd)), TREND_DAYS))
+                .reportsTrend(dailySeries(toDayMap(reportRepository.countGroupedByDay(trendStart, trendEnd)), TREND_DAYS))
                 .build();
     }
 
@@ -142,25 +154,25 @@ public class AnalyticsService {
         if (!userRepository.existsById(userId)) {
             throw new ResourceNotFoundException("User", userId);
         }
-        List<Instant> activityAts = activityRepository.findCreatedAtsSince(userId, Instant.now().minus(Duration.ofDays(180)));
-        Set<LocalDate> activeDays = activityAts.stream()
-                .map(at -> at.atZone(ZoneOffset.UTC).toLocalDate())
-                .collect(Collectors.toSet());
-
         LocalDate today = LocalDate.now(ZoneOffset.UTC);
+        Instant heatmapStart = today.minusDays(HEATMAP_DAYS - 1L).atStartOfDay().toInstant(ZoneOffset.UTC);
+        Instant heatmapEnd = today.plusDays(1).atStartOfDay().toInstant(ZoneOffset.UTC);
+
+        // Single GROUP BY query per heatmap window instead of loading all activity rows.
+        Map<LocalDate, Long> dayCounts = toDayMap(
+                activityRepository.countGroupedByDayForUser(userId, heatmapStart, heatmapEnd));
+
         int streak = 0;
         LocalDate day = today;
-        while (activeDays.contains(day)) {
+        while (dayCounts.containsKey(day)) {
             streak++;
             day = day.minusDays(1);
         }
 
-        Map<LocalDate, Long> counts = activityAts.stream()
-                .collect(Collectors.groupingBy(at -> at.atZone(ZoneOffset.UTC).toLocalDate(), Collectors.counting()));
         List<TrendPoint> heatmap = new ArrayList<>();
         for (int i = HEATMAP_DAYS - 1; i >= 0; i--) {
             LocalDate d = today.minusDays(i);
-            heatmap.add(TrendPoint.builder().date(d.toString()).count(counts.getOrDefault(d, 0L)).build());
+            heatmap.add(TrendPoint.builder().date(d.toString()).count(dayCounts.getOrDefault(d, 0L)).build());
         }
 
         return UserContributionsResponse.builder()
@@ -170,8 +182,8 @@ public class AnalyticsService {
                 .postsCreated(postRepository.countByUserId(userId))
                 .commentsAdded(commentRepository.countByUserId(userId))
                 .currentStreak(streak)
-                .monthlyActivity(monthlySeries((start, end) ->
-                        activityRepository.countByUserIdAndCreatedAtBetween(userId, start, end), GROWTH_MONTHS))
+                .monthlyActivity(monthlySeries(toMonthMap(activityRepository.countGroupedByDayForUser(
+                        userId, startOfMonth(-(GROWTH_MONTHS - 1)), startOfMonth(1))), GROWTH_MONTHS))
                 .heatmap(heatmap)
                 .build();
     }
@@ -188,27 +200,65 @@ public class AnalyticsService {
         return n.contains("done") || n.contains("complete");
     }
 
-    private List<TrendPoint> dailySeries(BiFunction<Instant, Instant, Long> counter, int days) {
+    /**
+     * Builds a zero-filled daily series from a single grouped-by-day query result.
+     * One query for the whole window instead of one COUNT per day.
+     */
+    private List<TrendPoint> dailySeries(Map<LocalDate, Long> counts, int days) {
         List<TrendPoint> points = new ArrayList<>();
         LocalDate today = LocalDate.now(ZoneOffset.UTC);
         for (int i = days - 1; i >= 0; i--) {
             LocalDate day = today.minusDays(i);
-            Instant start = day.atStartOfDay().toInstant(ZoneOffset.UTC);
-            Instant end = day.plusDays(1).atStartOfDay().toInstant(ZoneOffset.UTC);
-            points.add(TrendPoint.builder().date(day.toString()).count(counter.apply(start, end)).build());
+            points.add(TrendPoint.builder().date(day.toString()).count(counts.getOrDefault(day, 0L)).build());
         }
         return points;
     }
 
-    private List<TrendPoint> monthlySeries(BiFunction<Instant, Instant, Long> counter, int months) {
+    /** Builds a zero-filled monthly series from a single grouped-by-day query result. */
+    private List<TrendPoint> monthlySeries(Map<YearMonth, Long> counts, int months) {
         List<TrendPoint> points = new ArrayList<>();
         YearMonth current = YearMonth.now(ZoneOffset.UTC);
         for (int i = months - 1; i >= 0; i--) {
             YearMonth ym = current.minusMonths(i);
-            Instant start = ym.atDay(1).atStartOfDay().toInstant(ZoneOffset.UTC);
-            Instant end = ym.plusMonths(1).atDay(1).atStartOfDay().toInstant(ZoneOffset.UTC);
-            points.add(TrendPoint.builder().date(ym.toString()).count(counter.apply(start, end)).build());
+            points.add(TrendPoint.builder().date(ym.toString()).count(counts.getOrDefault(ym, 0L)).build());
         }
         return points;
+    }
+
+    private Map<LocalDate, Long> toDayMap(List<Object[]> rows) {
+        Map<LocalDate, Long> map = new HashMap<>();
+        for (Object[] row : rows) {
+            if (row == null || row.length < 2 || row[0] == null) continue;
+            map.put(toLocalDate(row[0]), (Long) row[1]);
+        }
+        return map;
+    }
+
+    private Map<YearMonth, Long> toMonthMap(List<Object[]> rows) {
+        Map<YearMonth, Long> map = new HashMap<>();
+        for (Object[] row : rows) {
+            if (row == null || row.length < 2 || row[0] == null) continue;
+            map.put(YearMonth.from(toLocalDate(row[0])), (Long) row[1]);
+        }
+        return map;
+    }
+
+    private LocalDate toLocalDate(Object value) {
+        if (value instanceof java.sql.Date sqlDate) return sqlDate.toLocalDate();
+        if (value instanceof LocalDate localDate) return localDate;
+        return LocalDate.parse(String.valueOf(value));
+    }
+
+    private Instant startOfDayMinusDays(long days) {
+        return LocalDate.now(ZoneOffset.UTC).minusDays(days).atStartOfDay().toInstant(ZoneOffset.UTC);
+    }
+
+    private Instant startOfDayPlusDays(long days) {
+        return LocalDate.now(ZoneOffset.UTC).plusDays(days).atStartOfDay().toInstant(ZoneOffset.UTC);
+    }
+
+    private Instant startOfMonth(int offset) {
+        YearMonth ym = YearMonth.now(ZoneOffset.UTC).plusMonths(offset);
+        return ym.atDay(1).atStartOfDay().toInstant(ZoneOffset.UTC);
     }
 }

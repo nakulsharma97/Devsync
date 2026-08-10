@@ -1,6 +1,6 @@
 import { Canvas, useFrame } from "@react-three/fiber";
 import { MeshDistortMaterial, Environment, Float } from "@react-three/drei";
-import { Suspense, useRef, useMemo, useState, useEffect } from "react";
+import { Suspense, useRef, useState, useEffect } from "react";
 import * as THREE from "three";
 
 // ─── Custom shader-based organic blob ──────────────────────

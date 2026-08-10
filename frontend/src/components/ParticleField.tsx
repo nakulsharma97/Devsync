@@ -141,7 +141,6 @@ function ParticleCanvas() {
       }
 
       // ── Particles ──
-      const particleColor = dark ? "#818cf8" : "#6366f1";
       for (const p of particles) {
         p.vx += (mx - 0.5) * 0.0003;
         p.vy += (my - 0.5) * 0.0003;

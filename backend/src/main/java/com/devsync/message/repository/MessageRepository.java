@@ -13,6 +13,8 @@ public interface MessageRepository extends JpaRepository<Message, String> {
 
     List<Message> findByRoomIdOrderByCreatedAtAsc(String roomId, Pageable pageable);
 
+    List<Message> findByAttachmentId(String attachmentId);
+
     List<Message> findByRoomIdAndCreatedAtAfter(String roomId, java.time.Instant after);
 
     @Query("SELECT m FROM Message m WHERE (m.senderId = :userId AND m.receiverId = :otherId) OR (m.senderId = :otherId AND m.receiverId = :userId) ORDER BY m.createdAt ASC")

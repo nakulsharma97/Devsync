@@ -12,8 +12,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -99,9 +101,10 @@ class PinnedProjectServiceTest {
 
         Project project = Project.builder().name("DevSync").ownerId("owner1").build();
         project.setId("p1");
-        when(projectRepository.findAllById(List.of("p1"))).thenReturn(List.of(project));
-        when(memberRepository.countMembersByProjectIdIn(List.of("p1")))
-                .thenReturn(List.of(new Object[]{"p1", 3L}));
+        // The service dedupes ids into a Set before resolving — stub the Set.
+        when(projectRepository.findAllById(Set.of("p1"))).thenReturn(List.of(project));
+        when(memberRepository.countMembersByProjectIdIn(Set.of("p1")))
+                .thenReturn(Collections.singletonList(new Object[]{"p1", 3L}));
 
         List<PinnedProjectResponse> list = pinnedProjectService.list("u1");
 

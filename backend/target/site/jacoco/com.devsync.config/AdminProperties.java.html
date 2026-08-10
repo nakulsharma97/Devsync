@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AdminProperties.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">DevSync Backend</a> &gt; <a href="index.source.html" class="el_package">com.devsync.config</a> &gt; <span class="el_source">AdminProperties.java</span></div><h1>AdminProperties.java</h1><pre class="source lang-java linenums">package com.devsync.config;
+
+import lombok.Getter;
+import lombok.Setter;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.stereotype.Component;
+
+/**
+ * Typed configuration for the bootstrap admin account.
+ *
+ * &lt;p&gt;Seeding is opt-in: it only runs when {@code seed-enabled} is explicitly set to
+ * {@code true}. In production this should always be disabled unless the operator
+ * explicitly provides credentials via environment variables.
+ */
+@Getter
+@Setter
+@Component
+@ConfigurationProperties(prefix = &quot;app.admin&quot;)
+<span class="fc" id="L19">public class AdminProperties {</span>
+
+    /**
+     * Whether to seed the configured admin account on startup.
+     * Defaults to {@code false} - never enabled implicitly.
+     */
+<span class="fc" id="L25">    private boolean seedEnabled = false;</span>
+
+    /**
+     * Email of the bootstrap admin account (e.g. {@code DEVSYNC_ADMIN_EMAIL}).
+     * Required when {@link #seedEnabled} is {@code true}.
+     */
+<span class="fc" id="L31">    private String seedEmail = &quot;&quot;;</span>
+
+    /**
+     * Plaintext password of the bootstrap admin account (e.g. {@code DEVSYNC_ADMIN_PASSWORD}).
+     * Required when {@link #seedEnabled} is {@code true}. Never logged, never exposed via
+     * any API; always BCrypt-encoded before being persisted.
+     */
+<span class="fc" id="L38">    private String seedPassword = &quot;&quot;;</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,6 +1,7 @@
 package com.devsync.kanban;
 
 import com.devsync.activity.ActivityService;
+import com.devsync.kanban.dto.BoardResponse;
 import com.devsync.kanban.entity.Board;
 import com.devsync.kanban.entity.BoardColumn;
 import com.devsync.kanban.entity.Task;
@@ -92,7 +93,6 @@ class BoardServiceFilterTest {
         Project project = Project.builder().name("DevSync").ownerId("owner1").build();
         project.setId("p1");
         when(projectRepository.findById("p1")).thenReturn(Optional.of(project));
-        when(boardRepository.findByProjectId("p1")).thenReturn(List.of());
 
         assertThatThrownBy(() -> boardService.filterTasks("p1", "BOGUS", null, null, null, 0, 20, "owner1"))
                 .isInstanceOf(IllegalArgumentException.class)

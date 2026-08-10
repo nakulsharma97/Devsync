@@ -43,6 +43,7 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8080/api"
 
 const api = axios.create({
   baseURL: API_BASE_URL,
+  withCredentials: true, // send the HttpOnly refresh-token cookie on /api/auth requests
   headers: {
     "Content-Type": "application/json",
   },
@@ -60,34 +61,40 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Response interceptor — handle 401 and token refresh
+// Response interceptor — handle 401, token refresh and stale-role 403s
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
 
+    // A 403 on an admin endpoint means the current token's role is no longer
+    // sufficient (e.g. the admin was downgraded or blocked while logged in).
+    // Drop the cached role and let AuthContext re-fetch the authoritative
+    // profile from the server - never trust client-side role state.
+    if (error.response?.status === 403 && originalRequest?.url?.includes("/admin/")) {
+      localStorage.removeItem("user");
+      window.dispatchEvent(new Event("auth:authorization-changed"));
+    }
+
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
 
-      const refreshToken = localStorage.getItem("refreshToken");
-      if (refreshToken) {
-        try {
-          const { data } = await axios.post(`${API_BASE_URL}/auth/refresh`, {
-            refreshToken,
-          });
-          localStorage.setItem("accessToken", data.accessToken);
-          localStorage.setItem("refreshToken", data.refreshToken);
-          originalRequest.headers.Authorization = `Bearer ${data.accessToken}`;
-          return api(originalRequest);
-        } catch {
-          localStorage.removeItem("accessToken");
-          localStorage.removeItem("refreshToken");
-          localStorage.removeItem("user");
-          window.location.href = "/auth";
-        }
-      } else {
+      try {
+        // The HttpOnly refresh cookie is sent automatically (withCredentials).
+        // No token is read from or written to localStorage here — the new refresh
+        // token is set as a fresh cookie by the server (rotation).
+        const { data } = await axios.post(
+          `${API_BASE_URL}/auth/refresh`,
+          {},
+          { withCredentials: true }
+        );
+        localStorage.setItem("accessToken", data.accessToken);
+        originalRequest.headers.Authorization = `Bearer ${data.accessToken}`;
+        return api(originalRequest);
+      } catch {
+        // Refresh failed (expired/rotated/revoked, or the account was blocked).
+        // Clean up and send the user to the login screen.
         localStorage.removeItem("accessToken");
-        localStorage.removeItem("refreshToken");
         localStorage.removeItem("user");
         window.location.href = "/auth";
       }

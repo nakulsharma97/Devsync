@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ReportAdminController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">DevSync Backend</a> &gt; <a href="index.source.html" class="el_package">com.devsync.report</a> &gt; <span class="el_source">ReportAdminController.java</span></div><h1>ReportAdminController.java</h1><pre class="source lang-java linenums">package com.devsync.report;
+
+import com.devsync.common.PageResponse;
+import com.devsync.report.dto.AdminReportDetail;
+import com.devsync.report.dto.AdminReportListItem;
+import com.devsync.report.dto.AdminReportStats;
+import com.devsync.report.dto.ModerateReportRequest;
+import com.devsync.report.dto.ReviewReportRequest;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.web.bind.annotation.*;
+
+import java.time.Instant;
+
+/**
+ * Admin Reports &amp; Moderation endpoints. Secured by the global
+ * /api/admin/** ROLE_ADMIN rule in SecurityConfig.
+ */
+@RestController
+@RequestMapping(&quot;/api/admin/reports&quot;)
+@RequiredArgsConstructor
+public class ReportAdminController {
+
+    private final ReportAdminService reportAdminService;
+
+    @GetMapping
+    public ResponseEntity&lt;PageResponse&lt;AdminReportListItem&gt;&gt; getReportsPage(
+            @RequestParam(defaultValue = &quot;0&quot;) int page,
+            @RequestParam(defaultValue = &quot;10&quot;) int size,
+            @RequestParam(required = false) String sortBy,
+            @RequestParam(required = false) String sortDir,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String reason,
+            @RequestParam(required = false) String entityType,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant to) {
+<span class="fc" id="L42">        return ResponseEntity.ok(reportAdminService.getReportsPage(</span>
+                page, size, sortBy, sortDir, search, status, reason, entityType, from, to));
+    }
+
+    @GetMapping(&quot;/stats&quot;)
+    public ResponseEntity&lt;AdminReportStats&gt; getStats() {
+<span class="fc" id="L48">        return ResponseEntity.ok(reportAdminService.getStats());</span>
+    }
+
+    @GetMapping(&quot;/{reportId}&quot;)
+    public ResponseEntity&lt;AdminReportDetail&gt; getReportDetail(@PathVariable String reportId) {
+<span class="fc" id="L53">        return ResponseEntity.ok(reportAdminService.getReportDetail(reportId));</span>
+    }
+
+    @PutMapping(&quot;/{reportId}/review&quot;)
+    public ResponseEntity&lt;AdminReportDetail&gt; reviewReport(
+            @PathVariable String reportId,
+            @Valid @RequestBody ReviewReportRequest request,
+            @AuthenticationPrincipal UserDetails userDetails) {
+<span class="fc" id="L61">        return ResponseEntity.ok(reportAdminService.reviewReport(</span>
+<span class="fc" id="L62">                reportId, request.getStatus(), userDetails.getUsername()));</span>
+    }
+
+    @PutMapping(&quot;/{reportId}/moderate&quot;)
+    public ResponseEntity&lt;AdminReportDetail&gt; moderate(
+            @PathVariable String reportId,
+            @Valid @RequestBody ModerateReportRequest request,
+            @AuthenticationPrincipal UserDetails userDetails) {
+<span class="fc" id="L70">        return ResponseEntity.ok(reportAdminService.moderate(</span>
+<span class="fc" id="L71">                reportId, request.getAction(), request.getValue(), userDetails.getUsername()));</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -12,7 +12,8 @@ import java.util.List;
 @Configuration
 public class CorsConfig {
 
-    @Value("${app.cors.allowed-origins}")
+    // Origins are env-configurable so production can restrict to the real frontend origin.
+    @Value("${app.cors.allowed-origins:${DEVSYNC_CORS_ORIGINS:http://localhost:5173,http://localhost:3000}}")
     private String allowedOrigins;
 
     @Bean

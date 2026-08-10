@@ -102,6 +102,35 @@ function fmtDateTime(value?: string | null): string {
   return new Date(value).toLocaleString();
 }
 
+interface SortableHeaderProps {
+  label: string;
+  sortKey: string;
+  sortBy: string;
+  sortDir: "asc" | "desc";
+  onSort: (key: string) => void;
+}
+
+function SortableHeader({ label, sortKey, sortBy, sortDir, onSort }: SortableHeaderProps) {
+  const active = sortBy === sortKey;
+  return (
+    <TableHead>
+      <button
+        type="button"
+        onClick={() => onSort(sortKey)}
+        aria-label={`Sort by ${label}`}
+        className={`inline-flex items-center gap-1 transition-colors ${
+          active ? "text-foreground" : "hover:text-foreground"
+        }`}
+      >
+        {label}
+        <span className="text-[10px]" aria-hidden="true">
+          {active ? (sortDir === "asc" ? "▲" : "▼") : "↕"}
+        </span>
+      </button>
+    </TableHead>
+  );
+}
+
 export default function AdminUsers() {
   const navigate = useNavigate();
   const { user: currentUser } = useAuth();
@@ -115,6 +144,10 @@ export default function AdminUsers() {
   const [search, setSearch] = useState("");
   const [role, setRole] = useState("ALL");
   const [status, setStatus] = useState("ALL");
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
+  const [sortBy, setSortBy] = useState("createdAt");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
 
   const [detail, setDetail] = useState<AdminUserDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
@@ -132,11 +165,13 @@ export default function AdminUsers() {
       const res = await adminService.getUsersPage({
         page,
         size: PAGE_SIZE,
-        sortBy: "createdAt",
-        sortDir: "desc",
+        sortBy,
+        sortDir,
         search: search || undefined,
         role: role === "ALL" ? undefined : role,
         status: status === "ALL" ? undefined : status,
+        from: from || undefined,
+        to: to || undefined,
       });
       setData(res);
     } catch {
@@ -144,7 +179,7 @@ export default function AdminUsers() {
     } finally {
       setLoading(false);
     }
-  }, [page, search, role, status]);
+  }, [page, search, role, status, from, to, sortBy, sortDir]);
 
   useEffect(() => {
     fetchUsers();
@@ -153,6 +188,29 @@ export default function AdminUsers() {
   const applySearch = () => {
     setPage(0);
     setSearch(searchInput.trim());
+  };
+
+  const toggleSort = (key: string) => {
+    setPage(0);
+    if (sortBy === key) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortBy(key);
+      setSortDir("desc");
+    }
+  };
+
+  const hasActiveFilters =
+    search !== "" || role !== "ALL" || status !== "ALL" || from !== "" || to !== "";
+
+  const clearFilters = () => {
+    setPage(0);
+    setSearchInput("");
+    setSearch("");
+    setRole("ALL");
+    setStatus("ALL");
+    setFrom("");
+    setTo("");
   };
 
   const openDetail = async (userId: string) => {
@@ -186,7 +244,7 @@ export default function AdminUsers() {
     if (!blockTarget) return;
     setBusyId(blockTarget.id);
     try {
-      await adminService.setUserBlocked(blockTarget.id, true);
+      await adminService.setUserBlocked(blockTarget.id, true, blockReason.trim() || undefined);
       toast.success(`${blockTarget.fullName} has been blocked`);
       setBlockTarget(null);
       setBlockReason("");
@@ -303,12 +361,33 @@ export default function AdminUsers() {
             <SelectItem value="DELETED">Deleted</SelectItem>
           </SelectContent>
         </Select>
+        <div className="flex items-center gap-2">
+          <Input
+            type="date"
+            value={from}
+            onChange={(e) => { setFrom(e.target.value); setPage(0); }}
+            aria-label="Created from"
+            className="w-full sm:w-40"
+          />
+          <Input
+            type="date"
+            value={to}
+            onChange={(e) => { setTo(e.target.value); setPage(0); }}
+            aria-label="Created to"
+            className="w-full sm:w-40"
+          />
+        </div>
         <Button variant="outline" size="icon" onClick={fetchUsers} disabled={loading} title="Refresh">
           <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
         </Button>
         <Button size="sm" onClick={applySearch} className="sm:hidden">
           Search
         </Button>
+        {hasActiveFilters && (
+          <Button size="sm" variant="ghost" onClick={clearFilters} className="text-muted-foreground">
+            Clear filters
+          </Button>
+        )}
       </div>
 
       {/* Table */}
@@ -322,7 +401,8 @@ export default function AdminUsers() {
                   <TableHead>Email</TableHead>
                   <TableHead>Role</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Joined</TableHead>
+                  <SortableHeader label="Last Login" sortKey="lastLoginAt" sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} />
+                  <SortableHeader label="Created" sortKey="createdAt" sortBy={sortBy} sortDir={sortDir} onSort={toggleSort} />
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -343,12 +423,13 @@ export default function AdminUsers() {
                       <TableCell><Skeleton className="h-5 w-14 rounded-full" /></TableCell>
                       <TableCell><Skeleton className="h-5 w-16 rounded-full" /></TableCell>
                       <TableCell><Skeleton className="h-3 w-20" /></TableCell>
+                      <TableCell><Skeleton className="h-3 w-20" /></TableCell>
                       <TableCell><Skeleton className="h-8 w-24 ml-auto" /></TableCell>
                     </TableRow>
                   ))
                 ) : error ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="py-14">
+                    <TableCell colSpan={7} className="py-14">
                       <div className="flex flex-col items-center gap-3 text-center">
                         <div className="w-12 h-12 rounded-2xl bg-destructive/10 flex items-center justify-center ring-1 ring-destructive/20">
                           <AlertTriangle className="w-6 h-6 text-destructive" />
@@ -365,7 +446,7 @@ export default function AdminUsers() {
                   </TableRow>
                 ) : (data?.content.length ?? 0) === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="py-14">
+                    <TableCell colSpan={7} className="py-14">
                       <div className="flex flex-col items-center gap-3 text-center">
                         <div className="w-12 h-12 rounded-2xl bg-accent/5 flex items-center justify-center ring-1 ring-accent/20">
                           <Users className="w-6 h-6 text-muted-foreground" />
@@ -415,6 +496,9 @@ export default function AdminUsers() {
                         <Badge variant="outline" className={statusStyles[u.status] || ""}>
                           {u.status}
                         </Badge>
+                      </TableCell>
+                      <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                        {fmtDateTime(u.lastLoginAt)}
                       </TableCell>
                       <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
                         {fmtDate(u.createdAt)}

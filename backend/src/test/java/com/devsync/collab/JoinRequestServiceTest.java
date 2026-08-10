@@ -95,6 +95,46 @@ class JoinRequestServiceTest {
     }
 
     @Test
+    void request_shouldThrow_WhenDuplicatePendingRequestExists() {
+        project.setVisibility(Project.ProjectVisibility.PRIVATE);
+        when(projectRepository.findById("p1")).thenReturn(Optional.of(project));
+        when(memberRepository.existsByProjectIdAndUserId("p1", "u1")).thenReturn(false);
+        when(userRepository.findById("u1")).thenReturn(Optional.of(user));
+        when(joinRequestRepository.existsByProjectIdAndUserId("p1", "u1")).thenReturn(true);
+
+        assertThatThrownBy(() -> joinRequestService.request("p1", "u1", null))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("already requested");
+        verify(joinRequestRepository, never()).save(any());
+        verify(memberRepository, never()).save(any());
+    }
+
+    @Test
+    void request_shouldThrow_WhenProjectArchived() {
+        project.setStatus(Project.ProjectStatus.ARCHIVED);
+        when(projectRepository.findById("p1")).thenReturn(Optional.of(project));
+
+        assertThatThrownBy(() -> joinRequestService.request("p1", "u1", null))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("archived");
+        verify(joinRequestRepository, never()).save(any());
+    }
+
+    @Test
+    void approve_shouldThrow_WhenRequestAlreadyProcessed() {
+        JoinRequest joinRequest = JoinRequest.builder()
+                .projectId("p1").userId("u1").status(JoinRequestStatus.APPROVED).build();
+        joinRequest.setId("jr-1");
+        when(joinRequestRepository.findById("jr-1")).thenReturn(Optional.of(joinRequest));
+        when(projectRepository.findById("p1")).thenReturn(Optional.of(project));
+
+        assertThatThrownBy(() -> joinRequestService.approve("jr-1", "owner-1"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("no longer pending");
+        verify(memberRepository, never()).save(any());
+    }
+
+    @Test
     void approve_shouldAddMember_AndNotify() {
         project.setVisibility(Project.ProjectVisibility.PRIVATE);
         JoinRequest joinRequest = JoinRequest.builder()

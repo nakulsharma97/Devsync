@@ -17,8 +17,10 @@ if (import.meta.env.VITE_SENTRY_DSN) {
   });
 }
 
+import { lazy, Suspense } from "react";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { AdminRoute } from "@/components/AdminRoute";
 import DashboardLayout from "@/components/DashboardLayout";
 import PageTransition from "@/components/PageTransition";
 import Landing from "./pages/Landing";
@@ -33,12 +35,26 @@ import Notifications from "./pages/Notifications";
 import BoardPage from "./pages/BoardPage";
 import Feed from "./pages/Feed";
 import SearchPage from "./pages/SearchPage";
-import Admin from "./pages/Admin";
-import AdminUsers from "./pages/AdminUsers";
-import AdminProjects from "./pages/AdminProjects";
-import AdminReports from "./pages/AdminReports";
-import AdminActivity from "./pages/AdminActivity";
-import AdminAuditLogs from "./pages/AdminAuditLogs";
+
+// ── Route-level code splitting ────────────────────────────────
+// Admin-only pages and the Recharts-heavy analytics page load only when
+// visited, keeping the initial bundle small. Deep links still work: the
+// lazy chunks resolve on navigation.
+const Analytics = lazy(() => import("./pages/Analytics"));
+const Admin = lazy(() => import("./pages/Admin"));
+const AdminUsers = lazy(() => import("./pages/AdminUsers"));
+const AdminProjects = lazy(() => import("./pages/AdminProjects"));
+const AdminReports = lazy(() => import("./pages/AdminReports"));
+const AdminActivity = lazy(() => import("./pages/AdminActivity"));
+const AdminAuditLogs = lazy(() => import("./pages/AdminAuditLogs"));
+
+function RouteLoader() {
+  return (
+    <div className="min-h-[50vh] flex items-center justify-center">
+      <div className="h-8 w-8 rounded-full border-2 border-indigo-500/30 border-t-indigo-500 animate-spin" />
+    </div>
+  );
+}
 
 function App() {
   return (
@@ -46,6 +62,7 @@ function App() {
       <BrowserRouter>
         <AuthProvider>
           <PageTransition>
+          <Suspense fallback={<RouteLoader />}>
           <Routes>
             <Route path="/" element={<Landing />} />
             <Route path="/auth" element={<AuthPage />} />
@@ -59,6 +76,7 @@ function App() {
             >
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/projects" element={<Projects />} />
+              <Route path="/analytics" element={<Analytics />} />
               <Route path="/messages" element={<Messages />} />
               <Route path="/messages/:conversationId" element={<Messages />} />
               <Route path="/board/:projectId" element={<BoardPage />} />
@@ -67,16 +85,17 @@ function App() {
               <Route path="/notifications" element={<Notifications />} />
               <Route path="/feed" element={<Feed />} />
               <Route path="/search" element={<SearchPage />} />
-              <Route path="/admin/dashboard" element={<Admin />} />
-              <Route path="/admin/users" element={<AdminUsers />} />
-              <Route path="/admin/projects" element={<AdminProjects />} />
-              <Route path="/admin/reports" element={<AdminReports />} />
-              <Route path="/admin/activity" element={<AdminActivity />} />
-              <Route path="/admin/audit-logs" element={<AdminAuditLogs />} />
-              <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
+              <Route path="/admin/dashboard" element={<AdminRoute><Admin /></AdminRoute>} />
+              <Route path="/admin/users" element={<AdminRoute><AdminUsers /></AdminRoute>} />
+              <Route path="/admin/projects" element={<AdminRoute><AdminProjects /></AdminRoute>} />
+              <Route path="/admin/reports" element={<AdminRoute><AdminReports /></AdminRoute>} />
+              <Route path="/admin/activity" element={<AdminRoute><AdminActivity /></AdminRoute>} />
+              <Route path="/admin/audit-logs" element={<AdminRoute><AdminAuditLogs /></AdminRoute>} />
+              <Route path="/admin" element={<AdminRoute><Navigate to="/admin/dashboard" replace /></AdminRoute>} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
+          </Suspense>
           </PageTransition>
         </AuthProvider>
         <Toaster />

@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OpenApiConfig.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">DevSync Backend</a> &gt; <a href="index.source.html" class="el_package">com.devsync.config</a> &gt; <span class="el_source">OpenApiConfig.java</span></div><h1>OpenApiConfig.java</h1><pre class="source lang-java linenums">package com.devsync.config;
+
+import io.swagger.v3.oas.models.Components;
+import io.swagger.v3.oas.models.OpenAPI;
+import io.swagger.v3.oas.models.info.Contact;
+import io.swagger.v3.oas.models.info.Info;
+import io.swagger.v3.oas.models.info.License;
+import io.swagger.v3.oas.models.security.SecurityRequirement;
+import io.swagger.v3.oas.models.security.SecurityScheme;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+@Configuration
+<span class="fc" id="L14">public class OpenApiConfig {</span>
+
+    @Bean
+    public OpenAPI customOpenAPI() {
+<span class="fc" id="L18">        final String securitySchemeName = &quot;bearerAuth&quot;;</span>
+
+<span class="fc" id="L20">        return new OpenAPI()</span>
+<span class="fc" id="L21">                .info(new Info()</span>
+<span class="fc" id="L22">                        .title(&quot;DevSync API&quot;)</span>
+<span class="fc" id="L23">                        .version(&quot;1.0.0&quot;)</span>
+<span class="fc" id="L24">                        .description(</span>
+                                &quot;AI-powered developer networking and collaboration platform. &quot; +
+                                &quot;This API powers the DevSync frontend, providing endpoints for &quot; +
+                                &quot;user management, projects, developer feed, team collaboration, &quot; +
+                                &quot;notifications, bookmarks, and global search.&quot;)
+<span class="fc" id="L29">                        .contact(new Contact()</span>
+<span class="fc" id="L30">                                .name(&quot;DevSync Team&quot;)</span>
+<span class="fc" id="L31">                                .email(&quot;support@devsync.dev&quot;)</span>
+<span class="fc" id="L32">                                .url(&quot;https://devsync.dev&quot;))</span>
+<span class="fc" id="L33">                        .license(new License()</span>
+<span class="fc" id="L34">                                .name(&quot;MIT License&quot;)</span>
+<span class="fc" id="L35">                                .url(&quot;https://opensource.org/licenses/MIT&quot;)))</span>
+<span class="fc" id="L36">                .addSecurityItem(new SecurityRequirement()</span>
+<span class="fc" id="L37">                        .addList(securitySchemeName))</span>
+<span class="fc" id="L38">                .components(new Components()</span>
+<span class="fc" id="L39">                        .addSecuritySchemes(securitySchemeName, new SecurityScheme()</span>
+<span class="fc" id="L40">                                .name(securitySchemeName)</span>
+<span class="fc" id="L41">                                .type(SecurityScheme.Type.HTTP)</span>
+<span class="fc" id="L42">                                .scheme(&quot;bearer&quot;)</span>
+<span class="fc" id="L43">                                .bearerFormat(&quot;JWT&quot;)</span>
+<span class="fc" id="L44">                                .description(&quot;Enter your JWT token. You can get one by calling POST /api/auth/login or POST /api/auth/register&quot;)));</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

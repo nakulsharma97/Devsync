@@ -134,6 +134,32 @@ class ActivityServiceTest {
     }
 
     @Test
+    void exportActivities_shouldReturnRows_AndToCsv_ShouldEscape() {
+        Activity a1 = activity("a1", "u1", "p1", ActivityType.REPORT_RESOLVED, "Report resolved");
+        a1.setDescription("Resolved, with, commas and \"quotes\"");
+        when(activityRepository.searchAdminActivities(
+                isNull(), isNull(), isNull(), isNull(), isNull(), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(a1), PageRequest.of(0, 5000), 1));
+        when(userRepository.findAllById(anySet())).thenReturn(List.of(user("u1", "Dev User")));
+
+        List<ActivityResponse> rows = activityService.exportActivities(null, null, null, null, null);
+
+        assertThat(rows).hasSize(1);
+        String csv = activityService.toCsv(rows);
+        assertThat(csv).contains("activity_type");
+        assertThat(csv).contains("REPORT_RESOLVED");
+        assertThat(csv).contains("\"Resolved, with, commas and \"\"quotes\"\"\"");
+        assertThat(csv).contains("Dev User");
+    }
+
+    @Test
+    void exportActivities_shouldThrow_ForInvalidType() {
+        assertThatThrownBy(() -> activityService.exportActivities(null, null, "BOGUS", null, null))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Invalid activity type");
+    }
+
+    @Test
     void getAdminActivityStats_shouldReturnCounts() {
         when(activityRepository.countByCreatedAtAfter(any(Instant.class))).thenReturn(10L);
         when(activityRepository.countByActivityTypeInAndCreatedAtAfter(anySet(), any(Instant.class)))

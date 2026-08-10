@@ -10,8 +10,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
-import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
+
+import java.security.Principal;
 
 @Controller
 @RequiredArgsConstructor
@@ -22,8 +23,8 @@ public class WebSocketController {
     private final PresenceService presenceService;
 
     @MessageMapping("/chat.send")
-    public void sendMessage(@Payload SendMessageRequest request, Authentication auth) {
-        String userId = auth.getName();
+    public void sendMessage(@Payload SendMessageRequest request, Principal principal) {
+        String userId = principal.getName();
         MessageResponse response = messageService.sendMessage(request, userId);
 
         if (request.getRoomId() != null) {
@@ -37,8 +38,8 @@ public class WebSocketController {
     }
 
     @MessageMapping("/chat.typing")
-    public void typing(@Payload TypingIndicator indicator, Authentication auth) {
-        String userId = auth.getName();
+    public void typing(@Payload TypingIndicator indicator, Principal principal) {
+        String userId = principal.getName();
         indicator.setUserId(userId);
 
         if (indicator.getRoomId() != null) {
@@ -50,8 +51,8 @@ public class WebSocketController {
     }
 
     @MessageMapping("/presence")
-    public void presence(@Payload PresenceMessage message, Authentication auth) {
-        String userId = auth.getName();
+    public void presence(@Payload PresenceMessage message, Principal principal) {
+        String userId = principal.getName();
         presenceService.updateStatus(userId, message.getStatus());
         messagingTemplate.convertAndSend("/topic/presence",
                 Map.of("userId", userId, "status", message.getStatus()));

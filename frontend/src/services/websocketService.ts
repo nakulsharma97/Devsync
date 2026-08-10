@@ -6,6 +6,20 @@ import { Client, type IMessage, type IFrame } from "@stomp/stompjs";
 type MessageCallback = (data: any) => void;
 type ConnectionCallback = (connected: boolean) => void;
 
+/** Payload of a /chat.typing indicator. */
+interface TypingEvent {
+  userId?: string;
+  roomId?: string;
+  receiverId?: string;
+  typing?: boolean;
+}
+
+/** Payload of a /topic/presence update. */
+interface PresenceEvent {
+  userId?: string;
+  status?: string;
+}
+
 /** A subscription that hasn't been created yet because the client isn't connected */
 interface PendingSubscription {
   topic: string;
@@ -21,6 +35,7 @@ class WebSocketService {
   private messageCallbacks: Map<string, Set<MessageCallback>> = new Map();
   private notificationCallbacks: Set<MessageCallback> = new Set();
   private typingCallbacks: Set<MessageCallback> = new Set();
+  private presenceCallbacks: Set<MessageCallback> = new Set();
   private connectionCallbacks: Set<ConnectionCallback> = new Set();
 
   /** Subscriptions queued while disconnected — auto-processed on connect */
@@ -81,6 +96,26 @@ class WebSocketService {
         }
       });
 
+      // Typing indicators for DMs arrive on the per-user queue
+      this.safeSubscribe(`/user/queue/typing`, (msg: IMessage) => {
+        try {
+          const data = JSON.parse(msg.body);
+          this.handleIncomingTyping(data);
+        } catch (e) {
+          console.warn("[STOMP] Failed to parse typing indicator:", e);
+        }
+      });
+
+      // Global presence feed (userId + status)
+      this.safeSubscribe(`/topic/presence`, (msg: IMessage) => {
+        try {
+          const data = JSON.parse(msg.body) as PresenceEvent;
+          this.presenceCallbacks.forEach((cb) => cb(data));
+        } catch (e) {
+          console.warn("[STOMP] Failed to parse presence update:", e);
+        }
+      });
+
       // Process any pending room subscriptions
       this.processPendingSubscriptions();
     };
@@ -112,6 +147,11 @@ class WebSocketService {
   /** Is the STOMP session currently active? */
   get isConnected(): boolean {
     return this.connected && this.client?.active === true;
+  }
+
+  /** The user id this client connected as (null before connect). */
+  get currentUserId(): string | null {
+    return this.userId;
   }
 
   /** Hook into connection state changes */
@@ -155,13 +195,13 @@ class WebSocketService {
   }
 
   /**
-   * Ensure a STOMP subscription exists for the given room.
-   * If not connected, it's queued as pending.
+   * Ensure STOMP subscriptions exist for the given room (messages + typing).
+   * If not connected, they're queued as pending.
    */
   private ensureRoomSubscription(roomId: string, topic: string) {
     if (this.activeSubscriptions.has(roomId)) return; // already subscribed
     if (this.client?.active && this.connected) {
-      const sub = this.client.subscribe(topic, (msg: IMessage) => {
+      const messageSub = this.client.subscribe(topic, (msg: IMessage) => {
         try {
           const data = JSON.parse(msg.body);
           this.messageCallbacks.get(topic)?.forEach((cb) => cb(data));
@@ -169,7 +209,19 @@ class WebSocketService {
           console.warn("[STOMP] Failed to parse room message:", e);
         }
       });
-      this.activeSubscriptions.set(roomId, () => sub.unsubscribe());
+      const typingTopic = `/topic/room/${roomId}/typing`;
+      const typingSub = this.client.subscribe(typingTopic, (msg: IMessage) => {
+        try {
+          const data = JSON.parse(msg.body);
+          this.handleIncomingTyping(data);
+        } catch (e) {
+          console.warn("[STOMP] Failed to parse room typing indicator:", e);
+        }
+      });
+      this.activeSubscriptions.set(roomId, () => {
+        messageSub.unsubscribe();
+        typingSub.unsubscribe();
+      });
       this.pendingSubscriptions.delete(roomId);
     } else {
       // Queue for later
@@ -183,7 +235,7 @@ class WebSocketService {
     this.pendingSubscriptions.forEach((pending, roomId) => {
       const topic = pending.topic;
       if (!this.activeSubscriptions.has(roomId)) {
-        const sub = this.client!.subscribe(topic, (msg: IMessage) => {
+        const messageSub = this.client!.subscribe(topic, (msg: IMessage) => {
           try {
             const data = JSON.parse(msg.body);
             this.messageCallbacks.get(topic)?.forEach((cb) => cb(data));
@@ -191,7 +243,19 @@ class WebSocketService {
             console.warn("[STOMP] Failed to parse room message:", e);
           }
         });
-        this.activeSubscriptions.set(roomId, () => sub.unsubscribe());
+        const typingTopic = `/topic/room/${roomId}/typing`;
+        const typingSub = this.client!.subscribe(typingTopic, (msg: IMessage) => {
+          try {
+            const data = JSON.parse(msg.body);
+            this.handleIncomingTyping(data);
+          } catch (e) {
+            console.warn("[STOMP] Failed to parse room typing indicator:", e);
+          }
+        });
+        this.activeSubscriptions.set(roomId, () => {
+          messageSub.unsubscribe();
+          typingSub.unsubscribe();
+        });
       }
     });
     this.pendingSubscriptions.clear();
@@ -216,6 +280,30 @@ class WebSocketService {
   onTyping(callback: MessageCallback) {
     this.typingCallbacks.add(callback);
     return () => this.typingCallbacks.delete(callback);
+  }
+
+  /**
+   * Route a parsed typing event ({ userId, roomId?, receiverId?, typing }) to
+   * every registered listener. Listeners filter by room/conversation.
+   */
+  private handleIncomingTyping(data: TypingEvent) {
+    this.typingCallbacks.forEach((cb) => cb(data));
+  }
+
+  // ── Presence ─────────────────────────────────────────────────
+
+  /** Hook into live presence updates ({ userId, status }). */
+  onPresence(callback: MessageCallback) {
+    this.presenceCallbacks.add(callback);
+    return () => this.presenceCallbacks.delete(callback);
+  }
+
+  /** Publish an explicit presence status via the socket. */
+  sendPresence(status: string) {
+    this.client?.publish({
+      destination: "/app/presence",
+      body: JSON.stringify({ status }),
+    });
   }
 
   sendTyping(roomId?: string, receiverId?: string, typing = true) {

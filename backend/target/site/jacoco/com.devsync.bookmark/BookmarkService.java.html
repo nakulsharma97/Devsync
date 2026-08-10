@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>BookmarkService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">DevSync Backend</a> &gt; <a href="index.source.html" class="el_package">com.devsync.bookmark</a> &gt; <span class="el_source">BookmarkService.java</span></div><h1>BookmarkService.java</h1><pre class="source lang-java linenums">package com.devsync.bookmark;
+
+import com.devsync.bookmark.dto.BookmarkResponse;
+import com.devsync.bookmark.entity.Bookmark;
+import com.devsync.bookmark.repository.BookmarkRepository;
+import com.devsync.common.ResourceNotFoundException;
+import com.devsync.feed.entity.Post;
+import com.devsync.feed.repository.PostRepository;
+import com.devsync.kanban.entity.Task;
+import com.devsync.kanban.repository.TaskRepository;
+import com.devsync.project.entity.Project;
+import com.devsync.project.repository.ProjectRepository;
+import com.devsync.user.entity.User;
+import com.devsync.user.repository.UserRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+@Service
+@RequiredArgsConstructor
+public class BookmarkService {
+
+<span class="fc" id="L28">    private static final Set&lt;String&gt; VALID_TYPES = Set.of(&quot;PROJECT&quot;, &quot;TASK&quot;, &quot;POST&quot;, &quot;USER&quot;);</span>
+
+    private final BookmarkRepository bookmarkRepository;
+    private final ProjectRepository projectRepository;
+    private final TaskRepository taskRepository;
+    private final PostRepository postRepository;
+    private final UserRepository userRepository;
+
+    @Transactional
+    public BookmarkResponse add(String userId, String entityType, String entityId) {
+<span class="fc" id="L38">        String type = normalizeType(entityType);</span>
+<span class="fc bfc" id="L39" title="All 2 branches covered.">        if (bookmarkRepository.existsByUserIdAndEntityTypeAndEntityId(userId, type, entityId)) {</span>
+<span class="fc" id="L40">            throw new IllegalArgumentException(&quot;Already bookmarked&quot;);</span>
+        }
+<span class="fc" id="L42">        Bookmark bookmark = bookmarkRepository.save(Bookmark.builder()</span>
+<span class="fc" id="L43">                .userId(userId).entityType(type).entityId(entityId).build());</span>
+<span class="fc" id="L44">        return toResponse(bookmark, resolveTitle(type, entityId));</span>
+    }
+
+    @Transactional
+    public void remove(String bookmarkId, String userId) {
+<span class="fc" id="L49">        Bookmark bookmark = bookmarkRepository.findById(bookmarkId)</span>
+<span class="pc" id="L50">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Bookmark&quot;, bookmarkId));</span>
+<span class="fc bfc" id="L51" title="All 2 branches covered.">        if (!bookmark.getUserId().equals(userId)) {</span>
+<span class="fc" id="L52">            throw new IllegalArgumentException(&quot;Not your bookmark&quot;);</span>
+        }
+<span class="fc" id="L54">        bookmarkRepository.delete(bookmark);</span>
+<span class="fc" id="L55">    }</span>
+
+    @Transactional
+    public void removeByEntity(String userId, String entityType, String entityId) {
+<span class="nc" id="L59">        bookmarkRepository.deleteByUserIdAndEntityTypeAndEntityId(userId, normalizeType(entityType), entityId);</span>
+<span class="nc" id="L60">    }</span>
+
+    @Transactional(readOnly = true)
+    public List&lt;BookmarkResponse&gt; list(String userId) {
+<span class="fc" id="L64">        List&lt;Bookmark&gt; bookmarks = bookmarkRepository.findByUserIdOrderByCreatedAtDesc(userId);</span>
+<span class="nc bnc" id="L65" title="All 2 branches missed.">        if (bookmarks.isEmpty()) return List.of();</span>
+
+<span class="nc" id="L67">        Map&lt;String, String&gt; titles = resolveTitles(bookmarks);</span>
+<span class="nc" id="L68">        return bookmarks.stream()</span>
+<span class="nc" id="L69">                .map(b -&gt; toResponse(b, titles.getOrDefault(b.getEntityId(), b.getEntityId())))</span>
+<span class="nc" id="L70">                .toList();</span>
+    }
+
+    @Transactional(readOnly = true)
+    public boolean isBookmarked(String userId, String entityType, String entityId) {
+<span class="fc" id="L75">        return bookmarkRepository.existsByUserIdAndEntityTypeAndEntityId(userId, normalizeType(entityType), entityId);</span>
+    }
+
+    private Map&lt;String, String&gt; resolveTitles(List&lt;Bookmark&gt; bookmarks) {
+<span class="fc" id="L79">        java.util.HashMap&lt;String, String&gt; titles = new java.util.HashMap&lt;&gt;();</span>
+<span class="fc" id="L80">        Set&lt;String&gt; projectIds = bookmarks.stream().filter(b -&gt; b.getEntityType().equals(&quot;PROJECT&quot;))</span>
+<span class="fc" id="L81">                .map(Bookmark::getEntityId).collect(Collectors.toSet());</span>
+<span class="fc" id="L82">        Set&lt;String&gt; taskIds = bookmarks.stream().filter(b -&gt; b.getEntityType().equals(&quot;TASK&quot;))</span>
+<span class="fc" id="L83">                .map(Bookmark::getEntityId).collect(Collectors.toSet());</span>
+<span class="fc" id="L84">        Set&lt;String&gt; postIds = bookmarks.stream().filter(b -&gt; b.getEntityType().equals(&quot;POST&quot;))</span>
+<span class="fc" id="L85">                .map(Bookmark::getEntityId).collect(Collectors.toSet());</span>
+<span class="fc" id="L86">        Set&lt;String&gt; userIds = bookmarks.stream().filter(b -&gt; b.getEntityType().equals(&quot;USER&quot;))</span>
+<span class="fc" id="L87">                .map(Bookmark::getEntityId).collect(Collectors.toSet());</span>
+
+<span class="pc bpc" id="L89" title="1 of 2 branches missed.">        if (!projectIds.isEmpty()) {</span>
+<span class="nc" id="L90">            projectRepository.findAllById(projectIds)</span>
+<span class="nc" id="L91">                    .forEach(p -&gt; titles.put(p.getId(), p.getName()));</span>
+        }
+<span class="nc bnc" id="L93" title="All 2 branches missed.">        if (!taskIds.isEmpty()) {</span>
+<span class="nc" id="L94">            taskRepository.findAllById(taskIds)</span>
+<span class="nc" id="L95">                    .forEach(t -&gt; titles.put(t.getId(), t.getTitle()));</span>
+        }
+<span class="nc bnc" id="L97" title="All 2 branches missed.">        if (!postIds.isEmpty()) {</span>
+<span class="nc" id="L98">            postRepository.findAllById(postIds)</span>
+<span class="nc" id="L99">                    .forEach(p -&gt; titles.put(p.getId(), snippet(p.getContent())));</span>
+        }
+<span class="nc bnc" id="L101" title="All 2 branches missed.">        if (!userIds.isEmpty()) {</span>
+<span class="nc" id="L102">            userRepository.findAllById(userIds)</span>
+<span class="nc" id="L103">                    .forEach(u -&gt; titles.put(u.getId(), u.getFullName()));</span>
+        }
+<span class="nc" id="L105">        return titles;</span>
+    }
+
+    private String resolveTitle(String entityType, String entityId) {
+<span class="pc bpc" id="L109" title="1 of 2 branches missed.">        if (entityType.equals(&quot;PROJECT&quot;)) {</span>
+<span class="fc" id="L110">            return projectRepository.findById(entityId).map(Project::getName)</span>
+<span class="pc" id="L111">                    .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Project&quot;, entityId));</span>
+        }
+<span class="nc bnc" id="L113" title="All 2 branches missed.">        if (entityType.equals(&quot;TASK&quot;)) {</span>
+<span class="nc" id="L114">            return taskRepository.findById(entityId).map(Task::getTitle)</span>
+<span class="nc" id="L115">                    .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Task&quot;, entityId));</span>
+        }
+<span class="nc bnc" id="L117" title="All 2 branches missed.">        if (entityType.equals(&quot;POST&quot;)) {</span>
+<span class="nc" id="L118">            return postRepository.findById(entityId).map(p -&gt; snippet(p.getContent()))</span>
+<span class="nc" id="L119">                    .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Post&quot;, entityId));</span>
+        }
+<span class="nc bnc" id="L121" title="All 2 branches missed.">        if (entityType.equals(&quot;USER&quot;)) {</span>
+<span class="nc" id="L122">            return userRepository.findById(entityId).map(User::getFullName)</span>
+<span class="nc" id="L123">                    .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;User&quot;, entityId));</span>
+        }
+<span class="nc" id="L125">        return entityId;</span>
+    }
+
+    private BookmarkResponse toResponse(Bookmark bookmark, String title) {
+<span class="fc" id="L129">        return BookmarkResponse.builder()</span>
+<span class="fc" id="L130">                .id(bookmark.getId())</span>
+<span class="fc" id="L131">                .entityType(bookmark.getEntityType())</span>
+<span class="fc" id="L132">                .entityId(bookmark.getEntityId())</span>
+<span class="fc" id="L133">                .title(title)</span>
+<span class="fc" id="L134">                .subtitle(bookmark.getEntityType().toLowerCase())</span>
+<span class="fc" id="L135">                .url(urlFor(bookmark.getEntityType(), bookmark.getEntityId()))</span>
+<span class="fc" id="L136">                .createdAt(bookmark.getCreatedAt())</span>
+<span class="fc" id="L137">                .build();</span>
+    }
+
+    private String urlFor(String entityType, String entityId) {
+<span class="pc bpc" id="L141" title="4 of 5 branches missed.">        return switch (entityType) {</span>
+<span class="fc" id="L142">            case &quot;PROJECT&quot; -&gt; &quot;/board/&quot; + entityId;</span>
+<span class="nc" id="L143">            case &quot;TASK&quot; -&gt; &quot;/board/&quot; + entityId;</span>
+<span class="nc" id="L144">            case &quot;POST&quot; -&gt; &quot;/feed&quot;;</span>
+<span class="nc" id="L145">            case &quot;USER&quot; -&gt; &quot;/user/&quot; + entityId;</span>
+<span class="nc" id="L146">            default -&gt; &quot;#&quot;;</span>
+        };
+    }
+
+    private String snippet(String content) {
+<span class="nc bnc" id="L151" title="All 2 branches missed.">        if (content == null) return &quot;&quot;;</span>
+<span class="nc" id="L152">        String t = content.trim().replaceAll(&quot;\\s+&quot;, &quot; &quot;);</span>
+<span class="nc bnc" id="L153" title="All 2 branches missed.">        return t.length() &gt; 60 ? t.substring(0, 60) + &quot;...&quot; : t;</span>
+    }
+
+    private String normalizeType(String entityType) {
+<span class="pc bpc" id="L157" title="1 of 4 branches missed.">        if (entityType == null || !VALID_TYPES.contains(entityType.toUpperCase())) {</span>
+<span class="fc" id="L158">            throw new IllegalArgumentException(&quot;Invalid entityType (PROJECT, TASK, POST, USER)&quot;);</span>
+        }
+<span class="fc" id="L160">        return entityType.toUpperCase();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -7,10 +7,8 @@ import {
   Heart,
   MessageCircle,
   UserPlus,
-  FolderGit2,
   Rss,
   Users,
-  Loader2,
 } from "lucide-react";
 import {
   LineChart,

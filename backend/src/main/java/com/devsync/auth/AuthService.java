@@ -27,6 +27,7 @@ public class AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
+    private final RefreshTokenService refreshTokenService;
     private final OtpService otpService;
     private final EmailService emailService;
     private final UserService userService;
@@ -34,6 +35,11 @@ public class AuthService {
 
     @Transactional
     public AuthResponse register(RegisterRequest request) {
+        return register(request, null, null);
+    }
+
+    @Transactional
+    public AuthResponse register(RegisterRequest request, String ipAddress, String userAgent) {
         if (userRepository.countByEmail(request.getEmail()) > 0) {
             throw new AuthException("Email already in use", HttpStatus.CONFLICT);
         }
@@ -63,7 +69,7 @@ public class AuthService {
         user = userRepository.save(user);
 
         String accessToken = jwtTokenProvider.generateAccessToken(user.getId(), user.getEmail());
-        String refreshToken = jwtTokenProvider.generateRefreshToken(user.getId());
+        String refreshToken = refreshTokenService.issue(user.getId(), ipAddress, userAgent);
 
         auditLogService.record(user.getId(), user.getId(), AuditAction.REGISTER, AuditStatus.SUCCESS,
                 "New account registered: " + user.getEmail());
@@ -71,6 +77,10 @@ public class AuthService {
     }
 
     public AuthResponse login(LoginRequest request) {
+        return login(request, null, null);
+    }
+
+    public AuthResponse login(LoginRequest request, String ipAddress, String userAgent) {
         try {
             User user = userRepository.findByEmail(request.getEmail())
                     .orElseThrow(() -> new AuthException("Invalid email or password"));
@@ -85,7 +95,7 @@ public class AuthService {
             userRepository.save(user);
 
             String accessToken = jwtTokenProvider.generateAccessToken(user.getId(), user.getEmail());
-            String refreshToken = jwtTokenProvider.generateRefreshToken(user.getId());
+            String refreshToken = refreshTokenService.issue(user.getId(), ipAddress, userAgent);
 
             auditLogService.record(user.getId(), user.getId(), AuditAction.LOGIN_SUCCESS, AuditStatus.SUCCESS,
                     "Login successful for " + request.getEmail());
@@ -98,10 +108,14 @@ public class AuthService {
     }
 
     public AuthResponse refreshToken(RefreshTokenRequest request) {
+        return refreshToken(request, null, null);
+    }
+
+    public AuthResponse refreshToken(RefreshTokenRequest request, String ipAddress, String userAgent) {
         try {
-            if (!jwtTokenProvider.validateToken(request.getRefreshToken())) {
-                throw new AuthException("Invalid or expired refresh token");
-            }
+            // Rotation validates the presented token (type=refresh, signature, expiry,
+            // registry lookup, reuse detection) and issues a new one.
+            String refreshToken = refreshTokenService.rotate(request.getRefreshToken(), ipAddress, userAgent);
 
             String userId = jwtTokenProvider.getUserIdFromToken(request.getRefreshToken());
             User user = userRepository.findById(userId)
@@ -110,7 +124,6 @@ public class AuthService {
             ensureAccountActive(user);
 
             String accessToken = jwtTokenProvider.generateAccessToken(user.getId(), user.getEmail());
-            String refreshToken = jwtTokenProvider.generateRefreshToken(user.getId());
 
             auditLogService.record(user.getId(), user.getId(), AuditAction.JWT_REFRESH, AuditStatus.SUCCESS,
                     "Token refreshed for " + user.getEmail());
@@ -135,6 +148,10 @@ public class AuthService {
     }
 
     public AuthResponse verifyOtpAndLogin(VerifyOtpRequest request) {
+        return verifyOtpAndLogin(request, null, null);
+    }
+
+    public AuthResponse verifyOtpAndLogin(VerifyOtpRequest request, String ipAddress, String userAgent) {
         if (!otpService.validateOtp(request.getEmail(), request.getOtp())) {
             throw new AuthException("Invalid or expired OTP");
         }
@@ -149,55 +166,21 @@ public class AuthService {
         userRepository.save(user);
 
         String accessToken = jwtTokenProvider.generateAccessToken(user.getId(), user.getEmail());
-        String refreshToken = jwtTokenProvider.generateRefreshToken(user.getId());
+        String refreshToken = refreshTokenService.issue(user.getId(), ipAddress, userAgent);
 
         auditLogService.record(user.getId(), user.getId(), AuditAction.OTP_VERIFIED, AuditStatus.SUCCESS,
                 "OTP login for " + user.getEmail());
         return buildAuthResponse(user, accessToken, refreshToken);
     }
 
-    @Transactional
-    public AuthResponse handleOAuthCallback(String email, String fullName, String avatarUrl, String provider) {
-        User user = userRepository.findByEmail(email).orElse(null);
-
-        if (user == null) {
-            String username = email.split("@")[0];
-            String baseUsername = username;
-            int suffix = 1;
-            while (userRepository.countByUsername(username) > 0) {
-                username = baseUsername + suffix++;
-            }
-
-            user = User.builder()
-                    .email(email)
-                    .password(passwordEncoder.encode("oauth-" + System.currentTimeMillis()))
-                    .fullName(fullName)
-                    .username(username)
-                    .avatarUrl(avatarUrl)
-                    .authProvider(provider)
-                    .emailVerified(true)
-                    .build();
-            user = userRepository.save(user);
-        } else {
-            ensureAccountActive(user);
-            if (avatarUrl != null) user.setAvatarUrl(avatarUrl);
-            if (fullName != null) user.setFullName(fullName);
-            user.setLastLoginAt(Instant.now());
-            userRepository.save(user);
-        }
-
-        String accessToken = jwtTokenProvider.generateAccessToken(user.getId(), user.getEmail());
-        String refreshToken = jwtTokenProvider.generateRefreshToken(user.getId());
-
-        auditLogService.record(user.getId(), user.getId(), AuditAction.OAUTH_LOGIN, AuditStatus.SUCCESS,
-                "OAuth login via " + provider + " for " + user.getEmail());
-        return buildAuthResponse(user, accessToken, refreshToken);
-    }
-
     /**
-     * Records a logout audit entry. Token invalidation is handled client-side.
+     * Records a logout audit entry and revokes the presented refresh token
+     * server-side, so a stolen token cannot be replayed after logout. The actor
+     * may be null when only the cookie is presented (access token expired).
      */
-    public void logout(String userId) {
+    @Transactional
+    public void logout(String userId, String refreshToken) {
+        refreshTokenService.revoke(refreshToken);
         auditLogService.record(userId, userId, AuditAction.LOGOUT, AuditStatus.SUCCESS, "User logged out");
     }
 

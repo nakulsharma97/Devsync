@@ -3,11 +3,12 @@ import { useParams } from "react-router";
 import { useApi } from "@/hooks/useApi";
 import { boardService } from "@/services/boardService";
 import { Button } from "@/components/ui/button";
-import { Plus, GripVertical, Loader2 } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Plus, GripVertical, Loader2, GitBranch } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/Skeletons";
+import { GitHubSection } from "@/components/GitHubSection";
 
 function TaskCard({ task, columnId }: { task: any; columnId: string }) {
   const [dragging, setDragging] = useState(false);
@@ -68,6 +69,7 @@ export default function BoardPage() {
   const [title, setTitle] = useState("");
   const [creating, setCreating] = useState(false);
   const [selectedColumn, setSelectedColumn] = useState("");
+  const [showGitHub, setShowGitHub] = useState(false);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -126,7 +128,17 @@ export default function BoardPage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-bold tracking-tight">{board.name}</h1>
+        <Button variant="outline" size="sm" onClick={() => setShowGitHub((v) => !v)}>
+          <GitBranch className="w-3.5 h-3.5 mr-1.5" />
+          {showGitHub ? "Hide GitHub" : "GitHub"}
+        </Button>
       </div>
+
+      {showGitHub && projectId && (
+        <div className="border border-border/40 rounded-xl p-4 bg-card">
+          <GitHubSection projectId={projectId} />
+        </div>
+      )}
 
       <div className="flex gap-4 overflow-x-auto pb-4">
         {board.columns.map((col) => (

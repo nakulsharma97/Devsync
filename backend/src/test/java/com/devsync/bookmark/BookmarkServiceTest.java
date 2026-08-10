@@ -18,6 +18,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -108,8 +109,9 @@ class BookmarkServiceTest {
         project.setId("p1");
         Task task = Task.builder().title("Fix bug").columnId("c1").boardId("board1").build();
         task.setId("t1");
-        when(projectRepository.findAllById(List.of("p1"))).thenReturn(List.of(project));
-        when(taskRepository.findAllById(List.of("t1"))).thenReturn(List.of(task));
+        // The service resolves titles with a Set of ids (deduped) — stub the Set.
+        when(projectRepository.findAllById(Set.of("p1"))).thenReturn(List.of(project));
+        when(taskRepository.findAllById(Set.of("t1"))).thenReturn(List.of(task));
 
         List<BookmarkResponse> list = bookmarkService.list("u1");
 

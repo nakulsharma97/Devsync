@@ -12,6 +12,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.Instant;
+import java.util.List;
 
 @Repository
 public interface ReportRepository extends JpaRepository<Report, String> {
@@ -39,5 +40,10 @@ public interface ReportRepository extends JpaRepository<Report, String> {
     long countByStatus(ReportStatus status);
 
     long countByCreatedAtBetween(Instant from, Instant to);
+
+    /** Aggregates report counts per calendar day in a single query. */
+    @Query("SELECT cast(r.createdAt as date) AS day, COUNT(r) FROM Report r " +
+            "WHERE r.createdAt >= :from AND r.createdAt < :to GROUP BY cast(r.createdAt as date)")
+    List<Object[]> countGroupedByDay(@Param("from") Instant from, @Param("to") Instant to);
 
 }

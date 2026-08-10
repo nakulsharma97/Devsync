@@ -1,6 +1,11 @@
 package com.devsync.report;
 
+import com.devsync.activity.ActivityService;
+import com.devsync.activity.entity.ActivityType;
 import com.devsync.admin.AdminService;
+import com.devsync.audit.AuditLogService;
+import com.devsync.audit.entity.AuditAction;
+import com.devsync.audit.entity.AuditStatus;
 import com.devsync.common.PageResponse;
 import com.devsync.common.ResourceNotFoundException;
 import com.devsync.feed.entity.Comment;
@@ -49,7 +54,18 @@ public class ReportAdminService {
     private final CommentRepository commentRepository;
     private final MessageRepository messageRepository;
     private final AdminService adminService;
+    private final AuditLogService auditLogService;
+    private final ActivityService activityService;
     private final NotificationService notificationService;
+
+    /**
+     * Valid transitions for report workflow.
+     * Terminal states (RESOLVED, REJECTED) cannot be changed.
+     */
+    private static final java.util.Map<ReportStatus, java.util.Set<ReportStatus>> VALID_TRANSITIONS = java.util.Map.of(
+            ReportStatus.PENDING, java.util.Set.of(ReportStatus.UNDER_REVIEW, ReportStatus.RESOLVED, ReportStatus.REJECTED),
+            ReportStatus.UNDER_REVIEW, java.util.Set.of(ReportStatus.RESOLVED, ReportStatus.REJECTED)
+    );
 
     /**
      * Paginated, searchable, filterable admin report list.
@@ -125,6 +141,11 @@ public class ReportAdminService {
         Report report = getReport(reportId);
         ReportStatus newStatus = parseReviewStatus(requestedStatus);
 
+        ReportStatus current = report.getStatus();
+        if (!VALID_TRANSITIONS.containsKey(current) || !VALID_TRANSITIONS.get(current).contains(newStatus)) {
+            throw new IllegalArgumentException("Cannot transition report from " + current + " to " + newStatus);
+        }
+
         report.setStatus(newStatus);
         report.setReviewedBy(adminId);
         report.setReviewedAt(Instant.now());
@@ -144,6 +165,18 @@ public class ReportAdminService {
                     report.getId(),
                     "report",
                     "/reports");
+
+            // Exactly one audit entry and one activity record for the terminal review.
+            boolean resolved = newStatus == ReportStatus.RESOLVED;
+            auditLogService.record(adminId, report.getReporterId(), AuditAction.MODERATION_ACTION, AuditStatus.SUCCESS,
+                    "Report " + reportId + " " + (resolved ? "resolved" : "rejected")
+                            + " (" + label(report.getEntityType()) + ", reason " + report.getReason() + ")");
+            activityService.record(adminId, null,
+                    resolved ? ActivityType.REPORT_RESOLVED : ActivityType.REPORT_REJECTED,
+                    resolved ? "Report resolved" : "Report rejected",
+                    "Report " + reportId + " about a " + label(report.getEntityType()) + " was "
+                            + (resolved ? "resolved" : "rejected"),
+                    reportId);
         }
 
         return getReportDetail(reportId);
@@ -153,6 +186,7 @@ public class ReportAdminService {
      * Executes a direct moderation action against the reported entity.
      * Reuses existing AdminService methods where available (block/unblock/delete user,
      * archive/delete/visibility project, delete post) and repository-level flags otherwise.
+     * Every moderation action creates an audit log entry.
      */
     @Transactional
     public AdminReportDetail moderate(String reportId, String requestedAction, String value, String adminId) {
@@ -162,19 +196,57 @@ public class ReportAdminService {
         String entityId = report.getEntityId();
 
         switch (action) {
-            case BLOCK_USER -> adminService.setUserBlocked(entityId, true, adminId);
-            case UNBLOCK_USER -> adminService.setUserBlocked(entityId, false, adminId);
+            case BLOCK_USER -> adminService.setUserBlocked(entityId, true, adminId, null);
+            case UNBLOCK_USER -> adminService.setUserBlocked(entityId, false, adminId, null);
             case DELETE_USER -> adminService.deleteUser(entityId, adminId);
             case ARCHIVE_PROJECT -> adminService.archiveProject(entityId, adminId);
             case DELETE_PROJECT -> adminService.deleteProject(entityId, adminId);
-            case SET_VISIBILITY -> adminService.setProjectVisibility(entityId, value, adminId);
+            case SET_VISIBILITY -> {
+                String toggle = value;
+                if (toggle == null || toggle.isBlank()) {
+                    Project project = projectRepository.findById(entityId)
+                            .orElseThrow(() -> new ResourceNotFoundException("Project", entityId));
+                    toggle = project.getVisibility() == Project.ProjectVisibility.PUBLIC ? "PRIVATE" : "PUBLIC";
+                }
+                adminService.setProjectVisibility(entityId, toggle, adminId);
+            }
             case DELETE_POST -> adminService.deletePost(entityId);
-            case HIDE_POST -> setPostHidden(entityId, true);
-            case RESTORE_POST -> setPostHidden(entityId, false);
-            case DELETE_COMMENT -> commentRepository.deleteById(entityId);
-            case RESTORE_COMMENT -> setCommentHidden(entityId, false);
-            case DELETE_MESSAGE -> messageRepository.deleteById(entityId);
-            case HIDE_MESSAGE -> setMessageHidden(entityId, true);
+            case HIDE_POST -> {
+                setPostHidden(entityId, true);
+                auditLogService.record(adminId, report.getReporterId(), AuditAction.MODERATION_ACTION, AuditStatus.SUCCESS,
+                        "Hidden post " + entityId + " via report " + reportId);
+            }
+            case RESTORE_POST -> {
+                setPostHidden(entityId, false);
+                auditLogService.record(adminId, report.getReporterId(), AuditAction.MODERATION_ACTION, AuditStatus.SUCCESS,
+                        "Restored post " + entityId + " via report " + reportId);
+            }
+            case DELETE_COMMENT -> {
+                if (!commentRepository.existsById(entityId)) {
+                    throw new ResourceNotFoundException("Comment", entityId);
+                }
+                commentRepository.deleteById(entityId);
+                auditLogService.record(adminId, report.getReporterId(), AuditAction.MODERATION_ACTION, AuditStatus.SUCCESS,
+                        "Deleted comment " + entityId + " via report " + reportId);
+            }
+            case RESTORE_COMMENT -> {
+                setCommentHidden(entityId, false);
+                auditLogService.record(adminId, report.getReporterId(), AuditAction.MODERATION_ACTION, AuditStatus.SUCCESS,
+                        "Restored comment " + entityId + " via report " + reportId);
+            }
+            case DELETE_MESSAGE -> {
+                if (!messageRepository.existsById(entityId)) {
+                    throw new ResourceNotFoundException("Message", entityId);
+                }
+                messageRepository.deleteById(entityId);
+                auditLogService.record(adminId, report.getReporterId(), AuditAction.MODERATION_ACTION, AuditStatus.SUCCESS,
+                        "Deleted message " + entityId + " via report " + reportId);
+            }
+            case HIDE_MESSAGE -> {
+                setMessageHidden(entityId, true);
+                auditLogService.record(adminId, report.getReporterId(), AuditAction.MODERATION_ACTION, AuditStatus.SUCCESS,
+                        "Hidden message " + entityId + " via report " + reportId);
+            }
         }
 
         return getReportDetail(reportId);

@@ -1,0 +1,517 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ReportAdminService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">DevSync Backend</a> &gt; <a href="index.source.html" class="el_package">com.devsync.report</a> &gt; <span class="el_source">ReportAdminService.java</span></div><h1>ReportAdminService.java</h1><pre class="source lang-java linenums">package com.devsync.report;
+
+import com.devsync.activity.ActivityService;
+import com.devsync.activity.entity.ActivityType;
+import com.devsync.admin.AdminService;
+import com.devsync.audit.AuditLogService;
+import com.devsync.audit.entity.AuditAction;
+import com.devsync.audit.entity.AuditStatus;
+import com.devsync.common.PageResponse;
+import com.devsync.common.ResourceNotFoundException;
+import com.devsync.feed.entity.Comment;
+import com.devsync.feed.entity.Post;
+import com.devsync.feed.repository.CommentRepository;
+import com.devsync.feed.repository.PostRepository;
+import com.devsync.message.entity.Message;
+import com.devsync.message.repository.MessageRepository;
+import com.devsync.notification.NotificationService;
+import com.devsync.project.entity.Project;
+import com.devsync.project.repository.ProjectRepository;
+import com.devsync.report.dto.AdminReportDetail;
+import com.devsync.report.dto.AdminReportListItem;
+import com.devsync.report.dto.AdminReportStats;
+import com.devsync.report.dto.ReporterDto;
+import com.devsync.report.entity.Report;
+import com.devsync.report.repository.ReportRepository;
+import com.devsync.user.entity.User;
+import com.devsync.user.repository.UserRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.Instant;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+@Service
+@RequiredArgsConstructor
+public class ReportAdminService {
+
+    private static final int MAX_PAGE_SIZE = 100;
+
+    private final ReportRepository reportRepository;
+    private final UserRepository userRepository;
+    private final ProjectRepository projectRepository;
+    private final PostRepository postRepository;
+    private final CommentRepository commentRepository;
+    private final MessageRepository messageRepository;
+    private final AdminService adminService;
+    private final AuditLogService auditLogService;
+    private final ActivityService activityService;
+    private final NotificationService notificationService;
+
+    /**
+     * Valid transitions for report workflow.
+     * Terminal states (RESOLVED, REJECTED) cannot be changed.
+     */
+<span class="fc" id="L65">    private static final java.util.Map&lt;ReportStatus, java.util.Set&lt;ReportStatus&gt;&gt; VALID_TRANSITIONS = java.util.Map.of(</span>
+<span class="fc" id="L66">            ReportStatus.PENDING, java.util.Set.of(ReportStatus.UNDER_REVIEW, ReportStatus.RESOLVED, ReportStatus.REJECTED),</span>
+<span class="fc" id="L67">            ReportStatus.UNDER_REVIEW, java.util.Set.of(ReportStatus.RESOLVED, ReportStatus.REJECTED)</span>
+    );
+
+    /**
+     * Paginated, searchable, filterable admin report list.
+     * Filters: status, reason, entityType, reporter search (name/email/username), date range.
+     * Batch-loads reporters and entity titles - no N+1.
+     */
+    @Transactional(readOnly = true)
+    public PageResponse&lt;AdminReportListItem&gt; getReportsPage(int page, int size, String sortBy, String sortDir,
+                                                            String search, String status, String reason,
+                                                            String entityType, Instant from, Instant to) {
+<span class="fc" id="L79">        int safePage = Math.max(page, 0);</span>
+<span class="fc" id="L80">        int safeSize = Math.min(Math.max(size, 1), MAX_PAGE_SIZE);</span>
+<span class="fc" id="L81">        String sortField = normalizeSortField(sortBy);</span>
+<span class="pc bpc" id="L82" title="1 of 2 branches missed.">        Sort.Direction direction = &quot;asc&quot;.equalsIgnoreCase(sortDir) ? Sort.Direction.ASC : Sort.Direction.DESC;</span>
+<span class="fc" id="L83">        Pageable pageable = PageRequest.of(safePage, safeSize, Sort.by(direction, sortField));</span>
+
+<span class="fc" id="L85">        ReportStatus statusFilter = parseStatusFilter(status);</span>
+<span class="fc" id="L86">        ReportReason reasonFilter = parseReasonFilter(reason);</span>
+<span class="fc" id="L87">        ReportEntityType typeFilter = parseEntityTypeFilter(entityType);</span>
+<span class="pc bpc" id="L88" title="3 of 4 branches missed.">        String searchFilter = (search == null || search.isBlank()) ? null : search.trim();</span>
+
+<span class="fc" id="L90">        Page&lt;Report&gt; reports = reportRepository.searchAdminReports(</span>
+                statusFilter, reasonFilter, typeFilter, searchFilter, from, to, pageable);
+
+<span class="fc" id="L93">        List&lt;Report&gt; content = reports.getContent();</span>
+<span class="fc" id="L94">        Map&lt;String, User&gt; reporterMap = reporterMap(content);</span>
+<span class="fc" id="L95">        Map&lt;String, String&gt; entityTitles = entityTitles(content);</span>
+
+<span class="fc" id="L97">        List&lt;AdminReportListItem&gt; items = content.stream()</span>
+<span class="fc" id="L98">                .map(r -&gt; toListItem(r, reporterMap.get(r.getReporterId()), entityTitles.get(r.getEntityId())))</span>
+<span class="fc" id="L99">                .toList();</span>
+
+<span class="fc" id="L101">        return PageResponse.&lt;AdminReportListItem&gt;builder()</span>
+<span class="fc" id="L102">                .content(items)</span>
+<span class="fc" id="L103">                .page(reports.getNumber())</span>
+<span class="fc" id="L104">                .size(reports.getSize())</span>
+<span class="fc" id="L105">                .totalElements(reports.getTotalElements())</span>
+<span class="fc" id="L106">                .totalPages(reports.getTotalPages())</span>
+<span class="fc" id="L107">                .last(reports.isLast())</span>
+<span class="fc" id="L108">                .build();</span>
+    }
+
+    @Transactional(readOnly = true)
+    public AdminReportDetail getReportDetail(String reportId) {
+<span class="fc" id="L113">        Report report = getReport(reportId);</span>
+<span class="fc" id="L114">        User reporter = userRepository.findById(report.getReporterId()).orElse(null);</span>
+<span class="fc" id="L115">        String entityTitle = resolveEntityTitle(report.getEntityType(), report.getEntityId());</span>
+<span class="fc" id="L116">        String ownerName = resolveEntityOwnerName(report.getEntityType(), report.getEntityId());</span>
+<span class="fc bfc" id="L117" title="All 2 branches covered.">        User reviewer = report.getReviewedBy() != null</span>
+<span class="fc" id="L118">                ? userRepository.findById(report.getReviewedBy()).orElse(null)</span>
+<span class="fc" id="L119">                : null;</span>
+
+<span class="fc" id="L121">        return toDetail(report, reporter, reviewer, entityTitle, ownerName);</span>
+    }
+
+    @Transactional(readOnly = true)
+    public AdminReportStats getStats() {
+<span class="fc" id="L126">        return AdminReportStats.builder()</span>
+<span class="fc" id="L127">                .total(reportRepository.count())</span>
+<span class="fc" id="L128">                .pending(reportRepository.countByStatus(ReportStatus.PENDING))</span>
+<span class="fc" id="L129">                .underReview(reportRepository.countByStatus(ReportStatus.UNDER_REVIEW))</span>
+<span class="fc" id="L130">                .resolved(reportRepository.countByStatus(ReportStatus.RESOLVED))</span>
+<span class="fc" id="L131">                .rejected(reportRepository.countByStatus(ReportStatus.REJECTED))</span>
+<span class="fc" id="L132">                .build();</span>
+    }
+
+    /**
+     * Moves a report through its workflow. Notifies the reporter when the report
+     * reaches a terminal state (RESOLVED / REJECTED).
+     */
+    @Transactional
+    public AdminReportDetail reviewReport(String reportId, String requestedStatus, String adminId) {
+<span class="fc" id="L141">        Report report = getReport(reportId);</span>
+<span class="fc" id="L142">        ReportStatus newStatus = parseReviewStatus(requestedStatus);</span>
+
+<span class="fc" id="L144">        ReportStatus current = report.getStatus();</span>
+<span class="pc bpc" id="L145" title="1 of 4 branches missed.">        if (!VALID_TRANSITIONS.containsKey(current) || !VALID_TRANSITIONS.get(current).contains(newStatus)) {</span>
+<span class="fc" id="L146">            throw new IllegalArgumentException(&quot;Cannot transition report from &quot; + current + &quot; to &quot; + newStatus);</span>
+        }
+
+<span class="fc" id="L149">        report.setStatus(newStatus);</span>
+<span class="fc" id="L150">        report.setReviewedBy(adminId);</span>
+<span class="fc" id="L151">        report.setReviewedAt(Instant.now());</span>
+<span class="fc" id="L152">        reportRepository.save(report);</span>
+
+<span class="fc bfc" id="L154" title="All 4 branches covered.">        if (newStatus == ReportStatus.RESOLVED || newStatus == ReportStatus.REJECTED) {</span>
+<span class="fc" id="L155">            User admin = userRepository.findById(adminId).orElse(null);</span>
+<span class="fc" id="L156">            notificationService.createNotification(</span>
+<span class="fc" id="L157">                    report.getReporterId(),</span>
+                    &quot;REPORT&quot;,
+                    &quot;Your report has been reviewed&quot;,
+<span class="fc" id="L160">                    &quot;Your report about a &quot; + label(report.getEntityType())</span>
+<span class="fc" id="L161">                            + &quot; was &quot; + newStatus.name().toLowerCase() + &quot; by our moderation team.&quot;,</span>
+                    adminId,
+<span class="fc bfc" id="L163" title="All 2 branches covered.">                    admin != null ? admin.getFullName() : &quot;Admin&quot;,</span>
+<span class="fc bfc" id="L164" title="All 2 branches covered.">                    admin != null ? admin.getAvatarUrl() : null,</span>
+<span class="fc" id="L165">                    report.getId(),</span>
+                    &quot;report&quot;,
+                    &quot;/reports&quot;);
+
+            // Exactly one audit entry and one activity record for the terminal review.
+<span class="fc bfc" id="L170" title="All 2 branches covered.">            boolean resolved = newStatus == ReportStatus.RESOLVED;</span>
+<span class="fc" id="L171">            auditLogService.record(adminId, report.getReporterId(), AuditAction.MODERATION_ACTION, AuditStatus.SUCCESS,</span>
+<span class="fc bfc" id="L172" title="All 2 branches covered.">                    &quot;Report &quot; + reportId + &quot; &quot; + (resolved ? &quot;resolved&quot; : &quot;rejected&quot;)</span>
+<span class="fc" id="L173">                            + &quot; (&quot; + label(report.getEntityType()) + &quot;, reason &quot; + report.getReason() + &quot;)&quot;);</span>
+<span class="fc" id="L174">            activityService.record(adminId, null,</span>
+<span class="fc bfc" id="L175" title="All 2 branches covered.">                    resolved ? ActivityType.REPORT_RESOLVED : ActivityType.REPORT_REJECTED,</span>
+<span class="fc bfc" id="L176" title="All 2 branches covered.">                    resolved ? &quot;Report resolved&quot; : &quot;Report rejected&quot;,</span>
+<span class="fc" id="L177">                    &quot;Report &quot; + reportId + &quot; about a &quot; + label(report.getEntityType()) + &quot; was &quot;</span>
+<span class="fc bfc" id="L178" title="All 2 branches covered.">                            + (resolved ? &quot;resolved&quot; : &quot;rejected&quot;),</span>
+                    reportId);
+        }
+
+<span class="fc" id="L182">        return getReportDetail(reportId);</span>
+    }
+
+    /**
+     * Executes a direct moderation action against the reported entity.
+     * Reuses existing AdminService methods where available (block/unblock/delete user,
+     * archive/delete/visibility project, delete post) and repository-level flags otherwise.
+     * Every moderation action creates an audit log entry.
+     */
+    @Transactional
+    public AdminReportDetail moderate(String reportId, String requestedAction, String value, String adminId) {
+<span class="fc" id="L193">        Report report = getReport(reportId);</span>
+<span class="fc" id="L194">        ModerationAction action = parseAction(requestedAction);</span>
+<span class="fc" id="L195">        validateActionForType(action, report.getEntityType());</span>
+<span class="fc" id="L196">        String entityId = report.getEntityId();</span>
+
+<span class="pc bpc" id="L198" title="9 of 14 branches missed.">        switch (action) {</span>
+<span class="fc" id="L199">            case BLOCK_USER -&gt; adminService.setUserBlocked(entityId, true, adminId, null);</span>
+<span class="nc" id="L200">            case UNBLOCK_USER -&gt; adminService.setUserBlocked(entityId, false, adminId, null);</span>
+<span class="nc" id="L201">            case DELETE_USER -&gt; adminService.deleteUser(entityId, adminId);</span>
+<span class="nc" id="L202">            case ARCHIVE_PROJECT -&gt; adminService.archiveProject(entityId, adminId);</span>
+<span class="nc" id="L203">            case DELETE_PROJECT -&gt; adminService.deleteProject(entityId, adminId);</span>
+            case SET_VISIBILITY -&gt; {
+<span class="fc" id="L205">                String toggle = value;</span>
+<span class="pc bpc" id="L206" title="3 of 4 branches missed.">                if (toggle == null || toggle.isBlank()) {</span>
+<span class="fc" id="L207">                    Project project = projectRepository.findById(entityId)</span>
+<span class="pc" id="L208">                            .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Project&quot;, entityId));</span>
+<span class="pc bpc" id="L209" title="1 of 2 branches missed.">                    toggle = project.getVisibility() == Project.ProjectVisibility.PUBLIC ? &quot;PRIVATE&quot; : &quot;PUBLIC&quot;;</span>
+                }
+<span class="fc" id="L211">                adminService.setProjectVisibility(entityId, toggle, adminId);</span>
+<span class="fc" id="L212">            }</span>
+<span class="nc" id="L213">            case DELETE_POST -&gt; adminService.deletePost(entityId);</span>
+            case HIDE_POST -&gt; {
+<span class="fc" id="L215">                setPostHidden(entityId, true);</span>
+<span class="fc" id="L216">                auditLogService.record(adminId, report.getReporterId(), AuditAction.MODERATION_ACTION, AuditStatus.SUCCESS,</span>
+                        &quot;Hidden post &quot; + entityId + &quot; via report &quot; + reportId);
+<span class="fc" id="L218">            }</span>
+            case RESTORE_POST -&gt; {
+<span class="nc" id="L220">                setPostHidden(entityId, false);</span>
+<span class="nc" id="L221">                auditLogService.record(adminId, report.getReporterId(), AuditAction.MODERATION_ACTION, AuditStatus.SUCCESS,</span>
+                        &quot;Restored post &quot; + entityId + &quot; via report &quot; + reportId);
+<span class="nc" id="L223">            }</span>
+            case DELETE_COMMENT -&gt; {
+<span class="fc bfc" id="L225" title="All 2 branches covered.">                if (!commentRepository.existsById(entityId)) {</span>
+<span class="fc" id="L226">                    throw new ResourceNotFoundException(&quot;Comment&quot;, entityId);</span>
+                }
+<span class="fc" id="L228">                commentRepository.deleteById(entityId);</span>
+<span class="fc" id="L229">                auditLogService.record(adminId, report.getReporterId(), AuditAction.MODERATION_ACTION, AuditStatus.SUCCESS,</span>
+                        &quot;Deleted comment &quot; + entityId + &quot; via report &quot; + reportId);
+<span class="fc" id="L231">            }</span>
+            case RESTORE_COMMENT -&gt; {
+<span class="nc" id="L233">                setCommentHidden(entityId, false);</span>
+<span class="nc" id="L234">                auditLogService.record(adminId, report.getReporterId(), AuditAction.MODERATION_ACTION, AuditStatus.SUCCESS,</span>
+                        &quot;Restored comment &quot; + entityId + &quot; via report &quot; + reportId);
+<span class="nc" id="L236">            }</span>
+            case DELETE_MESSAGE -&gt; {
+<span class="nc bnc" id="L238" title="All 2 branches missed.">                if (!messageRepository.existsById(entityId)) {</span>
+<span class="nc" id="L239">                    throw new ResourceNotFoundException(&quot;Message&quot;, entityId);</span>
+                }
+<span class="nc" id="L241">                messageRepository.deleteById(entityId);</span>
+<span class="nc" id="L242">                auditLogService.record(adminId, report.getReporterId(), AuditAction.MODERATION_ACTION, AuditStatus.SUCCESS,</span>
+                        &quot;Deleted message &quot; + entityId + &quot; via report &quot; + reportId);
+<span class="nc" id="L244">            }</span>
+            case HIDE_MESSAGE -&gt; {
+<span class="fc" id="L246">                setMessageHidden(entityId, true);</span>
+<span class="fc" id="L247">                auditLogService.record(adminId, report.getReporterId(), AuditAction.MODERATION_ACTION, AuditStatus.SUCCESS,</span>
+                        &quot;Hidden message &quot; + entityId + &quot; via report &quot; + reportId);
+            }
+        }
+
+<span class="fc" id="L252">        return getReportDetail(reportId);</span>
+    }
+
+    private void setPostHidden(String postId, boolean hidden) {
+<span class="fc" id="L256">        Post post = postRepository.findById(postId)</span>
+<span class="pc" id="L257">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Post&quot;, postId));</span>
+<span class="fc" id="L258">        post.setHidden(hidden);</span>
+<span class="fc" id="L259">        postRepository.save(post);</span>
+<span class="fc" id="L260">    }</span>
+
+    private void setCommentHidden(String commentId, boolean hidden) {
+<span class="nc" id="L263">        Comment comment = commentRepository.findById(commentId)</span>
+<span class="nc" id="L264">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Comment&quot;, commentId));</span>
+<span class="nc" id="L265">        comment.setHidden(hidden);</span>
+<span class="nc" id="L266">        commentRepository.save(comment);</span>
+<span class="nc" id="L267">    }</span>
+
+    private void setMessageHidden(String messageId, boolean hidden) {
+<span class="fc" id="L270">        Message message = messageRepository.findById(messageId)</span>
+<span class="pc" id="L271">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Message&quot;, messageId));</span>
+<span class="fc" id="L272">        message.setHidden(hidden);</span>
+<span class="fc" id="L273">        messageRepository.save(message);</span>
+<span class="fc" id="L274">    }</span>
+
+    private void validateActionForType(ModerationAction action, ReportEntityType type) {
+<span class="fc bfc" id="L277" title="All 5 branches covered.">        boolean valid = switch (type) {</span>
+<span class="pc bpc" id="L278" title="2 of 6 branches missed.">            case USER -&gt; action == ModerationAction.BLOCK_USER</span>
+                    || action == ModerationAction.UNBLOCK_USER
+                    || action == ModerationAction.DELETE_USER;
+<span class="pc bpc" id="L281" title="2 of 6 branches missed.">            case PROJECT -&gt; action == ModerationAction.ARCHIVE_PROJECT</span>
+                    || action == ModerationAction.DELETE_PROJECT
+                    || action == ModerationAction.SET_VISIBILITY;
+<span class="pc bpc" id="L284" title="4 of 6 branches missed.">            case POST -&gt; action == ModerationAction.DELETE_POST</span>
+                    || action == ModerationAction.HIDE_POST
+                    || action == ModerationAction.RESTORE_POST;
+<span class="pc bpc" id="L287" title="3 of 4 branches missed.">            case COMMENT -&gt; action == ModerationAction.DELETE_COMMENT</span>
+                    || action == ModerationAction.RESTORE_COMMENT;
+<span class="pc bpc" id="L289" title="2 of 4 branches missed.">            case MESSAGE -&gt; action == ModerationAction.DELETE_MESSAGE</span>
+                    || action == ModerationAction.HIDE_MESSAGE;
+        };
+<span class="fc bfc" id="L292" title="All 2 branches covered.">        if (!valid) {</span>
+<span class="fc" id="L293">            throw new IllegalArgumentException(&quot;Action &quot; + action + &quot; is not valid for &quot; + label(type) + &quot; reports&quot;);</span>
+        }
+<span class="fc" id="L295">    }</span>
+
+    private Report getReport(String reportId) {
+<span class="fc" id="L298">        return reportRepository.findById(reportId)</span>
+<span class="fc" id="L299">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Report&quot;, reportId));</span>
+    }
+
+    private Map&lt;String, User&gt; reporterMap(List&lt;Report&gt; reports) {
+<span class="fc" id="L303">        Set&lt;String&gt; ids = reports.stream().map(Report::getReporterId).collect(Collectors.toSet());</span>
+<span class="pc bpc" id="L304" title="1 of 2 branches missed.">        if (ids.isEmpty()) return Collections.emptyMap();</span>
+<span class="fc" id="L305">        return userRepository.findAllById(ids).stream()</span>
+<span class="fc" id="L306">                .collect(Collectors.toMap(User::getId, u -&gt; u));</span>
+    }
+
+    /**
+     * Batch-loads display titles for all reported entities on the page
+     * (one query per entity type - no N+1).
+     */
+    private Map&lt;String, String&gt; entityTitles(List&lt;Report&gt; reports) {
+<span class="pc bpc" id="L314" title="1 of 2 branches missed.">        if (reports.isEmpty()) return Collections.emptyMap();</span>
+
+<span class="fc" id="L316">        Map&lt;String, String&gt; titles = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L317">        Set&lt;String&gt; userIds = reports.stream()</span>
+<span class="pc bpc" id="L318" title="1 of 2 branches missed.">                .filter(r -&gt; r.getEntityType() == ReportEntityType.USER)</span>
+<span class="fc" id="L319">                .map(Report::getEntityId).collect(Collectors.toSet());</span>
+<span class="fc" id="L320">        Set&lt;String&gt; projectIds = reports.stream()</span>
+<span class="pc bpc" id="L321" title="1 of 2 branches missed.">                .filter(r -&gt; r.getEntityType() == ReportEntityType.PROJECT)</span>
+<span class="fc" id="L322">                .map(Report::getEntityId).collect(Collectors.toSet());</span>
+<span class="fc" id="L323">        Set&lt;String&gt; postIds = reports.stream()</span>
+<span class="pc bpc" id="L324" title="1 of 2 branches missed.">                .filter(r -&gt; r.getEntityType() == ReportEntityType.POST)</span>
+<span class="fc" id="L325">                .map(Report::getEntityId).collect(Collectors.toSet());</span>
+<span class="fc" id="L326">        Set&lt;String&gt; commentIds = reports.stream()</span>
+<span class="pc bpc" id="L327" title="1 of 2 branches missed.">                .filter(r -&gt; r.getEntityType() == ReportEntityType.COMMENT)</span>
+<span class="fc" id="L328">                .map(Report::getEntityId).collect(Collectors.toSet());</span>
+<span class="fc" id="L329">        Set&lt;String&gt; messageIds = reports.stream()</span>
+<span class="pc bpc" id="L330" title="1 of 2 branches missed.">                .filter(r -&gt; r.getEntityType() == ReportEntityType.MESSAGE)</span>
+<span class="fc" id="L331">                .map(Report::getEntityId).collect(Collectors.toSet());</span>
+
+<span class="pc bpc" id="L333" title="1 of 2 branches missed.">        if (!userIds.isEmpty()) {</span>
+<span class="fc" id="L334">            userRepository.findAllById(userIds)</span>
+<span class="fc" id="L335">                    .forEach(u -&gt; titles.put(u.getId(), u.getFullName()));</span>
+        }
+<span class="pc bpc" id="L337" title="1 of 2 branches missed.">        if (!projectIds.isEmpty()) {</span>
+<span class="nc" id="L338">            projectRepository.findAllById(projectIds)</span>
+<span class="nc" id="L339">                    .forEach(p -&gt; titles.put(p.getId(), p.getName()));</span>
+        }
+<span class="pc bpc" id="L341" title="1 of 2 branches missed.">        if (!postIds.isEmpty()) {</span>
+<span class="nc" id="L342">            postRepository.findAllById(postIds)</span>
+<span class="nc" id="L343">                    .forEach(p -&gt; titles.put(p.getId(), snippet(p.getContent())));</span>
+        }
+<span class="pc bpc" id="L345" title="1 of 2 branches missed.">        if (!commentIds.isEmpty()) {</span>
+<span class="nc" id="L346">            commentRepository.findAllById(commentIds)</span>
+<span class="nc" id="L347">                    .forEach(c -&gt; titles.put(c.getId(), snippet(c.getContent())));</span>
+        }
+<span class="pc bpc" id="L349" title="1 of 2 branches missed.">        if (!messageIds.isEmpty()) {</span>
+<span class="nc" id="L350">            messageRepository.findAllById(messageIds)</span>
+<span class="nc" id="L351">                    .forEach(m -&gt; titles.put(m.getId(), snippet(m.getContent())));</span>
+        }
+<span class="fc" id="L353">        return titles;</span>
+    }
+
+    private String resolveEntityTitle(ReportEntityType type, String entityId) {
+<span class="fc bfc" id="L357" title="All 5 branches covered.">        return switch (type) {</span>
+<span class="fc" id="L358">            case USER -&gt; userRepository.findById(entityId).map(User::getFullName).orElse(&quot;Unknown user&quot;);</span>
+<span class="fc" id="L359">            case PROJECT -&gt; projectRepository.findById(entityId).map(Project::getName).orElse(&quot;Unknown project&quot;);</span>
+<span class="fc" id="L360">            case POST -&gt; postRepository.findById(entityId).map(p -&gt; snippet(p.getContent())).orElse(&quot;Unknown post&quot;);</span>
+<span class="pc" id="L361">            case COMMENT -&gt; commentRepository.findById(entityId).map(c -&gt; snippet(c.getContent())).orElse(&quot;Unknown comment&quot;);</span>
+<span class="fc" id="L362">            case MESSAGE -&gt; messageRepository.findById(entityId).map(m -&gt; snippet(m.getContent())).orElse(&quot;Unknown message&quot;);</span>
+        };
+    }
+
+    private String resolveEntityOwnerName(ReportEntityType type, String entityId) {
+<span class="fc bfc" id="L367" title="All 5 branches covered.">        return switch (type) {</span>
+<span class="fc" id="L368">            case USER -&gt; userRepository.findById(entityId).map(User::getFullName).orElse(null);</span>
+<span class="fc" id="L369">            case PROJECT -&gt; projectRepository.findById(entityId)</span>
+<span class="fc" id="L370">                    .flatMap(p -&gt; userRepository.findById(p.getOwnerId())).map(User::getFullName).orElse(null);</span>
+<span class="fc" id="L371">            case POST -&gt; postRepository.findById(entityId)</span>
+<span class="fc" id="L372">                    .flatMap(p -&gt; userRepository.findById(p.getUserId())).map(User::getFullName).orElse(null);</span>
+<span class="fc" id="L373">            case COMMENT -&gt; commentRepository.findById(entityId)</span>
+<span class="pc" id="L374">                    .flatMap(c -&gt; userRepository.findById(c.getUserId())).map(User::getFullName).orElse(null);</span>
+<span class="fc" id="L375">            case MESSAGE -&gt; messageRepository.findById(entityId)</span>
+<span class="fc" id="L376">                    .flatMap(m -&gt; userRepository.findById(m.getSenderId())).map(User::getFullName).orElse(null);</span>
+        };
+    }
+
+    private String resolveEntityOwnerId(ReportEntityType type, String entityId) {
+<span class="fc bfc" id="L381" title="All 5 branches covered.">        return switch (type) {</span>
+<span class="fc" id="L382">            case USER -&gt; entityId;</span>
+<span class="fc" id="L383">            case PROJECT -&gt; projectRepository.findById(entityId).map(Project::getOwnerId).orElse(null);</span>
+<span class="fc" id="L384">            case POST -&gt; postRepository.findById(entityId).map(Post::getUserId).orElse(null);</span>
+<span class="fc" id="L385">            case COMMENT -&gt; commentRepository.findById(entityId).map(Comment::getUserId).orElse(null);</span>
+<span class="fc" id="L386">            case MESSAGE -&gt; messageRepository.findById(entityId).map(Message::getSenderId).orElse(null);</span>
+        };
+    }
+
+    private AdminReportListItem toListItem(Report r, User reporter, String entityTitle) {
+<span class="fc" id="L391">        return AdminReportListItem.builder()</span>
+<span class="fc" id="L392">                .id(r.getId())</span>
+<span class="fc" id="L393">                .reporter(toReporter(reporter, r.getReporterId()))</span>
+<span class="fc" id="L394">                .entityType(r.getEntityType().name())</span>
+<span class="fc" id="L395">                .entityId(r.getEntityId())</span>
+<span class="pc bpc" id="L396" title="1 of 2 branches missed.">                .entityTitle(entityTitle != null ? entityTitle : &quot;Unknown&quot;)</span>
+<span class="fc" id="L397">                .reason(r.getReason().name())</span>
+<span class="fc" id="L398">                .status(r.getStatus().name())</span>
+<span class="fc" id="L399">                .createdAt(r.getCreatedAt())</span>
+<span class="fc" id="L400">                .build();</span>
+    }
+
+    private AdminReportDetail toDetail(Report r, User reporter, User reviewer, String entityTitle, String ownerName) {
+<span class="fc" id="L404">        return AdminReportDetail.builder()</span>
+<span class="fc" id="L405">                .id(r.getId())</span>
+<span class="fc" id="L406">                .reporter(toReporter(reporter, r.getReporterId()))</span>
+<span class="fc" id="L407">                .entityType(r.getEntityType().name())</span>
+<span class="fc" id="L408">                .entityId(r.getEntityId())</span>
+<span class="pc bpc" id="L409" title="1 of 2 branches missed.">                .entityTitle(entityTitle != null ? entityTitle : &quot;Unknown&quot;)</span>
+<span class="fc" id="L410">                .entityOwnerId(resolveEntityOwnerId(r.getEntityType(), r.getEntityId()))</span>
+<span class="fc" id="L411">                .entityOwnerName(ownerName)</span>
+<span class="fc" id="L412">                .reason(r.getReason().name())</span>
+<span class="fc" id="L413">                .description(r.getDescription())</span>
+<span class="fc" id="L414">                .status(r.getStatus().name())</span>
+<span class="fc" id="L415">                .reviewedBy(r.getReviewedBy())</span>
+<span class="fc bfc" id="L416" title="All 2 branches covered.">                .reviewedByName(reviewer != null ? reviewer.getFullName() : null)</span>
+<span class="fc" id="L417">                .reviewedAt(r.getReviewedAt())</span>
+<span class="fc" id="L418">                .createdAt(r.getCreatedAt())</span>
+<span class="fc" id="L419">                .updatedAt(r.getUpdatedAt())</span>
+<span class="fc" id="L420">                .build();</span>
+    }
+
+    private ReporterDto toReporter(User reporter, String fallbackId) {
+<span class="fc bfc" id="L424" title="All 2 branches covered.">        if (reporter == null) {</span>
+<span class="fc" id="L425">            return ReporterDto.builder().id(fallbackId).fullName(&quot;Unknown&quot;).build();</span>
+        }
+<span class="fc" id="L427">        return ReporterDto.builder()</span>
+<span class="fc" id="L428">                .id(reporter.getId())</span>
+<span class="fc" id="L429">                .fullName(reporter.getFullName())</span>
+<span class="fc" id="L430">                .email(reporter.getEmail())</span>
+<span class="fc" id="L431">                .username(reporter.getUsername())</span>
+<span class="fc" id="L432">                .avatarUrl(reporter.getAvatarUrl())</span>
+<span class="fc" id="L433">                .build();</span>
+    }
+
+    private String snippet(String content) {
+<span class="pc bpc" id="L437" title="1 of 2 branches missed.">        if (content == null) return &quot;&quot;;</span>
+<span class="fc" id="L438">        String trimmed = content.trim().replaceAll(&quot;\\s+&quot;, &quot; &quot;);</span>
+<span class="pc bpc" id="L439" title="1 of 2 branches missed.">        return trimmed.length() &gt; 60 ? trimmed.substring(0, 60) + &quot;...&quot; : trimmed;</span>
+    }
+
+    private String label(ReportEntityType type) {
+<span class="pc bpc" id="L443" title="3 of 5 branches missed.">        return switch (type) {</span>
+<span class="fc" id="L444">            case USER -&gt; &quot;user&quot;;</span>
+<span class="fc" id="L445">            case PROJECT -&gt; &quot;project&quot;;</span>
+<span class="nc" id="L446">            case POST -&gt; &quot;post&quot;;</span>
+<span class="nc" id="L447">            case COMMENT -&gt; &quot;comment&quot;;</span>
+<span class="nc" id="L448">            case MESSAGE -&gt; &quot;message&quot;;</span>
+        };
+    }
+
+    private ReportStatus parseStatusFilter(String raw) {
+<span class="pc bpc" id="L453" title="3 of 4 branches missed.">        if (raw == null || raw.isBlank()) return null;</span>
+        try {
+<span class="nc" id="L455">            return ReportStatus.valueOf(raw.trim().toUpperCase());</span>
+<span class="nc" id="L456">        } catch (IllegalArgumentException e) {</span>
+<span class="nc" id="L457">            throw new IllegalArgumentException(&quot;Invalid status filter: &quot; + raw);</span>
+        }
+    }
+
+    private ReportReason parseReasonFilter(String raw) {
+<span class="pc bpc" id="L462" title="3 of 4 branches missed.">        if (raw == null || raw.isBlank()) return null;</span>
+        try {
+<span class="nc" id="L464">            return ReportReason.valueOf(raw.trim().toUpperCase());</span>
+<span class="nc" id="L465">        } catch (IllegalArgumentException e) {</span>
+<span class="nc" id="L466">            throw new IllegalArgumentException(&quot;Invalid reason filter: &quot; + raw);</span>
+        }
+    }
+
+    private ReportEntityType parseEntityTypeFilter(String raw) {
+<span class="pc bpc" id="L471" title="3 of 4 branches missed.">        if (raw == null || raw.isBlank()) return null;</span>
+        try {
+<span class="nc" id="L473">            return ReportEntityType.valueOf(raw.trim().toUpperCase());</span>
+<span class="nc" id="L474">        } catch (IllegalArgumentException e) {</span>
+<span class="nc" id="L475">            throw new IllegalArgumentException(&quot;Invalid entity type filter: &quot; + raw);</span>
+        }
+    }
+
+    private ReportStatus parseReviewStatus(String raw) {
+<span class="pc bpc" id="L480" title="2 of 4 branches missed.">        if (raw == null || raw.isBlank()) {</span>
+<span class="nc" id="L481">            throw new IllegalArgumentException(&quot;Status is required&quot;);</span>
+        }
+        try {
+<span class="fc" id="L484">            ReportStatus status = ReportStatus.valueOf(raw.trim().toUpperCase());</span>
+<span class="fc bfc" id="L485" title="All 2 branches covered.">            if (status == ReportStatus.PENDING) {</span>
+<span class="fc" id="L486">                throw new IllegalArgumentException(&quot;Cannot set a report back to PENDING&quot;);</span>
+            }
+<span class="fc" id="L488">            return status;</span>
+<span class="fc" id="L489">        } catch (IllegalArgumentException e) {</span>
+<span class="pc bpc" id="L490" title="2 of 4 branches missed.">            if (e.getMessage() != null &amp;&amp; e.getMessage().startsWith(&quot;Cannot&quot;)) throw e;</span>
+<span class="nc" id="L491">            throw new IllegalArgumentException(&quot;Invalid status: &quot; + raw);</span>
+        }
+    }
+
+    private ModerationAction parseAction(String raw) {
+<span class="pc bpc" id="L496" title="2 of 4 branches missed.">        if (raw == null || raw.isBlank()) {</span>
+<span class="nc" id="L497">            throw new IllegalArgumentException(&quot;Action is required&quot;);</span>
+        }
+        try {
+<span class="fc" id="L500">            return ModerationAction.valueOf(raw.trim().toUpperCase());</span>
+<span class="nc" id="L501">        } catch (IllegalArgumentException e) {</span>
+<span class="nc" id="L502">            throw new IllegalArgumentException(&quot;Invalid moderation action: &quot; + raw);</span>
+        }
+    }
+
+    private String normalizeSortField(String sortBy) {
+<span class="pc bpc" id="L507" title="3 of 4 branches missed.">        if (sortBy == null || sortBy.isBlank()) return &quot;createdAt&quot;;</span>
+<span class="nc bnc" id="L508" title="All 5 branches missed.">        return switch (sortBy.toLowerCase()) {</span>
+<span class="nc" id="L509">            case &quot;status&quot; -&gt; &quot;status&quot;;</span>
+<span class="nc" id="L510">            case &quot;reason&quot; -&gt; &quot;reason&quot;;</span>
+<span class="nc" id="L511">            case &quot;entitytype&quot; -&gt; &quot;entityType&quot;;</span>
+<span class="nc" id="L512">            case &quot;updatedat&quot;, &quot;updated&quot; -&gt; &quot;updatedAt&quot;;</span>
+<span class="nc" id="L513">            default -&gt; &quot;createdAt&quot;;</span>
+        };
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SearchService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">DevSync Backend</a> &gt; <a href="index.source.html" class="el_package">com.devsync.search</a> &gt; <span class="el_source">SearchService.java</span></div><h1>SearchService.java</h1><pre class="source lang-java linenums">package com.devsync.search;
+
+import com.devsync.feed.entity.Post;
+import com.devsync.feed.repository.PostRepository;
+import com.devsync.kanban.entity.Task;
+import com.devsync.kanban.repository.TaskRepository;
+import com.devsync.message.entity.Message;
+import com.devsync.message.repository.MessageRepository;
+import com.devsync.project.entity.Project;
+import com.devsync.project.repository.ProjectRepository;
+import com.devsync.search.dto.SearchResponse;
+import com.devsync.search.dto.SearchResultItem;
+import com.devsync.search.entity.RecentSearch;
+import com.devsync.search.repository.RecentSearchRepository;
+import com.devsync.teamroom.entity.TeamRoom;
+import com.devsync.teamroom.repository.TeamRoomRepository;
+import com.devsync.user.entity.User;
+import com.devsync.user.repository.UserRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Locale;
+
+@Service
+@RequiredArgsConstructor
+public class SearchService {
+
+<span class="fc" id="L34">    private static final List&lt;String&gt; TYPES = List.of(&quot;PROJECT&quot;, &quot;TASK&quot;, &quot;USER&quot;, &quot;TEAM&quot;, &quot;POST&quot;, &quot;MESSAGE&quot;);</span>
+    private static final int CAP = 50;
+
+    private final ProjectRepository projectRepository;
+    private final TaskRepository taskRepository;
+    private final UserRepository userRepository;
+    private final TeamRoomRepository teamRoomRepository;
+    private final PostRepository postRepository;
+    private final MessageRepository messageRepository;
+    private final RecentSearchRepository recentSearchRepository;
+
+    @Transactional(readOnly = true)
+    public SearchResponse search(String keyword, String type, int page, int size, String userId) {
+<span class="pc bpc" id="L47" title="1 of 2 branches missed.">        String kw = keyword == null ? &quot;&quot; : keyword.trim();</span>
+<span class="fc bfc" id="L48" title="All 2 branches covered.">        if (kw.length() &lt; 2) {</span>
+<span class="fc" id="L49">            return SearchResponse.builder().items(List.of()).page(page).size(size).total(0).totalPages(0).build();</span>
+        }
+<span class="fc" id="L51">        recordRecent(userId, kw);</span>
+
+<span class="fc" id="L53">        int safePage = Math.max(page, 0);</span>
+<span class="fc" id="L54">        int safeSize = Math.min(Math.max(size, 1), 50);</span>
+<span class="fc" id="L55">        String lower = kw.toLowerCase(Locale.ROOT);</span>
+<span class="pc bpc" id="L56" title="1 of 2 branches missed.">        String requestedType = type == null ? &quot;&quot; : type.toUpperCase(Locale.ROOT);</span>
+
+<span class="fc" id="L58">        List&lt;SearchResultItem&gt; all = new ArrayList&lt;&gt;();</span>
+<span class="pc bpc" id="L59" title="2 of 4 branches missed.">        if (requestedType.isEmpty() || requestedType.equals(&quot;PROJECT&quot;)) {</span>
+<span class="fc" id="L60">            projectRepository.searchProjectsForUser(kw, userId, Project.ProjectVisibility.PUBLIC, PageRequest.of(0, CAP))</span>
+<span class="fc" id="L61">                    .forEach(p -&gt; all.add(SearchResultItem.builder()</span>
+<span class="fc" id="L62">                            .type(&quot;PROJECT&quot;).id(p.getId()).title(p.getName())</span>
+<span class="pc bpc" id="L63" title="1 of 2 branches missed.">                            .subtitle(p.getDescription() != null ? p.getDescription() : &quot;Project&quot;)</span>
+<span class="fc" id="L64">                            .url(&quot;/board/&quot; + p.getId()).build()));</span>
+        }
+<span class="pc bpc" id="L66" title="2 of 4 branches missed.">        if (requestedType.isEmpty() || requestedType.equals(&quot;TASK&quot;)) {</span>
+<span class="nc" id="L67">            taskRepository.searchTasksForUser(kw, userId, PageRequest.of(0, CAP))</span>
+<span class="nc" id="L68">                    .forEach(t -&gt; all.add(SearchResultItem.builder()</span>
+<span class="nc" id="L69">                            .type(&quot;TASK&quot;).id(t.getId()).title(t.getTitle())</span>
+<span class="nc" id="L70">                            .subtitle(&quot;Task&quot;)</span>
+<span class="nc" id="L71">                            .url(&quot;/board/&quot; + t.getBoardId()).build()));</span>
+        }
+<span class="pc bpc" id="L73" title="2 of 4 branches missed.">        if (requestedType.isEmpty() || requestedType.equals(&quot;USER&quot;)) {</span>
+<span class="nc" id="L74">            userRepository.searchUsers(kw, userId).stream().limit(CAP)</span>
+<span class="nc" id="L75">                    .forEach(u -&gt; all.add(SearchResultItem.builder()</span>
+<span class="nc" id="L76">                            .type(&quot;USER&quot;).id(u.getId()).title(u.getFullName())</span>
+<span class="nc bnc" id="L77" title="All 2 branches missed.">                            .subtitle(&quot;@&quot; + (u.getUsername() != null ? u.getUsername() : u.getEmail()))</span>
+<span class="nc" id="L78">                            .url(&quot;/user/&quot; + u.getId()).build()));</span>
+        }
+<span class="pc bpc" id="L80" title="2 of 4 branches missed.">        if (requestedType.isEmpty() || requestedType.equals(&quot;TEAM&quot;)) {</span>
+<span class="nc" id="L81">            teamRoomRepository.searchRoomsForUser(kw, userId, PageRequest.of(0, CAP))</span>
+<span class="nc" id="L82">                    .forEach(r -&gt; all.add(SearchResultItem.builder()</span>
+<span class="nc" id="L83">                            .type(&quot;TEAM&quot;).id(r.getId()).title(r.getName())</span>
+<span class="nc" id="L84">                            .subtitle(&quot;Team room&quot;)</span>
+<span class="nc" id="L85">                            .url(&quot;/messages/room_&quot; + r.getId()).build()));</span>
+        }
+<span class="pc bpc" id="L87" title="2 of 4 branches missed.">        if (requestedType.isEmpty() || requestedType.equals(&quot;POST&quot;)) {</span>
+<span class="nc" id="L88">            postRepository.searchPosts(kw, PageRequest.of(0, CAP))</span>
+<span class="nc" id="L89">                    .forEach(p -&gt; all.add(SearchResultItem.builder()</span>
+<span class="nc" id="L90">                            .type(&quot;POST&quot;).id(p.getId()).title(snippet(p.getContent()))</span>
+<span class="nc" id="L91">                            .subtitle(&quot;Post&quot;)</span>
+<span class="nc" id="L92">                            .url(&quot;/feed&quot;).build()));</span>
+        }
+<span class="pc bpc" id="L94" title="2 of 4 branches missed.">        if (requestedType.isEmpty() || requestedType.equals(&quot;MESSAGE&quot;)) {</span>
+<span class="nc" id="L95">            messageRepository.searchMessagesForUser(kw, userId, PageRequest.of(0, CAP))</span>
+<span class="nc" id="L96">                    .forEach(m -&gt; all.add(SearchResultItem.builder()</span>
+<span class="nc" id="L97">                            .type(&quot;MESSAGE&quot;).id(m.getId()).title(snippet(m.getContent()))</span>
+<span class="nc" id="L98">                            .subtitle(&quot;Message&quot;)</span>
+<span class="nc" id="L99">                            .url(&quot;/messages&quot;).build()));</span>
+        }
+
+        // Sort: exact prefix matches first, then alphabetically
+<span class="fc" id="L103">        all.sort(Comparator</span>
+<span class="pc bnc" id="L104" title="All 2 branches missed.">                .comparing((SearchResultItem i) -&gt; i.getTitle().toLowerCase(Locale.ROOT).startsWith(lower) ? 0 : 1)</span>
+<span class="pc" id="L105">                .thenComparing(i -&gt; i.getTitle().toLowerCase(Locale.ROOT)));</span>
+
+<span class="fc" id="L107">        int total = all.size();</span>
+<span class="fc" id="L108">        int from = Math.min(safePage * safeSize, total);</span>
+<span class="fc" id="L109">        int to = Math.min(from + safeSize, total);</span>
+<span class="pc bpc" id="L110" title="1 of 2 branches missed.">        int totalPages = safeSize == 0 ? 0 : (int) Math.ceil((double) total / safeSize);</span>
+
+<span class="fc" id="L112">        return SearchResponse.builder()</span>
+<span class="fc" id="L113">                .items(all.subList(from, to))</span>
+<span class="fc" id="L114">                .page(safePage).size(safeSize).total(total).totalPages(totalPages)</span>
+<span class="fc" id="L115">                .build();</span>
+    }
+
+    @Transactional
+    public void recordRecent(String userId, String keyword) {
+<span class="pc bpc" id="L120" title="2 of 4 branches missed.">        if (keyword == null || keyword.isBlank()) return;</span>
+<span class="fc" id="L121">        recentSearchRepository.findByUserIdAndKeyword(userId, keyword).ifPresent(recentSearchRepository::delete);</span>
+<span class="fc" id="L122">        recentSearchRepository.save(RecentSearch.builder().userId(userId).keyword(keyword).build());</span>
+<span class="fc" id="L123">    }</span>
+
+    @Transactional(readOnly = true)
+    public List&lt;String&gt; getRecent(String userId) {
+<span class="fc" id="L127">        return recentSearchRepository.findTop10ByUserIdOrderByCreatedAtDesc(userId).stream()</span>
+<span class="fc" id="L128">                .map(RecentSearch::getKeyword)</span>
+<span class="fc" id="L129">                .toList();</span>
+    }
+
+    @Transactional
+    public void clearRecent(String userId) {
+<span class="fc" id="L134">        recentSearchRepository.deleteByUserId(userId);</span>
+<span class="fc" id="L135">    }</span>
+
+    private String snippet(String content) {
+<span class="nc bnc" id="L138" title="All 2 branches missed.">        if (content == null) return &quot;&quot;;</span>
+<span class="nc" id="L139">        String t = content.trim().replaceAll(&quot;\\s+&quot;, &quot; &quot;);</span>
+<span class="nc bnc" id="L140" title="All 2 branches missed.">        return t.length() &gt; 80 ? t.substring(0, 80) + &quot;...&quot; : t;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

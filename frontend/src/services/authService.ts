@@ -22,7 +22,8 @@ export interface UserDto {
 
 export interface AuthResponse {
   accessToken: string;
-  refreshToken: string;
+  /** Never populated in browser responses — the refresh token lives in an HttpOnly cookie. */
+  refreshToken?: string;
   tokenType: string;
   user: {
     id: string;
@@ -50,9 +51,15 @@ export const authService = {
     return res.data;
   },
 
-  async refresh(refreshToken: string): Promise<AuthResponse> {
-    const res = await api.post("/auth/refresh", { refreshToken });
+  async refresh(): Promise<AuthResponse> {
+    // The refresh token is sent automatically via the HttpOnly cookie.
+    const res = await api.post("/auth/refresh", {});
     return res.data;
+  },
+
+  async logout(): Promise<void> {
+    // Revokes the refresh token server-side and clears the cookie.
+    await api.post("/auth/logout", {});
   },
 
   async sendOtp(email: string): Promise<void> {
@@ -64,30 +71,20 @@ export const authService = {
     return res.data;
   },
 
-  async oauthCallback(data: {
-    email: string;
-    fullName: string;
-    avatarUrl?: string;
-    provider: string;
-  }): Promise<AuthResponse> {
-    const res = await api.post("/auth/oauth/callback", data);
-    return res.data;
-  },
-
   async getMe(): Promise<UserDto> {
     const res = await api.get("/auth/me");
     return res.data;
   },
 
   saveSession(response: AuthResponse) {
+    // Only the short-lived access token and the user profile live in localStorage.
+    // The refresh token is an HttpOnly cookie and never touches JavaScript.
     localStorage.setItem("accessToken", response.accessToken);
-    localStorage.setItem("refreshToken", response.refreshToken);
     localStorage.setItem("user", JSON.stringify(response.user));
   },
 
   clearSession() {
     localStorage.removeItem("accessToken");
-    localStorage.removeItem("refreshToken");
     localStorage.removeItem("user");
   },
 
@@ -101,7 +98,7 @@ export const authService = {
   },
 
   async forgotPassword(email: string): Promise<void> {
-    console.warn("Forgot password not yet implemented on the server");
+    console.warn(`Forgot password not yet implemented on the server (${email})`);
     // Endpoint will be added in a future update
   },
 

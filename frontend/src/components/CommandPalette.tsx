@@ -11,7 +11,6 @@ import {
   Search,
   Settings,
   MessageCircle,
-  Code2,
   Command,
   ArrowRight,
 } from "lucide-react";

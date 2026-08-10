@@ -19,17 +19,11 @@ import {
   Ban,
   Trash2,
   Archive,
-  ArchiveRestore,
   Globe,
-  Lock,
   EyeOff,
   Undo2,
-  Shield,
   ShieldAlert,
   Inbox,
-  FileText,
-  ShieldCheck,
-  Mail,
 } from "lucide-react";
 import {
   adminService,
@@ -42,7 +36,7 @@ import {
   type ReportReason,
   type ReportStatus,
 } from "@/services/adminService";
-import { useAuth } from "@/contexts/AuthContext";
+
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -130,7 +124,6 @@ function formatDateTime(iso?: string | null): string {
 }
 
 export default function AdminReports() {
-  const { user } = useAuth();
   const [data, setData] = useState<PageResponse<AdminReportListItem> | null>(null);
   const [stats, setStats] = useState<AdminReportStats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -165,7 +158,7 @@ export default function AdminReports() {
       ]);
       setData(pageRes);
       setStats(statsRes);
-    } catch (e) {
+    } catch {
       setError("Failed to load reports");
     } finally {
       setLoading(false);
@@ -558,23 +551,25 @@ export default function AdminReports() {
                   </div>
                 </div>
 
-                {/* Workflow */}
-                <div>
-                  <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-2">Workflow</p>
-                  <div className="flex flex-wrap gap-2">
-                    {selected.status === "PENDING" && (
-                      <Button size="sm" variant="outline" disabled={actionLoading} onClick={() => setStatus("UNDER_REVIEW")}>
-                        <Eye className="w-3.5 h-3.5 mr-1" /> Start Review
+                {/* Workflow — only show actionable buttons for non-terminal states */}
+                {selected.status !== "RESOLVED" && selected.status !== "REJECTED" && (
+                  <div>
+                    <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-2">Workflow</p>
+                    <div className="flex flex-wrap gap-2">
+                      {selected.status === "PENDING" && (
+                        <Button size="sm" variant="outline" disabled={actionLoading} onClick={() => setStatus("UNDER_REVIEW")}>
+                          <Eye className="w-3.5 h-3.5 mr-1" /> Start Review
+                        </Button>
+                      )}
+                      <Button size="sm" variant="outline" disabled={actionLoading} onClick={() => setStatus("RESOLVED")}>
+                        <CheckCircle2 className="w-3.5 h-3.5 mr-1 text-emerald-500" /> Resolve
                       </Button>
-                    )}
-                    <Button size="sm" variant="outline" disabled={actionLoading} onClick={() => setStatus("RESOLVED")}>
-                      <CheckCircle2 className="w-3.5 h-3.5 mr-1 text-emerald-500" /> Resolve
-                    </Button>
-                    <Button size="sm" variant="outline" disabled={actionLoading} onClick={() => setStatus("REJECTED")}>
-                      <XCircle className="w-3.5 h-3.5 mr-1 text-red-500" /> Reject
-                    </Button>
+                      <Button size="sm" variant="outline" disabled={actionLoading} onClick={() => setStatus("REJECTED")}>
+                        <XCircle className="w-3.5 h-3.5 mr-1 text-red-500" /> Reject
+                      </Button>
+                    </div>
                   </div>
-                </div>
+                )}
 
                 {/* Moderation panel - dynamic per entity type */}
                 <div>

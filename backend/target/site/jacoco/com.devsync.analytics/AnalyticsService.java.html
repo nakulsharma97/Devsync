@@ -1,0 +1,265 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AnalyticsService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">DevSync Backend</a> &gt; <a href="index.source.html" class="el_package">com.devsync.analytics</a> &gt; <span class="el_source">AnalyticsService.java</span></div><h1>AnalyticsService.java</h1><pre class="source lang-java linenums">package com.devsync.analytics;
+
+import com.devsync.activity.entity.ActivityType;
+import com.devsync.activity.repository.ActivityRepository;
+import com.devsync.analytics.dto.AdminAnalyticsResponse;
+import com.devsync.analytics.dto.ProjectAnalyticsResponse;
+import com.devsync.analytics.dto.TrendPoint;
+import com.devsync.analytics.dto.UserContributionsResponse;
+import com.devsync.common.ResourceNotFoundException;
+import com.devsync.feed.repository.CommentRepository;
+import com.devsync.feed.repository.PostRepository;
+import com.devsync.kanban.entity.Board;
+import com.devsync.kanban.entity.BoardColumn;
+import com.devsync.kanban.entity.Task;
+import com.devsync.kanban.repository.BoardColumnRepository;
+import com.devsync.kanban.repository.BoardRepository;
+import com.devsync.kanban.repository.TaskRepository;
+import com.devsync.message.repository.MessageRepository;
+import com.devsync.presence.PresenceStatus;
+import com.devsync.project.entity.Project;
+import com.devsync.project.entity.ProjectMember;
+import com.devsync.project.repository.ProjectMemberRepository;
+import com.devsync.project.repository.ProjectRepository;
+import com.devsync.report.repository.ReportRepository;
+import com.devsync.teamroom.entity.TeamRoom;
+import com.devsync.teamroom.repository.TeamRoomRepository;
+import com.devsync.user.entity.User;
+import com.devsync.user.repository.UserRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.Duration;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.YearMonth;
+import java.time.ZoneOffset;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+@Service
+@RequiredArgsConstructor
+public class AnalyticsService {
+
+    private static final int TREND_DAYS = 14;
+    private static final int GROWTH_MONTHS = 12;
+    private static final int HEATMAP_DAYS = 84;
+
+    private final ProjectRepository projectRepository;
+    private final ProjectMemberRepository memberRepository;
+    private final BoardRepository boardRepository;
+    private final BoardColumnRepository columnRepository;
+    private final TaskRepository taskRepository;
+    private final TeamRoomRepository teamRoomRepository;
+    private final MessageRepository messageRepository;
+    private final PostRepository postRepository;
+    private final CommentRepository commentRepository;
+    private final ActivityRepository activityRepository;
+    private final ReportRepository reportRepository;
+    private final UserRepository userRepository;
+
+    @Transactional(readOnly = true)
+    public ProjectAnalyticsResponse getProjectAnalytics(String projectId, String userId) {
+<span class="fc" id="L68">        Project project = projectRepository.findById(projectId)</span>
+<span class="pc bpc" id="L69" title="1 of 2 branches missed.">                .filter(p -&gt; !p.isDeleted())</span>
+<span class="pc" id="L70">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Project&quot;, projectId));</span>
+<span class="fc bfc" id="L71" title="All 2 branches covered.">        if (!canView(project, userId)) {</span>
+<span class="fc" id="L72">            throw new IllegalArgumentException(&quot;You are not a member of this project&quot;);</span>
+        }
+
+<span class="fc" id="L75">        List&lt;Board&gt; boards = boardRepository.findByProjectId(projectId);</span>
+<span class="fc" id="L76">        Set&lt;String&gt; boardIds = boards.stream().map(Board::getId).collect(Collectors.toSet());</span>
+<span class="fc bfc" id="L77" title="All 2 branches covered.">        List&lt;BoardColumn&gt; columns = boardIds.isEmpty() ? List.of() : columnRepository.findByBoardIdIn(boardIds);</span>
+<span class="fc" id="L78">        Set&lt;String&gt; doneColumnIds = columns.stream()</span>
+<span class="fc" id="L79">                .filter(c -&gt; isDone(c.getName()))</span>
+<span class="fc" id="L80">                .map(BoardColumn::getId)</span>
+<span class="fc" id="L81">                .collect(Collectors.toSet());</span>
+
+        // All task statistics are aggregated in the database - never loaded into memory.
+<span class="fc bfc" id="L84" title="All 2 branches covered.">        long total = boardIds.isEmpty() ? 0 : taskRepository.countByBoardIdIn(boardIds);</span>
+<span class="fc bfc" id="L85" title="All 2 branches covered.">        long completed = doneColumnIds.isEmpty() ? 0 : taskRepository.countByColumnIdIn(doneColumnIds);</span>
+<span class="fc" id="L86">        long pending = total - completed;</span>
+        long overdue;
+<span class="fc bfc" id="L88" title="All 2 branches covered.">        if (total == 0) {</span>
+<span class="fc" id="L89">            overdue = 0;</span>
+<span class="fc bfc" id="L90" title="All 2 branches covered.">        } else if (doneColumnIds.isEmpty()) {</span>
+<span class="fc" id="L91">            overdue = taskRepository.countByBoardIdInAndDueDateBefore(boardIds, Instant.now());</span>
+        } else {
+<span class="fc" id="L93">            overdue = taskRepository.countByBoardIdInAndColumnIdNotInAndDueDateBefore(</span>
+<span class="fc" id="L94">                    boardIds, doneColumnIds, Instant.now());</span>
+        }
+<span class="fc bfc" id="L96" title="All 2 branches covered.">        int completionPct = total == 0 ? 0 : (int) Math.round(completed * 100.0 / total);</span>
+<span class="fc bfc" id="L97" title="All 2 branches covered.">        Map&lt;String, Long&gt; tasksPerMember = boardIds.isEmpty()</span>
+<span class="fc" id="L98">                ? Map.of()</span>
+<span class="fc" id="L99">                : taskRepository.countGroupedByAssignee(boardIds).stream()</span>
+<span class="fc" id="L100">                        .collect(Collectors.toMap(row -&gt; (String) row[0], row -&gt; (Long) row[1]));</span>
+
+<span class="fc" id="L102">        List&lt;String&gt; roomIds = teamRoomRepository.findByProjectId(projectId).stream()</span>
+<span class="fc" id="L103">                .map(TeamRoom::getId).toList();</span>
+<span class="pc bpc" id="L104" title="1 of 2 branches missed.">        long messagesSent = roomIds.isEmpty() ? 0 : messageRepository.countByRoomIdIn(roomIds);</span>
+<span class="fc" id="L105">        List&lt;String&gt; memberUserIds = memberRepository.findByProjectId(projectId).stream()</span>
+<span class="fc" id="L106">                .map(ProjectMember::getUserId).toList();</span>
+<span class="pc bpc" id="L107" title="1 of 2 branches missed.">        long postsCreated = memberUserIds.isEmpty() ? 0 : postRepository.countByUserIdIn(memberUserIds);</span>
+
+<span class="fc" id="L109">        return ProjectAnalyticsResponse.builder()</span>
+<span class="fc" id="L110">                .projectId(projectId)</span>
+<span class="fc" id="L111">                .totalMembers(memberRepository.countByProjectId(projectId))</span>
+<span class="fc" id="L112">                .completedTasks(completed)</span>
+<span class="fc" id="L113">                .pendingTasks(pending)</span>
+<span class="fc" id="L114">                .overdueTasks(overdue)</span>
+<span class="fc" id="L115">                .completionPercentage(completionPct)</span>
+<span class="fc" id="L116">                .tasksPerMember(tasksPerMember)</span>
+<span class="fc" id="L117">                .messagesSent(messagesSent)</span>
+<span class="fc" id="L118">                .postsCreated(postsCreated)</span>
+<span class="fc" id="L119">                .activityTrend(dailySeries(toDayMap(activityRepository.countGroupedByDay(</span>
+<span class="fc" id="L120">                        startOfDayMinusDays(TREND_DAYS - 1L), startOfDayPlusDays(1))), TREND_DAYS))</span>
+<span class="fc" id="L121">                .build();</span>
+    }
+
+    @Transactional(readOnly = true)
+    public AdminAnalyticsResponse getAdminAnalytics() {
+<span class="fc" id="L126">        Instant since30 = Instant.now().minus(Duration.ofDays(30));</span>
+<span class="fc" id="L127">        Instant trendStart = startOfDayMinusDays(TREND_DAYS - 1L);</span>
+<span class="fc" id="L128">        Instant trendEnd = startOfDayPlusDays(1);</span>
+<span class="fc" id="L129">        return AdminAnalyticsResponse.builder()</span>
+<span class="fc" id="L130">                .totalUsers(userRepository.count())</span>
+<span class="fc" id="L131">                .activeUsers(userRepository.countActiveUsers(since30))</span>
+<span class="fc" id="L132">                .blockedUsers(userRepository.countByBlockedTrue())</span>
+<span class="fc" id="L133">                .totalProjects(projectRepository.countByDeletedFalse())</span>
+<span class="fc" id="L134">                .privateProjects(projectRepository.countByVisibilityAndDeletedFalse(Project.ProjectVisibility.PRIVATE))</span>
+<span class="fc" id="L135">                .publicProjects(projectRepository.countByVisibilityAndDeletedFalse(Project.ProjectVisibility.PUBLIC))</span>
+<span class="fc" id="L136">                .totalTasks(taskRepository.count())</span>
+<span class="fc" id="L137">                .totalMessages(messageRepository.count())</span>
+<span class="fc" id="L138">                .totalPosts(postRepository.count())</span>
+<span class="fc" id="L139">                .totalReports(reportRepository.count())</span>
+<span class="fc" id="L140">                .activeSessions(userRepository.countByPresenceStatus(PresenceStatus.ONLINE))</span>
+<span class="fc" id="L141">                .userGrowth(monthlySeries(toMonthMap(userRepository.countGroupedByDay(</span>
+<span class="fc" id="L142">                        startOfMonth(-(GROWTH_MONTHS - 1)), startOfMonth(1))), GROWTH_MONTHS))</span>
+<span class="fc" id="L143">                .projectGrowth(monthlySeries(toMonthMap(projectRepository.countGroupedByDay(</span>
+<span class="fc" id="L144">                        startOfMonth(-(GROWTH_MONTHS - 1)), startOfMonth(1))), GROWTH_MONTHS))</span>
+<span class="fc" id="L145">                .taskCompletionTrend(dailySeries(toDayMap(activityRepository.countGroupedByDayAndType(</span>
+                        ActivityType.TASK_COMPLETED, trendStart, trendEnd)), TREND_DAYS))
+<span class="fc" id="L147">                .dailyActivity(dailySeries(toDayMap(activityRepository.countGroupedByDay(trendStart, trendEnd)), TREND_DAYS))</span>
+<span class="fc" id="L148">                .reportsTrend(dailySeries(toDayMap(reportRepository.countGroupedByDay(trendStart, trendEnd)), TREND_DAYS))</span>
+<span class="fc" id="L149">                .build();</span>
+    }
+
+    @Transactional(readOnly = true)
+    public UserContributionsResponse getUserContributions(String userId) {
+<span class="fc bfc" id="L154" title="All 2 branches covered.">        if (!userRepository.existsById(userId)) {</span>
+<span class="fc" id="L155">            throw new ResourceNotFoundException(&quot;User&quot;, userId);</span>
+        }
+<span class="fc" id="L157">        LocalDate today = LocalDate.now(ZoneOffset.UTC);</span>
+<span class="fc" id="L158">        Instant heatmapStart = today.minusDays(HEATMAP_DAYS - 1L).atStartOfDay().toInstant(ZoneOffset.UTC);</span>
+<span class="fc" id="L159">        Instant heatmapEnd = today.plusDays(1).atStartOfDay().toInstant(ZoneOffset.UTC);</span>
+
+        // Single GROUP BY query per heatmap window instead of loading all activity rows.
+<span class="fc" id="L162">        Map&lt;LocalDate, Long&gt; dayCounts = toDayMap(</span>
+<span class="fc" id="L163">                activityRepository.countGroupedByDayForUser(userId, heatmapStart, heatmapEnd));</span>
+
+<span class="fc" id="L165">        int streak = 0;</span>
+<span class="fc" id="L166">        LocalDate day = today;</span>
+<span class="fc bfc" id="L167" title="All 2 branches covered.">        while (dayCounts.containsKey(day)) {</span>
+<span class="fc" id="L168">            streak++;</span>
+<span class="fc" id="L169">            day = day.minusDays(1);</span>
+        }
+
+<span class="fc" id="L172">        List&lt;TrendPoint&gt; heatmap = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L173" title="All 2 branches covered.">        for (int i = HEATMAP_DAYS - 1; i &gt;= 0; i--) {</span>
+<span class="fc" id="L174">            LocalDate d = today.minusDays(i);</span>
+<span class="fc" id="L175">            heatmap.add(TrendPoint.builder().date(d.toString()).count(dayCounts.getOrDefault(d, 0L)).build());</span>
+        }
+
+<span class="fc" id="L178">        return UserContributionsResponse.builder()</span>
+<span class="fc" id="L179">                .projectsCreated(projectRepository.countByOwnerId(userId))</span>
+<span class="fc" id="L180">                .tasksCompleted(activityRepository.countByUserIdAndActivityType(userId, ActivityType.TASK_COMPLETED))</span>
+<span class="fc" id="L181">                .messagesSent(messageRepository.countMessagesByUserId(userId))</span>
+<span class="fc" id="L182">                .postsCreated(postRepository.countByUserId(userId))</span>
+<span class="fc" id="L183">                .commentsAdded(commentRepository.countByUserId(userId))</span>
+<span class="fc" id="L184">                .currentStreak(streak)</span>
+<span class="fc" id="L185">                .monthlyActivity(monthlySeries(toMonthMap(activityRepository.countGroupedByDayForUser(</span>
+<span class="fc" id="L186">                        userId, startOfMonth(-(GROWTH_MONTHS - 1)), startOfMonth(1))), GROWTH_MONTHS))</span>
+<span class="fc" id="L187">                .heatmap(heatmap)</span>
+<span class="fc" id="L188">                .build();</span>
+    }
+
+    private boolean canView(Project project, String userId) {
+<span class="fc bfc" id="L192" title="All 2 branches covered.">        if (project.getOwnerId().equals(userId)) return true;</span>
+<span class="fc" id="L193">        User user = userRepository.findById(userId).orElse(null);</span>
+<span class="pc bpc" id="L194" title="3 of 4 branches missed.">        if (user != null &amp;&amp; user.getRole() == User.Role.ADMIN) return true;</span>
+<span class="fc" id="L195">        return memberRepository.existsByProjectIdAndUserId(project.getId(), userId);</span>
+    }
+
+    private boolean isDone(String columnName) {
+<span class="pc bpc" id="L199" title="1 of 2 branches missed.">        String n = columnName == null ? &quot;&quot; : columnName.toLowerCase();</span>
+<span class="pc bpc" id="L200" title="1 of 4 branches missed.">        return n.contains(&quot;done&quot;) || n.contains(&quot;complete&quot;);</span>
+    }
+
+    /**
+     * Builds a zero-filled daily series from a single grouped-by-day query result.
+     * One query for the whole window instead of one COUNT per day.
+     */
+    private List&lt;TrendPoint&gt; dailySeries(Map&lt;LocalDate, Long&gt; counts, int days) {
+<span class="fc" id="L208">        List&lt;TrendPoint&gt; points = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L209">        LocalDate today = LocalDate.now(ZoneOffset.UTC);</span>
+<span class="fc bfc" id="L210" title="All 2 branches covered.">        for (int i = days - 1; i &gt;= 0; i--) {</span>
+<span class="fc" id="L211">            LocalDate day = today.minusDays(i);</span>
+<span class="fc" id="L212">            points.add(TrendPoint.builder().date(day.toString()).count(counts.getOrDefault(day, 0L)).build());</span>
+        }
+<span class="fc" id="L214">        return points;</span>
+    }
+
+    /** Builds a zero-filled monthly series from a single grouped-by-day query result. */
+    private List&lt;TrendPoint&gt; monthlySeries(Map&lt;YearMonth, Long&gt; counts, int months) {
+<span class="fc" id="L219">        List&lt;TrendPoint&gt; points = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L220">        YearMonth current = YearMonth.now(ZoneOffset.UTC);</span>
+<span class="fc bfc" id="L221" title="All 2 branches covered.">        for (int i = months - 1; i &gt;= 0; i--) {</span>
+<span class="fc" id="L222">            YearMonth ym = current.minusMonths(i);</span>
+<span class="fc" id="L223">            points.add(TrendPoint.builder().date(ym.toString()).count(counts.getOrDefault(ym, 0L)).build());</span>
+        }
+<span class="fc" id="L225">        return points;</span>
+    }
+
+    private Map&lt;LocalDate, Long&gt; toDayMap(List&lt;Object[]&gt; rows) {
+<span class="fc" id="L229">        Map&lt;LocalDate, Long&gt; map = new HashMap&lt;&gt;();</span>
+<span class="fc bfc" id="L230" title="All 2 branches covered.">        for (Object[] row : rows) {</span>
+<span class="pc bpc" id="L231" title="3 of 6 branches missed.">            if (row == null || row.length &lt; 2 || row[0] == null) continue;</span>
+<span class="fc" id="L232">            map.put(toLocalDate(row[0]), (Long) row[1]);</span>
+<span class="fc" id="L233">        }</span>
+<span class="fc" id="L234">        return map;</span>
+    }
+
+    private Map&lt;YearMonth, Long&gt; toMonthMap(List&lt;Object[]&gt; rows) {
+<span class="fc" id="L238">        Map&lt;YearMonth, Long&gt; map = new HashMap&lt;&gt;();</span>
+<span class="fc bfc" id="L239" title="All 2 branches covered.">        for (Object[] row : rows) {</span>
+<span class="pc bpc" id="L240" title="3 of 6 branches missed.">            if (row == null || row.length &lt; 2 || row[0] == null) continue;</span>
+<span class="fc" id="L241">            map.put(YearMonth.from(toLocalDate(row[0])), (Long) row[1]);</span>
+<span class="fc" id="L242">        }</span>
+<span class="fc" id="L243">        return map;</span>
+    }
+
+    private LocalDate toLocalDate(Object value) {
+<span class="pc bpc" id="L247" title="1 of 2 branches missed.">        if (value instanceof java.sql.Date sqlDate) return sqlDate.toLocalDate();</span>
+<span class="nc bnc" id="L248" title="All 2 branches missed.">        if (value instanceof LocalDate localDate) return localDate;</span>
+<span class="nc" id="L249">        return LocalDate.parse(String.valueOf(value));</span>
+    }
+
+    private Instant startOfDayMinusDays(long days) {
+<span class="fc" id="L253">        return LocalDate.now(ZoneOffset.UTC).minusDays(days).atStartOfDay().toInstant(ZoneOffset.UTC);</span>
+    }
+
+    private Instant startOfDayPlusDays(long days) {
+<span class="fc" id="L257">        return LocalDate.now(ZoneOffset.UTC).plusDays(days).atStartOfDay().toInstant(ZoneOffset.UTC);</span>
+    }
+
+    private Instant startOfMonth(int offset) {
+<span class="fc" id="L261">        YearMonth ym = YearMonth.now(ZoneOffset.UTC).plusMonths(offset);</span>
+<span class="fc" id="L262">        return ym.atDay(1).atStartOfDay().toInstant(ZoneOffset.UTC);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

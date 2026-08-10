@@ -26,6 +26,8 @@ export interface ConversationDto {
   otherUserId: string | null;
   otherUserName: string | null;
   roomId: string | null;
+  otherUserPresence?: string | null;
+  otherUserLastActiveAt?: string | null;
 }
 
 export const messageService = {

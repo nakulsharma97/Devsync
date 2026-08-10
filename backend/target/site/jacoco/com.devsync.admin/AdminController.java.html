@@ -1,0 +1,265 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AdminController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">DevSync Backend</a> &gt; <a href="index.source.html" class="el_package">com.devsync.admin</a> &gt; <span class="el_source">AdminController.java</span></div><h1>AdminController.java</h1><pre class="source lang-java linenums">package com.devsync.admin;
+
+import com.devsync.activity.ActivityService;
+import com.devsync.activity.dto.ActivityResponse;
+import com.devsync.activity.dto.AdminActivityStats;
+import com.devsync.admin.dto.AdminPostResponse;
+import com.devsync.admin.dto.AdminProjectDetail;
+import com.devsync.admin.dto.AdminProjectListItem;
+import com.devsync.admin.dto.AdminProjectStats;
+import com.devsync.admin.dto.AdminUserDetail;
+import com.devsync.admin.dto.AdminUserListItem;
+import com.devsync.admin.dto.AdminUserResponse;
+import com.devsync.admin.dto.BlockUserRequest;
+import com.devsync.admin.dto.DashboardResponse;
+import com.devsync.admin.dto.PlatformStatsResponse;
+import com.devsync.admin.dto.UpdateRoleRequest;
+import com.devsync.admin.dto.UpdateVisibilityRequest;
+import com.devsync.audit.AuditLogService;
+import com.devsync.audit.dto.AuditLogResponse;
+import com.devsync.common.PageResponse;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.web.bind.annotation.*;
+
+import java.nio.charset.StandardCharsets;
+
+import java.util.List;
+import java.util.Map;
+
+@RestController
+@RequestMapping(&quot;/api/admin&quot;)
+@RequiredArgsConstructor
+public class AdminController {
+
+    private final AdminService adminService;
+    private final ActivityService activityService;
+    private final AuditLogService auditLogService;
+
+    @GetMapping(&quot;/dashboard&quot;)
+    public ResponseEntity&lt;DashboardResponse&gt; getDashboard() {
+<span class="fc" id="L48">        return ResponseEntity.ok(adminService.getDashboard());</span>
+    }
+
+    @GetMapping(&quot;/check&quot;)
+    public ResponseEntity&lt;Map&lt;String, Boolean&gt;&gt; isAdmin(@AuthenticationPrincipal UserDetails userDetails) {
+<span class="fc" id="L53">        return ResponseEntity.ok(Map.of(&quot;isAdmin&quot;, adminService.isAdmin(userDetails.getUsername())));</span>
+    }
+
+    @GetMapping(&quot;/stats&quot;)
+    public ResponseEntity&lt;PlatformStatsResponse&gt; getPlatformStats() {
+<span class="nc" id="L58">        return ResponseEntity.ok(adminService.getPlatformStats());</span>
+    }
+
+    @GetMapping(&quot;/users&quot;)
+    public ResponseEntity&lt;List&lt;AdminUserResponse&gt;&gt; getUsers() {
+<span class="fc" id="L63">        return ResponseEntity.ok(adminService.getAllUsers());</span>
+    }
+
+    @GetMapping(&quot;/users/paged&quot;)
+    public ResponseEntity&lt;PageResponse&lt;AdminUserListItem&gt;&gt; getUsersPage(
+            @RequestParam(defaultValue = &quot;0&quot;) int page,
+            @RequestParam(defaultValue = &quot;10&quot;) int size,
+            @RequestParam(required = false) String sortBy,
+            @RequestParam(required = false) String sortDir,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String role,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String from,
+            @RequestParam(required = false) String to) {
+<span class="fc" id="L77">        return ResponseEntity.ok(adminService.getUsersPage(</span>
+                page, size, sortBy, sortDir, search, role, status, from, to));
+    }
+
+    @GetMapping(&quot;/users/{userId}&quot;)
+    public ResponseEntity&lt;AdminUserDetail&gt; getUserDetail(@PathVariable String userId) {
+<span class="fc" id="L83">        return ResponseEntity.ok(adminService.getUserDetail(userId));</span>
+    }
+
+    @DeleteMapping(&quot;/users/{userId}&quot;)
+    public ResponseEntity&lt;Void&gt; deleteUser(
+            @PathVariable String userId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+<span class="fc" id="L90">        adminService.deleteUser(userId, userDetails.getUsername());</span>
+<span class="fc" id="L91">        return ResponseEntity.noContent().build();</span>
+    }
+
+    @GetMapping(&quot;/posts&quot;)
+    public ResponseEntity&lt;List&lt;AdminPostResponse&gt;&gt; getPosts() {
+<span class="nc" id="L96">        return ResponseEntity.ok(adminService.getAllPosts());</span>
+    }
+
+    @PutMapping(&quot;/users/{userId}/role&quot;)
+    public ResponseEntity&lt;AdminUserResponse&gt; updateUserRole(
+            @PathVariable String userId,
+            @Valid @RequestBody UpdateRoleRequest request,
+            @AuthenticationPrincipal UserDetails userDetails) {
+<span class="nc" id="L104">        return ResponseEntity.ok(adminService.updateUserRole(userId, request.getRole(), userDetails.getUsername()));</span>
+    }
+
+    @PutMapping(&quot;/users/{userId}/block&quot;)
+    public ResponseEntity&lt;AdminUserResponse&gt; blockUser(
+            @PathVariable String userId,
+            @RequestBody(required = false) BlockUserRequest request,
+            @AuthenticationPrincipal UserDetails userDetails) {
+<span class="fc" id="L112">        return ResponseEntity.ok(adminService.setUserBlocked(</span>
+<span class="fc" id="L113">                userId, true, userDetails.getUsername(), reasonOf(request)));</span>
+    }
+
+    @PutMapping(&quot;/users/{userId}/unblock&quot;)
+    public ResponseEntity&lt;AdminUserResponse&gt; unblockUser(
+            @PathVariable String userId,
+            @RequestBody(required = false) BlockUserRequest request,
+            @AuthenticationPrincipal UserDetails userDetails) {
+<span class="nc" id="L121">        return ResponseEntity.ok(adminService.setUserBlocked(</span>
+<span class="nc" id="L122">                userId, false, userDetails.getUsername(), reasonOf(request)));</span>
+    }
+
+    private String reasonOf(BlockUserRequest request) {
+<span class="pc bpc" id="L126" title="1 of 2 branches missed.">        return request == null ? null : request.getReason();</span>
+    }
+
+    @DeleteMapping(&quot;/posts/{postId}&quot;)
+    public ResponseEntity&lt;Void&gt; deletePost(@PathVariable String postId) {
+<span class="nc" id="L131">        adminService.deletePost(postId);</span>
+<span class="nc" id="L132">        return ResponseEntity.noContent().build();</span>
+    }
+
+    // ---------- Admin Project Management ----------
+
+    @GetMapping(&quot;/projects&quot;)
+    public ResponseEntity&lt;PageResponse&lt;AdminProjectListItem&gt;&gt; getProjectsPage(
+            @RequestParam(defaultValue = &quot;0&quot;) int page,
+            @RequestParam(defaultValue = &quot;10&quot;) int size,
+            @RequestParam(required = false) String sortBy,
+            @RequestParam(required = false) String sortDir,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String visibility,
+            @RequestParam(required = false) String status) {
+<span class="fc" id="L146">        return ResponseEntity.ok(adminService.getProjectsPage(page, size, sortBy, sortDir, search, visibility, status));</span>
+    }
+
+    @GetMapping(&quot;/projects/stats&quot;)
+    public ResponseEntity&lt;AdminProjectStats&gt; getProjectStats() {
+<span class="fc" id="L151">        return ResponseEntity.ok(adminService.getProjectStats());</span>
+    }
+
+    @GetMapping(&quot;/projects/{projectId}&quot;)
+    public ResponseEntity&lt;AdminProjectDetail&gt; getProjectDetail(@PathVariable String projectId) {
+<span class="fc" id="L156">        return ResponseEntity.ok(adminService.getProjectDetail(projectId));</span>
+    }
+
+    @PutMapping(&quot;/projects/{projectId}/archive&quot;)
+    public ResponseEntity&lt;AdminProjectListItem&gt; archiveProject(
+            @PathVariable String projectId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+<span class="fc" id="L163">        return ResponseEntity.ok(adminService.archiveProject(projectId, userDetails.getUsername()));</span>
+    }
+
+    @PutMapping(&quot;/projects/{projectId}/restore&quot;)
+    public ResponseEntity&lt;AdminProjectListItem&gt; restoreProject(
+            @PathVariable String projectId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+<span class="fc" id="L170">        return ResponseEntity.ok(adminService.restoreProject(projectId, userDetails.getUsername()));</span>
+    }
+
+    @PutMapping(&quot;/projects/{projectId}/visibility&quot;)
+    public ResponseEntity&lt;AdminProjectListItem&gt; updateProjectVisibility(
+            @PathVariable String projectId,
+            @Valid @RequestBody UpdateVisibilityRequest request,
+            @AuthenticationPrincipal UserDetails userDetails) {
+<span class="fc" id="L178">        return ResponseEntity.ok(adminService.setProjectVisibility(projectId, request.getVisibility(), userDetails.getUsername()));</span>
+    }
+
+    @DeleteMapping(&quot;/projects/{projectId}&quot;)
+    public ResponseEntity&lt;Void&gt; deleteProject(
+            @PathVariable String projectId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+<span class="fc" id="L185">        adminService.deleteProject(projectId, userDetails.getUsername());</span>
+<span class="fc" id="L186">        return ResponseEntity.noContent().build();</span>
+    }
+
+    // ---------- Admin Activity Timeline ----------
+
+    @GetMapping(&quot;/activity&quot;)
+    public ResponseEntity&lt;PageResponse&lt;ActivityResponse&gt;&gt; getAdminActivity(
+            @RequestParam(required = false) String projectId,
+            @RequestParam(required = false) String userId,
+            @RequestParam(required = false) String activityType,
+            @RequestParam(required = false) String from,
+            @RequestParam(required = false) String to,
+            @RequestParam(defaultValue = &quot;0&quot;) int page,
+            @RequestParam(defaultValue = &quot;20&quot;) int size) {
+<span class="fc" id="L200">        return ResponseEntity.ok(activityService.getAdminActivities(</span>
+                projectId, userId, activityType, from, to, page, size));
+    }
+
+    @GetMapping(&quot;/activity/stats&quot;)
+    public ResponseEntity&lt;AdminActivityStats&gt; getAdminActivityStats() {
+<span class="fc" id="L206">        return ResponseEntity.ok(activityService.getAdminActivityStats());</span>
+    }
+
+    @GetMapping(&quot;/activity/export&quot;)
+    public ResponseEntity&lt;byte[]&gt; exportAdminActivity(
+            @RequestParam(required = false) String projectId,
+            @RequestParam(required = false) String userId,
+            @RequestParam(required = false) String activityType,
+            @RequestParam(required = false) String from,
+            @RequestParam(required = false) String to) {
+<span class="nc" id="L216">        List&lt;ActivityResponse&gt; activities = activityService.exportActivities(projectId, userId, activityType, from, to);</span>
+<span class="nc" id="L217">        String csv = activityService.toCsv(activities);</span>
+<span class="nc" id="L218">        HttpHeaders headers = new HttpHeaders();</span>
+<span class="nc" id="L219">        headers.setContentType(MediaType.parseMediaType(&quot;text/csv&quot;));</span>
+<span class="nc" id="L220">        headers.setContentDisposition(ContentDisposition.attachment().filename(&quot;activities.csv&quot;).build());</span>
+<span class="nc" id="L221">        return new ResponseEntity&lt;&gt;(csv.getBytes(StandardCharsets.UTF_8), headers, HttpStatus.OK);</span>
+    }
+
+    // ---------- Admin Audit Logs ----------
+
+    @GetMapping(&quot;/audit-logs&quot;)
+    public ResponseEntity&lt;PageResponse&lt;AuditLogResponse&gt;&gt; getAuditLogs(
+            @RequestParam(defaultValue = &quot;0&quot;) int page,
+            @RequestParam(defaultValue = &quot;20&quot;) int size,
+            @RequestParam(required = false) String sortBy,
+            @RequestParam(required = false) String sortDir,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String action,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String adminId,
+            @RequestParam(required = false) String userId,
+            @RequestParam(required = false) String from,
+            @RequestParam(required = false) String to) {
+<span class="fc" id="L239">        return ResponseEntity.ok(auditLogService.getLogs(</span>
+                page, size, sortBy, sortDir, search, action, status, adminId, userId, from, to));
+    }
+
+    @GetMapping(&quot;/audit-logs/export&quot;)
+    public ResponseEntity&lt;byte[]&gt; exportAuditLogs(
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String action,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String adminId,
+            @RequestParam(required = false) String userId,
+            @RequestParam(required = false) String from,
+            @RequestParam(required = false) String to) {
+<span class="fc" id="L252">        List&lt;AuditLogResponse&gt; logs = auditLogService.exportLogs(search, action, status, adminId, userId, from, to);</span>
+<span class="fc" id="L253">        String csv = auditLogService.toCsv(logs);</span>
+<span class="fc" id="L254">        HttpHeaders headers = new HttpHeaders();</span>
+<span class="fc" id="L255">        headers.setContentType(MediaType.parseMediaType(&quot;text/csv&quot;));</span>
+<span class="fc" id="L256">        headers.setContentDisposition(ContentDisposition.attachment().filename(&quot;audit-logs.csv&quot;).build());</span>
+<span class="fc" id="L257">        return new ResponseEntity&lt;&gt;(csv.getBytes(StandardCharsets.UTF_8), headers, HttpStatus.OK);</span>
+    }
+
+    @GetMapping(&quot;/audit-logs/{id}&quot;)
+    public ResponseEntity&lt;AuditLogResponse&gt; getAuditLog(@PathVariable String id) {
+<span class="fc" id="L262">        return ResponseEntity.ok(auditLogService.getLog(id));</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

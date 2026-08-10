@@ -1,5 +1,5 @@
 import { useApi } from "@/hooks/useApi";
-import { notificationService, type NotificationDto } from "@/services/notificationService";
+import { notificationService } from "@/services/notificationService";
 import { Button } from "@/components/ui/button";
 import { Bell, UserPlus, MessageSquare, FolderKanban } from "lucide-react";
 import { toast } from "sonner";

@@ -6,7 +6,7 @@ import { Search, Loader2, User } from "lucide-react";
 
 export default function SearchPage() {
   const [query, setQuery] = useState("");
-  const { data: users, loading, refetch } = useApi(
+  const { data: users, loading } = useApi(
     () => query.trim() ? userService.searchUsers(query) : Promise.resolve([]),
     [query]
   );

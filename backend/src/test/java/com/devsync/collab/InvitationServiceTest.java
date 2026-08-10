@@ -144,6 +144,90 @@ class InvitationServiceTest {
     }
 
     @Test
+    void invite_shouldThrow_WhenDuplicatePendingInvitationExists() {
+        when(projectRepository.findById("p1")).thenReturn(Optional.of(project));
+        when(userRepository.findByEmailOrUsername("receiver@dev.com")).thenReturn(Optional.of(receiver));
+        when(memberRepository.existsByProjectIdAndUserId("p1", "recv-1")).thenReturn(false);
+        when(invitationRepository.existsByProjectIdAndReceiverIdAndStatus(
+                "p1", "recv-1", InvitationStatus.PENDING)).thenReturn(true);
+
+        InviteRequest request = new InviteRequest();
+        request.setUsernameOrEmail("receiver@dev.com");
+
+        assertThatThrownBy(() -> invitationService.invite("p1", request, "owner-1"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("already pending");
+        verify(invitationRepository, never()).save(any());
+    }
+
+    @Test
+    void invite_shouldThrow_WhenInvitingSelf() {
+        when(projectRepository.findById("p1")).thenReturn(Optional.of(project));
+        when(userRepository.findByEmailOrUsername("owner@dev.com")).thenReturn(Optional.of(owner));
+
+        InviteRequest request = new InviteRequest();
+        request.setUsernameOrEmail("owner@dev.com");
+
+        assertThatThrownBy(() -> invitationService.invite("p1", request, "owner-1"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("cannot invite yourself");
+        verify(invitationRepository, never()).save(any());
+    }
+
+    @Test
+    void accept_shouldThrow_WhenNotTheReceiver() {
+        ProjectInvitation invitation = ProjectInvitation.builder()
+                .projectId("p1").senderId("owner-1").receiverId("recv-1")
+                .status(InvitationStatus.PENDING).expiresAt(Instant.now().plusSeconds(3600)).build();
+        invitation.setId("inv-1");
+        when(invitationRepository.findById("inv-1")).thenReturn(Optional.of(invitation));
+
+        assertThatThrownBy(() -> invitationService.accept("inv-1", "intruder-1"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("not sent to you");
+        verify(memberRepository, never()).save(any());
+        verify(notificationService, never()).createNotification(any(), any(), any(), any(), any(), any(), any(), any(), any(), any());
+    }
+
+    @Test
+    void accept_shouldNotifySender_WhenAccepted() {
+        ProjectInvitation invitation = ProjectInvitation.builder()
+                .projectId("p1").senderId("owner-1").receiverId("recv-1")
+                .status(InvitationStatus.PENDING).expiresAt(Instant.now().plusSeconds(3600)).build();
+        invitation.setId("inv-1");
+        when(invitationRepository.findById("inv-1")).thenReturn(Optional.of(invitation));
+        when(projectRepository.findById("p1")).thenReturn(Optional.of(project));
+        when(memberRepository.existsByProjectIdAndUserId("p1", "recv-1")).thenReturn(false);
+        when(invitationRepository.save(any(ProjectInvitation.class))).thenReturn(invitation);
+        when(userRepository.findById("owner-1")).thenReturn(Optional.of(owner));
+        when(userRepository.findById("recv-1")).thenReturn(Optional.of(receiver));
+
+        invitationService.accept("inv-1", "recv-1");
+
+        verify(notificationService).createNotification(eq("owner-1"), eq("PROJECT_INVITE_ACCEPTED"),
+                eq("Invitation accepted"), anyString(), eq("recv-1"), eq("Receiver"), any(),
+                eq("p1"), eq("project"), anyString());
+    }
+
+    @Test
+    void delete_shouldThrow_WhenNeitherPartyNorManager() {
+        ProjectInvitation invitation = ProjectInvitation.builder()
+                .projectId("p1").senderId("owner-1").receiverId("recv-1")
+                .status(InvitationStatus.PENDING).expiresAt(Instant.now().plusSeconds(3600)).build();
+        invitation.setId("inv-1");
+        when(invitationRepository.findById("inv-1")).thenReturn(Optional.of(invitation));
+        when(projectRepository.findById("p1")).thenReturn(Optional.of(project));
+        ProjectMember member = ProjectMember.builder().projectId("p1").userId("stranger-1")
+                .role(ProjectMember.Role.MEMBER).build();
+        when(memberRepository.findByProjectIdAndUserId("p1", "stranger-1")).thenReturn(Optional.of(member));
+
+        assertThatThrownBy(() -> invitationService.delete("inv-1", "stranger-1"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("cannot delete");
+        verify(invitationRepository, never()).delete(any());
+    }
+
+    @Test
     void accept_shouldThrow_WhenExpired() {
         ProjectInvitation invitation = ProjectInvitation.builder()
                 .projectId("p1").senderId("owner-1").receiverId("recv-1")

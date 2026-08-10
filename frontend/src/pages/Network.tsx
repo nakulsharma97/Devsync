@@ -11,10 +11,8 @@ import {
   MessageCircle,
   Loader2,
   User,
-  MapPin,
   Briefcase,
   AtSign,
-  ArrowLeft,
 } from "lucide-react";
 import { connectionService } from "@/services/connectionService";
 import { conversationService } from "@/services/conversationService";
@@ -36,7 +34,7 @@ interface NetworkUser {
 }
 
 export default function Network() {
-  const { user } = useDevSyncAuth();
+  useDevSyncAuth();
   const navigate = useNavigate();
   const [users, setUsers] = useState<NetworkUser[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<NetworkUser[]>([]);

@@ -13,6 +13,7 @@ import com.devsync.admin.dto.AdminProjectOwner;
 import com.devsync.admin.dto.AdminProjectStats;
 import com.devsync.admin.dto.AdminProjectSummary;
 import com.devsync.admin.dto.AdminUserListItem;
+import com.devsync.admin.dto.AdminUserResponse;
 import com.devsync.admin.dto.AdminUserSummary;
 import com.devsync.admin.dto.DashboardResponse;
 import com.devsync.audit.AuditLogService;
@@ -33,6 +34,7 @@ import java.time.Instant;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -110,9 +112,27 @@ class AdminControllerTest {
     }
 
     @Test
-    void dashboard_shouldNotBePubliclyAccessible() throws Exception {
+    void dashboard_shouldReturn401_WhenNoToken() throws Exception {
         mockMvc.perform(get("/api/admin/dashboard"))
-                .andExpect(status().is3xxRedirection());
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void users_shouldReturn401_WhenNoToken() throws Exception {
+        mockMvc.perform(get("/api/admin/users"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void auditLogs_shouldReturn401_WhenNoToken() throws Exception {
+        mockMvc.perform(get("/api/admin/audit-logs"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void projects_shouldReturn401_WhenNoToken() throws Exception {
+        mockMvc.perform(get("/api/admin/projects"))
+                .andExpect(status().isUnauthorized());
     }
 
     @Test
@@ -151,7 +171,7 @@ class AdminControllerTest {
                         .createdAt(Instant.now()).build()))
                 .page(0).size(10).totalElements(1).totalPages(1).last(true)
                 .build();
-        when(adminService.getUsersPage(anyInt(), anyInt(), any(), any(), any(), any(), any()))
+        when(adminService.getUsersPage(anyInt(), anyInt(), any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(page);
 
         mockMvc.perform(get("/api/admin/users/paged")
@@ -167,6 +187,47 @@ class AdminControllerTest {
                 .andExpect(jsonPath("$.content[0].status").value("ACTIVE"))
                 .andExpect(jsonPath("$.totalElements").value(1))
                 .andExpect(jsonPath("$.totalPages").value(1));
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void usersPaged_shouldPassCreatedDateFiltersToService() throws Exception {
+        PageResponse<AdminUserListItem> page = PageResponse.<AdminUserListItem>builder()
+                .content(List.of()).page(0).size(10).totalElements(0).totalPages(0).last(true)
+                .build();
+        when(adminService.getUsersPage(anyInt(), anyInt(), any(), any(), any(), any(), any(), any(), any()))
+                .thenReturn(page);
+
+        mockMvc.perform(get("/api/admin/users/paged")
+                        .param("from", "2026-01-01")
+                        .param("to", "2026-01-31"))
+                .andExpect(status().isOk());
+
+        verify(adminService).getUsersPage(anyInt(), anyInt(), any(), any(), any(), any(), any(),
+                eq("2026-01-01"), eq("2026-01-31"));
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void blockUser_shouldAcceptReasonBody() throws Exception {
+        when(adminService.setUserBlocked(eq("u1"), eq(true), anyString(), eq("spam")))
+                .thenReturn(AdminUserResponse.builder()
+                        .id("u1").email("dev@test.com").fullName("Dev User")
+                        .role("USER").blocked(true).postCount(0).followerCount(0)
+                        .createdAt(Instant.now()).build());
+
+        mockMvc.perform(put("/api/admin/users/u1/block")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"reason\":\"spam\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.blocked").value(true));
+    }
+
+    @Test
+    @WithMockUser
+    void blockUser_shouldReturn403_ForNormalUser() throws Exception {
+        mockMvc.perform(put("/api/admin/users/u1/block"))
+                .andExpect(status().isForbidden());
     }
 
     @Test

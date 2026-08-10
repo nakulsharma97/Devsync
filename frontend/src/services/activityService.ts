@@ -4,10 +4,10 @@ export const activityService = {
   async log(type: string) {
     await api.post("/activity/log", { type }).catch(() => {});
   },
-  async getContributions(days = 365) {
+  async getContributions() {
     return [];
   },
-  async getContributionsByUser(accountId: string, days = 365) {
+  async getContributionsByUser(_accountId: string) {
     return [];
   },
 };

@@ -1,54 +1,142 @@
-version: "3.8"
+# DevSync production stack
+#
+# Required env vars (set in .env or the shell):
+#   MYSQL_ROOT_PASSWORD   root password for the MySQL container (never commit)
+#   MYSQL_PASSWORD        password for the dedicated `devsync` DB user
+#   JWT_SECRET            256-bit+ secret for signing JWTs (openssl rand -base64 64)
+#
+# Optional:
+#   DEVSYNC_ADMIN_SEED_ENABLED / DEVSYNC_ADMIN_EMAIL / DEVSYNC_ADMIN_PASSWORD
+#   MAIL_USERNAME / MAIL_PASSWORD
+#   DEVSYNC_CORS_ORIGINS   (defaults to localhost origins)
+#
+# Usage:
+#   cp .env.example .env   # fill in secrets
+#   docker compose up -d --build
 
 services:
   mysql:
     image: mysql:8.0
-    container_name: devsync-mysql
     restart: unless-stopped
     environment:
-      # ⚠️ Set a strong MYSQL_ROOT_PASSWORD in production!
-      MYSQL_ROOT_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD is required}
       MYSQL_DATABASE: devsync_db
-    ports:
-      - "3306:3306"
+      # The application connects with this dedicated user — never root.
+      MYSQL_USER: devsync
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?MYSQL_PASSWORD is required}
+    # TLS between backend and MySQL. Generate the certificates first:
+    #   ./scripts/generate-db-certs.sh
+    # Mounted read-only; the CA key never leaves the host.
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --ssl-ca=/etc/mysql/certs/ca.pem
+      - --ssl-cert=/etc/mysql/certs/server-cert.pem
+      - --ssl-key=/etc/mysql/certs/server-key.pem
     volumes:
       - mysql_data:/var/lib/mysql
+      - ./certs:/etc/mysql/certs:ro
+    networks:
+      - devsync-net
+    # Do not publish MySQL to the host in production. Uncomment for local dev:
+    # ports:
+    #   - "3306:3306"
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
       interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 10
+      start_period: 30s
 
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: devsync-backend
     restart: unless-stopped
-    ports:
-      - "8080:8080"
     environment:
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/devsync_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
-      SPRING_DATASOURCE_USERNAME: root
-      SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD:-password}
-      # ⚠️ CRITICAL: Must set JWT_SECRET in production!
-      # Generate with: openssl rand -base64 64
-      JWT_SECRET: ${JWT_SECRET}
-      CORS_ORIGINS: http://localhost:80,http://localhost:5173
+      # TLS to MySQL: VERIFY_CA against the generated CA (see scripts/generate-db-certs.sh).
+      # For a local non-TLS MySQL, override with:
+      #   SPRING_DATASOURCE_URL="jdbc:mysql://localhost:3306/devsync_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC"
+      SPRING_DATASOURCE_URL: "jdbc:mysql://mysql:3306/devsync_db?useSSL=true&sslMode=VERIFY_CA&trustCertificateKeyStoreUrl=file:/certs/backend-truststore.p12&trustCertificateKeyStorePassword=changeit&serverTimezone=UTC"
+      SPRING_DATASOURCE_USERNAME: devsync
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD:?MYSQL_PASSWORD is required}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      DEVSYNC_JWT_ACCESS_EXPIRATION_MS: ${DEVSYNC_JWT_ACCESS_EXPIRATION_MS:-900000}
+      DEVSYNC_JWT_REFRESH_EXPIRATION_MS: ${DEVSYNC_JWT_REFRESH_EXPIRATION_MS:-2592000000}
+      # Set true when HTTPS terminates at the reverse proxy — marks the refresh
+      # cookie Secure so it is never sent over plain HTTP.
+      DEVSYNC_COOKIE_SECURE: ${DEVSYNC_COOKIE_SECURE:-true}
+      DEVSYNC_WS_RATE_LIMIT_ENABLED: ${DEVSYNC_WS_RATE_LIMIT_ENABLED:-true}
+      DEVSYNC_WS_RATE_LIMIT_MAX_MESSAGES: ${DEVSYNC_WS_RATE_LIMIT_MAX_MESSAGES:-120}
+      DEVSYNC_WS_RATE_LIMIT_MAX_SUBSCRIPTIONS: ${DEVSYNC_WS_RATE_LIMIT_MAX_SUBSCRIPTIONS:-30}
+      DEVSYNC_CORS_ORIGINS: ${DEVSYNC_CORS_ORIGINS:-http://localhost:80,http://localhost:5173}
+      # Behind the nginx reverse proxy, so the rate limiter may trust X-Forwarded-For.
+      DEVSYNC_TRUST_X_FORWARDED_FOR: "true"
+      UPLOAD_DIR: /app/uploads
+      DEVSYNC_ADMIN_SEED_ENABLED: ${DEVSYNC_ADMIN_SEED_ENABLED:-false}
+      DEVSYNC_ADMIN_EMAIL: ${DEVSYNC_ADMIN_EMAIL:-}
+      DEVSYNC_ADMIN_PASSWORD: ${DEVSYNC_ADMIN_PASSWORD:-}
+      MAIL_USERNAME: ${MAIL_USERNAME:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:-}
+      GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET:-}
+      GITHUB_REDIRECT_URI: ${GITHUB_REDIRECT_URI:-http://localhost:8080/api/github/callback}
+      GITHUB_WEBHOOK_SECRET: ${GITHUB_WEBHOOK_SECRET:-}
+      GITHUB_TOKEN_ENCRYPTION_KEY: ${GITHUB_TOKEN_ENCRYPTION_KEY:-}
+    volumes:
+      - uploads:/app/uploads
+      - ./certs:/certs:ro
+    networks:
+      - devsync-net
     depends_on:
       mysql:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 40s
 
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    container_name: devsync-frontend
     restart: unless-stopped
     ports:
-      - "80:80"
+      - "80:8080"
+    networks:
+      - devsync-net
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # Redis is NOT required by the current application (rate limiting is in-memory).
+  # Add it here when the rate limiter / sessions move to Redis:
+  # redis:
+  #   image: redis:7-alpine
+  #   restart: unless-stopped
+  #   command: redis-server --appendonly yes
+  #   volumes:
+  #     - redis_data:/data
+  #   networks:
+  #     - devsync-net
+  #   healthcheck:
+  #     test: ["CMD", "redis-cli", "ping"]
+  #     interval: 10s
+  #     timeout: 3s
+  #     retries: 5
 
 volumes:
   mysql_data:
+  uploads:
+  # redis_data:
+
+networks:
+  devsync-net:
+    driver: bridge

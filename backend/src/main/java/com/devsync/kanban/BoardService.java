@@ -23,8 +23,12 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -135,6 +139,40 @@ public class BoardService {
                 "Task deleted", task.getTitle(), null);
     }
 
+    /**
+     * Calendar feed: tasks with a due date inside [from, to] for projects the
+     * user can see (owned, member, or platform admin). Window capped at 366 days.
+     */
+    @Transactional(readOnly = true)
+    public List<BoardResponse.TaskDto> getCalendarTasks(Instant from, Instant to, String userId) {
+        if (from == null || to == null) {
+            throw new IllegalArgumentException("from and to are required");
+        }
+        if (from.isAfter(to)) {
+            throw new IllegalArgumentException("from must not be after to");
+        }
+        if (Duration.between(from, to).toDays() > 366) {
+            throw new IllegalArgumentException("Date range too large (max 366 days)");
+        }
+
+        var user = userRepository.findById(userId).orElse(null);
+        if (user != null && user.getRole() == com.devsync.user.entity.User.Role.ADMIN) {
+            return taskRepository.findByDueDateBetweenOrderByDueDateAsc(from, to).stream()
+                    .map(this::toTaskDto).toList();
+        }
+
+        Set<String> projectIds = new HashSet<>();
+        projectRepository.findByOwnerId(userId).forEach(p -> projectIds.add(p.getId()));
+        projectRepository.findProjectsByUserId(userId).forEach(p -> projectIds.add(p.getId()));
+        if (projectIds.isEmpty()) return List.of();
+
+        List<String> boardIds = boardRepository.findByProjectIdIn(projectIds).stream()
+                .map(Board::getId).toList();
+        if (boardIds.isEmpty()) return List.of();
+        return taskRepository.findByDueDateBetweenAndBoardIdInOrderByDueDateAsc(from, to, boardIds).stream()
+                .map(this::toTaskDto).toList();
+    }
+
     @Transactional(readOnly = true)
     public Page<BoardResponse.TaskDto> filterTasks(String projectId, String priority, String label,
                                                    String status, String keyword, int page, int size,
@@ -145,11 +183,8 @@ public class BoardService {
         if (!canViewProject(project, userId)) {
             throw new IllegalArgumentException("You are not a member of this project");
         }
-        List<String> boardIds = boardRepository.findByProjectId(projectId).stream()
-                .map(Board::getId).toList();
-        if (boardIds.isEmpty()) {
-            return Page.empty();
-        }
+        // Validate input first — an invalid filter must be rejected even when the
+        // project has no boards yet.
         Task.Priority prio = null;
         if (priority != null && !priority.isBlank()) {
             try {
@@ -161,6 +196,11 @@ public class BoardService {
         String lbl = (label == null || label.isBlank()) ? null : label.trim();
         String st = (status == null || status.isBlank()) ? null : status.trim();
         String kw = (keyword == null || keyword.isBlank()) ? null : keyword.trim();
+        List<String> boardIds = boardRepository.findByProjectId(projectId).stream()
+                .map(Board::getId).toList();
+        if (boardIds.isEmpty()) {
+            return Page.empty();
+        }
         PageRequest pageable = PageRequest.of(Math.max(page, 0), Math.min(Math.max(size, 1), 100));
         return taskRepository.findFilteredTasks(boardIds, prio, lbl, st, kw, pageable).map(this::toTaskDto);
     }

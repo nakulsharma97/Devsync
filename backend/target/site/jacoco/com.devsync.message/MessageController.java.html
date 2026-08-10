@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>MessageController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">DevSync Backend</a> &gt; <a href="index.source.html" class="el_package">com.devsync.message</a> &gt; <span class="el_source">MessageController.java</span></div><h1>MessageController.java</h1><pre class="source lang-java linenums">package com.devsync.message;
+
+import com.devsync.message.dto.ConversationResponse;
+import com.devsync.message.dto.MessageResponse;
+import com.devsync.message.dto.SendMessageRequest;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping(&quot;/api/messages&quot;)
+@RequiredArgsConstructor
+public class MessageController {
+
+    private final MessageService messageService;
+
+    @GetMapping(&quot;/conversations&quot;)
+    public ResponseEntity&lt;List&lt;ConversationResponse&gt;&gt; getConversations(@AuthenticationPrincipal UserDetails userDetails) {
+<span class="nc" id="L24">        return ResponseEntity.ok(messageService.getConversations(userDetails.getUsername()));</span>
+    }
+
+    @GetMapping(&quot;/room/{roomId}&quot;)
+    public ResponseEntity&lt;List&lt;MessageResponse&gt;&gt; getRoomMessages(
+            @PathVariable String roomId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+<span class="nc" id="L31">        return ResponseEntity.ok(messageService.getRoomMessages(roomId, userDetails.getUsername()));</span>
+    }
+
+    @GetMapping(&quot;/dm/{otherUserId}&quot;)
+    public ResponseEntity&lt;List&lt;MessageResponse&gt;&gt; getConversation(
+            @PathVariable String otherUserId,
+            @RequestParam(defaultValue = &quot;100&quot;) int limit,
+            @AuthenticationPrincipal UserDetails userDetails) {
+<span class="nc" id="L39">        return ResponseEntity.ok(messageService.getConversation(userDetails.getUsername(), otherUserId, limit));</span>
+    }
+
+    @PostMapping
+    public ResponseEntity&lt;MessageResponse&gt; sendMessage(
+            @Valid @RequestBody SendMessageRequest request,
+            @AuthenticationPrincipal UserDetails userDetails) {
+<span class="nc" id="L46">        return ResponseEntity.ok(messageService.sendMessage(request, userDetails.getUsername()));</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

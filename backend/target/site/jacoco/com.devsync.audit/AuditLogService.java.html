@@ -1,0 +1,273 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AuditLogService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">DevSync Backend</a> &gt; <a href="index.source.html" class="el_package">com.devsync.audit</a> &gt; <span class="el_source">AuditLogService.java</span></div><h1>AuditLogService.java</h1><pre class="source lang-java linenums">package com.devsync.audit;
+
+import com.devsync.audit.dto.AuditLogResponse;
+import com.devsync.audit.entity.AuditAction;
+import com.devsync.audit.entity.AuditLog;
+import com.devsync.audit.entity.AuditStatus;
+import com.devsync.audit.repository.AuditLogRepository;
+import com.devsync.common.PageResponse;
+import com.devsync.common.ResourceNotFoundException;
+import com.devsync.user.entity.User;
+import com.devsync.user.repository.UserRepository;
+import jakarta.servlet.http.HttpServletRequest;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
+
+import java.time.Instant;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+@Service
+@RequiredArgsConstructor
+public class AuditLogService {
+
+    private static final int MAX_PAGE_SIZE = 100;
+    private static final int EXPORT_LIMIT = 5000;
+
+    private final AuditLogRepository auditLogRepository;
+    private final UserRepository userRepository;
+
+    /**
+     * Records an audit entry. IP / device / browser are captured from the current
+     * HTTP request when available (null-safe in unit tests and background jobs).
+     */
+    @Transactional
+    public void record(String performedBy, String targetUserId, AuditAction action,
+                       AuditStatus status, String details) {
+<span class="fc" id="L48">        String userAgent = userAgent();</span>
+<span class="fc" id="L49">        auditLogRepository.save(AuditLog.builder()</span>
+<span class="fc" id="L50">                .performedBy(performedBy)</span>
+<span class="fc" id="L51">                .targetUser(targetUserId)</span>
+<span class="fc" id="L52">                .action(action)</span>
+<span class="fc" id="L53">                .status(status)</span>
+<span class="fc" id="L54">                .ipAddress(clientIp())</span>
+<span class="fc" id="L55">                .device(device(userAgent))</span>
+<span class="fc" id="L56">                .browser(browser(userAgent))</span>
+<span class="fc" id="L57">                .details(details)</span>
+<span class="fc" id="L58">                .build());</span>
+<span class="fc" id="L59">    }</span>
+
+    @Transactional(readOnly = true)
+    public PageResponse&lt;AuditLogResponse&gt; getLogs(int page, int size, String sortBy, String sortDir,
+                                                  String search, String action, String status,
+                                                  String adminId, String userId, String from, String to) {
+<span class="fc" id="L65">        int safePage = Math.max(page, 0);</span>
+<span class="fc" id="L66">        int safeSize = Math.min(Math.max(size, 1), MAX_PAGE_SIZE);</span>
+<span class="fc" id="L67">        String sortField = normalizeSortField(sortBy);</span>
+<span class="pc bpc" id="L68" title="1 of 2 branches missed.">        Sort.Direction direction = &quot;asc&quot;.equalsIgnoreCase(sortDir) ? Sort.Direction.ASC : Sort.Direction.DESC;</span>
+<span class="fc" id="L69">        Pageable pageable = PageRequest.of(safePage, safeSize, Sort.by(direction, sortField));</span>
+
+<span class="fc" id="L71">        AuditAction actionFilter = parseAction(action);</span>
+<span class="fc" id="L72">        AuditStatus statusFilter = parseStatus(status);</span>
+<span class="fc" id="L73">        Instant fromInstant = parseInstant(from, &quot;Invalid from date&quot;);</span>
+<span class="fc" id="L74">        Instant toInstant = parseInstant(to, &quot;Invalid to date&quot;);</span>
+<span class="pc bpc" id="L75" title="3 of 4 branches missed.">        String searchFilter = (search == null || search.isBlank()) ? null : search.trim();</span>
+
+<span class="fc" id="L77">        Page&lt;AuditLog&gt; logs = auditLogRepository.searchAdminLogs(</span>
+<span class="fc" id="L78">                actionFilter, blankToNull(adminId), blankToNull(userId), statusFilter,</span>
+                fromInstant, toInstant, searchFilter, pageable);
+
+<span class="fc" id="L81">        List&lt;AuditLog&gt; content = logs.getContent();</span>
+<span class="fc" id="L82">        Map&lt;String, User&gt; userMap = batchUsers(content);</span>
+
+<span class="fc" id="L84">        List&lt;AuditLogResponse&gt; items = content.stream()</span>
+<span class="fc" id="L85">                .map(l -&gt; toResponse(l, userMap))</span>
+<span class="fc" id="L86">                .toList();</span>
+
+<span class="fc" id="L88">        return PageResponse.&lt;AuditLogResponse&gt;builder()</span>
+<span class="fc" id="L89">                .content(items)</span>
+<span class="fc" id="L90">                .page(logs.getNumber())</span>
+<span class="fc" id="L91">                .size(logs.getSize())</span>
+<span class="fc" id="L92">                .totalElements(logs.getTotalElements())</span>
+<span class="fc" id="L93">                .totalPages(logs.getTotalPages())</span>
+<span class="fc" id="L94">                .last(logs.isLast())</span>
+<span class="fc" id="L95">                .build();</span>
+    }
+
+    @Transactional(readOnly = true)
+    public AuditLogResponse getLog(String id) {
+<span class="fc" id="L100">        AuditLog log = auditLogRepository.findById(id)</span>
+<span class="fc" id="L101">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;AuditLog&quot;, id));</span>
+<span class="fc" id="L102">        Map&lt;String, User&gt; userMap = batchUsers(List.of(log));</span>
+<span class="fc" id="L103">        return toResponse(log, userMap);</span>
+    }
+
+    /**
+     * Exports filtered audit logs (capped at EXPORT_LIMIT rows) as a response list.
+     */
+    @Transactional(readOnly = true)
+    public List&lt;AuditLogResponse&gt; exportLogs(String search, String action, String status,
+                                             String adminId, String userId, String from, String to) {
+<span class="fc" id="L112">        AuditAction actionFilter = parseAction(action);</span>
+<span class="fc" id="L113">        AuditStatus statusFilter = parseStatus(status);</span>
+<span class="fc" id="L114">        Instant fromInstant = parseInstant(from, &quot;Invalid from date&quot;);</span>
+<span class="fc" id="L115">        Instant toInstant = parseInstant(to, &quot;Invalid to date&quot;);</span>
+<span class="pc bpc" id="L116" title="3 of 4 branches missed.">        String searchFilter = (search == null || search.isBlank()) ? null : search.trim();</span>
+
+<span class="fc" id="L118">        Page&lt;AuditLog&gt; logs = auditLogRepository.searchAdminLogs(</span>
+<span class="fc" id="L119">                actionFilter, blankToNull(adminId), blankToNull(userId), statusFilter,</span>
+                fromInstant, toInstant, searchFilter,
+<span class="fc" id="L121">                PageRequest.of(0, EXPORT_LIMIT, Sort.by(Sort.Direction.DESC, &quot;createdAt&quot;)));</span>
+
+<span class="fc" id="L123">        Map&lt;String, User&gt; userMap = batchUsers(logs.getContent());</span>
+<span class="fc" id="L124">        return logs.getContent().stream()</span>
+<span class="fc" id="L125">                .map(l -&gt; toResponse(l, userMap))</span>
+<span class="fc" id="L126">                .toList();</span>
+    }
+
+    public String toCsv(List&lt;AuditLogResponse&gt; logs) {
+<span class="fc" id="L130">        StringBuilder sb = new StringBuilder();</span>
+<span class="fc" id="L131">        sb.append(&quot;id,created_at,action,status,performed_by,performed_by_name,target_user,target_user_name,ip_address,device,browser,details\n&quot;);</span>
+<span class="fc bfc" id="L132" title="All 2 branches covered.">        for (AuditLogResponse l : logs) {</span>
+<span class="fc" id="L133">            sb.append(csv(l.getId())).append(',')</span>
+<span class="pc bpc" id="L134" title="1 of 2 branches missed.">                    .append(csv(l.getCreatedAt() != null ? l.getCreatedAt().toString() : &quot;&quot;)).append(',')</span>
+<span class="fc" id="L135">                    .append(csv(l.getAction())).append(',')</span>
+<span class="fc" id="L136">                    .append(csv(l.getStatus())).append(',')</span>
+<span class="fc" id="L137">                    .append(csv(l.getPerformedBy())).append(',')</span>
+<span class="fc" id="L138">                    .append(csv(l.getPerformedByName())).append(',')</span>
+<span class="fc" id="L139">                    .append(csv(l.getTargetUserId())).append(',')</span>
+<span class="fc" id="L140">                    .append(csv(l.getTargetUserName())).append(',')</span>
+<span class="fc" id="L141">                    .append(csv(l.getIpAddress())).append(',')</span>
+<span class="fc" id="L142">                    .append(csv(l.getDevice())).append(',')</span>
+<span class="fc" id="L143">                    .append(csv(l.getBrowser())).append(',')</span>
+<span class="fc" id="L144">                    .append(csv(l.getDetails())).append('\n');</span>
+<span class="fc" id="L145">        }</span>
+<span class="fc" id="L146">        return sb.toString();</span>
+    }
+
+    private String csv(String value) {
+<span class="pc bpc" id="L150" title="1 of 2 branches missed.">        if (value == null) return &quot;&quot;;</span>
+<span class="fc" id="L151">        String escaped = value.replace(&quot;\&quot;&quot;, &quot;\&quot;\&quot;&quot;);</span>
+<span class="pc bpc" id="L152" title="3 of 6 branches missed.">        if (escaped.contains(&quot;,&quot;) || escaped.contains(&quot;\&quot;&quot;) || escaped.contains(&quot;\n&quot;)) {</span>
+<span class="nc" id="L153">            return &quot;\&quot;&quot; + escaped + &quot;\&quot;&quot;;</span>
+        }
+<span class="fc" id="L155">        return escaped;</span>
+    }
+
+    private Map&lt;String, User&gt; batchUsers(List&lt;AuditLog&gt; logs) {
+<span class="pc bpc" id="L159" title="1 of 2 branches missed.">        if (logs.isEmpty()) return Collections.emptyMap();</span>
+<span class="fc" id="L160">        Set&lt;String&gt; ids = new HashSet&lt;&gt;();</span>
+<span class="fc" id="L161">        logs.forEach(l -&gt; {</span>
+<span class="pc bpc" id="L162" title="1 of 2 branches missed.">            if (l.getPerformedBy() != null) ids.add(l.getPerformedBy());</span>
+<span class="pc bpc" id="L163" title="1 of 2 branches missed.">            if (l.getTargetUser() != null) ids.add(l.getTargetUser());</span>
+<span class="fc" id="L164">        });</span>
+<span class="pc bpc" id="L165" title="1 of 2 branches missed.">        if (ids.isEmpty()) return Collections.emptyMap();</span>
+<span class="fc" id="L166">        return userRepository.findAllById(ids).stream()</span>
+<span class="fc" id="L167">                .collect(Collectors.toMap(User::getId, u -&gt; u));</span>
+    }
+
+    private AuditLogResponse toResponse(AuditLog log, Map&lt;String, User&gt; userMap) {
+<span class="pc bpc" id="L171" title="1 of 2 branches missed.">        User performer = log.getPerformedBy() != null ? userMap.get(log.getPerformedBy()) : null;</span>
+<span class="pc bpc" id="L172" title="1 of 2 branches missed.">        User target = log.getTargetUser() != null ? userMap.get(log.getTargetUser()) : null;</span>
+<span class="fc" id="L173">        return AuditLogResponse.builder()</span>
+<span class="fc" id="L174">                .id(log.getId())</span>
+<span class="fc" id="L175">                .performedBy(log.getPerformedBy())</span>
+<span class="fc bfc" id="L176" title="All 2 branches covered.">                .performedByName(performer != null ? performer.getFullName() : null)</span>
+<span class="fc" id="L177">                .targetUserId(log.getTargetUser())</span>
+<span class="fc bfc" id="L178" title="All 2 branches covered.">                .targetUserName(target != null ? target.getFullName() : null)</span>
+<span class="fc" id="L179">                .action(log.getAction().name())</span>
+<span class="fc" id="L180">                .status(log.getStatus().name())</span>
+<span class="fc" id="L181">                .ipAddress(log.getIpAddress())</span>
+<span class="fc" id="L182">                .device(log.getDevice())</span>
+<span class="fc" id="L183">                .browser(log.getBrowser())</span>
+<span class="fc" id="L184">                .details(log.getDetails())</span>
+<span class="fc" id="L185">                .createdAt(log.getCreatedAt())</span>
+<span class="fc" id="L186">                .build();</span>
+    }
+
+    private String clientIp() {
+        try {
+<span class="fc" id="L191">            ServletRequestAttributes attrs = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();</span>
+<span class="fc bfc" id="L192" title="All 2 branches covered.">            if (attrs == null) return null;</span>
+<span class="fc" id="L193">            HttpServletRequest request = attrs.getRequest();</span>
+<span class="fc" id="L194">            String forwarded = request.getHeader(&quot;X-Forwarded-For&quot;);</span>
+<span class="pc bpc" id="L195" title="3 of 4 branches missed.">            if (forwarded != null &amp;&amp; !forwarded.isBlank()) {</span>
+<span class="nc" id="L196">                return forwarded.split(&quot;,&quot;)[0].trim();</span>
+            }
+<span class="fc" id="L198">            return request.getRemoteAddr();</span>
+<span class="nc" id="L199">        } catch (Exception e) {</span>
+<span class="nc" id="L200">            return null;</span>
+        }
+    }
+
+    private String userAgent() {
+        try {
+<span class="fc" id="L206">            ServletRequestAttributes attrs = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();</span>
+<span class="fc bfc" id="L207" title="All 2 branches covered.">            if (attrs == null) return null;</span>
+<span class="fc" id="L208">            return attrs.getRequest().getHeader(&quot;User-Agent&quot;);</span>
+<span class="nc" id="L209">        } catch (Exception e) {</span>
+<span class="nc" id="L210">            return null;</span>
+        }
+    }
+
+    private String browser(String userAgent) {
+<span class="pc bpc" id="L215" title="1 of 2 branches missed.">        if (userAgent == null) return null;</span>
+<span class="nc" id="L216">        String ua = userAgent.toLowerCase();</span>
+<span class="nc bnc" id="L217" title="All 4 branches missed.">        if (ua.contains(&quot;edg/&quot;) || ua.contains(&quot;edge&quot;)) return &quot;Edge&quot;;</span>
+<span class="nc bnc" id="L218" title="All 2 branches missed.">        if (ua.contains(&quot;chrome&quot;)) return &quot;Chrome&quot;;</span>
+<span class="nc bnc" id="L219" title="All 2 branches missed.">        if (ua.contains(&quot;firefox&quot;)) return &quot;Firefox&quot;;</span>
+<span class="nc bnc" id="L220" title="All 2 branches missed.">        if (ua.contains(&quot;safari&quot;)) return &quot;Safari&quot;;</span>
+<span class="nc" id="L221">        return &quot;Unknown&quot;;</span>
+    }
+
+    private String device(String userAgent) {
+<span class="pc bpc" id="L225" title="1 of 2 branches missed.">        if (userAgent == null) return null;</span>
+<span class="nc" id="L226">        String ua = userAgent.toLowerCase();</span>
+<span class="nc bnc" id="L227" title="All 4 branches missed.">        if (ua.contains(&quot;ipad&quot;) || ua.contains(&quot;tablet&quot;)) return &quot;Tablet&quot;;</span>
+<span class="nc bnc" id="L228" title="All 6 branches missed.">        if (ua.contains(&quot;mobile&quot;) || ua.contains(&quot;android&quot;) || ua.contains(&quot;iphone&quot;)) return &quot;Mobile&quot;;</span>
+<span class="nc" id="L229">        return &quot;Desktop&quot;;</span>
+    }
+
+    private AuditAction parseAction(String raw) {
+<span class="pc bpc" id="L233" title="1 of 4 branches missed.">        if (raw == null || raw.isBlank()) return null;</span>
+        try {
+<span class="nc" id="L235">            return AuditAction.valueOf(raw.trim().toUpperCase());</span>
+<span class="fc" id="L236">        } catch (IllegalArgumentException e) {</span>
+<span class="fc" id="L237">            throw new IllegalArgumentException(&quot;Invalid action filter: &quot; + raw);</span>
+        }
+    }
+
+    private AuditStatus parseStatus(String raw) {
+<span class="pc bpc" id="L242" title="1 of 4 branches missed.">        if (raw == null || raw.isBlank()) return null;</span>
+        try {
+<span class="nc" id="L244">            return AuditStatus.valueOf(raw.trim().toUpperCase());</span>
+<span class="fc" id="L245">        } catch (IllegalArgumentException e) {</span>
+<span class="fc" id="L246">            throw new IllegalArgumentException(&quot;Invalid status filter: &quot; + raw);</span>
+        }
+    }
+
+    private Instant parseInstant(String raw, String message) {
+<span class="pc bpc" id="L251" title="3 of 4 branches missed.">        if (raw == null || raw.isBlank()) return null;</span>
+        try {
+<span class="nc" id="L253">            return Instant.parse(raw);</span>
+<span class="nc" id="L254">        } catch (Exception e) {</span>
+<span class="nc" id="L255">            throw new IllegalArgumentException(message + &quot;: &quot; + raw);</span>
+        }
+    }
+
+    private String blankToNull(String value) {
+<span class="pc bpc" id="L260" title="3 of 4 branches missed.">        return (value == null || value.isBlank()) ? null : value.trim();</span>
+    }
+
+    private String normalizeSortField(String sortBy) {
+<span class="pc bpc" id="L264" title="3 of 4 branches missed.">        if (sortBy == null || sortBy.isBlank()) return &quot;createdAt&quot;;</span>
+<span class="nc bnc" id="L265" title="All 4 branches missed.">        return switch (sortBy.toLowerCase()) {</span>
+<span class="nc" id="L266">            case &quot;action&quot; -&gt; &quot;action&quot;;</span>
+<span class="nc" id="L267">            case &quot;status&quot; -&gt; &quot;status&quot;;</span>
+<span class="nc" id="L268">            case &quot;performedby&quot; -&gt; &quot;performedBy&quot;;</span>
+<span class="nc" id="L269">            default -&gt; &quot;createdAt&quot;;</span>
+        };
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

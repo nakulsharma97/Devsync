@@ -40,7 +40,7 @@ class JwtAuthenticationFilterTest {
     @Test
     void doFilter_shouldSetAuthentication_WhenValidTokenProvided() throws Exception {
         when(request.getHeader("Authorization")).thenReturn("Bearer valid-jwt-token");
-        when(jwtTokenProvider.validateToken("valid-jwt-token")).thenReturn(true);
+        when(jwtTokenProvider.isAccessToken("valid-jwt-token")).thenReturn(true);
         when(jwtTokenProvider.getUserIdFromToken("valid-jwt-token")).thenReturn("user-123");
         when(userDetailsService.loadUserByUsername("user-123")).thenReturn(userDetails);
         when(userDetails.getAuthorities()).thenReturn(Collections.emptyList());
@@ -68,7 +68,7 @@ class JwtAuthenticationFilterTest {
     @Test
     void doFilter_shouldNotSetAuthentication_WhenInvalidTokenProvided() throws Exception {
         when(request.getHeader("Authorization")).thenReturn("Bearer invalid-token");
-        when(jwtTokenProvider.validateToken("invalid-token")).thenReturn(false);
+        when(jwtTokenProvider.isAccessToken("invalid-token")).thenReturn(false);
 
         filter.doFilterInternal(request, response, filterChain);
 
@@ -107,7 +107,7 @@ class JwtAuthenticationFilterTest {
     void doFilter_shouldAlwaysCallFilterChain_EvenForInvalidTokens() throws Exception {
         // Regression test: public endpoints should work even with bad tokens
         when(request.getHeader("Authorization")).thenReturn("Bearer bad-token");
-        when(jwtTokenProvider.validateToken("bad-token")).thenReturn(false);
+        when(jwtTokenProvider.isAccessToken("bad-token")).thenReturn(false);
 
         filter.doFilterInternal(request, response, filterChain);
 
@@ -124,9 +124,25 @@ class JwtAuthenticationFilterTest {
         verify(filterChain).doFilter(request, response);
     }
     @Test
+    void doFilter_shouldNotSetAuthentication_WhenRefreshTokenPresentedAsBearer() throws Exception {
+        // A refresh token is cryptographically valid but must never authenticate
+        // API requests — it is valid for much longer than an access token.
+        when(request.getHeader("Authorization")).thenReturn("Bearer refresh-jwt-token");
+        when(jwtTokenProvider.isAccessToken("refresh-jwt-token")).thenReturn(false);
+
+        filter.doFilterInternal(request, response, filterChain);
+
+        var auth = SecurityContextHolder.getContext().getAuthentication();
+        assertThat(auth).isNull();
+        verify(filterChain).doFilter(request, response);
+        verify(jwtTokenProvider, never()).getUserIdFromToken(anyString());
+        verify(userDetailsService, never()).loadUserByUsername(anyString());
+    }
+
+    @Test
     void doFilter_shouldNotSetAuthentication_WhenUserBlocked() throws Exception {
         when(request.getHeader("Authorization")).thenReturn("Bearer valid-jwt-token");
-        when(jwtTokenProvider.validateToken("valid-jwt-token")).thenReturn(true);
+        when(jwtTokenProvider.isAccessToken("valid-jwt-token")).thenReturn(true);
         when(jwtTokenProvider.getUserIdFromToken("valid-jwt-token")).thenReturn("blocked-123");
         when(userDetailsService.loadUserByUsername("blocked-123"))
                 .thenThrow(new org.springframework.security.authentication.DisabledException("Account is blocked"));

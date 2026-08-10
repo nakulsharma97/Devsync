@@ -1,8 +1,10 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { useNavigate, useParams } from "react-router";
 import { useApi } from "@/hooks/useApi";
-import { messageService, type ConversationDto, type MessageDto } from "@/services/messageService";
+import { useTyping } from "@/hooks/useTyping";
+import { messageService, type MessageDto } from "@/services/messageService";
 import { wsService } from "@/services/websocketService";
+import { TypingIndicator } from "@/components/TypingIndicator";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Loader2, Send, MessageSquare, Users, Wifi, WifiOff } from "lucide-react";
@@ -17,8 +19,19 @@ export default function Messages() {
   const [newMessage, setNewMessage] = useState("");
   const [sending, setSending] = useState(false);
   const [wsConnected, setWsConnected] = useState(false);
+  const [typers, setTypers] = useState<Set<string>>(new Set());
+  const [presence, setPresence] = useState<Record<string, string>>({});
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const pendingOptimisticRef = useRef(0);
+  const typingTimeoutsRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+
+  const isRoom = conversationId?.startsWith("room_") ?? false;
+  const actualId = conversationId?.replace(/^(room_|dm_)/, "");
+
+  const { markTyping, stopTyping } = useTyping(
+    isRoom ? actualId : undefined,
+    !isRoom ? actualId : undefined
+  );
 
   // Track WebSocket connection state
   useEffect(() => {
@@ -26,6 +39,65 @@ export default function Messages() {
       setWsConnected(connected);
     });
     setWsConnected(wsService.isConnected);
+    return () => { unsub(); };
+  }, []);
+
+  // Incoming typing indicators, scoped to the open conversation.
+  useEffect(() => {
+    if (!conversationId) return;
+    const convIsRoom = conversationId.startsWith("room_");
+    const convActualId = conversationId.replace(/^(room_|dm_)/, "");
+
+    const removeTyper = (userId: string) => {
+      setTypers((prev) => {
+        const next = new Set(prev);
+        next.delete(userId);
+        return next;
+      });
+    };
+
+    const unsub = wsService.onTyping((data) => {
+      if (!data || !data.userId) return;
+      if (data.userId === wsService.currentUserId) return; // ignore self
+      // Filter to the open conversation: room typing events carry roomId;
+      // DM events carry the typer's userId (the other participant).
+      if (convIsRoom && data.roomId !== convActualId) return;
+      if (!convIsRoom && data.roomId) return;
+      if (!convIsRoom && data.userId !== convActualId) return;
+
+      if (data.typing) {
+        setTypers((prev) => {
+          const next = new Set(prev);
+          next.add(data.userId);
+          return next;
+        });
+        // Safety net: if the stop event is lost, hide after 5s.
+        const existing = typingTimeoutsRef.current.get(data.userId);
+        if (existing) clearTimeout(existing);
+        typingTimeoutsRef.current.set(
+          data.userId,
+          setTimeout(() => removeTyper(data.userId), 5000)
+        );
+      } else {
+        removeTyper(data.userId);
+      }
+    });
+
+    return () => {
+      unsub();
+      setTypers(new Set());
+      const timeouts = typingTimeoutsRef.current;
+      timeouts.forEach((t) => clearTimeout(t));
+      timeouts.clear();
+    };
+  }, [conversationId]);
+
+  // Live presence feed for the conversation sidebar.
+  useEffect(() => {
+    const unsub = wsService.onPresence((data) => {
+      if (!data || !data.userId) return;
+      setPresence((prev) => ({ ...prev, [data.userId]: data.status }));
+    });
     return () => { unsub(); };
   }, []);
 
@@ -97,6 +169,7 @@ export default function Messages() {
     setSending(true);
     const text = newMessage.trim();
     setNewMessage("");
+    stopTyping();
 
     try {
       const isRoom = conversationId.startsWith("room_");
@@ -140,7 +213,7 @@ export default function Messages() {
     } finally {
       setSending(false);
     }
-  }, [newMessage, conversationId]);
+  }, [newMessage, conversationId, stopTyping]);
 
   return (
     <div className="flex h-[calc(100vh-8rem)] -m-4 md:-m-6">
@@ -166,14 +239,25 @@ export default function Messages() {
                 className={`w-full text-left p-3 hover:bg-accent/5 transition-colors ${
                   conversationId === conv.id ? "bg-indigo-500/10" : ""
                 }`}
-              >
-                <div className="flex items-center gap-2">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
+              >                  <div className="flex items-center gap-2">
+                  <div className={`relative w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
                     conv.type === "room"
                       ? "bg-gradient-to-br from-purple-500/20 to-pink-500/20 text-purple-400"
                       : "bg-gradient-to-br from-indigo-500/20 to-blue-500/20 text-indigo-400"
                   }`}>
                     {conv.type === "room" ? <Users className="w-4 h-4" /> : conv.name?.charAt(0) || "?"}
+                    {conv.type === "direct" && conv.otherUserId && (
+                      <span
+                        title={`Presence: ${presence[conv.otherUserId] ?? conv.otherUserPresence ?? "OFFLINE"}`}
+                        className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full ring-2 ring-background ${
+                          (presence[conv.otherUserId] ?? conv.otherUserPresence ?? "OFFLINE") === "ONLINE"
+                            ? "bg-emerald-500"
+                            : (presence[conv.otherUserId] ?? conv.otherUserPresence ?? "OFFLINE") === "AWAY"
+                              ? "bg-amber-500"
+                              : "bg-muted-foreground/40"
+                        }`}
+                      />
+                    )}
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">{conv.name}</p>
@@ -219,6 +303,15 @@ export default function Messages() {
 
         {conversationId ? (
           <>
+            {(() => {
+              const currentConv = conversations?.find((c) => c.id === conversationId);
+              const typerNames = [...typers].map((id) =>
+                !isRoom && currentConv?.otherUserId === id
+                  ? currentConv.otherUserName ?? "Someone"
+                  : "Someone"
+              );
+              return typers.size > 0 ? <TypingIndicator names={typerNames} /> : null;
+            })()}
             <div className="flex-1 overflow-y-auto p-4 space-y-3">
               {loadingMessages ? (
                 <div className="flex items-center justify-center py-8"><Loader2 className="h-5 w-5 animate-spin text-indigo-500" /></div>
@@ -259,7 +352,10 @@ export default function Messages() {
             <form onSubmit={handleSend} className="p-3 border-t border-border/40 flex gap-2">
               <Input
                 value={newMessage}
-                onChange={(e) => setNewMessage(e.target.value)}
+                onChange={(e) => {
+                  setNewMessage(e.target.value);
+                  markTyping();
+                }}
                 placeholder="Type a message..."
                 className="flex-1 h-10 text-sm"
               />

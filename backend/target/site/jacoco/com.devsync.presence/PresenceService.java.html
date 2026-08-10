@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PresenceService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">DevSync Backend</a> &gt; <a href="index.source.html" class="el_package">com.devsync.presence</a> &gt; <span class="el_source">PresenceService.java</span></div><h1>PresenceService.java</h1><pre class="source lang-java linenums">package com.devsync.presence;
+
+import com.devsync.user.entity.User;
+import com.devsync.user.repository.UserRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.Duration;
+import java.time.Instant;
+
+@Service
+@RequiredArgsConstructor
+public class PresenceService {
+
+    /** Heartbeats older than this are demoted from ONLINE to AWAY. */
+<span class="fc" id="L17">    private static final Duration ONLINE_WINDOW = Duration.ofMinutes(3);</span>
+    /** Heartbeats older than this are considered OFFLINE. */
+<span class="fc" id="L19">    private static final Duration OFFLINE_WINDOW = Duration.ofMinutes(10);</span>
+
+    private final UserRepository userRepository;
+
+    @Transactional
+    public void updateStatus(String userId, String status) {
+<span class="fc" id="L25">        User user = userRepository.findById(userId).orElse(null);</span>
+<span class="pc bpc" id="L26" title="1 of 2 branches missed.">        if (user == null) return;</span>
+<span class="fc" id="L27">        PresenceStatus parsed = parse(status);</span>
+<span class="fc" id="L28">        user.setPresenceStatus(parsed);</span>
+<span class="fc" id="L29">        user.setLastActiveAt(Instant.now());</span>
+<span class="fc" id="L30">        userRepository.save(user);</span>
+<span class="fc" id="L31">    }</span>
+
+    @Transactional
+    public void touch(String userId) {
+<span class="nc" id="L35">        User user = userRepository.findById(userId).orElse(null);</span>
+<span class="nc bnc" id="L36" title="All 2 branches missed.">        if (user == null) return;</span>
+<span class="nc" id="L37">        user.setLastActiveAt(Instant.now());</span>
+<span class="nc" id="L38">        userRepository.save(user);</span>
+<span class="nc" id="L39">    }</span>
+
+    /**
+     * Computes the effective presence, automatically demoting stale heartbeats
+     * so no scheduled job is required: ONLINE -&gt; AWAY after 3 min, -&gt; OFFLINE after 10 min.
+     */
+    public String effectiveStatus(User user) {
+<span class="fc bfc" id="L46" title="All 4 branches covered.">        if (user == null || user.getLastActiveAt() == null) return PresenceStatus.OFFLINE.name();</span>
+<span class="fc" id="L47">        long ageMinutes = Duration.between(user.getLastActiveAt(), Instant.now()).toMinutes();</span>
+<span class="fc bfc" id="L48" title="All 2 branches covered.">        if (ageMinutes &gt;= OFFLINE_WINDOW.toMinutes()) return PresenceStatus.OFFLINE.name();</span>
+<span class="fc bfc" id="L49" title="All 2 branches covered.">        if (ageMinutes &gt;= ONLINE_WINDOW.toMinutes()) return PresenceStatus.AWAY.name();</span>
+<span class="fc" id="L50">        PresenceStatus status = user.getPresenceStatus();</span>
+<span class="pc bpc" id="L51" title="1 of 2 branches missed.">        return status != null ? status.name() : PresenceStatus.ONLINE.name();</span>
+    }
+
+    private PresenceStatus parse(String status) {
+<span class="pc bpc" id="L55" title="2 of 4 branches missed.">        if (status == null || status.isBlank()) return PresenceStatus.ONLINE;</span>
+        try {
+<span class="fc" id="L57">            return PresenceStatus.valueOf(status.trim().toUpperCase());</span>
+<span class="fc" id="L58">        } catch (IllegalArgumentException e) {</span>
+<span class="fc" id="L59">            throw new IllegalArgumentException(&quot;Invalid presence status: &quot; + status);</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

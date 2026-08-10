@@ -31,6 +31,7 @@ import java.util.stream.Collectors;
 public class ActivityService {
 
     private static final int MAX_PAGE_SIZE = 100;
+    private static final int EXPORT_LIMIT = 5000;
 
     private static final Set<ActivityType> PROJECT_TYPES = Set.of(
             ActivityType.PROJECT_CREATED, ActivityType.PROJECT_UPDATED,
@@ -94,6 +95,52 @@ public class ActivityService {
         Page<Activity> activities = activityRepository.searchAdminActivities(
                 blankToNull(projectId), blankToNull(userId), type, fromInstant, toInstant, pageable);
         return toPageResponse(activities);
+    }
+
+    /**
+     * Exports filtered activities (capped at EXPORT_LIMIT rows) for CSV download.
+     * Same filters as getAdminActivities.
+     */
+    @Transactional(readOnly = true)
+    public List<ActivityResponse> exportActivities(String projectId, String userId, String activityType,
+                                                   String from, String to) {
+        ActivityType type = parseType(activityType);
+        Instant fromInstant = parseInstant(from, "Invalid from date");
+        Instant toInstant = parseInstant(to, "Invalid to date");
+
+        Page<Activity> activities = activityRepository.searchAdminActivities(
+                blankToNull(projectId), blankToNull(userId), type, fromInstant, toInstant,
+                PageRequest.of(0, EXPORT_LIMIT, Sort.by(Sort.Direction.DESC, "createdAt")));
+
+        Map<String, User> userMap = batchUsers(activities.getContent());
+        return activities.getContent().stream()
+                .map(a -> toResponse(a, userMap.get(a.getUserId())))
+                .toList();
+    }
+
+    public String toCsv(List<ActivityResponse> activities) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("id,created_at,activity_type,title,description,user_id,user_name,project_id\n");
+        for (ActivityResponse a : activities) {
+            sb.append(csv(a.getId())).append(',')
+                    .append(csv(a.getCreatedAt() != null ? a.getCreatedAt().toString() : "")).append(',')
+                    .append(csv(a.getActivityType())).append(',')
+                    .append(csv(a.getTitle())).append(',')
+                    .append(csv(a.getDescription())).append(',')
+                    .append(csv(a.getUser() != null ? a.getUser().getId() : null)).append(',')
+                    .append(csv(a.getUser() != null ? a.getUser().getFullName() : null)).append(',')
+                    .append(csv(a.getProjectId())).append('\n');
+        }
+        return sb.toString();
+    }
+
+    private String csv(String value) {
+        if (value == null) return "";
+        String escaped = value.replace("\"", "\"\"");
+        if (escaped.contains(",") || escaped.contains("\"") || escaped.contains("\n")) {
+            return "\"" + escaped + "\"";
+        }
+        return escaped;
     }
 
     @Transactional(readOnly = true)
