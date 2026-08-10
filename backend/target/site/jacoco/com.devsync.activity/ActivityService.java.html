@@ -1,0 +1,221 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ActivityService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">DevSync Backend</a> &gt; <a href="index.source.html" class="el_package">com.devsync.activity</a> &gt; <span class="el_source">ActivityService.java</span></div><h1>ActivityService.java</h1><pre class="source lang-java linenums">package com.devsync.activity;
+
+import com.devsync.activity.dto.ActivityResponse;
+import com.devsync.activity.dto.ActivityUserDto;
+import com.devsync.activity.dto.AdminActivityStats;
+import com.devsync.activity.entity.Activity;
+import com.devsync.activity.entity.ActivityType;
+import com.devsync.activity.repository.ActivityRepository;
+import com.devsync.common.PageResponse;
+import com.devsync.user.entity.User;
+import com.devsync.user.repository.UserRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneOffset;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+@Service
+@RequiredArgsConstructor
+public class ActivityService {
+
+    private static final int MAX_PAGE_SIZE = 100;
+    private static final int EXPORT_LIMIT = 5000;
+
+<span class="fc" id="L36">    private static final Set&lt;ActivityType&gt; PROJECT_TYPES = Set.of(</span>
+            ActivityType.PROJECT_CREATED, ActivityType.PROJECT_UPDATED,
+            ActivityType.PROJECT_ARCHIVED, ActivityType.PROJECT_RESTORED, ActivityType.PROJECT_DELETED);
+<span class="fc" id="L39">    private static final Set&lt;ActivityType&gt; TASK_TYPES = Set.of(</span>
+            ActivityType.TASK_CREATED, ActivityType.TASK_ASSIGNED, ActivityType.TASK_UPDATED,
+            ActivityType.TASK_MOVED, ActivityType.TASK_COMPLETED, ActivityType.TASK_DELETED);
+
+    private final ActivityRepository activityRepository;
+    private final UserRepository userRepository;
+
+    /**
+     * Records a new activity event. Called from domain services after the underlying
+     * operation succeeds (joins the caller's transaction).
+     */
+    @Transactional
+    public void record(String userId, String projectId, ActivityType activityType,
+                       String title, String description, String metadata) {
+<span class="fc" id="L53">        activityRepository.save(Activity.builder()</span>
+<span class="fc" id="L54">                .userId(userId)</span>
+<span class="fc" id="L55">                .projectId(projectId)</span>
+<span class="fc" id="L56">                .activityType(activityType)</span>
+<span class="fc" id="L57">                .title(title)</span>
+<span class="fc" id="L58">                .description(description)</span>
+<span class="fc" id="L59">                .metadata(metadata)</span>
+<span class="fc" id="L60">                .build());</span>
+<span class="fc" id="L61">    }</span>
+
+    @Transactional(readOnly = true)
+    public PageResponse&lt;ActivityResponse&gt; getProjectActivities(String projectId, int page, int size) {
+<span class="fc" id="L65">        int safePage = Math.max(page, 0);</span>
+<span class="fc" id="L66">        int safeSize = Math.min(Math.max(size, 1), MAX_PAGE_SIZE);</span>
+<span class="fc" id="L67">        Page&lt;Activity&gt; activities = activityRepository.findByProjectIdOrderByCreatedAtDesc(</span>
+<span class="fc" id="L68">                projectId, PageRequest.of(safePage, safeSize));</span>
+<span class="fc" id="L69">        return toPageResponse(activities);</span>
+    }
+
+    @Transactional(readOnly = true)
+    public PageResponse&lt;ActivityResponse&gt; getUserActivities(String userId, int page, int size) {
+<span class="fc" id="L74">        int safePage = Math.max(page, 0);</span>
+<span class="fc" id="L75">        int safeSize = Math.min(Math.max(size, 1), MAX_PAGE_SIZE);</span>
+<span class="fc" id="L76">        Page&lt;Activity&gt; activities = activityRepository.findByUserIdOrderByCreatedAtDesc(</span>
+<span class="fc" id="L77">                userId, PageRequest.of(safePage, safeSize));</span>
+<span class="fc" id="L78">        return toPageResponse(activities);</span>
+    }
+
+    /**
+     * Admin activity feed with filters: project, user, activity type, date range.
+     * All queries are batched - no N+1.
+     */
+    @Transactional(readOnly = true)
+    public PageResponse&lt;ActivityResponse&gt; getAdminActivities(String projectId, String userId, String activityType,
+                                                             String from, String to, int page, int size) {
+<span class="fc" id="L88">        int safePage = Math.max(page, 0);</span>
+<span class="fc" id="L89">        int safeSize = Math.min(Math.max(size, 1), MAX_PAGE_SIZE);</span>
+<span class="fc" id="L90">        ActivityType type = parseType(activityType);</span>
+<span class="fc" id="L91">        Instant fromInstant = parseInstant(from, &quot;Invalid from date&quot;);</span>
+<span class="fc" id="L92">        Instant toInstant = parseInstant(to, &quot;Invalid to date&quot;);</span>
+<span class="fc" id="L93">        Pageable pageable = PageRequest.of(safePage, safeSize, Sort.by(Sort.Direction.DESC, &quot;createdAt&quot;));</span>
+
+<span class="fc" id="L95">        Page&lt;Activity&gt; activities = activityRepository.searchAdminActivities(</span>
+<span class="fc" id="L96">                blankToNull(projectId), blankToNull(userId), type, fromInstant, toInstant, pageable);</span>
+<span class="fc" id="L97">        return toPageResponse(activities);</span>
+    }
+
+    /**
+     * Exports filtered activities (capped at EXPORT_LIMIT rows) for CSV download.
+     * Same filters as getAdminActivities.
+     */
+    @Transactional(readOnly = true)
+    public List&lt;ActivityResponse&gt; exportActivities(String projectId, String userId, String activityType,
+                                                   String from, String to) {
+<span class="fc" id="L107">        ActivityType type = parseType(activityType);</span>
+<span class="fc" id="L108">        Instant fromInstant = parseInstant(from, &quot;Invalid from date&quot;);</span>
+<span class="fc" id="L109">        Instant toInstant = parseInstant(to, &quot;Invalid to date&quot;);</span>
+
+<span class="fc" id="L111">        Page&lt;Activity&gt; activities = activityRepository.searchAdminActivities(</span>
+<span class="fc" id="L112">                blankToNull(projectId), blankToNull(userId), type, fromInstant, toInstant,</span>
+<span class="fc" id="L113">                PageRequest.of(0, EXPORT_LIMIT, Sort.by(Sort.Direction.DESC, &quot;createdAt&quot;)));</span>
+
+<span class="fc" id="L115">        Map&lt;String, User&gt; userMap = batchUsers(activities.getContent());</span>
+<span class="fc" id="L116">        return activities.getContent().stream()</span>
+<span class="fc" id="L117">                .map(a -&gt; toResponse(a, userMap.get(a.getUserId())))</span>
+<span class="fc" id="L118">                .toList();</span>
+    }
+
+    public String toCsv(List&lt;ActivityResponse&gt; activities) {
+<span class="fc" id="L122">        StringBuilder sb = new StringBuilder();</span>
+<span class="fc" id="L123">        sb.append(&quot;id,created_at,activity_type,title,description,user_id,user_name,project_id\n&quot;);</span>
+<span class="fc bfc" id="L124" title="All 2 branches covered.">        for (ActivityResponse a : activities) {</span>
+<span class="fc" id="L125">            sb.append(csv(a.getId())).append(',')</span>
+<span class="pc bpc" id="L126" title="1 of 2 branches missed.">                    .append(csv(a.getCreatedAt() != null ? a.getCreatedAt().toString() : &quot;&quot;)).append(',')</span>
+<span class="fc" id="L127">                    .append(csv(a.getActivityType())).append(',')</span>
+<span class="fc" id="L128">                    .append(csv(a.getTitle())).append(',')</span>
+<span class="fc" id="L129">                    .append(csv(a.getDescription())).append(',')</span>
+<span class="pc bpc" id="L130" title="1 of 2 branches missed.">                    .append(csv(a.getUser() != null ? a.getUser().getId() : null)).append(',')</span>
+<span class="pc bpc" id="L131" title="1 of 2 branches missed.">                    .append(csv(a.getUser() != null ? a.getUser().getFullName() : null)).append(',')</span>
+<span class="fc" id="L132">                    .append(csv(a.getProjectId())).append('\n');</span>
+<span class="fc" id="L133">        }</span>
+<span class="fc" id="L134">        return sb.toString();</span>
+    }
+
+    private String csv(String value) {
+<span class="pc bpc" id="L138" title="1 of 2 branches missed.">        if (value == null) return &quot;&quot;;</span>
+<span class="fc" id="L139">        String escaped = value.replace(&quot;\&quot;&quot;, &quot;\&quot;\&quot;&quot;);</span>
+<span class="pc bpc" id="L140" title="2 of 6 branches missed.">        if (escaped.contains(&quot;,&quot;) || escaped.contains(&quot;\&quot;&quot;) || escaped.contains(&quot;\n&quot;)) {</span>
+<span class="fc" id="L141">            return &quot;\&quot;&quot; + escaped + &quot;\&quot;&quot;;</span>
+        }
+<span class="fc" id="L143">        return escaped;</span>
+    }
+
+    @Transactional(readOnly = true)
+    public AdminActivityStats getAdminActivityStats() {
+<span class="fc" id="L148">        Instant startOfToday = LocalDate.now().atStartOfDay().toInstant(ZoneOffset.UTC);</span>
+<span class="fc" id="L149">        return AdminActivityStats.builder()</span>
+<span class="fc" id="L150">                .todayCount(activityRepository.countByCreatedAtAfter(startOfToday))</span>
+<span class="fc" id="L151">                .projects(activityRepository.countByActivityTypeInAndCreatedAtAfter(PROJECT_TYPES, startOfToday))</span>
+<span class="fc" id="L152">                .tasks(activityRepository.countByActivityTypeInAndCreatedAtAfter(TASK_TYPES, startOfToday))</span>
+<span class="fc" id="L153">                .messages(activityRepository.countByActivityTypeInAndCreatedAtAfter(</span>
+<span class="fc" id="L154">                        Set.of(ActivityType.MESSAGE_SENT), startOfToday))</span>
+<span class="fc" id="L155">                .build();</span>
+    }
+
+    private PageResponse&lt;ActivityResponse&gt; toPageResponse(Page&lt;Activity&gt; activities) {
+<span class="fc" id="L159">        List&lt;Activity&gt; content = activities.getContent();</span>
+<span class="fc" id="L160">        Map&lt;String, User&gt; userMap = batchUsers(content);</span>
+
+<span class="fc" id="L162">        List&lt;ActivityResponse&gt; items = content.stream()</span>
+<span class="fc" id="L163">                .map(a -&gt; toResponse(a, userMap.get(a.getUserId())))</span>
+<span class="fc" id="L164">                .toList();</span>
+
+<span class="fc" id="L166">        return PageResponse.&lt;ActivityResponse&gt;builder()</span>
+<span class="fc" id="L167">                .content(items)</span>
+<span class="fc" id="L168">                .page(activities.getNumber())</span>
+<span class="fc" id="L169">                .size(activities.getSize())</span>
+<span class="fc" id="L170">                .totalElements(activities.getTotalElements())</span>
+<span class="fc" id="L171">                .totalPages(activities.getTotalPages())</span>
+<span class="fc" id="L172">                .last(activities.isLast())</span>
+<span class="fc" id="L173">                .build();</span>
+    }
+
+    private Map&lt;String, User&gt; batchUsers(List&lt;Activity&gt; activities) {
+<span class="pc bpc" id="L177" title="1 of 2 branches missed.">        if (activities.isEmpty()) return Collections.emptyMap();</span>
+<span class="fc" id="L178">        Set&lt;String&gt; ids = activities.stream().map(Activity::getUserId).collect(Collectors.toSet());</span>
+<span class="fc" id="L179">        return userRepository.findAllById(ids).stream()</span>
+<span class="fc" id="L180">                .collect(Collectors.toMap(User::getId, u -&gt; u));</span>
+    }
+
+    private ActivityResponse toResponse(Activity a, User user) {
+<span class="pc bpc" id="L184" title="1 of 2 branches missed.">        ActivityUserDto userDto = user != null</span>
+<span class="fc" id="L185">                ? ActivityUserDto.builder().id(user.getId()).fullName(user.getFullName())</span>
+<span class="fc" id="L186">                        .username(user.getUsername()).avatarUrl(user.getAvatarUrl()).build()</span>
+<span class="pc" id="L187">                : ActivityUserDto.builder().id(a.getUserId()).fullName(&quot;Unknown&quot;).build();</span>
+<span class="fc" id="L188">        return ActivityResponse.builder()</span>
+<span class="fc" id="L189">                .id(a.getId())</span>
+<span class="fc" id="L190">                .user(userDto)</span>
+<span class="fc" id="L191">                .projectId(a.getProjectId())</span>
+<span class="fc" id="L192">                .activityType(a.getActivityType().name())</span>
+<span class="fc" id="L193">                .title(a.getTitle())</span>
+<span class="fc" id="L194">                .description(a.getDescription())</span>
+<span class="fc" id="L195">                .createdAt(a.getCreatedAt())</span>
+<span class="fc" id="L196">                .build();</span>
+    }
+
+    private ActivityType parseType(String raw) {
+<span class="pc bpc" id="L200" title="1 of 4 branches missed.">        if (raw == null || raw.isBlank()) return null;</span>
+        try {
+<span class="fc" id="L202">            return ActivityType.valueOf(raw.trim().toUpperCase());</span>
+<span class="fc" id="L203">        } catch (IllegalArgumentException e) {</span>
+<span class="fc" id="L204">            throw new IllegalArgumentException(&quot;Invalid activity type: &quot; + raw);</span>
+        }
+    }
+
+    private Instant parseInstant(String raw, String message) {
+<span class="pc bpc" id="L209" title="1 of 4 branches missed.">        if (raw == null || raw.isBlank()) return null;</span>
+        try {
+<span class="nc" id="L211">            return Instant.parse(raw);</span>
+<span class="fc" id="L212">        } catch (Exception e) {</span>
+<span class="fc" id="L213">            throw new IllegalArgumentException(message + &quot;: &quot; + raw);</span>
+        }
+    }
+
+    private String blankToNull(String value) {
+<span class="pc bpc" id="L218" title="1 of 4 branches missed.">        return (value == null || value.isBlank()) ? null : value.trim();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

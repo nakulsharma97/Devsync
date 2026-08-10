@@ -8,11 +8,13 @@
 # ============================================================
 set -euo pipefail
 
-# Configuration — override via environment variables
+# Configuration — override via environment variables.
+# DB_PASSWORD is REQUIRED (no default) so a real credential can never be
+# baked into a backup script or cron entry.
 DB_HOST="${DB_HOST:-localhost}"
 DB_PORT="${DB_PORT:-3306}"
 DB_USER="${DB_USER:-root}"
-DB_PASSWORD="${DB_PASSWORD:-password}"
+DB_PASSWORD="${DB_PASSWORD:?DB_PASSWORD must be set (e.g. export DB_PASSWORD=...)}"
 DB_NAME="${DB_NAME:-devsync_db}"
 BACKUP_DIR="${1:-./backups}"
 RETENTION_DAYS="${RETENTION_DAYS:-30}"

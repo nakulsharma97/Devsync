@@ -3,9 +3,11 @@ import {
   Activity as ActivityIcon,
   ChevronLeft,
   ChevronRight,
+  Download,
   FolderGit2,
   Inbox,
   ListTodo,
+  Loader2,
   MessageSquare,
   RefreshCw,
 } from "lucide-react";
@@ -27,6 +29,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { toast } from "sonner";
 
 const ACTIVITY_TYPES = [
   "PROJECT_CREATED",
@@ -74,6 +77,7 @@ export default function AdminActivity() {
   const [stats, setStats] = useState<AdminActivityStats | null>(null);
   const [data, setData] = useState<PageResponse<ActivityItem> | null>(null);
   const [loading, setLoading] = useState(true);
+  const [exporting, setExporting] = useState(false);
   const [page, setPage] = useState(0);
   const [projectId, setProjectId] = useState("");
   const [userId, setUserId] = useState("");
@@ -124,6 +128,24 @@ export default function AdminActivity() {
     setFrom("");
     setTo("");
     setPage(0);
+  };
+
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      await adminService.exportActivityCsv({
+        projectId: projectId || undefined,
+        userId: userId || undefined,
+        activityType: activityType === "ALL" ? undefined : activityType,
+        from: toIso(from),
+        to: toIso(to),
+      });
+      toast.success("Activities exported");
+    } catch {
+      toast.error("Export failed");
+    } finally {
+      setExporting(false);
+    }
   };
 
   const statCards = [
@@ -206,8 +228,12 @@ export default function AdminActivity() {
             <label className="text-xs text-muted-foreground mb-1 block">To</label>
             <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
           </div>
-          <Button variant="outline" size="icon" onClick={fetchData} title="Refresh">
+          <Button variant="outline" size="icon" onClick={fetchData} title="Refresh" aria-label="Refresh">
             <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
+          </Button>
+          <Button variant="outline" onClick={handleExport} disabled={exporting}>
+            {exporting ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Download className="w-4 h-4 mr-1" />}
+            Export CSV
           </Button>
           <Button variant="ghost" onClick={resetFilters}>
             Reset

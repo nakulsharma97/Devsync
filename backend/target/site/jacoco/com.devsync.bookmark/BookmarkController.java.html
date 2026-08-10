@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>BookmarkController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">DevSync Backend</a> &gt; <a href="index.source.html" class="el_package">com.devsync.bookmark</a> &gt; <span class="el_source">BookmarkController.java</span></div><h1>BookmarkController.java</h1><pre class="source lang-java linenums">package com.devsync.bookmark;
+
+import com.devsync.bookmark.dto.BookmarkRequest;
+import com.devsync.bookmark.dto.BookmarkResponse;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.Map;
+
+@RestController
+@RequestMapping(&quot;/api/bookmarks&quot;)
+@RequiredArgsConstructor
+public class BookmarkController {
+
+    private final BookmarkService bookmarkService;
+
+    @GetMapping
+    public ResponseEntity&lt;List&lt;BookmarkResponse&gt;&gt; list(@AuthenticationPrincipal UserDetails userDetails) {
+<span class="nc" id="L24">        return ResponseEntity.ok(bookmarkService.list(userDetails.getUsername()));</span>
+    }
+
+    @PostMapping
+    public ResponseEntity&lt;BookmarkResponse&gt; add(
+            @Valid @RequestBody BookmarkRequest request,
+            @AuthenticationPrincipal UserDetails userDetails) {
+<span class="nc" id="L31">        return ResponseEntity.ok(bookmarkService.add(</span>
+<span class="nc" id="L32">                userDetails.getUsername(), request.getEntityType(), request.getEntityId()));</span>
+    }
+
+    @DeleteMapping(&quot;/{id}&quot;)
+    public ResponseEntity&lt;Void&gt; remove(@PathVariable String id,
+                                       @AuthenticationPrincipal UserDetails userDetails) {
+<span class="nc" id="L38">        bookmarkService.remove(id, userDetails.getUsername());</span>
+<span class="nc" id="L39">        return ResponseEntity.noContent().build();</span>
+    }
+
+    @DeleteMapping
+    public ResponseEntity&lt;Void&gt; removeByEntity(
+            @RequestParam String entityType,
+            @RequestParam String entityId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+<span class="nc" id="L47">        bookmarkService.removeByEntity(userDetails.getUsername(), entityType, entityId);</span>
+<span class="nc" id="L48">        return ResponseEntity.noContent().build();</span>
+    }
+
+    @GetMapping(&quot;/status&quot;)
+    public ResponseEntity&lt;Map&lt;String, Boolean&gt;&gt; status(
+            @RequestParam String entityType,
+            @RequestParam String entityId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+<span class="nc" id="L56">        return ResponseEntity.ok(Map.of(&quot;bookmarked&quot;,</span>
+<span class="nc" id="L57">                bookmarkService.isBookmarked(userDetails.getUsername(), entityType, entityId)));</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

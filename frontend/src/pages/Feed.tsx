@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { postService, type PostDto, type CommentDto } from "@/services/postService";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,7 +12,6 @@ import {
   Image,
   Loader2,
   ChevronDown,
-  ChevronUp,
   Rss,
   Sparkles,
 } from "lucide-react";
@@ -65,7 +64,7 @@ export default function Feed() {
       }
       setHasMore(!result.last);
       setPage(pageNum);
-    } catch (err: any) {
+    } catch {
       toast.error("Failed to load feed");
     } finally {
       setLoading(false);

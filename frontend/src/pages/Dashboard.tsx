@@ -1,12 +1,12 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { useApi } from "@/hooks/useApi";
-import { projectService, type ProjectDto } from "@/services/projectService";
+import { projectService } from "@/services/projectService";
 import { notificationService } from "@/services/notificationService";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { FolderKanban, Bell, Plus, ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router";
-import { Skeleton, SkeletonTableRow, SkeletonStatCard } from "@/components/Skeletons";
+import { Skeleton, SkeletonTableRow } from "@/components/Skeletons";
 
 export default function Dashboard() {
   const { user } = useAuth();

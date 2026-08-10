@@ -13,7 +13,9 @@ import java.time.Instant;
 
 public interface AuditLogRepository extends JpaRepository<AuditLog, String> {
 
-    @Query("SELECT a FROM AuditLog a LEFT JOIN User u ON u.id = a.performedBy " +
+    @Query("SELECT a FROM AuditLog a " +
+            "LEFT JOIN User u ON u.id = a.performedBy " +
+            "LEFT JOIN User t ON t.id = a.targetUser " +
             "WHERE (:action IS NULL OR a.action = :action) " +
             "AND (:performedBy IS NULL OR a.performedBy = :performedBy) " +
             "AND (:targetUser IS NULL OR a.targetUser = :targetUser) " +
@@ -21,7 +23,8 @@ public interface AuditLogRepository extends JpaRepository<AuditLog, String> {
             "AND (:from IS NULL OR a.createdAt >= :from) " +
             "AND (:to IS NULL OR a.createdAt <= :to) " +
             "AND (:search IS NULL OR a.performedBy LIKE %:search% OR a.targetUser LIKE %:search% " +
-            "OR a.details LIKE %:search% OR u.fullName LIKE %:search% OR u.email LIKE %:search%)")
+            "OR a.details LIKE %:search% OR u.fullName LIKE %:search% OR u.email LIKE %:search% " +
+            "OR t.fullName LIKE %:search% OR t.email LIKE %:search%)")
     Page<AuditLog> searchAdminLogs(@Param("action") AuditAction action,
                                    @Param("performedBy") String performedBy,
                                    @Param("targetUser") String targetUser,

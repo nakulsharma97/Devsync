@@ -105,7 +105,7 @@ jobs:
         run: cd frontend && bun tsc -b --noEmit
 
       - name: Lint
-        run: cd frontend && bun run lint || true
+        run: cd frontend && bun run lint
 
       - name: Build
         run: cd frontend && bun run build
@@ -120,6 +120,9 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
+
+      - name: Validate docker-compose config
+        run: docker compose config --quiet
 
       - name: Build backend Docker image
         uses: docker/build-push-action@v7

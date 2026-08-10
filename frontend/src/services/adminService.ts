@@ -132,6 +132,10 @@ export interface AdminUsersQuery {
   search?: string;
   role?: string;
   status?: string;
+  /** ISO date (yyyy-MM-dd) or instant - created-after bound, inclusive. */
+  from?: string;
+  /** ISO date (yyyy-MM-dd) or instant - created-before bound, inclusive. */
+  to?: string;
 }
 
 // ---------- Admin Project Management types ----------
@@ -462,8 +466,10 @@ export const adminService = {
     return res.data;
   },
 
-  async setUserBlocked(userId: string, blocked: boolean): Promise<AdminUser> {
-    const res = await api.put(`/admin/users/${userId}/${blocked ? "block" : "unblock"}`);
+  async setUserBlocked(userId: string, blocked: boolean, reason?: string): Promise<AdminUser> {
+    const res = await api.put(`/admin/users/${userId}/${blocked ? "block" : "unblock"}`, {
+      reason: reason || undefined,
+    });
     return res.data;
   },
 
@@ -567,6 +573,18 @@ export const adminService = {
     const link = document.createElement("a");
     link.href = url;
     link.download = "audit-logs.csv";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  },
+
+  async exportActivityCsv(query: AdminActivityQuery = {}): Promise<void> {
+    const res = await api.get("/admin/activity/export", { params: query, responseType: "blob" });
+    const url = window.URL.createObjectURL(new Blob([res.data]));
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "activities.csv";
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);

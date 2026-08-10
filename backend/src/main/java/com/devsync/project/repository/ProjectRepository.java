@@ -62,4 +62,9 @@ public interface ProjectRepository extends JpaRepository<Project, String> {
 
     long countByCreatedAtBetween(Instant from, Instant to);
 
+    /** Aggregates project creations per calendar day in a single query. */
+    @Query("SELECT cast(p.createdAt as date) AS day, COUNT(p) FROM Project p " +
+            "WHERE p.createdAt >= :from AND p.createdAt < :to GROUP BY cast(p.createdAt as date)")
+    List<Object[]> countGroupedByDay(@Param("from") Instant from, @Param("to") Instant to);
+
 }

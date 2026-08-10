@@ -28,7 +28,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                     FilterChain filterChain) throws ServletException, IOException {
         String token = extractToken(request);
 
-        if (token != null && jwtTokenProvider.validateToken(token)) {
+        // Only access tokens may be presented as Bearer credentials. Refresh
+        // tokens are valid for much longer and must never authenticate requests.
+        if (token != null && jwtTokenProvider.isAccessToken(token)) {
             String userId = jwtTokenProvider.getUserIdFromToken(token);
             try {
                 UserDetails userDetails = userDetailsService.loadUserByUsername(userId);

@@ -56,9 +56,20 @@ public class FileStorageService {
     }
 
     /**
+     * Stored names are generated server-side (UUID + sanitized original name), so
+     * only a strict safe character set is allowed when resolving. Anything else
+     * (slashes, backslashes, dot-dot, encoded traversal) is rejected outright.
+     */
+    private static final java.util.regex.Pattern SAFE_STORED_NAME =
+            java.util.regex.Pattern.compile("^[A-Za-z0-9._-]{1,255}$");
+
+    /**
      * Resolves a stored name to a filesystem path, guarding against traversal.
      */
     public Path resolve(String storedName) {
+        if (storedName == null || !SAFE_STORED_NAME.matcher(storedName).matches()) {
+            throw new IllegalArgumentException("Invalid file name");
+        }
         Path target = root.resolve(storedName).normalize();
         if (!target.startsWith(root)) {
             throw new IllegalArgumentException("Invalid file name");

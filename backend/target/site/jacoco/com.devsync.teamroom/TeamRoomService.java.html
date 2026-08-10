@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>TeamRoomService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">DevSync Backend</a> &gt; <a href="index.source.html" class="el_package">com.devsync.teamroom</a> &gt; <span class="el_source">TeamRoomService.java</span></div><h1>TeamRoomService.java</h1><pre class="source lang-java linenums">package com.devsync.teamroom;
+
+import com.devsync.common.ResourceNotFoundException;
+import com.devsync.teamroom.dto.CreateRoomRequest;
+import com.devsync.teamroom.dto.InviteRequest;
+import com.devsync.teamroom.dto.TeamRoomResponse;
+import com.devsync.teamroom.entity.TeamRoom;
+import com.devsync.teamroom.entity.TeamRoomParticipant;
+import com.devsync.teamroom.repository.TeamRoomParticipantRepository;
+import com.devsync.teamroom.repository.TeamRoomRepository;
+import com.devsync.user.entity.User;
+import com.devsync.project.entity.Project;
+import com.devsync.project.repository.ProjectRepository;
+import com.devsync.user.repository.UserRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+@Service
+@RequiredArgsConstructor
+public class TeamRoomService {
+
+    private final TeamRoomRepository roomRepository;
+    private final TeamRoomParticipantRepository participantRepository;
+    private final UserRepository userRepository;
+    private final ProjectRepository projectRepository;
+
+    public List&lt;TeamRoomResponse&gt; getMyRooms(String userId) {
+<span class="nc" id="L34">        return roomRepository.findRoomsByUserId(userId).stream()</span>
+<span class="nc" id="L35">                .map(this::toResponse)</span>
+<span class="nc" id="L36">                .toList();</span>
+    }
+
+    @Transactional
+    public TeamRoomResponse createRoom(CreateRoomRequest request, String createdBy) {
+<span class="nc" id="L41">        TeamRoom room = TeamRoom.builder()</span>
+<span class="nc" id="L42">                .name(request.getName()).projectId(request.getProjectId())</span>
+<span class="nc" id="L43">                .description(request.getDescription()).createdBy(createdBy)</span>
+<span class="nc" id="L44">                .build();</span>
+<span class="nc" id="L45">        room = roomRepository.save(room);</span>
+<span class="nc" id="L46">        participantRepository.save(TeamRoomParticipant.builder().roomId(room.getId()).userId(createdBy).build());</span>
+<span class="nc" id="L47">        return toResponse(room);</span>
+    }
+
+    public TeamRoomResponse getRoom(String roomId, String userId) {
+<span class="fc" id="L51">        TeamRoom room = roomRepository.findById(roomId)</span>
+<span class="fc" id="L52">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;TeamRoom&quot;, roomId));</span>
+<span class="fc bfc" id="L53" title="All 2 branches covered.">        if (!participantRepository.existsByRoomIdAndUserId(roomId, userId)) {</span>
+<span class="fc" id="L54">            throw new IllegalArgumentException(&quot;You are not a participant in this room&quot;);</span>
+        }
+<span class="fc" id="L56">        return toResponse(room);</span>
+    }
+
+    @Transactional
+    public TeamRoomResponse inviteToRoom(String roomId, InviteRequest request, String invitedBy) {
+<span class="nc" id="L61">        roomRepository.findById(roomId).orElseThrow(() -&gt; new ResourceNotFoundException(&quot;TeamRoom&quot;, roomId));</span>
+<span class="nc bnc" id="L62" title="All 2 branches missed.">        if (participantRepository.existsByRoomIdAndUserId(roomId, request.getUserId()))</span>
+<span class="nc" id="L63">            throw new IllegalArgumentException(&quot;User is already a participant&quot;);</span>
+<span class="nc" id="L64">        participantRepository.save(TeamRoomParticipant.builder()</span>
+<span class="nc" id="L65">                .roomId(roomId).userId(request.getUserId()).invitedBy(invitedBy).build());</span>
+<span class="nc" id="L66">        return toResponse(roomRepository.findById(roomId).get());</span>
+    }
+
+    public List&lt;TeamRoomResponse.ParticipantDto&gt; getParticipants(String roomId, String userId) {
+<span class="fc bfc" id="L70" title="All 2 branches covered.">        if (!participantRepository.existsByRoomIdAndUserId(roomId, userId)) {</span>
+<span class="fc" id="L71">            throw new IllegalArgumentException(&quot;You are not a participant in this room&quot;);</span>
+        }
+<span class="fc" id="L73">        return buildParticipantDtos(roomId);</span>
+    }
+
+    private List&lt;TeamRoomResponse.ParticipantDto&gt; buildParticipantDtos(String roomId) {
+<span class="fc" id="L77">        List&lt;TeamRoomParticipant&gt; participants = participantRepository.findByRoomId(roomId);</span>
+<span class="pc bpc" id="L78" title="1 of 2 branches missed.">        if (participants.isEmpty()) return List.of();</span>
+
+<span class="nc" id="L80">        Set&lt;String&gt; userIds = participants.stream().map(TeamRoomParticipant::getUserId).collect(Collectors.toSet());</span>
+<span class="nc" id="L81">        Map&lt;String, User&gt; userMap = userRepository.findAllById(userIds).stream()</span>
+<span class="nc" id="L82">                .collect(Collectors.toMap(User::getId, u -&gt; u));</span>
+
+<span class="nc" id="L84">        return participants.stream()</span>
+<span class="nc" id="L85">                .map(p -&gt; {</span>
+<span class="nc" id="L86">                    User user = userMap.get(p.getUserId());</span>
+<span class="nc" id="L87">                    return TeamRoomResponse.ParticipantDto.builder()</span>
+<span class="nc" id="L88">                            .userId(p.getUserId())</span>
+<span class="nc bnc" id="L89" title="All 2 branches missed.">                            .fullName(user != null ? user.getFullName() : &quot;Unknown&quot;)</span>
+<span class="nc bnc" id="L90" title="All 2 branches missed.">                            .email(user != null ? user.getEmail() : &quot;&quot;)</span>
+<span class="nc bnc" id="L91" title="All 2 branches missed.">                            .avatarUrl(user != null ? user.getAvatarUrl() : null)</span>
+<span class="nc" id="L92">                            .invitedBy(p.getInvitedBy())</span>
+<span class="nc" id="L93">                            .build();</span>
+                })
+<span class="nc" id="L95">                .toList();</span>
+    }
+
+    private TeamRoomResponse toResponse(TeamRoom room) {
+<span class="fc" id="L99">        long count = participantRepository.countByRoomId(room.getId());</span>
+<span class="fc" id="L100">        String projectName = null;</span>
+<span class="pc bpc" id="L101" title="1 of 2 branches missed.">        if (room.getProjectId() != null) {</span>
+<span class="nc" id="L102">            projectName = projectRepository.findById(room.getProjectId())</span>
+<span class="nc" id="L103">                    .map(Project::getName).orElse(null);</span>
+        }
+
+<span class="fc" id="L106">        return TeamRoomResponse.builder()</span>
+<span class="fc" id="L107">                .id(room.getId()).name(room.getName())</span>
+<span class="fc" id="L108">                .projectId(room.getProjectId()).projectName(projectName)</span>
+<span class="fc" id="L109">                .description(room.getDescription()).createdBy(room.getCreatedBy())</span>
+<span class="fc" id="L110">                .participantCount((int) count)</span>
+<span class="fc" id="L111">                .participants(buildParticipantDtos(room.getId()))</span>
+<span class="fc" id="L112">                .createdAt(room.getCreatedAt())</span>
+<span class="fc" id="L113">                .build();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

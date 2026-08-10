@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DataInitializer.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">DevSync Backend</a> &gt; <a href="index.source.html" class="el_package">com.devsync.config</a> &gt; <span class="el_source">DataInitializer.java</span></div><h1>DataInitializer.java</h1><pre class="source lang-java linenums">package com.devsync.config;
+
+import com.devsync.user.entity.User;
+import com.devsync.user.repository.UserRepository;
+import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.boot.CommandLineRunner;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Optional;
+
+/**
+ * Seeds a bootstrap admin account from environment-driven configuration.
+ *
+ * &lt;p&gt;Security contract:
+ * &lt;ul&gt;
+ *   &lt;li&gt;Seeding is opt-in ({@code app.admin.seed-enabled=false} by default).&lt;/li&gt;
+ *   &lt;li&gt;Both {@code DEVSYNC_ADMIN_EMAIL} and {@code DEVSYNC_ADMIN_PASSWORD} must be set
+ *       before any account is created - there are no default credentials.&lt;/li&gt;
+ *   &lt;li&gt;The password is only ever BCrypt-encoded via {@link PasswordEncoder} and is never
+ *       logged or exposed through any API.&lt;/li&gt;
+ *   &lt;li&gt;An existing account with the configured email is never duplicated, never has its
+ *       password/name overwritten, and a non-admin account is never silently promoted.&lt;/li&gt;
+ * &lt;/ul&gt;
+ */
+@Component
+@RequiredArgsConstructor
+public class DataInitializer implements CommandLineRunner {
+
+<span class="fc" id="L33">    private static final Logger log = LoggerFactory.getLogger(DataInitializer.class);</span>
+
+    private static final String ADMIN_FULL_NAME = &quot;DevSync Admin&quot;;
+    private static final String ADMIN_USERNAME_BASE = &quot;admin&quot;;
+    private static final int MIN_ADMIN_PASSWORD_LENGTH = 8;
+
+    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final AdminProperties adminProperties;
+
+    @Override
+    @Transactional
+    public void run(String... args) {
+<span class="fc" id="L46">        seedAdminIfConfigured();</span>
+<span class="fc" id="L47">    }</span>
+
+    private void seedAdminIfConfigured() {
+<span class="fc bfc" id="L50" title="All 2 branches covered.">        if (!adminProperties.isSeedEnabled()) {</span>
+<span class="fc" id="L51">            log.info(&quot;Admin seeding disabled. To seed a bootstrap admin, set DEVSYNC_ADMIN_SEED_ENABLED=true &quot;</span>
+                    + &quot;with DEVSYNC_ADMIN_EMAIL and DEVSYNC_ADMIN_PASSWORD.&quot;);
+<span class="fc" id="L53">            return;</span>
+        }
+
+<span class="fc" id="L56">        String email = trimmed(adminProperties.getSeedEmail());</span>
+<span class="fc" id="L57">        String password = adminProperties.getSeedPassword();</span>
+
+<span class="pc bpc" id="L59" title="1 of 6 branches missed.">        if (email == null || password == null || password.isBlank()) {</span>
+<span class="fc" id="L60">            log.error(&quot;Admin seeding is enabled but DEVSYNC_ADMIN_EMAIL and DEVSYNC_ADMIN_PASSWORD must both be &quot;</span>
+                    + &quot;set. Skipping admin seed - no account was created or modified.&quot;);
+<span class="fc" id="L62">            return;</span>
+        }
+
+<span class="fc" id="L65">        Optional&lt;User&gt; existing = userRepository.findByEmail(email);</span>
+<span class="fc bfc" id="L66" title="All 2 branches covered.">        if (existing.isPresent()) {</span>
+<span class="fc" id="L67">            handleExistingUser(email, existing.get());</span>
+<span class="fc" id="L68">            return;</span>
+        }
+
+<span class="fc bfc" id="L71" title="All 2 branches covered.">        if (password.length() &lt; MIN_ADMIN_PASSWORD_LENGTH) {</span>
+<span class="fc" id="L72">            log.warn(&quot;Configured admin password for {} is shorter than {} characters. &quot;</span>
+<span class="fc" id="L73">                    + &quot;Consider using a stronger password.&quot;, email, MIN_ADMIN_PASSWORD_LENGTH);</span>
+        }
+
+<span class="fc" id="L76">        User admin = User.builder()</span>
+<span class="fc" id="L77">                .email(email)</span>
+<span class="fc" id="L78">                .password(passwordEncoder.encode(password))</span>
+<span class="fc" id="L79">                .fullName(ADMIN_FULL_NAME)</span>
+<span class="fc" id="L80">                .username(uniqueUsername(ADMIN_USERNAME_BASE))</span>
+<span class="fc" id="L81">                .role(User.Role.ADMIN)</span>
+<span class="fc" id="L82">                .emailVerified(true)</span>
+<span class="fc" id="L83">                .authProvider(&quot;email&quot;)</span>
+<span class="fc" id="L84">                .blocked(false)</span>
+<span class="fc" id="L85">                .deleted(false)</span>
+<span class="fc" id="L86">                .build();</span>
+
+<span class="fc" id="L88">        userRepository.save(admin);</span>
+<span class="fc" id="L89">        log.info(&quot;Seeded bootstrap admin account for {} (role=ADMIN, emailVerified=true).&quot;, email);</span>
+<span class="fc" id="L90">    }</span>
+
+    /**
+     * The configured email already exists. Never modify the account.
+     */
+    private void handleExistingUser(String email, User existing) {
+<span class="fc bfc" id="L96" title="All 2 branches covered.">        if (existing.getRole() == User.Role.ADMIN) {</span>
+<span class="pc bpc" id="L97" title="1 of 4 branches missed.">            if (existing.isBlocked() || existing.isDeleted()) {</span>
+<span class="fc" id="L98">                log.warn(&quot;Configured admin email {} belongs to an existing admin account that is {} - &quot;</span>
+                        + &quot;that account cannot log in until it is restored.&quot;,
+<span class="pc bpc" id="L100" title="1 of 2 branches missed.">                        email, existing.isBlocked() ? &quot;blocked&quot; : &quot;deleted&quot;);</span>
+            }
+<span class="fc" id="L102">            log.info(&quot;Admin account already exists for {} - skipping seed. The existing password, name and &quot;</span>
+                    + &quot;role were NOT modified.&quot;, email);
+<span class="fc" id="L104">            return;</span>
+        }
+
+<span class="fc" id="L107">        log.error(&quot;Configured admin email {} belongs to an existing non-admin account. Refusing to seed or &quot;</span>
+                + &quot;silently promote it. Grant the ADMIN role manually through the admin panel, or set &quot;
+                + &quot;DEVSYNC_ADMIN_EMAIL to a different address.&quot;, email);
+<span class="fc" id="L110">    }</span>
+
+    private String uniqueUsername(String base) {
+<span class="fc" id="L113">        String username = base;</span>
+<span class="fc" id="L114">        int suffix = 1;</span>
+<span class="fc bfc" id="L115" title="All 2 branches covered.">        while (userRepository.existsByUsername(username)) {</span>
+<span class="fc" id="L116">            username = base + suffix++;</span>
+        }
+<span class="fc" id="L118">        return username;</span>
+    }
+
+    private String trimmed(String value) {
+<span class="pc bpc" id="L122" title="1 of 4 branches missed.">        return (value == null || value.isBlank()) ? null : value.trim();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

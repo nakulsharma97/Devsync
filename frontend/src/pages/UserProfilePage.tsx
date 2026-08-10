@@ -6,13 +6,9 @@ import {
   User,
   AtSign,
   Github,
-  Linkedin,
   Globe,
   MapPin,
   MessageCircle,
-  UserPlus,
-  UserCheck,
-  Loader2,
   ArrowLeft,
   Heart,
   MessageSquare,
@@ -31,10 +27,8 @@ export default function UserProfilePage() {
 
   const [profileUser, setProfileUser] = useState<UserDto | null>(null);
   const [posts, setPosts] = useState<PostDto[]>([]);
-  const [isFollowing, setIsFollowing] = useState(false);
-  const [followerCount, setFollowerCount] = useState(0);
-  const [followingCount, setFollowingCount] = useState(0);
-  const [toggling, setToggling] = useState(false);
+  const [followerCount] = useState(0);
+  const [followingCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
   const isOwnProfile = currentUser?.id === userId;

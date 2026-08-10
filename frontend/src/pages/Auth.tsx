@@ -12,8 +12,6 @@ import {
   Zap,
   Globe,
   Users,
-  Check,
-  ChevronRight,
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router";
@@ -232,19 +230,18 @@ export default function AuthPage() {
   const [attempted, setAttempted] = useState(false);
 
   // ── OAuth Callback Handler ───────────────────────────────────
-  // Parse tokens from URL fragment (#access_token=...&refresh_token=...)
-  // after the backend redirects the user back from OAuth provider.
+  // Parse the access token from the URL fragment (#access_token=...). The refresh
+  // token was set as an HttpOnly cookie by the backend during the OAuth redirect,
+  // so it is NOT present in (and must never be read from) the URL.
   useEffect(() => {
     if (isLoading) return;
     const hash = window.location.hash;
     if (hash && hash.includes("access_token=")) {
       const params = new URLSearchParams(hash.replace("#", ""));
       const accessToken = params.get("access_token");
-      const refreshToken = params.get("refresh_token");
       if (accessToken) {
         localStorage.setItem("accessToken", accessToken);
-        if (refreshToken) localStorage.setItem("refreshToken", refreshToken);
-        // Clear the hash so tokens aren't visible in the URL bar
+        // Clear the hash so the token isn't visible in the URL bar
         window.location.hash = "";
         window.location.href = "/dashboard";
       }

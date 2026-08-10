@@ -130,6 +130,70 @@ class ProjectServiceAuthTest {
     }
 
     @Test
+    void removeMember_shouldNotifyRemovedUser() {
+        when(projectRepository.findById("project-1")).thenReturn(Optional.of(project));
+        ProjectMember member = ProjectMember.builder()
+                .projectId("project-1").userId("member-1")
+                .role(ProjectMember.Role.MEMBER).build();
+        when(memberRepository.findByProjectIdAndUserId("project-1", "member-1"))
+                .thenReturn(Optional.of(member));
+        User actor = User.builder().email("owner@dev.com").fullName("Owner").build();
+        actor.setId("owner-1");
+        when(userRepository.findById("owner-1")).thenReturn(Optional.of(actor));
+
+        projectService.removeMember("project-1", "member-1", "owner-1");
+
+        verify(memberRepository).delete(member);
+        verify(notificationService).createNotification(eq("member-1"), eq("MEMBER_REMOVED"),
+                eq("Removed from project"), contains("removed from Test Project"), eq("owner-1"),
+                eq("Owner"), any(), eq("project-1"), eq("project"), anyString());
+    }
+
+    @Test
+    void removeMember_shouldThrow_WhenNonOwner() {
+        when(projectRepository.findById("project-1")).thenReturn(Optional.of(project));
+
+        assertThatThrownBy(() -> projectService.removeMember("project-1", "member-1", "admin-1"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Only the project owner");
+        verify(memberRepository, never()).delete(any());
+        verify(notificationService, never()).createNotification(any(), any(), any(), any(), any(), any(), any(), any(), any(), any());
+    }
+
+    @Test
+    void updateMemberRole_shouldNotifyMember_WhenRoleChanges() {
+        when(projectRepository.findById("project-1")).thenReturn(Optional.of(project));
+        ProjectMember member = ProjectMember.builder()
+                .projectId("project-1").userId("member-1")
+                .role(ProjectMember.Role.MEMBER).build();
+        when(memberRepository.findByProjectIdAndUserId("project-1", "member-1"))
+                .thenReturn(Optional.of(member));
+        when(memberRepository.save(any(ProjectMember.class))).thenReturn(member);
+        User memberUser = User.builder().email("member@dev.com").fullName("Member One").build();
+        memberUser.setId("member-1");
+        when(userRepository.findById("member-1")).thenReturn(Optional.of(memberUser));
+
+        projectService.updateMemberRole("project-1", "member-1", "ADMIN", "owner-1");
+
+        assertThat(member.getRole()).isEqualTo(ProjectMember.Role.ADMIN);
+        verify(notificationService).createNotification(eq("member-1"), eq("MEMBER_ROLE_CHANGED"),
+                eq("Role changed"), contains("is now ADMIN"), eq("owner-1"), any(), any(),
+                eq("project-1"), eq("project"), anyString());
+        verify(activityService).record(eq("owner-1"), eq("project-1"),
+                eq(com.devsync.activity.entity.ActivityType.MEMBER_ROLE_CHANGED), anyString(), anyString(), any());
+    }
+
+    @Test
+    void updateMemberRole_shouldThrow_WhenNonOwner() {
+        when(projectRepository.findById("project-1")).thenReturn(Optional.of(project));
+
+        assertThatThrownBy(() -> projectService.updateMemberRole("project-1", "member-1", "ADMIN", "admin-1"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Only the project owner");
+        verify(notificationService, never()).createNotification(any(), any(), any(), any(), any(), any(), any(), any(), any(), any());
+    }
+
+    @Test
     void updateProject_shouldThrow_WhenProjectNotFound() {
         when(projectRepository.findById("ghost")).thenReturn(Optional.empty());
 

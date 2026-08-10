@@ -82,7 +82,9 @@ public class UserService {
 
     public List<UserResponse> searchUsers(String query, String excludeUserId) {
         if (query == null || query.isBlank()) {
-            return userRepository.findAll().stream()
+            // Deleted accounts are hidden from normal user searches; the query
+            // runs in the database rather than loading the whole users table.
+            return userRepository.findActiveUsers().stream()
                     .filter(u -> !u.getId().equals(excludeUserId))
                     .map(this::toResponse)
                     .toList();

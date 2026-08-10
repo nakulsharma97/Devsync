@@ -17,6 +17,7 @@ import {
   Flag,
   Activity,
   ScrollText,
+  type LucideIcon,
 } from "lucide-react";
 import { useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router";
@@ -32,23 +33,63 @@ const navItems = [
   { to: "/settings", icon: Settings, label: "Settings" },
 ];
 
+// Rendered only for users with the ADMIN role.
+const adminNavItems = [
+  { to: "/admin/dashboard", icon: Shield, label: "Admin Dashboard" },
+  { to: "/admin/users", icon: Users, label: "Admin Users" },
+  { to: "/admin/projects", icon: FolderKanban, label: "Admin Projects" },
+  { to: "/admin/reports", icon: Flag, label: "Admin Reports" },
+  { to: "/admin/activity", icon: Activity, label: "Admin Activity" },
+  { to: "/admin/audit-logs", icon: ScrollText, label: "Admin Audit Logs" },
+];
+
+interface SidebarLinkProps {
+  to: string;
+  icon: LucideIcon;
+  label: string;
+  onNavigate: () => void;
+}
+
+function SidebarLink({ to, icon: Icon, label, onNavigate }: SidebarLinkProps) {
+  return (
+    <NavLink
+      to={to}
+      onClick={onNavigate}
+      className={({ isActive }) =>
+        `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 ${
+          isActive
+            ? "bg-indigo-500/10 text-indigo-400 font-medium"
+            : "text-muted-foreground hover:text-foreground hover:bg-accent/5"
+        }`
+      }
+    >
+      <Icon className="w-4 h-4" />
+      {label}
+    </NavLink>
+  );
+}
+
 export default function DashboardLayout() {
-  const { user, logout } = useAuth();
+  const { user, isAdmin, logout } = useAuth();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const closeSidebar = () => setSidebarOpen(false);
 
   return (
     <div className="min-h-screen bg-background">
       {/* Mobile sidebar overlay */}
       {sidebarOpen && (
         <div
+          role="presentation"
           className="fixed inset-0 z-40 bg-black/50 md:hidden"
-          onClick={() => setSidebarOpen(false)}
+          onClick={closeSidebar}
         />
       )}
 
       {/* Sidebar */}
       <aside
+        aria-label="Main navigation"
         className={`fixed top-0 left-0 z-50 h-full w-64 border-r border-border/40 bg-card/80 backdrop-blur-xl transform transition-transform duration-200 md:translate-x-0 ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
@@ -60,116 +101,42 @@ export default function DashboardLayout() {
             </div>
             <span className="text-sm font-bold">DevSync</span>
           </button>
-          <button onClick={() => setSidebarOpen(false)} className="md:hidden p-1 rounded-md hover:bg-accent/10">
+          <button
+            onClick={closeSidebar}
+            aria-label="Close menu"
+            className="md:hidden p-1 rounded-md hover:bg-accent/10"
+          >
             <X className="w-4 h-4" />
           </button>
         </div>
 
         <nav className="p-3 space-y-1">
           {navItems.map((item) => (
-            <NavLink
+            <SidebarLink
               key={item.to}
               to={item.to}
-              onClick={() => setSidebarOpen(false)}
-              className={({ isActive }) =>
-                `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 ${
-                  isActive
-                    ? "bg-indigo-500/10 text-indigo-400 font-medium"
-                    : "text-muted-foreground hover:text-foreground hover:bg-accent/5"
-                }`
-              }
-            >
-              <item.icon className="w-4 h-4" />
-              {item.label}
-            </NavLink>
+              icon={item.icon}
+              label={item.label}
+              onNavigate={closeSidebar}
+            />
           ))}
 
-          {user?.role === "ADMIN" && (
+          {isAdmin && (
             <>
-              <NavLink
-                to="/admin/dashboard"
-                onClick={() => setSidebarOpen(false)}
-                className={({ isActive }) =>
-                  `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 ${
-                    isActive
-                      ? "bg-indigo-500/10 text-indigo-400 font-medium"
-                      : "text-muted-foreground hover:text-foreground hover:bg-accent/5"
-                  }`
-                }
-              >
-                <Shield className="w-4 h-4" />
-                Admin Dashboard
-              </NavLink>
-              <NavLink
-                to="/admin/users"
-                onClick={() => setSidebarOpen(false)}
-                className={({ isActive }) =>
-                  `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 ${
-                    isActive
-                      ? "bg-indigo-500/10 text-indigo-400 font-medium"
-                      : "text-muted-foreground hover:text-foreground hover:bg-accent/5"
-                  }`
-                }
-              >
-                <Users className="w-4 h-4" />
-                Admin Users
-              </NavLink>
-              <NavLink
-                to="/admin/projects"
-                onClick={() => setSidebarOpen(false)}
-                className={({ isActive }) =>
-                  `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 ${
-                    isActive
-                      ? "bg-indigo-500/10 text-indigo-400 font-medium"
-                      : "text-muted-foreground hover:text-foreground hover:bg-accent/5"
-                  }`
-                }
-              >
-                <FolderKanban className="w-4 h-4" />
-                Admin Projects
-              </NavLink>
-              <NavLink
-                to="/admin/reports"
-                onClick={() => setSidebarOpen(false)}
-                className={({ isActive }) =>
-                  `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 ${
-                    isActive
-                      ? "bg-indigo-500/10 text-indigo-400 font-medium"
-                      : "text-muted-foreground hover:text-foreground hover:bg-accent/5"
-                  }`
-                }
-              >
-                <Flag className="w-4 h-4" />
-                Admin Reports
-              </NavLink>
-              <NavLink
-                to="/admin/activity"
-                onClick={() => setSidebarOpen(false)}
-                className={({ isActive }) =>
-                  `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 ${
-                    isActive
-                      ? "bg-indigo-500/10 text-indigo-400 font-medium"
-                      : "text-muted-foreground hover:text-foreground hover:bg-accent/5"
-                  }`
-                }
-              >
-                <Activity className="w-4 h-4" />
-                Admin Activity
-              </NavLink>
-              <NavLink
-                to="/admin/audit-logs"
-                onClick={() => setSidebarOpen(false)}
-                className={({ isActive }) =>
-                  `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 ${
-                    isActive
-                      ? "bg-indigo-500/10 text-indigo-400 font-medium"
-                      : "text-muted-foreground hover:text-foreground hover:bg-accent/5"
-                  }`
-                }
-              >
-                <ScrollText className="w-4 h-4" />
-                Admin Audit Logs
-              </NavLink>
+              <div className="pt-3 mt-3 border-t border-border/40">
+                <p className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+                  Administration
+                </p>
+              </div>
+              {adminNavItems.map((item) => (
+                <SidebarLink
+                  key={item.to}
+                  to={item.to}
+                  icon={item.icon}
+                  label={item.label}
+                  onNavigate={closeSidebar}
+                />
+              ))}
             </>
           )}
         </nav>
@@ -194,7 +161,11 @@ export default function DashboardLayout() {
       <div className="md:ml-64">
         <header className="sticky top-0 z-30 border-b border-border/40 bg-background/80 backdrop-blur-xl">
           <div className="flex items-center justify-between px-4 py-3">
-            <button onClick={() => setSidebarOpen(true)} className="md:hidden p-2 rounded-md hover:bg-accent/10">
+            <button
+              onClick={() => setSidebarOpen(true)}
+              aria-label="Open menu"
+              className="md:hidden p-2 rounded-md hover:bg-accent/10"
+            >
               <Menu className="w-5 h-5" />
             </button>
             <div className="flex-1" />

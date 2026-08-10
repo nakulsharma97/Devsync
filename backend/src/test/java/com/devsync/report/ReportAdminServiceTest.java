@@ -1,6 +1,11 @@
 package com.devsync.report;
 
+import com.devsync.activity.ActivityService;
+import com.devsync.activity.entity.ActivityType;
 import com.devsync.admin.AdminService;
+import com.devsync.audit.AuditLogService;
+import com.devsync.audit.entity.AuditAction;
+import com.devsync.audit.entity.AuditStatus;
 import com.devsync.common.PageResponse;
 import com.devsync.common.ResourceNotFoundException;
 import com.devsync.feed.entity.Post;
@@ -46,6 +51,8 @@ class ReportAdminServiceTest {
     @Mock private CommentRepository commentRepository;
     @Mock private MessageRepository messageRepository;
     @Mock private AdminService adminService;
+    @Mock private AuditLogService auditLogService;
+    @Mock private ActivityService activityService;
     @Mock private NotificationService notificationService;
 
     private ReportAdminService service;
@@ -54,7 +61,7 @@ class ReportAdminServiceTest {
     void setUp() {
         service = new ReportAdminService(reportRepository, userRepository, projectRepository,
                 postRepository, commentRepository, messageRepository,
-                adminService, notificationService);
+                adminService, auditLogService, activityService, notificationService);
     }
 
     private Report report(String id, String reporterId, ReportEntityType type, String entityId, ReportStatus status) {
@@ -192,7 +199,7 @@ class ReportAdminServiceTest {
 
         service.moderate("r1", "BLOCK_USER", null, "admin1");
 
-        verify(adminService).setUserBlocked("u2", true, "admin1");
+        verify(adminService).setUserBlocked("u2", true, "admin1", null);
     }
 
     @Test
@@ -220,5 +227,147 @@ class ReportAdminServiceTest {
         assertThatThrownBy(() -> service.moderate("r1", "HIDE_POST", null, "admin1"))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("not valid");
+    }
+
+    @Test
+    void moderate_shouldThrow_WhenActionValidForTypeButEntityMissing() {
+        Report commentReport = report("r1", "reporter1", ReportEntityType.COMMENT, "c1", ReportStatus.PENDING);
+        when(reportRepository.findById("r1")).thenReturn(Optional.of(commentReport));
+        when(commentRepository.existsById("c1")).thenReturn(false);
+
+        assertThatThrownBy(() -> service.moderate("r1", "DELETE_COMMENT", null, "admin1"))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessageContaining("Comment");
+    }
+
+    @Test
+    void moderate_setVisibility_shouldToggle_WhenNoValueProvided() {
+        Report projectReport = report("r1", "reporter1", ReportEntityType.PROJECT, "p1", ReportStatus.PENDING);
+        when(reportRepository.findById("r1")).thenReturn(Optional.of(projectReport));
+        Project publicProject = Project.builder().name("DevSync").ownerId("u2")
+                .visibility(Project.ProjectVisibility.PUBLIC).build();
+        publicProject.setId("p1");
+        when(projectRepository.findById("p1")).thenReturn(Optional.of(publicProject));
+
+        service.moderate("r1", "SET_VISIBILITY", null, "admin1");
+
+        verify(adminService).setProjectVisibility("p1", "PRIVATE", "admin1");
+    }
+
+    @Test
+    void moderate_deleteComment_shouldRecordAudit() {
+        Report commentReport = report("r1", "reporter1", ReportEntityType.COMMENT, "c1", ReportStatus.PENDING);
+        when(reportRepository.findById("r1")).thenReturn(Optional.of(commentReport));
+        when(commentRepository.existsById("c1")).thenReturn(true);
+
+        service.moderate("r1", "DELETE_COMMENT", null, "admin1");
+
+        verify(commentRepository).deleteById("c1");
+        verify(auditLogService).record(eq("admin1"), eq("reporter1"), eq(AuditAction.MODERATION_ACTION),
+                eq(AuditStatus.SUCCESS), contains("Deleted comment c1"));
+    }
+
+    @Test
+    void moderate_hideMessage_shouldRecordAudit() {
+        Report messageReport = report("r1", "reporter1", ReportEntityType.MESSAGE, "m1", ReportStatus.PENDING);
+        when(reportRepository.findById("r1")).thenReturn(Optional.of(messageReport));
+        Message msg = Message.builder().senderId("u2").content("Spam").build();
+        msg.setId("m1");
+        when(messageRepository.findById("m1")).thenReturn(Optional.of(msg));
+        when(messageRepository.save(any(Message.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        service.moderate("r1", "HIDE_MESSAGE", null, "admin1");
+
+        assertThat(msg.isHidden()).isTrue();
+        verify(auditLogService).record(eq("admin1"), eq("reporter1"), eq(AuditAction.MODERATION_ACTION),
+                eq(AuditStatus.SUCCESS), contains("Hidden message m1"));
+    }
+
+    @Test
+    void reviewReport_toResolved_shouldRecordExactlyOneAuditAndOneActivity() {
+        Report r = report("r1", "reporter1", ReportEntityType.USER, "u2", ReportStatus.PENDING);
+        when(reportRepository.findById("r1")).thenReturn(Optional.of(r));
+        when(reportRepository.save(any(Report.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(userRepository.findById("admin1")).thenReturn(Optional.of(user("admin1", "Admin One")));
+        when(userRepository.findById("reporter1")).thenReturn(Optional.of(user("reporter1", "Reporter One")));
+        when(userRepository.findById("u2")).thenReturn(Optional.of(user("u2", "Reported User")));
+
+        service.reviewReport("r1", "RESOLVED", "admin1");
+
+        verify(auditLogService, times(1)).record(eq("admin1"), eq("reporter1"),
+                eq(AuditAction.MODERATION_ACTION), eq(AuditStatus.SUCCESS), contains("resolved"));
+        verify(activityService, times(1)).record(eq("admin1"), isNull(), eq(ActivityType.REPORT_RESOLVED),
+                eq("Report resolved"), anyString(), eq("r1"));
+        verify(auditLogService, never()).record(eq("admin1"), eq("reporter1"),
+                eq(AuditAction.MODERATION_ACTION), eq(AuditStatus.SUCCESS), contains("rejected"));
+    }
+
+    @Test
+    void reviewReport_toRejected_shouldRecordExactlyOneAuditAndOneActivity() {
+        Report r = report("r1", "reporter1", ReportEntityType.PROJECT, "p1", ReportStatus.UNDER_REVIEW);
+        when(reportRepository.findById("r1")).thenReturn(Optional.of(r));
+        when(reportRepository.save(any(Report.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(userRepository.findById("admin1")).thenReturn(Optional.of(user("admin1", "Admin One")));
+        when(userRepository.findById("reporter1")).thenReturn(Optional.of(user("reporter1", "Reporter One")));
+        when(projectRepository.findById("p1")).thenReturn(Optional.of(Project.builder().name("P").ownerId("u2").build()));
+        when(userRepository.findById("u2")).thenReturn(Optional.of(user("u2", "Project Owner")));
+
+        service.reviewReport("r1", "REJECTED", "admin1");
+
+        verify(auditLogService, times(1)).record(eq("admin1"), eq("reporter1"),
+                eq(AuditAction.MODERATION_ACTION), eq(AuditStatus.SUCCESS), contains("rejected"));
+        verify(activityService, times(1)).record(eq("admin1"), isNull(), eq(ActivityType.REPORT_REJECTED),
+                eq("Report rejected"), anyString(), eq("r1"));
+    }
+
+    @Test
+    void reviewReport_toUnderReview_shouldRecordNoAuditOrActivity() {
+        Report r = report("r1", "reporter1", ReportEntityType.USER, "u2", ReportStatus.PENDING);
+        when(reportRepository.findById("r1")).thenReturn(Optional.of(r));
+        when(reportRepository.save(any(Report.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(userRepository.findById("reporter1")).thenReturn(Optional.of(user("reporter1", "Reporter One")));
+        when(userRepository.findById("u2")).thenReturn(Optional.of(user("u2", "Reported User")));
+
+        service.reviewReport("r1", "UNDER_REVIEW", "admin1");
+
+        verify(auditLogService, never()).record(anyString(), any(), any(), any(), anyString());
+        verify(activityService, never()).record(anyString(), any(), any(), anyString(), anyString(), anyString());
+    }
+
+    @Test
+    void reviewReport_shouldReject_TransitionFromTerminalState() {
+        Report resolved = report("r1", "reporter1", ReportEntityType.USER, "u2", ReportStatus.RESOLVED);
+        when(reportRepository.findById("r1")).thenReturn(Optional.of(resolved));
+
+        assertThatThrownBy(() -> service.reviewReport("r1", "REJECTED", "admin1"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Cannot transition report from RESOLVED to REJECTED");
+
+        verify(reportRepository, never()).save(any());
+    }
+
+    @Test
+    void reviewReport_shouldReject_BackToPending() {
+        Report underReview = report("r1", "reporter1", ReportEntityType.USER, "u2", ReportStatus.UNDER_REVIEW);
+        when(reportRepository.findById("r1")).thenReturn(Optional.of(underReview));
+
+        assertThatThrownBy(() -> service.reviewReport("r1", "PENDING", "admin1"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("PENDING");
+    }
+
+    @Test
+    void reviewReport_shouldAllow_PendingToResolved() {
+        Report pending = report("r1", "reporter1", ReportEntityType.USER, "u2", ReportStatus.PENDING);
+        when(reportRepository.findById("r1")).thenReturn(Optional.of(pending));
+        when(reportRepository.save(any(Report.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(userRepository.findById("admin1")).thenReturn(Optional.of(user("admin1", "Admin One")));
+        when(userRepository.findById("reporter1")).thenReturn(Optional.of(user("reporter1", "Reporter One")));
+        when(userRepository.findById("u2")).thenReturn(Optional.of(user("u2", "Reported User")));
+
+        service.reviewReport("r1", "RESOLVED", "admin1");
+
+        assertThat(pending.getStatus()).isEqualTo(ReportStatus.RESOLVED);
+        assertThat(pending.getReviewedBy()).isEqualTo("admin1");
     }
 }

@@ -22,7 +22,30 @@ public interface TaskRepository extends JpaRepository<Task, String> {
     @Query("SELECT t.boardId, COUNT(t) FROM Task t WHERE t.boardId IN :boardIds GROUP BY t.boardId")
     List<Object[]> countTasksByBoardIdIn(@Param("boardIds") Collection<String> boardIds);
 
+    long countByColumnIdIn(Collection<String> columnIds);
+
+    long countByBoardIdInAndDueDateBefore(Collection<String> boardIds, java.time.Instant dueDate);
+
+    long countByBoardIdInAndColumnIdNotInAndDueDateBefore(Collection<String> boardIds,
+                                                          Collection<String> columnIds,
+                                                          java.time.Instant dueDate);
+
+    /** Task counts per assignee for a set of boards (null assignees excluded). */
+    @Query("SELECT t.assigneeId, COUNT(t) FROM Task t WHERE t.boardId IN :boardIds AND t.assigneeId IS NOT NULL " +
+            "GROUP BY t.assigneeId")
+    List<Object[]> countGroupedByAssignee(@Param("boardIds") Collection<String> boardIds);
+
+    /** Tasks with a due date inside a range, for calendar views. */
+    List<Task> findByDueDateBetweenAndBoardIdInOrderByDueDateAsc(java.time.Instant dueFrom,
+                                                                 java.time.Instant dueTo,
+                                                                 Collection<String> boardIds);
+
+    /** Unscoped due-date range for platform admins. */
+    List<Task> findByDueDateBetweenOrderByDueDateAsc(java.time.Instant dueFrom, java.time.Instant dueTo);
+
     List<Task> findByBoardIdIn(Collection<String> boardIds);
+
+    long countByBoardIdIn(Collection<String> boardIds);
 
     List<Task> findTop5ByBoardIdInOrderByUpdatedAtDesc(Collection<String> boardIds);
 

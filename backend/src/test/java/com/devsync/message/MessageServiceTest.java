@@ -54,6 +54,7 @@ class MessageServiceTest {
         project.setId("p1");
         project.setStatus(Project.ProjectStatus.ARCHIVED);
 
+        when(participantRepository.existsByRoomIdAndUserId("r1", "u1")).thenReturn(true);
         when(roomRepository.findById("r1")).thenReturn(Optional.of(room));
         when(projectRepository.findById("p1")).thenReturn(Optional.of(project));
 
@@ -75,6 +76,7 @@ class MessageServiceTest {
         project.setId("p1");
         project.setDeleted(true);
 
+        when(participantRepository.existsByRoomIdAndUserId("r1", "u1")).thenReturn(true);
         when(roomRepository.findById("r1")).thenReturn(Optional.of(room));
         when(projectRepository.findById("p1")).thenReturn(Optional.of(project));
 
@@ -94,6 +96,7 @@ class MessageServiceTest {
         Project project = Project.builder().name("DevSync").ownerId("owner1").build();
         project.setId("p1");
 
+        when(participantRepository.existsByRoomIdAndUserId("r1", "u1")).thenReturn(true);
         when(roomRepository.findById("r1")).thenReturn(Optional.of(room));
         when(projectRepository.findById("p1")).thenReturn(Optional.of(project));
         when(messageRepository.save(any(Message.class))).thenAnswer(inv -> inv.getArgument(0));
@@ -106,6 +109,22 @@ class MessageServiceTest {
 
         assertThat(response.getContent()).isEqualTo("Hello team");
         assertThat(response.getRoomId()).isEqualTo("r1");
+    }
+
+    @Test
+    void sendMessage_shouldReject_WhenSenderNotRoomParticipant() {
+        when(participantRepository.existsByRoomIdAndUserId("r1", "u1")).thenReturn(false);
+
+        SendMessageRequest request = mock(SendMessageRequest.class);
+        when(request.getRoomId()).thenReturn("r1");
+
+        assertThatThrownBy(() -> messageService.sendMessage(request, "u1"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("not a participant");
+
+        // No room lookup, no project lookup, no persistence.
+        verify(roomRepository, never()).findById(any());
+        verify(messageRepository, never()).save(any());
     }
 
     @Test

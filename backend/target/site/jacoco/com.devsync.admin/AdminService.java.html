@@ -1,0 +1,859 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AdminService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">DevSync Backend</a> &gt; <a href="index.source.html" class="el_package">com.devsync.admin</a> &gt; <span class="el_source">AdminService.java</span></div><h1>AdminService.java</h1><pre class="source lang-java linenums">package com.devsync.admin;
+
+import com.devsync.activity.ActivityService;
+import com.devsync.activity.entity.ActivityType;
+import com.devsync.admin.dto.AdminActivityItem;
+import com.devsync.audit.AuditLogService;
+import com.devsync.audit.entity.AuditAction;
+import com.devsync.audit.entity.AuditStatus;
+import com.devsync.admin.dto.AdminKanbanStats;
+import com.devsync.admin.dto.AdminPostAuthor;
+import com.devsync.admin.dto.AdminPostResponse;
+import com.devsync.admin.dto.AdminProjectDetail;
+import com.devsync.admin.dto.AdminProjectListItem;
+import com.devsync.admin.dto.AdminProjectMember;
+import com.devsync.admin.dto.AdminProjectOwner;
+import com.devsync.admin.dto.AdminProjectStats;
+import com.devsync.admin.dto.AdminProjectSummary;
+import com.devsync.admin.dto.AdminTeamSummary;
+import com.devsync.admin.dto.AdminUserDetail;
+import com.devsync.admin.dto.AdminUserListItem;
+import com.devsync.admin.dto.AdminUserResponse;
+import com.devsync.admin.dto.AdminUserSummary;
+import com.devsync.admin.dto.DashboardResponse;
+import com.devsync.admin.dto.PlatformStatsResponse;
+import com.devsync.admin.dto.UserStatus;
+import com.devsync.common.PageResponse;
+import com.devsync.common.ResourceNotFoundException;
+import com.devsync.feed.entity.Post;
+import com.devsync.feed.repository.CommentRepository;
+import com.devsync.feed.repository.PostLikeRepository;
+import com.devsync.feed.repository.PostRepository;
+import com.devsync.kanban.entity.Board;
+import com.devsync.kanban.entity.BoardColumn;
+import com.devsync.kanban.entity.Task;
+import com.devsync.kanban.repository.BoardColumnRepository;
+import com.devsync.kanban.repository.BoardRepository;
+import com.devsync.kanban.repository.TaskRepository;
+import com.devsync.message.repository.MessageRepository;
+import com.devsync.project.entity.Project;
+import com.devsync.project.entity.ProjectMember;
+import com.devsync.project.repository.ProjectMemberRepository;
+import com.devsync.project.repository.ProjectRepository;
+import com.devsync.teamroom.entity.TeamRoom;
+import com.devsync.teamroom.repository.TeamRoomRepository;
+import com.devsync.user.entity.User;
+import com.devsync.user.repository.UserRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.ZoneOffset;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+@Service
+@RequiredArgsConstructor
+public class AdminService {
+
+    private static final long ACTIVE_WINDOW_DAYS = 30;
+    private static final int MAX_PAGE_SIZE = 100;
+
+    private final UserRepository userRepository;
+    private final ProjectRepository projectRepository;
+    private final TeamRoomRepository teamRoomRepository;
+    private final TaskRepository taskRepository;
+    private final PostRepository postRepository;
+    private final MessageRepository messageRepository;
+    private final CommentRepository commentRepository;
+    private final PostLikeRepository postLikeRepository;
+    private final ProjectMemberRepository projectMemberRepository;
+    private final BoardRepository boardRepository;
+    private final BoardColumnRepository boardColumnRepository;
+    private final ActivityService activityService;
+    private final AuditLogService auditLogService;
+
+    @Transactional(readOnly = true)
+    public DashboardResponse getDashboard() {
+<span class="fc" id="L92">        long totalUsers = userRepository.count();</span>
+<span class="fc" id="L93">        long activeUsers = userRepository.countActiveUsers(Instant.now().minus(ACTIVE_WINDOW_DAYS, ChronoUnit.DAYS));</span>
+<span class="fc" id="L94">        long blockedUsers = userRepository.countByBlockedTrue();</span>
+<span class="fc" id="L95">        long totalProjects = projectRepository.countByDeletedFalse();</span>
+<span class="fc" id="L96">        long totalTeams = teamRoomRepository.count();</span>
+<span class="fc" id="L97">        long totalTasks = taskRepository.count();</span>
+<span class="fc" id="L98">        long totalMessages = messageRepository.count();</span>
+<span class="fc" id="L99">        long totalPosts = postRepository.count();</span>
+
+<span class="fc" id="L101">        List&lt;AdminUserSummary&gt; recentUsers = userRepository.findTop5ByOrderByCreatedAtDesc()</span>
+<span class="fc" id="L102">                .stream()</span>
+<span class="fc" id="L103">                .map(this::toUserSummary)</span>
+<span class="fc" id="L104">                .toList();</span>
+<span class="fc" id="L105">        List&lt;AdminProjectSummary&gt; recentProjects = projectRepository.findTop5ByDeletedFalseOrderByCreatedAtDesc()</span>
+<span class="fc" id="L106">                .stream()</span>
+<span class="fc" id="L107">                .map(this::toProjectSummary)</span>
+<span class="fc" id="L108">                .toList();</span>
+
+<span class="fc" id="L110">        return DashboardResponse.builder()</span>
+<span class="fc" id="L111">                .totalUsers(totalUsers)</span>
+<span class="fc" id="L112">                .activeUsers(activeUsers)</span>
+<span class="fc" id="L113">                .blockedUsers(blockedUsers)</span>
+<span class="fc" id="L114">                .totalProjects(totalProjects)</span>
+<span class="fc" id="L115">                .totalTeams(totalTeams)</span>
+<span class="fc" id="L116">                .totalTasks(totalTasks)</span>
+<span class="fc" id="L117">                .totalMessages(totalMessages)</span>
+<span class="fc" id="L118">                .totalPosts(totalPosts)</span>
+<span class="fc" id="L119">                .recentUsers(recentUsers)</span>
+<span class="fc" id="L120">                .recentProjects(recentProjects)</span>
+<span class="fc" id="L121">                .build();</span>
+    }
+
+    @Transactional(readOnly = true)
+    public boolean isAdmin(String userId) {
+<span class="nc" id="L126">        return userRepository.findById(userId)</span>
+<span class="nc bnc" id="L127" title="All 2 branches missed.">                .map(user -&gt; user.getRole() == User.Role.ADMIN)</span>
+<span class="nc" id="L128">                .orElse(false);</span>
+    }
+
+    @Transactional(readOnly = true)
+    public PlatformStatsResponse getPlatformStats() {
+<span class="nc" id="L133">        return PlatformStatsResponse.builder()</span>
+<span class="nc" id="L134">                .totalUsers(userRepository.count())</span>
+<span class="nc" id="L135">                .totalPosts(postRepository.count())</span>
+<span class="nc" id="L136">                .totalProjects(projectRepository.countByDeletedFalse())</span>
+<span class="nc" id="L137">                .totalTeams(teamRoomRepository.count())</span>
+<span class="nc" id="L138">                .totalConnections(0)</span>
+<span class="nc" id="L139">                .build();</span>
+    }
+
+    @Transactional(readOnly = true)
+    public List&lt;AdminUserResponse&gt; getAllUsers() {
+<span class="fc" id="L144">        List&lt;User&gt; users = userRepository.findAll();</span>
+<span class="pc bpc" id="L145" title="1 of 2 branches missed.">        if (users.isEmpty()) {</span>
+<span class="nc" id="L146">            return List.of();</span>
+        }
+
+<span class="fc" id="L149">        Set&lt;String&gt; userIds = users.stream().map(User::getId).collect(Collectors.toSet());</span>
+<span class="fc" id="L150">        Map&lt;String, Long&gt; postCounts = postRepository.countPostsByUserIdIn(userIds).stream()</span>
+<span class="fc" id="L151">                .collect(Collectors.toMap(row -&gt; (String) row[0], row -&gt; (Long) row[1]));</span>
+
+<span class="fc" id="L153">        return users.stream()</span>
+<span class="fc" id="L154">                .map(user -&gt; toAdminUserResponse(user, postCounts.getOrDefault(user.getId(), 0L)))</span>
+<span class="fc" id="L155">                .toList();</span>
+    }
+
+    @Transactional(readOnly = true)
+    public PageResponse&lt;AdminUserListItem&gt; getUsersPage(int page, int size, String sortBy, String sortDir,
+                                                        String search, String role, String status,
+                                                        String from, String to) {
+<span class="fc" id="L162">        int safePage = Math.max(page, 0);</span>
+<span class="fc" id="L163">        int safeSize = Math.min(Math.max(size, 1), MAX_PAGE_SIZE);</span>
+<span class="fc" id="L164">        String sortField = normalizeSortField(sortBy);</span>
+<span class="pc bpc" id="L165" title="1 of 2 branches missed.">        Sort.Direction direction = &quot;asc&quot;.equalsIgnoreCase(sortDir) ? Sort.Direction.ASC : Sort.Direction.DESC;</span>
+<span class="fc" id="L166">        Pageable pageable = PageRequest.of(safePage, safeSize, Sort.by(direction, sortField));</span>
+
+<span class="fc" id="L168">        User.Role roleFilter = null;</span>
+<span class="pc bpc" id="L169" title="1 of 4 branches missed.">        if (role != null &amp;&amp; !role.isBlank()) {</span>
+            try {
+<span class="fc" id="L171">                roleFilter = User.Role.valueOf(role.toUpperCase());</span>
+<span class="fc" id="L172">            } catch (IllegalArgumentException e) {</span>
+<span class="fc" id="L173">                throw new IllegalArgumentException(&quot;Invalid role filter: &quot; + role);</span>
+<span class="fc" id="L174">            }</span>
+        }
+<span class="pc bpc" id="L176" title="1 of 4 branches missed.">        String statusFilter = (status == null || status.isBlank()) ? null : status.toUpperCase();</span>
+<span class="pc bpc" id="L177" title="1 of 4 branches missed.">        String searchFilter = (search == null || search.isBlank()) ? null : search.trim();</span>
+<span class="fc" id="L178">        Instant fromInstant = parseDate(from, false, &quot;Invalid from date&quot;);</span>
+<span class="fc" id="L179">        Instant toInstant = parseDate(to, true, &quot;Invalid to date&quot;);</span>
+
+<span class="fc" id="L181">        Page&lt;User&gt; users = userRepository.searchAdminUsers(searchFilter, roleFilter, statusFilter,</span>
+                fromInstant, toInstant, pageable);
+
+<span class="fc" id="L184">        List&lt;AdminUserListItem&gt; items = users.getContent().stream()</span>
+<span class="fc" id="L185">                .map(this::toAdminUserListItem)</span>
+<span class="fc" id="L186">                .toList();</span>
+
+<span class="fc" id="L188">        return PageResponse.&lt;AdminUserListItem&gt;builder()</span>
+<span class="fc" id="L189">                .content(items)</span>
+<span class="fc" id="L190">                .page(users.getNumber())</span>
+<span class="fc" id="L191">                .size(users.getSize())</span>
+<span class="fc" id="L192">                .totalElements(users.getTotalElements())</span>
+<span class="fc" id="L193">                .totalPages(users.getTotalPages())</span>
+<span class="fc" id="L194">                .last(users.isLast())</span>
+<span class="fc" id="L195">                .build();</span>
+    }
+
+    @Transactional(readOnly = true)
+    public AdminUserDetail getUserDetail(String userId) {
+<span class="fc" id="L200">        User user = userRepository.findById(userId)</span>
+<span class="fc" id="L201">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;User&quot;, userId));</span>
+
+<span class="fc" id="L203">        List&lt;AdminProjectSummary&gt; joined = projectRepository.findProjectsByUserId(userId).stream()</span>
+<span class="fc" id="L204">                .map(this::toProjectSummary)</span>
+<span class="fc" id="L205">                .toList();</span>
+<span class="fc" id="L206">        List&lt;AdminProjectSummary&gt; owned = projectRepository.findByOwnerId(userId).stream()</span>
+<span class="fc" id="L207">                .map(this::toProjectSummary)</span>
+<span class="fc" id="L208">                .toList();</span>
+<span class="fc" id="L209">        List&lt;AdminTeamSummary&gt; teams = teamRoomRepository.findRoomsByUserId(userId).stream()</span>
+<span class="pc" id="L210">                .map(room -&gt; AdminTeamSummary.builder()</span>
+<span class="nc" id="L211">                        .id(room.getId())</span>
+<span class="nc" id="L212">                        .name(room.getName())</span>
+<span class="nc" id="L213">                        .createdAt(room.getCreatedAt())</span>
+<span class="nc" id="L214">                        .build())</span>
+<span class="fc" id="L215">                .toList();</span>
+
+<span class="fc" id="L217">        return AdminUserDetail.builder()</span>
+<span class="fc" id="L218">                .id(user.getId())</span>
+<span class="fc" id="L219">                .email(user.getEmail())</span>
+<span class="fc" id="L220">                .fullName(user.getFullName())</span>
+<span class="fc" id="L221">                .username(user.getUsername())</span>
+<span class="fc" id="L222">                .avatarUrl(user.getAvatarUrl())</span>
+<span class="fc" id="L223">                .bio(user.getBio())</span>
+<span class="fc" id="L224">                .jobTitle(user.getJobTitle())</span>
+<span class="fc" id="L225">                .company(user.getCompany())</span>
+<span class="fc" id="L226">                .location(user.getLocation())</span>
+<span class="fc" id="L227">                .role(user.getRole().name())</span>
+<span class="fc" id="L228">                .status(toStatus(user).name())</span>
+<span class="fc" id="L229">                .emailVerified(user.isEmailVerified())</span>
+<span class="fc" id="L230">                .authProvider(user.getAuthProvider())</span>
+<span class="fc" id="L231">                .createdAt(user.getCreatedAt())</span>
+<span class="fc" id="L232">                .lastLoginAt(user.getLastLoginAt())</span>
+<span class="fc" id="L233">                .projectsJoined(joined)</span>
+<span class="fc" id="L234">                .projectsOwned(owned)</span>
+<span class="fc" id="L235">                .teams(teams)</span>
+<span class="fc" id="L236">                .postsCount(postRepository.countByUserId(userId))</span>
+<span class="fc" id="L237">                .messagesCount(messageRepository.countMessagesByUserId(userId))</span>
+<span class="fc" id="L238">                .build();</span>
+    }
+
+    @Transactional
+    public void deleteUser(String userId, String currentUserId) {
+<span class="fc" id="L243">        User user = userRepository.findById(userId)</span>
+<span class="fc" id="L244">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;User&quot;, userId));</span>
+
+<span class="fc bfc" id="L246" title="All 2 branches covered.">        if (userId.equals(currentUserId)) {</span>
+<span class="fc" id="L247">            throw new IllegalArgumentException(&quot;You cannot delete your own account&quot;);</span>
+        }
+<span class="fc" id="L249">        ensureNotLastActiveAdmin(user, &quot;delete&quot;);</span>
+
+<span class="fc" id="L251">        user.setDeleted(true);</span>
+<span class="fc" id="L252">        user.setDeletedAt(Instant.now());</span>
+<span class="fc" id="L253">        userRepository.save(user);</span>
+<span class="fc" id="L254">        auditLogService.record(currentUserId, userId, AuditAction.USER_DELETED, AuditStatus.SUCCESS,</span>
+<span class="fc" id="L255">                &quot;Deleted user: &quot; + user.getEmail() + &quot; (&quot; + userId + &quot;)&quot;);</span>
+<span class="fc" id="L256">    }</span>
+
+    @Transactional(readOnly = true)
+    public List&lt;AdminPostResponse&gt; getAllPosts() {
+<span class="fc" id="L260">        List&lt;Post&gt; posts = postRepository.findAllByOrderByCreatedAtDesc();</span>
+<span class="pc bpc" id="L261" title="1 of 2 branches missed.">        if (posts.isEmpty()) {</span>
+<span class="nc" id="L262">            return List.of();</span>
+        }
+
+<span class="fc" id="L265">        Set&lt;String&gt; postIds = posts.stream().map(Post::getId).collect(Collectors.toSet());</span>
+<span class="fc" id="L266">        Set&lt;String&gt; userIds = posts.stream().map(Post::getUserId).collect(Collectors.toSet());</span>
+
+<span class="pc bpc" id="L268" title="1 of 2 branches missed.">        Map&lt;String, User&gt; userMap = userIds.isEmpty() ? Collections.emptyMap()</span>
+<span class="fc" id="L269">                : userRepository.findAllById(userIds).stream().collect(Collectors.toMap(User::getId, u -&gt; u));</span>
+<span class="fc" id="L270">        Map&lt;String, Long&gt; likeCounts = postLikeRepository.countLikesByPostIdIn(postIds).stream()</span>
+<span class="fc" id="L271">                .collect(Collectors.toMap(row -&gt; (String) row[0], row -&gt; (Long) row[1]));</span>
+<span class="fc" id="L272">        Map&lt;String, Long&gt; commentCounts = commentRepository.countCommentsByPostIdIn(postIds).stream()</span>
+<span class="fc" id="L273">                .collect(Collectors.toMap(row -&gt; (String) row[0], row -&gt; (Long) row[1]));</span>
+
+<span class="fc" id="L275">        return posts.stream()</span>
+<span class="fc" id="L276">                .map(post -&gt; toAdminPostResponse(post,</span>
+<span class="fc" id="L277">                        userMap.get(post.getUserId()),</span>
+<span class="fc" id="L278">                        likeCounts.getOrDefault(post.getId(), 0L),</span>
+<span class="fc" id="L279">                        commentCounts.getOrDefault(post.getId(), 0L)))</span>
+<span class="fc" id="L280">                .toList();</span>
+    }
+
+    @Transactional
+    public AdminUserResponse updateUserRole(String userId, String requestedRole, String currentUserId) {
+<span class="fc" id="L285">        User user = userRepository.findById(userId)</span>
+<span class="pc" id="L286">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;User&quot;, userId));</span>
+
+<span class="fc" id="L288">        User.Role newRole = normalizeRole(requestedRole);</span>
+
+<span class="pc bpc" id="L290" title="1 of 4 branches missed.">        if (userId.equals(currentUserId) &amp;&amp; newRole != User.Role.ADMIN) {</span>
+<span class="fc" id="L291">            throw new IllegalArgumentException(&quot;You cannot remove your own ADMIN role&quot;);</span>
+        }
+<span class="fc bfc" id="L293" title="All 2 branches covered.">        if (newRole != User.Role.ADMIN) {</span>
+<span class="fc" id="L294">            ensureNotLastActiveAdmin(user, &quot;demote&quot;);</span>
+        }
+
+<span class="fc" id="L297">        user.setRole(newRole);</span>
+<span class="fc" id="L298">        userRepository.save(user);</span>
+<span class="fc" id="L299">        activityService.record(currentUserId, null, ActivityType.ROLE_CHANGED,</span>
+<span class="fc" id="L300">                &quot;Role changed&quot;, user.getFullName() + &quot; -&gt; &quot; + newRole.name(), null);</span>
+<span class="fc" id="L301">        auditLogService.record(currentUserId, userId, AuditAction.ROLE_CHANGED, AuditStatus.SUCCESS,</span>
+<span class="fc" id="L302">                &quot;Changed role of &quot; + user.getEmail() + &quot; to &quot; + newRole.name());</span>
+<span class="fc bfc" id="L303" title="All 2 branches covered.">        if (newRole == User.Role.ADMIN) {</span>
+<span class="fc" id="L304">            auditLogService.record(currentUserId, userId, AuditAction.ADMIN_CREATED, AuditStatus.SUCCESS,</span>
+<span class="fc" id="L305">                    &quot;Granted ADMIN role to &quot; + user.getEmail());</span>
+        }
+<span class="fc" id="L307">        return toAdminUserResponse(user, postRepository.countByUserId(user.getId()));</span>
+    }
+
+    @Transactional
+    public AdminUserResponse setUserBlocked(String userId, boolean blocked, String currentUserId, String reason) {
+<span class="fc" id="L312">        User user = userRepository.findById(userId)</span>
+<span class="pc" id="L313">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;User&quot;, userId));</span>
+
+<span class="pc bpc" id="L315" title="1 of 4 branches missed.">        if (userId.equals(currentUserId) &amp;&amp; blocked) {</span>
+<span class="fc" id="L316">            throw new IllegalArgumentException(&quot;You cannot block your own account&quot;);</span>
+        }
+<span class="pc bpc" id="L318" title="1 of 2 branches missed.">        if (blocked) {</span>
+<span class="fc" id="L319">            ensureNotLastActiveAdmin(user, &quot;block&quot;);</span>
+        }
+
+<span class="fc" id="L322">        user.setBlocked(blocked);</span>
+<span class="fc" id="L323">        userRepository.save(user);</span>
+<span class="pc bpc" id="L324" title="1 of 4 branches missed.">        String reasonDetail = (reason == null || reason.isBlank()) ? &quot;&quot; : &quot; - Reason: &quot; + reason.trim();</span>
+<span class="pc bpc" id="L325" title="1 of 2 branches missed.">        if (blocked) {</span>
+<span class="fc" id="L326">            activityService.record(currentUserId, null, ActivityType.USER_BLOCKED,</span>
+<span class="fc" id="L327">                    &quot;User blocked&quot;, user.getFullName(), null);</span>
+<span class="fc" id="L328">            auditLogService.record(currentUserId, userId, AuditAction.USER_BLOCKED, AuditStatus.SUCCESS,</span>
+<span class="fc" id="L329">                    &quot;Blocked user: &quot; + user.getEmail() + reasonDetail);</span>
+        } else {
+<span class="nc" id="L331">            activityService.record(currentUserId, null, ActivityType.USER_UNBLOCKED,</span>
+<span class="nc" id="L332">                    &quot;User unblocked&quot;, user.getFullName(), null);</span>
+<span class="nc" id="L333">            auditLogService.record(currentUserId, userId, AuditAction.USER_UNBLOCKED, AuditStatus.SUCCESS,</span>
+<span class="nc" id="L334">                    &quot;Unblocked user: &quot; + user.getEmail() + reasonDetail);</span>
+        }
+<span class="fc" id="L336">        return toAdminUserResponse(user, postRepository.countByUserId(user.getId()));</span>
+    }
+
+    @Transactional
+    public void deletePost(String postId) {
+<span class="fc" id="L341">        postRepository.findById(postId)</span>
+<span class="fc" id="L342">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Post&quot;, postId));</span>
+<span class="fc" id="L343">        postLikeRepository.deleteByPostId(postId);</span>
+<span class="fc" id="L344">        commentRepository.deleteByPostId(postId);</span>
+<span class="fc" id="L345">        postRepository.deleteById(postId);</span>
+<span class="fc" id="L346">    }</span>
+
+    /**
+     * Project statistics for the admin projects header: total / active / archived / public / private.
+     */
+    @Transactional(readOnly = true)
+    public AdminProjectStats getProjectStats() {
+<span class="fc" id="L353">        return AdminProjectStats.builder()</span>
+<span class="fc" id="L354">                .total(projectRepository.countByDeletedFalse())</span>
+<span class="fc" id="L355">                .active(projectRepository.countByStatusAndDeletedFalse(Project.ProjectStatus.ACTIVE))</span>
+<span class="fc" id="L356">                .archived(projectRepository.countByStatusAndDeletedFalse(Project.ProjectStatus.ARCHIVED))</span>
+<span class="fc" id="L357">                .publicCount(projectRepository.countByVisibilityAndDeletedFalse(Project.ProjectVisibility.PUBLIC))</span>
+<span class="fc" id="L358">                .privateCount(projectRepository.countByVisibilityAndDeletedFalse(Project.ProjectVisibility.PRIVATE))</span>
+<span class="fc" id="L359">                .build();</span>
+    }
+
+    /**
+     * Paginated, searchable, filterable admin project list.
+     * Filters: search (name/owner name/owner email), visibility, status (incl. DELETED via soft-delete flag).
+     * Sorts: newest/oldest/mostActive via JPQL; mostMembers/mostTasks computed in-memory per page.
+     * Batch queries only - no N+1.
+     */
+    @Transactional(readOnly = true)
+    public PageResponse&lt;AdminProjectListItem&gt; getProjectsPage(int page, int size, String sortBy, String sortDir,
+                                                              String search, String visibility, String status) {
+<span class="fc" id="L371">        int safePage = Math.max(page, 0);</span>
+<span class="fc" id="L372">        int safeSize = Math.min(Math.max(size, 1), MAX_PAGE_SIZE);</span>
+<span class="fc" id="L373">        String sortField = normalizeProjectSortField(sortBy);</span>
+<span class="pc bpc" id="L374" title="1 of 2 branches missed.">        Sort.Direction direction = &quot;asc&quot;.equalsIgnoreCase(sortDir) ? Sort.Direction.ASC : Sort.Direction.DESC;</span>
+<span class="fc" id="L375">        Pageable pageable = PageRequest.of(safePage, safeSize, Sort.by(direction, sortField));</span>
+
+<span class="fc" id="L377">        Project.ProjectVisibility visFilter = parseVisibility(visibility);</span>
+<span class="fc" id="L378">        Project.ProjectStatus statusFilter = parseProjectStatus(status);</span>
+<span class="fc" id="L379">        boolean deleted = &quot;DELETED&quot;.equalsIgnoreCase(status);</span>
+<span class="pc bpc" id="L380" title="3 of 4 branches missed.">        String searchFilter = (search == null || search.isBlank()) ? null : search.trim();</span>
+
+<span class="fc" id="L382">        Page&lt;Project&gt; projects = projectRepository.searchAdminProjects(searchFilter, visFilter, statusFilter, deleted, pageable);</span>
+
+<span class="fc" id="L384">        List&lt;Project&gt; content = projects.getContent();</span>
+<span class="fc" id="L385">        Map&lt;String, Long&gt; memberCounts = memberCounts(content);</span>
+<span class="fc" id="L386">        Map&lt;String, Long&gt; taskCounts = taskCounts(content);</span>
+<span class="fc" id="L387">        Map&lt;String, Long&gt; postCounts = postCounts(content);</span>
+<span class="fc" id="L388">        Map&lt;String, User&gt; ownerMap = ownerMap(content);</span>
+
+<span class="fc" id="L390">        List&lt;AdminProjectListItem&gt; items = content.stream()</span>
+<span class="fc" id="L391">                .map(p -&gt; toProjectListItem(p, memberCounts, taskCounts, postCounts, ownerMap))</span>
+<span class="fc" id="L392">                .collect(Collectors.toCollection(ArrayList::new));</span>
+
+<span class="pc bpc" id="L394" title="1 of 2 branches missed.">        String sortKey = sortBy == null ? &quot;&quot; : sortBy.toLowerCase();</span>
+<span class="fc bfc" id="L395" title="All 2 branches covered.">        if (sortKey.contains(&quot;member&quot;)) {</span>
+<span class="fc" id="L396">            items.sort(Comparator.comparingLong(AdminProjectListItem::getMembersCount).reversed());</span>
+<span class="pc bpc" id="L397" title="1 of 2 branches missed.">        } else if (sortKey.contains(&quot;task&quot;)) {</span>
+<span class="nc" id="L398">            items.sort(Comparator.comparingLong(AdminProjectListItem::getTasksCount).reversed());</span>
+        }
+
+<span class="fc" id="L401">        return PageResponse.&lt;AdminProjectListItem&gt;builder()</span>
+<span class="fc" id="L402">                .content(items)</span>
+<span class="fc" id="L403">                .page(projects.getNumber())</span>
+<span class="fc" id="L404">                .size(projects.getSize())</span>
+<span class="fc" id="L405">                .totalElements(projects.getTotalElements())</span>
+<span class="fc" id="L406">                .totalPages(projects.getTotalPages())</span>
+<span class="fc" id="L407">                .last(projects.isLast())</span>
+<span class="fc" id="L408">                .build();</span>
+    }
+
+    /**
+     * Full admin view of a project: owner, members, kanban stats, posts/messages counts and recent activity.
+     * Uses batch queries only - no N+1.
+     */
+    @Transactional(readOnly = true)
+    public AdminProjectDetail getProjectDetail(String projectId) {
+<span class="fc" id="L417">        Project project = projectRepository.findById(projectId)</span>
+<span class="fc" id="L418">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Project&quot;, projectId));</span>
+
+<span class="fc" id="L420">        User owner = userRepository.findById(project.getOwnerId()).orElse(null);</span>
+<span class="pc bpc" id="L421" title="1 of 2 branches missed.">        AdminProjectOwner ownerDto = owner != null ? toOwner(owner)</span>
+<span class="pc" id="L422">                : AdminProjectOwner.builder().id(project.getOwnerId()).fullName(&quot;Unknown&quot;).build();</span>
+
+<span class="fc" id="L424">        List&lt;ProjectMember&gt; members = projectMemberRepository.findByProjectId(projectId);</span>
+<span class="pc bpc" id="L425" title="1 of 2 branches missed.">        Map&lt;String, User&gt; userMap = members.isEmpty() ? Collections.emptyMap()</span>
+<span class="fc" id="L426">                : userRepository.findAllById(members.stream().map(ProjectMember::getUserId).collect(Collectors.toSet()))</span>
+<span class="fc" id="L427">                        .stream().collect(Collectors.toMap(User::getId, u -&gt; u));</span>
+<span class="fc" id="L428">        List&lt;AdminProjectMember&gt; memberDtos = members.stream()</span>
+<span class="fc" id="L429">                .map(m -&gt; {</span>
+<span class="fc" id="L430">                    User memberUser = userMap.get(m.getUserId());</span>
+<span class="fc" id="L431">                    return AdminProjectMember.builder()</span>
+<span class="fc" id="L432">                            .userId(m.getUserId())</span>
+<span class="pc bpc" id="L433" title="1 of 2 branches missed.">                            .fullName(memberUser != null ? memberUser.getFullName() : &quot;Unknown&quot;)</span>
+<span class="pc bpc" id="L434" title="1 of 2 branches missed.">                            .email(memberUser != null ? memberUser.getEmail() : null)</span>
+<span class="pc bpc" id="L435" title="1 of 2 branches missed.">                            .avatarUrl(memberUser != null ? memberUser.getAvatarUrl() : null)</span>
+<span class="fc" id="L436">                            .role(m.getRole().name())</span>
+<span class="fc" id="L437">                            .build();</span>
+                })
+<span class="fc" id="L439">                .toList();</span>
+
+<span class="fc" id="L441">        Set&lt;String&gt; memberIds = members.stream().map(ProjectMember::getUserId).collect(Collectors.toSet());</span>
+<span class="pc bpc" id="L442" title="1 of 2 branches missed.">        long postsCount = memberIds.isEmpty() ? 0 : postRepository.countPostsByUserIdIn(memberIds).stream()</span>
+<span class="fc" id="L443">                .mapToLong(row -&gt; (Long) row[1])</span>
+<span class="fc" id="L444">                .sum();</span>
+
+<span class="fc" id="L446">        return AdminProjectDetail.builder()</span>
+<span class="fc" id="L447">                .id(project.getId())</span>
+<span class="fc" id="L448">                .name(project.getName())</span>
+<span class="fc" id="L449">                .description(project.getDescription())</span>
+<span class="fc" id="L450">                .owner(ownerDto)</span>
+<span class="pc bpc" id="L451" title="1 of 2 branches missed.">                .visibility(project.getVisibility() != null ? project.getVisibility().name() : &quot;PUBLIC&quot;)</span>
+<span class="pc bpc" id="L452" title="1 of 2 branches missed.">                .status(project.getStatus() != null ? project.getStatus().name() : &quot;ACTIVE&quot;)</span>
+<span class="fc" id="L453">                .memberCount(members.size())</span>
+<span class="fc" id="L454">                .members(memberDtos)</span>
+<span class="fc" id="L455">                .kanbanStats(kanbanStats(projectId))</span>
+<span class="fc" id="L456">                .postsCount(postsCount)</span>
+<span class="fc" id="L457">                .messagesCount(messagesCount(projectId))</span>
+<span class="fc" id="L458">                .recentActivity(recentActivity(projectId))</span>
+<span class="fc" id="L459">                .createdAt(project.getCreatedAt())</span>
+<span class="fc" id="L460">                .updatedAt(project.getUpdatedAt())</span>
+<span class="fc" id="L461">                .build();</span>
+    }
+
+    @Transactional
+    public AdminProjectListItem archiveProject(String projectId, String adminId) {
+<span class="fc" id="L466">        Project project = getEditableProject(projectId);</span>
+<span class="fc" id="L467">        project.setStatus(Project.ProjectStatus.ARCHIVED);</span>
+<span class="fc" id="L468">        projectRepository.save(project);</span>
+<span class="fc" id="L469">        activityService.record(adminId, projectId, ActivityType.PROJECT_ARCHIVED,</span>
+<span class="fc" id="L470">                &quot;Project archived&quot;, project.getName(), null);</span>
+<span class="fc" id="L471">        auditLogService.record(adminId, null, AuditAction.PROJECT_ARCHIVED, AuditStatus.SUCCESS,</span>
+<span class="fc" id="L472">                &quot;Archived project: &quot; + project.getName() + &quot; (&quot; + projectId + &quot;)&quot;);</span>
+<span class="fc" id="L473">        return toProjectListItem(project);</span>
+    }
+
+    @Transactional
+    public AdminProjectListItem restoreProject(String projectId, String adminId) {
+<span class="fc" id="L478">        Project project = getEditableProject(projectId);</span>
+<span class="fc" id="L479">        project.setStatus(Project.ProjectStatus.ACTIVE);</span>
+<span class="fc" id="L480">        projectRepository.save(project);</span>
+<span class="fc" id="L481">        activityService.record(adminId, projectId, ActivityType.PROJECT_RESTORED,</span>
+<span class="fc" id="L482">                &quot;Project restored&quot;, project.getName(), null);</span>
+<span class="fc" id="L483">        auditLogService.record(adminId, null, AuditAction.PROJECT_RESTORED, AuditStatus.SUCCESS,</span>
+<span class="fc" id="L484">                &quot;Restored project: &quot; + project.getName() + &quot; (&quot; + projectId + &quot;)&quot;);</span>
+<span class="fc" id="L485">        return toProjectListItem(project);</span>
+    }
+
+    @Transactional
+    public AdminProjectListItem setProjectVisibility(String projectId, String visibility, String adminId) {
+<span class="fc" id="L490">        Project.ProjectVisibility parsed = parseVisibility(visibility);</span>
+<span class="fc bfc" id="L491" title="All 2 branches covered.">        if (parsed == null) {</span>
+<span class="fc" id="L492">            throw new IllegalArgumentException(&quot;Visibility is required&quot;);</span>
+        }
+<span class="fc" id="L494">        Project project = getEditableProject(projectId);</span>
+<span class="fc" id="L495">        project.setVisibility(parsed);</span>
+<span class="fc" id="L496">        projectRepository.save(project);</span>
+<span class="fc" id="L497">        activityService.record(adminId, projectId, ActivityType.PROJECT_UPDATED,</span>
+<span class="fc" id="L498">                &quot;Project visibility changed&quot;, project.getName(), null);</span>
+<span class="fc" id="L499">        auditLogService.record(adminId, null, AuditAction.VISIBILITY_CHANGED, AuditStatus.SUCCESS,</span>
+<span class="fc" id="L500">                &quot;Visibility changed to &quot; + parsed + &quot; for project: &quot; + project.getName() + &quot; (&quot; + projectId + &quot;)&quot;);</span>
+<span class="fc" id="L501">        return toProjectListItem(project);</span>
+    }
+
+    @Transactional
+    public void deleteProject(String projectId, String adminId) {
+<span class="fc" id="L506">        Project project = projectRepository.findById(projectId)</span>
+<span class="fc" id="L507">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Project&quot;, projectId));</span>
+<span class="fc" id="L508">        project.setDeleted(true);</span>
+<span class="fc" id="L509">        project.setDeletedAt(Instant.now());</span>
+<span class="fc" id="L510">        projectRepository.save(project);</span>
+<span class="fc" id="L511">        activityService.record(adminId, projectId, ActivityType.PROJECT_DELETED,</span>
+<span class="fc" id="L512">                &quot;Project deleted&quot;, project.getName(), null);</span>
+<span class="fc" id="L513">        auditLogService.record(adminId, null, AuditAction.PROJECT_DELETED, AuditStatus.SUCCESS,</span>
+<span class="fc" id="L514">                &quot;Deleted project: &quot; + project.getName() + &quot; (&quot; + projectId + &quot;)&quot;);</span>
+<span class="fc" id="L515">    }</span>
+
+    private Project getEditableProject(String projectId) {
+<span class="fc" id="L518">        Project project = projectRepository.findById(projectId)</span>
+<span class="pc" id="L519">                .orElseThrow(() -&gt; new ResourceNotFoundException(&quot;Project&quot;, projectId));</span>
+<span class="fc bfc" id="L520" title="All 2 branches covered.">        if (project.isDeleted()) {</span>
+<span class="fc" id="L521">            throw new IllegalArgumentException(&quot;Project is deleted and cannot be modified&quot;);</span>
+        }
+<span class="fc" id="L523">        return project;</span>
+    }
+
+    private Map&lt;String, Long&gt; memberCounts(List&lt;Project&gt; projects) {
+<span class="fc" id="L527">        Set&lt;String&gt; ids = projects.stream().map(Project::getId).collect(Collectors.toSet());</span>
+<span class="pc bpc" id="L528" title="1 of 2 branches missed.">        if (ids.isEmpty()) return Collections.emptyMap();</span>
+<span class="fc" id="L529">        return projectMemberRepository.countMembersByProjectIdIn(ids).stream()</span>
+<span class="fc" id="L530">                .collect(Collectors.toMap(row -&gt; (String) row[0], row -&gt; (Long) row[1]));</span>
+    }
+
+    private Map&lt;String, Long&gt; taskCounts(List&lt;Project&gt; projects) {
+<span class="fc" id="L534">        Set&lt;String&gt; projectIds = projects.stream().map(Project::getId).collect(Collectors.toSet());</span>
+<span class="pc bpc" id="L535" title="1 of 2 branches missed.">        if (projectIds.isEmpty()) return Collections.emptyMap();</span>
+<span class="fc" id="L536">        List&lt;Board&gt; boards = boardRepository.findByProjectIdIn(projectIds);</span>
+<span class="fc bfc" id="L537" title="All 2 branches covered.">        if (boards.isEmpty()) return Collections.emptyMap();</span>
+<span class="fc" id="L538">        Map&lt;String, Long&gt; perBoard = taskRepository.countTasksByBoardIdIn(</span>
+<span class="fc" id="L539">                        boards.stream().map(Board::getId).collect(Collectors.toSet()))</span>
+<span class="fc" id="L540">                .stream().collect(Collectors.toMap(row -&gt; (String) row[0], row -&gt; (Long) row[1]));</span>
+<span class="fc" id="L541">        Map&lt;String, Long&gt; result = new HashMap&lt;&gt;();</span>
+<span class="fc bfc" id="L542" title="All 2 branches covered.">        for (Board b : boards) {</span>
+<span class="fc" id="L543">            result.merge(b.getProjectId(), perBoard.getOrDefault(b.getId(), 0L), Long::sum);</span>
+<span class="fc" id="L544">        }</span>
+<span class="fc" id="L545">        return result;</span>
+    }
+
+    private Map&lt;String, Long&gt; postCounts(List&lt;Project&gt; projects) {
+<span class="fc" id="L549">        Set&lt;String&gt; projectIds = projects.stream().map(Project::getId).collect(Collectors.toSet());</span>
+<span class="pc bpc" id="L550" title="1 of 2 branches missed.">        if (projectIds.isEmpty()) return Collections.emptyMap();</span>
+<span class="fc" id="L551">        List&lt;ProjectMember&gt; members = projectMemberRepository.findByProjectIdIn(projectIds);</span>
+<span class="fc bfc" id="L552" title="All 2 branches covered.">        if (members.isEmpty()) return Collections.emptyMap();</span>
+<span class="fc" id="L553">        Map&lt;String, Long&gt; perUser = postRepository.countPostsByUserIdIn(</span>
+<span class="fc" id="L554">                        members.stream().map(ProjectMember::getUserId).collect(Collectors.toSet()))</span>
+<span class="fc" id="L555">                .stream().collect(Collectors.toMap(row -&gt; (String) row[0], row -&gt; (Long) row[1]));</span>
+<span class="fc" id="L556">        Map&lt;String, Long&gt; result = new HashMap&lt;&gt;();</span>
+<span class="fc bfc" id="L557" title="All 2 branches covered.">        for (ProjectMember m : members) {</span>
+<span class="fc" id="L558">            result.merge(m.getProjectId(), perUser.getOrDefault(m.getUserId(), 0L), Long::sum);</span>
+<span class="fc" id="L559">        }</span>
+<span class="fc" id="L560">        return result;</span>
+    }
+
+    private Map&lt;String, User&gt; ownerMap(List&lt;Project&gt; projects) {
+<span class="fc" id="L564">        Set&lt;String&gt; ownerIds = projects.stream().map(Project::getOwnerId).collect(Collectors.toSet());</span>
+<span class="pc bpc" id="L565" title="1 of 2 branches missed.">        if (ownerIds.isEmpty()) return Collections.emptyMap();</span>
+<span class="fc" id="L566">        return userRepository.findAllById(ownerIds).stream()</span>
+<span class="fc" id="L567">                .collect(Collectors.toMap(User::getId, u -&gt; u));</span>
+    }
+
+    private AdminProjectListItem toProjectListItem(Project p) {
+<span class="fc" id="L571">        return toProjectListItem(p, memberCounts(List.of(p)), taskCounts(List.of(p)),</span>
+<span class="fc" id="L572">                postCounts(List.of(p)), ownerMap(List.of(p)));</span>
+    }
+
+    private AdminProjectListItem toProjectListItem(Project p, Map&lt;String, Long&gt; memberCounts,
+                                                   Map&lt;String, Long&gt; taskCounts, Map&lt;String, Long&gt; postCounts,
+                                                   Map&lt;String, User&gt; ownerMap) {
+<span class="fc" id="L578">        User owner = ownerMap.get(p.getOwnerId());</span>
+<span class="fc" id="L579">        return AdminProjectListItem.builder()</span>
+<span class="fc" id="L580">                .id(p.getId())</span>
+<span class="fc" id="L581">                .name(p.getName())</span>
+<span class="fc" id="L582">                .description(p.getDescription())</span>
+<span class="fc" id="L583">                .ownerId(p.getOwnerId())</span>
+<span class="fc bfc" id="L584" title="All 2 branches covered.">                .ownerName(owner != null ? owner.getFullName() : &quot;Unknown&quot;)</span>
+<span class="fc bfc" id="L585" title="All 2 branches covered.">                .ownerEmail(owner != null ? owner.getEmail() : null)</span>
+<span class="fc bfc" id="L586" title="All 2 branches covered.">                .ownerAvatarUrl(owner != null ? owner.getAvatarUrl() : null)</span>
+<span class="pc bpc" id="L587" title="1 of 2 branches missed.">                .visibility(p.getVisibility() != null ? p.getVisibility().name() : &quot;PUBLIC&quot;)</span>
+<span class="pc bpc" id="L588" title="1 of 2 branches missed.">                .status(p.getStatus() != null ? p.getStatus().name() : &quot;ACTIVE&quot;)</span>
+<span class="fc" id="L589">                .membersCount(memberCounts.getOrDefault(p.getId(), 0L))</span>
+<span class="fc" id="L590">                .tasksCount(taskCounts.getOrDefault(p.getId(), 0L))</span>
+<span class="fc" id="L591">                .postsCount(postCounts.getOrDefault(p.getId(), 0L))</span>
+<span class="fc" id="L592">                .createdAt(p.getCreatedAt())</span>
+<span class="fc" id="L593">                .updatedAt(p.getUpdatedAt())</span>
+<span class="fc" id="L594">                .build();</span>
+    }
+
+    private AdminProjectOwner toOwner(User user) {
+<span class="fc" id="L598">        return AdminProjectOwner.builder()</span>
+<span class="fc" id="L599">                .id(user.getId())</span>
+<span class="fc" id="L600">                .fullName(user.getFullName())</span>
+<span class="fc" id="L601">                .email(user.getEmail())</span>
+<span class="fc" id="L602">                .username(user.getUsername())</span>
+<span class="fc" id="L603">                .avatarUrl(user.getAvatarUrl())</span>
+<span class="fc" id="L604">                .build();</span>
+    }
+
+    private AdminKanbanStats kanbanStats(String projectId) {
+<span class="fc" id="L608">        List&lt;Board&gt; boards = boardRepository.findByProjectId(projectId);</span>
+<span class="pc bpc" id="L609" title="1 of 2 branches missed.">        if (boards.isEmpty()) {</span>
+<span class="nc" id="L610">            return AdminKanbanStats.builder().totalTasks(0).completedTasks(0).pendingTasks(0).build();</span>
+        }
+<span class="fc" id="L612">        List&lt;String&gt; boardIds = boards.stream().map(Board::getId).toList();</span>
+<span class="fc" id="L613">        Map&lt;String, BoardColumn&gt; columnMap = boardColumnRepository.findByBoardIdIn(boardIds).stream()</span>
+<span class="fc" id="L614">                .collect(Collectors.toMap(BoardColumn::getId, c -&gt; c));</span>
+<span class="fc" id="L615">        List&lt;Task&gt; tasks = taskRepository.findByBoardIdIn(boardIds);</span>
+<span class="fc" id="L616">        long completed = tasks.stream()</span>
+<span class="fc" id="L617">                .filter(t -&gt; {</span>
+<span class="fc" id="L618">                    BoardColumn col = columnMap.get(t.getColumnId());</span>
+<span class="pc bpc" id="L619" title="1 of 4 branches missed.">                    return col != null &amp;&amp; isDoneColumn(col.getName());</span>
+                })
+<span class="fc" id="L621">                .count();</span>
+<span class="fc" id="L622">        return AdminKanbanStats.builder()</span>
+<span class="fc" id="L623">                .totalTasks(tasks.size())</span>
+<span class="fc" id="L624">                .completedTasks(completed)</span>
+<span class="fc" id="L625">                .pendingTasks(tasks.size() - completed)</span>
+<span class="fc" id="L626">                .build();</span>
+    }
+
+    private boolean isDoneColumn(String name) {
+<span class="pc bpc" id="L630" title="1 of 2 branches missed.">        String n = name == null ? &quot;&quot; : name.toLowerCase();</span>
+<span class="pc bpc" id="L631" title="1 of 4 branches missed.">        return n.contains(&quot;done&quot;) || n.contains(&quot;complete&quot;);</span>
+    }
+
+    private long messagesCount(String projectId) {
+<span class="fc" id="L635">        List&lt;String&gt; roomIds = teamRoomRepository.findByProjectId(projectId).stream()</span>
+<span class="fc" id="L636">                .map(TeamRoom::getId)</span>
+<span class="fc" id="L637">                .toList();</span>
+<span class="pc bpc" id="L638" title="1 of 2 branches missed.">        if (roomIds.isEmpty()) return 0;</span>
+<span class="fc" id="L639">        return messageRepository.countByRoomIdIn(roomIds);</span>
+    }
+
+    private List&lt;AdminActivityItem&gt; recentActivity(String projectId) {
+<span class="fc" id="L643">        List&lt;Board&gt; boards = boardRepository.findByProjectId(projectId);</span>
+<span class="fc" id="L644">        List&lt;String&gt; boardIds = boards.stream().map(Board::getId).toList();</span>
+<span class="fc" id="L645">        List&lt;String&gt; roomIds = teamRoomRepository.findByProjectId(projectId).stream()</span>
+<span class="fc" id="L646">                .map(TeamRoom::getId)</span>
+<span class="fc" id="L647">                .toList();</span>
+
+<span class="fc" id="L649">        List&lt;AdminActivityItem&gt; items = new ArrayList&lt;&gt;();</span>
+<span class="pc bpc" id="L650" title="1 of 2 branches missed.">        if (!boardIds.isEmpty()) {</span>
+<span class="fc" id="L651">            taskRepository.findTop5ByBoardIdInOrderByUpdatedAtDesc(boardIds).forEach(t -&gt;</span>
+<span class="nc" id="L652">                    items.add(AdminActivityItem.builder()</span>
+<span class="nc" id="L653">                            .type(&quot;TASK&quot;)</span>
+<span class="nc" id="L654">                            .title(&quot;Task updated: &quot; + t.getTitle())</span>
+<span class="nc" id="L655">                            .timestamp(t.getUpdatedAt())</span>
+<span class="nc" id="L656">                            .build()));</span>
+        }
+<span class="pc bpc" id="L658" title="1 of 2 branches missed.">        if (!roomIds.isEmpty()) {</span>
+<span class="fc" id="L659">            messageRepository.findTop5ByRoomIdInOrderByCreatedAtDesc(roomIds).forEach(m -&gt;</span>
+<span class="nc" id="L660">                    items.add(AdminActivityItem.builder()</span>
+<span class="nc" id="L661">                            .type(&quot;MESSAGE&quot;)</span>
+<span class="nc" id="L662">                            .title(&quot;New message: &quot; + snippet(m.getContent()))</span>
+<span class="nc" id="L663">                            .timestamp(m.getCreatedAt())</span>
+<span class="nc" id="L664">                            .build()));</span>
+        }
+<span class="fc" id="L666">        items.sort((a, b) -&gt; {</span>
+<span class="nc bnc" id="L667" title="All 4 branches missed.">            if (a.getTimestamp() == null &amp;&amp; b.getTimestamp() == null) return 0;</span>
+<span class="nc bnc" id="L668" title="All 2 branches missed.">            if (a.getTimestamp() == null) return 1;</span>
+<span class="nc bnc" id="L669" title="All 2 branches missed.">            if (b.getTimestamp() == null) return -1;</span>
+<span class="nc" id="L670">            return b.getTimestamp().compareTo(a.getTimestamp());</span>
+        });
+<span class="fc" id="L672">        return items.stream().limit(10).toList();</span>
+    }
+
+    private String snippet(String content) {
+<span class="nc bnc" id="L676" title="All 2 branches missed.">        if (content == null) return &quot;&quot;;</span>
+<span class="nc" id="L677">        String trimmed = content.trim().replaceAll(&quot;\\s+&quot;, &quot; &quot;);</span>
+<span class="nc bnc" id="L678" title="All 2 branches missed.">        return trimmed.length() &gt; 60 ? trimmed.substring(0, 60) + &quot;...&quot; : trimmed;</span>
+    }
+
+    private Project.ProjectVisibility parseVisibility(String visibility) {
+<span class="fc bfc" id="L682" title="All 4 branches covered.">        if (visibility == null || visibility.isBlank()) {</span>
+<span class="fc" id="L683">            return null;</span>
+        }
+        try {
+<span class="fc" id="L686">            return Project.ProjectVisibility.valueOf(visibility.toUpperCase());</span>
+<span class="fc" id="L687">        } catch (IllegalArgumentException e) {</span>
+<span class="fc" id="L688">            throw new IllegalArgumentException(&quot;Invalid visibility filter: &quot; + visibility);</span>
+        }
+    }
+
+    private Project.ProjectStatus parseProjectStatus(String status) {
+<span class="pc bpc" id="L693" title="5 of 6 branches missed.">        if (status == null || status.isBlank() || &quot;DELETED&quot;.equalsIgnoreCase(status)) {</span>
+<span class="fc" id="L694">            return null;</span>
+        }
+        try {
+<span class="nc" id="L697">            return Project.ProjectStatus.valueOf(status.toUpperCase());</span>
+<span class="nc" id="L698">        } catch (IllegalArgumentException e) {</span>
+<span class="nc" id="L699">            throw new IllegalArgumentException(&quot;Invalid status filter: &quot; + status);</span>
+        }
+    }
+
+    private String normalizeProjectSortField(String sortBy) {
+<span class="pc bpc" id="L704" title="1 of 4 branches missed.">        if (sortBy == null || sortBy.isBlank()) {</span>
+<span class="fc" id="L705">            return &quot;createdAt&quot;;</span>
+        }
+<span class="pc bpc" id="L707" title="3 of 4 branches missed.">        return switch (sortBy.toLowerCase()) {</span>
+<span class="nc" id="L708">            case &quot;name&quot; -&gt; &quot;name&quot;;</span>
+<span class="nc" id="L709">            case &quot;oldest&quot; -&gt; &quot;createdAt&quot;;</span>
+<span class="nc" id="L710">            case &quot;mostactive&quot;, &quot;most_active&quot;, &quot;updatedat&quot;, &quot;updated&quot; -&gt; &quot;updatedAt&quot;;</span>
+<span class="fc" id="L711">            default -&gt; &quot;createdAt&quot;;</span>
+        };
+    }
+
+    /**
+     * Rejects operations that would leave the platform with zero active admins.
+     * An admin counts as active only when not deleted and not blocked.
+     */
+    private void ensureNotLastActiveAdmin(User target, String operation) {
+<span class="fc bfc" id="L720" title="All 2 branches covered.">        boolean isActiveAdmin = target.getRole() == User.Role.ADMIN</span>
+<span class="pc bpc" id="L721" title="2 of 4 branches missed.">                &amp;&amp; !target.isDeleted() &amp;&amp; !target.isBlocked();</span>
+<span class="fc bfc" id="L722" title="All 2 branches covered.">        if (isActiveAdmin</span>
+<span class="fc bfc" id="L723" title="All 2 branches covered.">                &amp;&amp; userRepository.countByRoleAndDeletedFalseAndBlockedFalse(User.Role.ADMIN) &lt;= 1) {</span>
+<span class="fc" id="L724">            throw new IllegalArgumentException(&quot;Cannot &quot; + operation + &quot; the last active admin&quot;);</span>
+        }
+<span class="fc" id="L726">    }</span>
+
+    /**
+     * Parses a date filter. Accepts either a full ISO instant or a date-only
+     * value (yyyy-MM-dd). Date-only values are resolved in UTC; {@code endOfDay}
+     * pushes the bound to the last instant of that day so &quot;to&quot; filters are inclusive.
+     */
+    private Instant parseDate(String raw, boolean endOfDay, String message) {
+<span class="pc bpc" id="L734" title="1 of 4 branches missed.">        if (raw == null || raw.isBlank()) return null;</span>
+        try {
+<span class="nc" id="L736">            return Instant.parse(raw);</span>
+<span class="fc" id="L737">        } catch (Exception ignored) {</span>
+            // fall through to date-only parsing
+        }
+        try {
+<span class="fc" id="L741">            LocalDate date = LocalDate.parse(raw.trim());</span>
+<span class="fc bfc" id="L742" title="All 2 branches covered.">            return endOfDay</span>
+<span class="fc" id="L743">                    ? date.atTime(LocalTime.MAX).toInstant(ZoneOffset.UTC)</span>
+<span class="fc" id="L744">                    : date.atStartOfDay(ZoneOffset.UTC).toInstant();</span>
+<span class="fc" id="L745">        } catch (Exception e) {</span>
+<span class="fc" id="L746">            throw new IllegalArgumentException(message + &quot;: &quot; + raw);</span>
+        }
+    }
+
+    private User.Role normalizeRole(String role) {
+<span class="pc bpc" id="L751" title="2 of 4 branches missed.">        if (role == null || role.isBlank()) {</span>
+<span class="nc" id="L752">            throw new IllegalArgumentException(&quot;Role is required&quot;);</span>
+        }
+<span class="fc bfc" id="L754" title="All 2 branches covered.">        if (role.equalsIgnoreCase(&quot;DEVELOPER&quot;)) {</span>
+<span class="fc" id="L755">            return User.Role.USER;</span>
+        }
+        try {
+<span class="fc" id="L758">            return User.Role.valueOf(role.toUpperCase());</span>
+<span class="fc" id="L759">        } catch (IllegalArgumentException e) {</span>
+<span class="fc" id="L760">            throw new IllegalArgumentException(&quot;Invalid role: &quot; + role);</span>
+        }
+    }
+
+    private String normalizeSortField(String sortBy) {
+<span class="pc bpc" id="L765" title="1 of 4 branches missed.">        if (sortBy == null || sortBy.isBlank()) {</span>
+<span class="fc" id="L766">            return &quot;createdAt&quot;;</span>
+        }
+<span class="pc bpc" id="L768" title="5 of 6 branches missed.">        return switch (sortBy.toLowerCase()) {</span>
+<span class="nc" id="L769">            case &quot;fullname&quot;, &quot;name&quot; -&gt; &quot;fullName&quot;;</span>
+<span class="nc" id="L770">            case &quot;username&quot; -&gt; &quot;username&quot;;</span>
+<span class="nc" id="L771">            case &quot;email&quot; -&gt; &quot;email&quot;;</span>
+<span class="nc" id="L772">            case &quot;role&quot; -&gt; &quot;role&quot;;</span>
+<span class="nc" id="L773">            case &quot;lastlogin&quot;, &quot;lastloginat&quot; -&gt; &quot;lastLoginAt&quot;;</span>
+<span class="fc" id="L774">            default -&gt; &quot;createdAt&quot;;</span>
+        };
+    }
+
+    private UserStatus toStatus(User user) {
+<span class="pc bpc" id="L779" title="1 of 2 branches missed.">        if (user.isDeleted()) {</span>
+<span class="nc" id="L780">            return UserStatus.DELETED;</span>
+        }
+<span class="fc bfc" id="L782" title="All 2 branches covered.">        if (user.isBlocked()) {</span>
+<span class="fc" id="L783">            return UserStatus.BLOCKED;</span>
+        }
+<span class="fc" id="L785">        return UserStatus.ACTIVE;</span>
+    }
+
+    private AdminUserSummary toUserSummary(User user) {
+<span class="nc" id="L789">        return AdminUserSummary.builder()</span>
+<span class="nc" id="L790">                .id(user.getId())</span>
+<span class="nc" id="L791">                .email(user.getEmail())</span>
+<span class="nc" id="L792">                .fullName(user.getFullName())</span>
+<span class="nc" id="L793">                .username(user.getUsername())</span>
+<span class="nc" id="L794">                .avatarUrl(user.getAvatarUrl())</span>
+<span class="nc" id="L795">                .role(user.getRole().name())</span>
+<span class="nc" id="L796">                .blocked(user.isBlocked())</span>
+<span class="nc" id="L797">                .createdAt(user.getCreatedAt())</span>
+<span class="nc" id="L798">                .build();</span>
+    }
+
+    private AdminUserListItem toAdminUserListItem(User user) {
+<span class="fc" id="L802">        return AdminUserListItem.builder()</span>
+<span class="fc" id="L803">                .id(user.getId())</span>
+<span class="fc" id="L804">                .avatarUrl(user.getAvatarUrl())</span>
+<span class="fc" id="L805">                .fullName(user.getFullName())</span>
+<span class="fc" id="L806">                .username(user.getUsername())</span>
+<span class="fc" id="L807">                .email(user.getEmail())</span>
+<span class="fc" id="L808">                .role(user.getRole().name())</span>
+<span class="fc" id="L809">                .status(toStatus(user).name())</span>
+<span class="fc" id="L810">                .createdAt(user.getCreatedAt())</span>
+<span class="fc" id="L811">                .lastLoginAt(user.getLastLoginAt())</span>
+<span class="fc" id="L812">                .build();</span>
+    }
+
+    private AdminProjectSummary toProjectSummary(Project project) {
+<span class="nc" id="L816">        return AdminProjectSummary.builder()</span>
+<span class="nc" id="L817">                .id(project.getId())</span>
+<span class="nc" id="L818">                .name(project.getName())</span>
+<span class="nc" id="L819">                .status(project.getStatus().name())</span>
+<span class="nc" id="L820">                .ownerId(project.getOwnerId())</span>
+<span class="nc" id="L821">                .createdAt(project.getCreatedAt())</span>
+<span class="nc" id="L822">                .build();</span>
+    }
+
+    private AdminUserResponse toAdminUserResponse(User user, long postCount) {
+<span class="fc" id="L826">        return AdminUserResponse.builder()</span>
+<span class="fc" id="L827">                .id(user.getId())</span>
+<span class="fc" id="L828">                .email(user.getEmail())</span>
+<span class="fc" id="L829">                .fullName(user.getFullName())</span>
+<span class="fc" id="L830">                .username(user.getUsername())</span>
+<span class="fc" id="L831">                .role(user.getRole().name())</span>
+<span class="fc" id="L832">                .avatarUrl(user.getAvatarUrl())</span>
+<span class="fc" id="L833">                .blocked(user.isBlocked())</span>
+<span class="fc" id="L834">                .postCount(postCount)</span>
+<span class="fc" id="L835">                .followerCount(0)</span>
+<span class="fc" id="L836">                .createdAt(user.getCreatedAt())</span>
+<span class="fc" id="L837">                .build();</span>
+    }
+
+    private AdminPostResponse toAdminPostResponse(Post post, User author, long likeCount, long commentCount) {
+<span class="pc bpc" id="L841" title="1 of 2 branches missed.">        AdminPostAuthor authorInfo = author != null</span>
+<span class="fc" id="L842">                ? AdminPostAuthor.builder()</span>
+<span class="fc" id="L843">                        .id(author.getId()).fullName(author.getFullName())</span>
+<span class="fc" id="L844">                        .email(author.getEmail()).username(author.getUsername())</span>
+<span class="fc" id="L845">                        .avatarUrl(author.getAvatarUrl()).build()</span>
+<span class="pc" id="L846">                : AdminPostAuthor.builder().id(post.getUserId()).fullName(&quot;Unknown&quot;).email(&quot;&quot;).build();</span>
+<span class="fc" id="L847">        return AdminPostResponse.builder()</span>
+<span class="fc" id="L848">                .id(post.getId())</span>
+<span class="fc" id="L849">                .content(post.getContent())</span>
+<span class="fc" id="L850">                .imageUrl(post.getImageUrl())</span>
+<span class="fc" id="L851">                .postType(post.getPostType())</span>
+<span class="fc" id="L852">                .likeCount(likeCount)</span>
+<span class="fc" id="L853">                .commentCount(commentCount)</span>
+<span class="fc" id="L854">                .createdAt(post.getCreatedAt())</span>
+<span class="fc" id="L855">                .author(authorInfo)</span>
+<span class="fc" id="L856">                .build();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -188,6 +188,9 @@ public class JoinRequestService {
         if (project.isDeleted()) {
             throw new ResourceNotFoundException("Project", projectId);
         }
+        if (project.getStatus() == Project.ProjectStatus.ARCHIVED) {
+            throw new IllegalArgumentException("This project is archived");
+        }
         return project;
     }
 }

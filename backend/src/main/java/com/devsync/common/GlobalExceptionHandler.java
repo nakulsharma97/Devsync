@@ -1,6 +1,7 @@
 package com.devsync.common;
 
 import com.devsync.auth.AuthException;
+import com.devsync.github.GitHubException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
@@ -8,6 +9,8 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.servlet.NoHandlerFoundException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.time.Instant;
 import java.util.List;
@@ -39,6 +42,21 @@ public class GlobalExceptionHandler {
                 .build());
     }
 
+    @ExceptionHandler(GitHubException.class)
+    public ResponseEntity<ErrorResponse> handleGitHub(GitHubException ex) {
+        var status = ex.getStatus();
+        String message = ex.getMessage();
+        if (ex instanceof GitHubException.RateLimited rateLimited) {
+            message += " (resets at " + rateLimited.getResetEpochSeconds() + ")";
+        }
+        return ResponseEntity.status(status).body(ErrorResponse.builder()
+                .status(status.value())
+                .error(status.getReasonPhrase())
+                .message(message)
+                .timestamp(Instant.now())
+                .build());
+    }
+
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ErrorResponse> handleAccessDenied(AccessDeniedException ex) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ErrorResponse.builder()
@@ -55,6 +73,20 @@ public class GlobalExceptionHandler {
                 .status(404)
                 .error("Not Found")
                 .message(ex.getMessage())
+                .timestamp(Instant.now())
+                .build());
+    }
+
+    @ExceptionHandler({NoHandlerFoundException.class, NoResourceFoundException.class})
+    public ResponseEntity<ErrorResponse> handleNoHandler(Exception ex) {
+        // Unknown paths must be 404 — not swallowed into a 500 by the catch-all.
+        String url = ex instanceof NoHandlerFoundException noHandler
+                ? noHandler.getRequestURL()
+                : ((NoResourceFoundException) ex).getResourcePath();
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ErrorResponse.builder()
+                .status(404)
+                .error("Not Found")
+                .message("No endpoint found for " + url)
                 .timestamp(Instant.now())
                 .build());
     }

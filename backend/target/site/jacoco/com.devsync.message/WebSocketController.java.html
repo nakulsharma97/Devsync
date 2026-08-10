@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>WebSocketController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">DevSync Backend</a> &gt; <a href="index.source.html" class="el_package">com.devsync.message</a> &gt; <span class="el_source">WebSocketController.java</span></div><h1>WebSocketController.java</h1><pre class="source lang-java linenums">package com.devsync.message;
+
+import com.devsync.message.dto.MessageResponse;
+import com.devsync.message.dto.SendMessageRequest;
+import com.devsync.presence.PresenceService;
+import java.util.Map;
+
+import lombok.Data;
+import lombok.RequiredArgsConstructor;
+import org.springframework.messaging.handler.annotation.MessageMapping;
+import org.springframework.messaging.handler.annotation.Payload;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.security.core.Authentication;
+import org.springframework.stereotype.Controller;
+
+@Controller
+@RequiredArgsConstructor
+public class WebSocketController {
+
+    private final SimpMessagingTemplate messagingTemplate;
+    private final MessageService messageService;
+    private final PresenceService presenceService;
+
+    @MessageMapping(&quot;/chat.send&quot;)
+    public void sendMessage(@Payload SendMessageRequest request, Authentication auth) {
+<span class="nc" id="L26">        String userId = auth.getName();</span>
+<span class="nc" id="L27">        MessageResponse response = messageService.sendMessage(request, userId);</span>
+
+<span class="nc bnc" id="L29" title="All 2 branches missed.">        if (request.getRoomId() != null) {</span>
+<span class="nc" id="L30">            messagingTemplate.convertAndSend(&quot;/topic/room/&quot; + request.getRoomId(), response);</span>
+        }
+
+<span class="nc bnc" id="L33" title="All 2 branches missed.">        if (request.getReceiverId() != null) {</span>
+<span class="nc" id="L34">            messagingTemplate.convertAndSendToUser(request.getReceiverId(), &quot;/queue/messages&quot;, response);</span>
+<span class="nc" id="L35">            messagingTemplate.convertAndSendToUser(userId, &quot;/queue/messages&quot;, response);</span>
+        }
+<span class="nc" id="L37">    }</span>
+
+    @MessageMapping(&quot;/chat.typing&quot;)
+    public void typing(@Payload TypingIndicator indicator, Authentication auth) {
+<span class="nc" id="L41">        String userId = auth.getName();</span>
+<span class="nc" id="L42">        indicator.setUserId(userId);</span>
+
+<span class="nc bnc" id="L44" title="All 2 branches missed.">        if (indicator.getRoomId() != null) {</span>
+<span class="nc" id="L45">            messagingTemplate.convertAndSend(&quot;/topic/room/&quot; + indicator.getRoomId() + &quot;/typing&quot;, indicator);</span>
+        }
+<span class="nc bnc" id="L47" title="All 2 branches missed.">        if (indicator.getReceiverId() != null) {</span>
+<span class="nc" id="L48">            messagingTemplate.convertAndSendToUser(indicator.getReceiverId(), &quot;/queue/typing&quot;, indicator);</span>
+        }
+<span class="nc" id="L50">    }</span>
+
+    @MessageMapping(&quot;/presence&quot;)
+    public void presence(@Payload PresenceMessage message, Authentication auth) {
+<span class="nc" id="L54">        String userId = auth.getName();</span>
+<span class="nc" id="L55">        presenceService.updateStatus(userId, message.getStatus());</span>
+<span class="nc" id="L56">        messagingTemplate.convertAndSend(&quot;/topic/presence&quot;,</span>
+<span class="nc" id="L57">                Map.of(&quot;userId&quot;, userId, &quot;status&quot;, message.getStatus()));</span>
+<span class="nc" id="L58">    }</span>
+
+    @Data
+    public static class PresenceMessage {
+        private String status;
+    }
+
+    @Data
+    public static class TypingIndicator {
+        private String roomId;
+        private String receiverId;
+        private String userId;
+        private boolean typing;
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

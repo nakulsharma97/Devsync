@@ -6,6 +6,8 @@ interface AuthContextType {
   user: AuthResponse["user"] | null;
   isLoading: boolean;
   isAuthenticated: boolean;
+  /** True only when the authenticated user has the ADMIN role. */
+  isAdmin: boolean;
   error: string | null;
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, fullName: string, username?: string) => Promise<void>;
@@ -87,6 +89,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     refreshUser();
   }, [refreshUser]);
 
+  // If the backend signals that our cached role/authorization is stale (e.g. an admin
+  // was downgraded or blocked while logged in), re-fetch the authoritative profile.
+  // refreshUser() either updates the role from the server or clears the session.
+  useEffect(() => {
+    const handleAuthorizationChanged = () => {
+      refreshUser();
+    };
+    window.addEventListener("auth:authorization-changed", handleAuthorizationChanged);
+    return () => window.removeEventListener("auth:authorization-changed", handleAuthorizationChanged);
+  }, [refreshUser]);
+
   const login = useCallback(async (email: string, password: string) => {
     setError(null);
     setIsLoading(true);
@@ -120,6 +133,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const logout = useCallback(() => {
+    // Revoke the refresh token server-side (and clear the cookie) before
+    // dropping the local session — a stolen refresh token must not outlive logout.
+    authService.logout().catch(() => {});
     authService.clearSession();
     setUser(null);
     wsService.disconnect();
@@ -132,6 +148,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         user,
         isLoading,
         isAuthenticated: !!user,
+        isAdmin: user?.role === "ADMIN",
         error,
         login,
         register,

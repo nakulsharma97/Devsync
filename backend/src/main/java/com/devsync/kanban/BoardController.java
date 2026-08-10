@@ -11,6 +11,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.Instant;
 import java.util.List;
 
 @RestController
@@ -75,6 +76,15 @@ public class BoardController {
             @AuthenticationPrincipal UserDetails userDetails) {
         boardService.deleteTask(taskId, userDetails.getUsername());
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/tasks/calendar")
+    public ResponseEntity<List<BoardResponse.TaskDto>> calendarTasks(
+            @RequestParam String from,
+            @RequestParam String to,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        return ResponseEntity.ok(boardService.getCalendarTasks(
+                Instant.parse(from), Instant.parse(to), userDetails.getUsername()));
     }
 
     @GetMapping("/project/{projectId}/tasks")

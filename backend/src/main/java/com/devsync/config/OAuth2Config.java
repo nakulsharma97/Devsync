@@ -1,6 +1,8 @@
 package com.devsync.config;
 
 import com.devsync.auth.JwtTokenProvider;
+import com.devsync.auth.RefreshTokenCookie;
+import com.devsync.auth.RefreshTokenService;
 import com.devsync.user.entity.User;
 import com.devsync.user.repository.UserRepository;
 import jakarta.servlet.http.HttpServletRequest;
@@ -25,6 +27,8 @@ public class OAuth2Config {
 
     private final UserRepository userRepository;
     private final JwtTokenProvider jwtTokenProvider;
+    private final RefreshTokenService refreshTokenService;
+    private final RefreshTokenCookie refreshTokenCookie;
     private final PasswordEncoder passwordEncoder;
 
     /**
@@ -66,8 +70,9 @@ public class OAuth2Config {
     }
 
     /**
-     * After OAuth success, redirect to frontend with JWT tokens.
-     * Frontend reads tokens from URL and stores them.
+     * After OAuth success, set the refresh token as an HttpOnly cookie and redirect
+     * to the frontend with ONLY the short-lived access token in the URL fragment
+     * (never the refresh token — fragments don't reach server logs or Referer).
      */
     @Bean
     public AuthenticationSuccessHandler oAuth2SuccessHandler() {
@@ -80,17 +85,15 @@ public class OAuth2Config {
                     .orElseThrow(() -> new RuntimeException("User not found after OAuth"));
 
             String accessToken = jwtTokenProvider.generateAccessToken(user.getId(), user.getEmail());
-            String refreshToken = jwtTokenProvider.generateRefreshToken(user.getId());
+            String refreshToken = refreshTokenService.issue(user.getId(),
+                    request.getRemoteAddr(), request.getHeader("User-Agent"));
+            response.addCookie(refreshTokenCookie.create(refreshToken));
 
             String frontendUrl = System.getenv("FRONTEND_URL") != null
                     ? System.getenv("FRONTEND_URL")
                     : "http://localhost:5173";
 
-            // Use URL fragment (#) instead of query parameters (?) to prevent tokens
-            // from appearing in server logs, browser history, or Referer headers.
-            // The frontend reads tokens from window.location.hash.
-            response.sendRedirect(frontendUrl + "/auth#access_token=" + accessToken
-                    + "&refresh_token=" + refreshToken);
+            response.sendRedirect(frontendUrl + "/auth#access_token=" + accessToken);
         };
     }
 

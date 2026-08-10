@@ -43,6 +43,10 @@ public class MessageService {
     public MessageResponse sendMessage(SendMessageRequest request, String senderId) {
         String[] projectId = {null};
         if (request.getRoomId() != null) {
+            // Sending into a room requires membership — same rule as reading a room.
+            if (!participantRepository.existsByRoomIdAndUserId(request.getRoomId(), senderId)) {
+                throw new IllegalArgumentException("You are not a participant in this room");
+            }
             roomRepository.findById(request.getRoomId()).ifPresent(room -> {
                 if (room.getProjectId() != null) {
                     projectId[0] = room.getProjectId();

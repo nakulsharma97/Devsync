@@ -1,6 +1,8 @@
 package com.devsync.auth;
 
 import com.devsync.audit.AuditLogService;
+import com.devsync.audit.entity.AuditAction;
+import com.devsync.audit.entity.AuditStatus;
 import com.devsync.auth.dto.*;
 import com.devsync.user.UserService;
 import com.devsync.user.entity.User;
@@ -29,6 +31,7 @@ class AuthServiceTest {
 
     @Mock private UserRepository userRepository;
     @Mock private JwtTokenProvider jwtTokenProvider;
+    @Mock private RefreshTokenService refreshTokenService;
     @Mock private OtpService otpService;
     @Mock private UserService userService;
 
@@ -42,7 +45,7 @@ class AuthServiceTest {
 
     @BeforeEach
     void setUp() {
-        authService = new AuthService(userRepository, passwordEncoder, jwtTokenProvider, otpService, emailService, userService, auditLogService);
+        authService = new AuthService(userRepository, passwordEncoder, jwtTokenProvider, refreshTokenService, otpService, emailService, userService, auditLogService);
     }
 
     // ── Register ─────────────────────────────────────────────
@@ -63,7 +66,7 @@ class AuthServiceTest {
             return saved;
         });
         when(jwtTokenProvider.generateAccessToken(anyString(), anyString())).thenReturn("access-token");
-        when(jwtTokenProvider.generateRefreshToken(anyString())).thenReturn("refresh-token");
+        when(refreshTokenService.issue(anyString(), any(), any())).thenReturn("refresh-token");
 
         AuthResponse response = authService.register(request);
 
@@ -128,7 +131,7 @@ class AuthServiceTest {
             return u;
         });
         when(jwtTokenProvider.generateAccessToken(anyString(), anyString())).thenReturn("at");
-        when(jwtTokenProvider.generateRefreshToken(anyString())).thenReturn("rt");
+        when(refreshTokenService.issue(anyString(), any(), any())).thenReturn("rt");
 
         authService.register(request);
 
@@ -153,7 +156,7 @@ class AuthServiceTest {
 
         when(userRepository.findByEmail("test@test.com")).thenReturn(Optional.of(user));
         when(jwtTokenProvider.generateAccessToken("user-id", "test@test.com")).thenReturn("at");
-        when(jwtTokenProvider.generateRefreshToken("user-id")).thenReturn("rt");
+        when(refreshTokenService.issue("user-id", null, null)).thenReturn("rt");
 
         AuthResponse response = authService.login(request);
 
@@ -210,7 +213,7 @@ class AuthServiceTest {
 
         when(userRepository.findByEmail("test@test.com")).thenReturn(Optional.of(user));
         when(jwtTokenProvider.generateAccessToken(anyString(), anyString())).thenReturn("at");
-        when(jwtTokenProvider.generateRefreshToken(anyString())).thenReturn("rt");
+        when(refreshTokenService.issue(anyString(), any(), any())).thenReturn("rt");
 
         authService.login(request);
 
@@ -230,16 +233,16 @@ class AuthServiceTest {
                 .build();
         user.setId("user-id");
 
-        when(jwtTokenProvider.validateToken("valid-refresh-token")).thenReturn(true);
+        when(refreshTokenService.rotate("valid-refresh-token", null, null)).thenReturn("new-rt");
         when(jwtTokenProvider.getUserIdFromToken("valid-refresh-token")).thenReturn("user-id");
         when(userRepository.findById("user-id")).thenReturn(Optional.of(user));
         when(jwtTokenProvider.generateAccessToken("user-id", "test@test.com")).thenReturn("new-at");
-        when(jwtTokenProvider.generateRefreshToken("user-id")).thenReturn("new-rt");
 
         AuthResponse response = authService.refreshToken(request);
 
         assertThat(response.getAccessToken()).isEqualTo("new-at");
         assertThat(response.getRefreshToken()).isEqualTo("new-rt");
+        verify(refreshTokenService).rotate("valid-refresh-token", null, null);
     }
 
     @Test
@@ -247,11 +250,28 @@ class AuthServiceTest {
         RefreshTokenRequest request = new RefreshTokenRequest();
         request.setRefreshToken("expired-token");
 
-        when(jwtTokenProvider.validateToken("expired-token")).thenReturn(false);
+        when(refreshTokenService.rotate(any(), any(), any()))
+                .thenThrow(new AuthException("Invalid or expired refresh token"));
 
         assertThatThrownBy(() -> authService.refreshToken(request))
                 .isInstanceOf(AuthException.class)
                 .hasMessageContaining("Invalid or expired refresh token");
+    }
+
+    @Test
+    void refreshToken_shouldRejectAccessTokenPresentedAsRefresh() {
+        RefreshTokenRequest request = new RefreshTokenRequest();
+        request.setRefreshToken("access-token-value");
+
+        when(refreshTokenService.rotate(any(), any(), any()))
+                .thenThrow(new AuthException("Invalid or expired refresh token"));
+
+        assertThatThrownBy(() -> authService.refreshToken(request))
+                .isInstanceOf(AuthException.class)
+                .hasMessageContaining("Invalid or expired refresh token");
+
+        verify(jwtTokenProvider, never()).getUserIdFromToken(anyString());
+        verify(userRepository, never()).findById(anyString());
     }
 
     // ── OTP ──────────────────────────────────────────────────
@@ -295,7 +315,7 @@ class AuthServiceTest {
         when(otpService.validateOtp("otp@test.com", "123456")).thenReturn(true);
         when(userRepository.findByEmail("otp@test.com")).thenReturn(Optional.of(user));
         when(jwtTokenProvider.generateAccessToken("user-id", "otp@test.com")).thenReturn("at");
-        when(jwtTokenProvider.generateRefreshToken("user-id")).thenReturn("rt");
+        when(refreshTokenService.issue("user-id", null, null)).thenReturn("rt");
 
         AuthResponse response = authService.verifyOtpAndLogin(request);
 
@@ -317,6 +337,109 @@ class AuthServiceTest {
                 .hasMessageContaining("Invalid or expired OTP");
     }
     // ── Blocked / Deleted account enforcement ─────────────────
+
+    // ── Audit: exactly one entry, no secrets ────────────────
+
+    @Test
+    void login_shouldRecordExactlyOneSuccessAudit_WithoutPasswordOrTokens() {
+        LoginRequest request = new LoginRequest();
+        request.setEmail("audit@test.com");
+        request.setPassword("super-secret-password");
+
+        User user = User.builder()
+                .email("audit@test.com")
+                .password(passwordEncoder.encode("super-secret-password"))
+                .fullName("Audit User")
+                .build();
+        user.setId("user-id");
+
+        when(userRepository.findByEmail("audit@test.com")).thenReturn(Optional.of(user));
+        when(jwtTokenProvider.generateAccessToken(anyString(), anyString())).thenReturn("access-token");
+        when(refreshTokenService.issue(anyString(), any(), any())).thenReturn("refresh-token");
+
+        authService.login(request);
+
+        ArgumentCaptor<String> detailsCaptor = ArgumentCaptor.forClass(String.class);
+        verify(auditLogService, times(1)).record(eq("user-id"), eq("user-id"),
+                eq(AuditAction.LOGIN_SUCCESS), eq(AuditStatus.SUCCESS), detailsCaptor.capture());
+        verifyNoMoreInteractions(auditLogService);
+        assertThat(detailsCaptor.getValue()).contains("audit@test.com");
+        assertThat(detailsCaptor.getValue()).doesNotContain("super-secret-password");
+        assertThat(detailsCaptor.getValue()).doesNotContain("access-token");
+        assertThat(detailsCaptor.getValue()).doesNotContain("refresh-token");
+    }
+
+    @Test
+    void login_shouldRecordExactlyOneFailureAudit_WithoutAttemptedPassword() {
+        LoginRequest request = new LoginRequest();
+        request.setEmail("audit@test.com");
+        request.setPassword("wrong-secret-password");
+
+        User user = User.builder()
+                .email("audit@test.com")
+                .password(passwordEncoder.encode("actual-password"))
+                .build();
+        user.setId("user-id");
+
+        when(userRepository.findByEmail("audit@test.com")).thenReturn(Optional.of(user));
+
+        assertThatThrownBy(() -> authService.login(request))
+                .isInstanceOf(AuthException.class);
+
+        ArgumentCaptor<String> detailsCaptor = ArgumentCaptor.forClass(String.class);
+        verify(auditLogService, times(1)).record(isNull(), isNull(),
+                eq(AuditAction.LOGIN_FAILURE), eq(AuditStatus.FAILURE), detailsCaptor.capture());
+        verifyNoMoreInteractions(auditLogService);
+        assertThat(detailsCaptor.getValue()).doesNotContain("wrong-secret-password");
+        assertThat(detailsCaptor.getValue()).doesNotContain("actual-password");
+    }
+
+    @Test
+    void refreshToken_shouldRecordFailureAudit_WithoutTokenValue() {
+        RefreshTokenRequest request = new RefreshTokenRequest();
+        request.setRefreshToken("eyJhbGciOiJIUzI1NiJ9.secret-token-value");
+
+        when(refreshTokenService.rotate(any(), any(), any()))
+                .thenThrow(new AuthException("Invalid or expired refresh token"));
+
+        assertThatThrownBy(() -> authService.refreshToken(request))
+                .isInstanceOf(AuthException.class);
+
+        ArgumentCaptor<String> detailsCaptor = ArgumentCaptor.forClass(String.class);
+        verify(auditLogService, times(1)).record(isNull(), isNull(),
+                eq(AuditAction.JWT_REFRESH), eq(AuditStatus.FAILURE), detailsCaptor.capture());
+        verifyNoMoreInteractions(auditLogService);
+        assertThat(detailsCaptor.getValue()).doesNotContain("eyJhbGciOiJIUzI1NiJ9");
+        assertThat(detailsCaptor.getValue()).doesNotContain("secret-token-value");
+    }
+
+    @Test
+    void verifyOtpAndLogin_shouldRecordAudit_WithoutOtpValue() {
+        VerifyOtpRequest request = new VerifyOtpRequest();
+        request.setEmail("otp@test.com");
+        request.setOtp("123456");
+
+        User user = User.builder()
+                .email("otp@test.com")
+                .fullName("OTP User")
+                .emailVerified(false)
+                .build();
+        user.setId("user-id");
+
+        when(otpService.validateOtp("otp@test.com", "123456")).thenReturn(true);
+        when(userRepository.findByEmail("otp@test.com")).thenReturn(Optional.of(user));
+        when(jwtTokenProvider.generateAccessToken(anyString(), anyString())).thenReturn("at");
+        when(refreshTokenService.issue(anyString(), any(), any())).thenReturn("rt");
+
+        authService.verifyOtpAndLogin(request);
+
+        ArgumentCaptor<String> detailsCaptor = ArgumentCaptor.forClass(String.class);
+        verify(auditLogService, times(1)).record(eq("user-id"), eq("user-id"),
+                eq(AuditAction.OTP_VERIFIED), eq(AuditStatus.SUCCESS), detailsCaptor.capture());
+        verifyNoMoreInteractions(auditLogService);
+        assertThat(detailsCaptor.getValue()).contains("otp@test.com");
+        assertThat(detailsCaptor.getValue()).doesNotContain("123456");
+    }
 
     @Test
     void login_shouldThrow_WhenAccountBlocked() {
@@ -373,7 +496,7 @@ class AuthServiceTest {
                 .build();
         user.setId("user-id");
 
-        when(jwtTokenProvider.validateToken("valid-refresh-token")).thenReturn(true);
+        when(refreshTokenService.rotate(any(), any(), any())).thenReturn("new-rt");
         when(jwtTokenProvider.getUserIdFromToken("valid-refresh-token")).thenReturn("user-id");
         when(userRepository.findById("user-id")).thenReturn(Optional.of(user));
 

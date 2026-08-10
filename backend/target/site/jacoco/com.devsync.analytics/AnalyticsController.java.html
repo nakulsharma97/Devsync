@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AnalyticsController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">DevSync Backend</a> &gt; <a href="index.source.html" class="el_package">com.devsync.analytics</a> &gt; <span class="el_source">AnalyticsController.java</span></div><h1>AnalyticsController.java</h1><pre class="source lang-java linenums">package com.devsync.analytics;
+
+import com.devsync.analytics.dto.AdminAnalyticsResponse;
+import com.devsync.analytics.dto.ProjectAnalyticsResponse;
+import com.devsync.analytics.dto.UserContributionsResponse;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping(&quot;/api&quot;)
+@RequiredArgsConstructor
+public class AnalyticsController {
+
+    private final AnalyticsService analyticsService;
+
+    @GetMapping(&quot;/projects/{projectId}/analytics&quot;)
+    public ResponseEntity&lt;ProjectAnalyticsResponse&gt; projectAnalytics(
+            @PathVariable String projectId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+<span class="nc" id="L23">        return ResponseEntity.ok(analyticsService.getProjectAnalytics(projectId, userDetails.getUsername()));</span>
+    }
+
+    @GetMapping(&quot;/admin/analytics&quot;)
+    public ResponseEntity&lt;AdminAnalyticsResponse&gt; adminAnalytics() {
+<span class="fc" id="L28">        return ResponseEntity.ok(analyticsService.getAdminAnalytics());</span>
+    }
+
+    @GetMapping(&quot;/users/{userId}/contributions&quot;)
+    public ResponseEntity&lt;UserContributionsResponse&gt; contributions(@PathVariable String userId) {
+<span class="nc" id="L33">        return ResponseEntity.ok(analyticsService.getUserContributions(userId));</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

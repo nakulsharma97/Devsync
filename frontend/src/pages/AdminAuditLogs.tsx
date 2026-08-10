@@ -52,23 +52,26 @@ import {
 import { toast } from "sonner";
 
 const ACTION_META: Record<string, { label: string; badge: string }> = {
+  REGISTER: { label: "Register", badge: "bg-slate-500/10 text-slate-600" },
   LOGIN_SUCCESS: { label: "Login Success", badge: "bg-emerald-500/10 text-emerald-600" },
   LOGIN_FAILURE: { label: "Login Failure", badge: "bg-red-500/10 text-red-600" },
   LOGOUT: { label: "Logout", badge: "bg-slate-500/10 text-slate-600" },
   JWT_REFRESH: { label: "JWT Refresh", badge: "bg-blue-500/10 text-blue-600" },
   PASSWORD_RESET: { label: "Password Reset", badge: "bg-amber-500/10 text-amber-600" },
-  OTP_VERIFICATION: { label: "OTP Verification", badge: "bg-violet-500/10 text-violet-600" },
-  OAUTH_LOGIN: { label: "OAuth Login", badge: "bg-cyan-500/10 text-cyan-600" },
   PASSWORD_CHANGED: { label: "Password Changed", badge: "bg-amber-500/10 text-amber-600" },
   EMAIL_CHANGED: { label: "Email Changed", badge: "bg-amber-500/10 text-amber-600" },
+  OTP_VERIFIED: { label: "OTP Verified", badge: "bg-violet-500/10 text-violet-600" },
+  OAUTH_LOGIN: { label: "OAuth Login", badge: "bg-cyan-500/10 text-cyan-600" },
   ROLE_CHANGED: { label: "Role Changed", badge: "bg-fuchsia-500/10 text-fuchsia-600" },
+  ADMIN_CREATED: { label: "Admin Created", badge: "bg-fuchsia-500/10 text-fuchsia-600" },
   USER_BLOCKED: { label: "User Blocked", badge: "bg-red-500/10 text-red-600" },
   USER_UNBLOCKED: { label: "User Unblocked", badge: "bg-emerald-500/10 text-emerald-600" },
   USER_DELETED: { label: "User Deleted", badge: "bg-red-500/10 text-red-600" },
-  ADMIN_CREATED: { label: "Admin Created", badge: "bg-fuchsia-500/10 text-fuchsia-600" },
   PROJECT_DELETED: { label: "Project Deleted", badge: "bg-red-500/10 text-red-600" },
   PROJECT_ARCHIVED: { label: "Project Archived", badge: "bg-amber-500/10 text-amber-600" },
-  PROJECT_VISIBILITY_CHANGED: { label: "Visibility Changed", badge: "bg-blue-500/10 text-blue-600" },
+  PROJECT_RESTORED: { label: "Project Restored", badge: "bg-emerald-500/10 text-emerald-600" },
+  VISIBILITY_CHANGED: { label: "Visibility Changed", badge: "bg-blue-500/10 text-blue-600" },
+  MODERATION_ACTION: { label: "Moderation Action", badge: "bg-orange-500/10 text-orange-600" },
 };
 
 const STATUS_META: Record<string, { label: string; badge: string }> = {
@@ -76,7 +79,7 @@ const STATUS_META: Record<string, { label: string; badge: string }> = {
   FAILURE: { label: "Failure", badge: "bg-red-500/10 text-red-600" },
 };
 
-const ACTION_OPTIONS = Object.keys(ACTION_META);
+export const ACTION_OPTIONS = Object.keys(ACTION_META);
 const STATUS_OPTIONS = ["SUCCESS", "FAILURE"];
 
 function timeAgo(iso?: string | null): string {
@@ -123,10 +126,12 @@ export default function AdminAuditLogs() {
   const [actionFilter, setActionFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [userFilter, setUserFilter] = useState("");
-  const [userInput, setUserInput] = useState("");
+  const [, setUserInput] = useState("");
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
   const [page, setPage] = useState(0);
   const [selected, setSelected] = useState<AuditLogItem | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [, setError] = useState<string | null>(null);
 
   const fetchLogs = useCallback(async () => {
     setLoading(true);
@@ -136,9 +141,12 @@ export default function AdminAuditLogs() {
         page,
         size: 10,
         search: searchInput || undefined,
-        action: actionFilter || undefined,
-        status: statusFilter || undefined,
+        action: actionFilter && actionFilter !== "ALL" ? actionFilter : undefined,
+        status: statusFilter && statusFilter !== "ALL" ? statusFilter : undefined,
+        adminId: userFilter || undefined,
         userId: userFilter || undefined,
+        from: from ? new Date(from).toISOString() : undefined,
+        to: to ? new Date(to).toISOString() : undefined,
       });
       setData(res);
     } catch (e: any) {
@@ -147,7 +155,7 @@ export default function AdminAuditLogs() {
     } finally {
       setLoading(false);
     }
-  }, [page, searchInput, actionFilter, statusFilter, userFilter]);
+  }, [page, searchInput, actionFilter, statusFilter, userFilter, from, to]);
 
   useEffect(() => {
     fetchLogs();
@@ -166,6 +174,8 @@ export default function AdminAuditLogs() {
     setStatusFilter("");
     setUserFilter("");
     setUserInput("");
+    setFrom("");
+    setTo("");
     setPage(0);
   };
 
@@ -174,9 +184,12 @@ export default function AdminAuditLogs() {
     try {
       await adminService.exportAuditLogsCsv({
         search: searchInput || undefined,
-        action: actionFilter || undefined,
-        status: statusFilter || undefined,
+        action: actionFilter && actionFilter !== "ALL" ? actionFilter : undefined,
+        status: statusFilter && statusFilter !== "ALL" ? statusFilter : undefined,
+        adminId: userFilter || undefined,
         userId: userFilter || undefined,
+        from: from ? new Date(from).toISOString() : undefined,
+        to: to ? new Date(to).toISOString() : undefined,
       });
       toast.success("Audit logs exported");
     } catch (e: any) {
@@ -206,7 +219,7 @@ export default function AdminAuditLogs() {
       {/* Filters */}
       <Card>
         <CardContent className="pt-5">
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
@@ -232,7 +245,8 @@ export default function AdminAuditLogs() {
                 <SelectValue placeholder="All actions" />
               </SelectTrigger>
               <SelectContent className="max-h-64">
-                <SelectItem value="">All actions</SelectItem>
+                {/* Radix Select forbids empty-string item values — "ALL" is the sentinel. */}
+                <SelectItem value="ALL">All actions</SelectItem>
                 {ACTION_OPTIONS.map((a) => (
                   <SelectItem key={a} value={a}>{ACTION_META[a]?.label ?? a}</SelectItem>
                 ))}
@@ -243,12 +257,14 @@ export default function AdminAuditLogs() {
                 <SelectValue placeholder="All statuses" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All statuses</SelectItem>
+                <SelectItem value="ALL">All statuses</SelectItem>
                 {STATUS_OPTIONS.map((s) => (
                   <SelectItem key={s} value={s}>{STATUS_META[s]?.label ?? s}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
+            <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} aria-label="From date" />
+            <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} aria-label="To date" />
             <div className="flex items-center gap-2">
               <Button variant="outline" size="sm" className="flex-1" onClick={applyFilters}>
                 <Search className="w-4 h-4 mr-1" /> Apply

@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>JoinRequestController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">DevSync Backend</a> &gt; <a href="index.source.html" class="el_package">com.devsync.collab</a> &gt; <span class="el_source">JoinRequestController.java</span></div><h1>JoinRequestController.java</h1><pre class="source lang-java linenums">package com.devsync.collab;
+
+import com.devsync.collab.dto.JoinRequestCreateRequest;
+import com.devsync.collab.dto.JoinRequestResponse;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping(&quot;/api&quot;)
+@RequiredArgsConstructor
+public class JoinRequestController {
+
+    private final JoinRequestService joinRequestService;
+
+    @PostMapping(&quot;/projects/{projectId}/join-request&quot;)
+    public ResponseEntity&lt;JoinRequestResponse&gt; request(
+            @PathVariable String projectId,
+            @RequestBody(required = false) JoinRequestCreateRequest request,
+            @AuthenticationPrincipal UserDetails userDetails) {
+<span class="nc" id="L25">        return ResponseEntity.ok(joinRequestService.request(projectId, userDetails.getUsername(), request));</span>
+    }
+
+    @GetMapping(&quot;/projects/{projectId}/join-requests&quot;)
+    public ResponseEntity&lt;List&lt;JoinRequestResponse&gt;&gt; listForProject(
+            @PathVariable String projectId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+<span class="nc" id="L32">        return ResponseEntity.ok(joinRequestService.listForProject(projectId, userDetails.getUsername()));</span>
+    }
+
+    @PutMapping(&quot;/join-requests/{id}/approve&quot;)
+    public ResponseEntity&lt;Void&gt; approve(
+            @PathVariable String id,
+            @AuthenticationPrincipal UserDetails userDetails) {
+<span class="nc" id="L39">        joinRequestService.approve(id, userDetails.getUsername());</span>
+<span class="nc" id="L40">        return ResponseEntity.ok().build();</span>
+    }
+
+    @PutMapping(&quot;/join-requests/{id}/reject&quot;)
+    public ResponseEntity&lt;Void&gt; reject(
+            @PathVariable String id,
+            @AuthenticationPrincipal UserDetails userDetails) {
+<span class="nc" id="L47">        joinRequestService.reject(id, userDetails.getUsername());</span>
+<span class="nc" id="L48">        return ResponseEntity.noContent().build();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -53,6 +53,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -83,6 +86,7 @@ public class AdminService {
     private final BoardColumnRepository boardColumnRepository;
     private final ActivityService activityService;
     private final AuditLogService auditLogService;
+    private final com.devsync.auth.RefreshTokenService refreshTokenService;
 
     @Transactional(readOnly = true)
     public DashboardResponse getDashboard() {
@@ -154,7 +158,8 @@ public class AdminService {
 
     @Transactional(readOnly = true)
     public PageResponse<AdminUserListItem> getUsersPage(int page, int size, String sortBy, String sortDir,
-                                                        String search, String role, String status) {
+                                                        String search, String role, String status,
+                                                        String from, String to) {
         int safePage = Math.max(page, 0);
         int safeSize = Math.min(Math.max(size, 1), MAX_PAGE_SIZE);
         String sortField = normalizeSortField(sortBy);
@@ -171,8 +176,11 @@ public class AdminService {
         }
         String statusFilter = (status == null || status.isBlank()) ? null : status.toUpperCase();
         String searchFilter = (search == null || search.isBlank()) ? null : search.trim();
+        Instant fromInstant = parseDate(from, false, "Invalid from date");
+        Instant toInstant = parseDate(to, true, "Invalid to date");
 
-        Page<User> users = userRepository.searchAdminUsers(searchFilter, roleFilter, statusFilter, pageable);
+        Page<User> users = userRepository.searchAdminUsers(searchFilter, roleFilter, statusFilter,
+                fromInstant, toInstant, pageable);
 
         List<AdminUserListItem> items = users.getContent().stream()
                 .map(this::toAdminUserListItem)
@@ -239,10 +247,13 @@ public class AdminService {
         if (userId.equals(currentUserId)) {
             throw new IllegalArgumentException("You cannot delete your own account");
         }
+        ensureNotLastActiveAdmin(user, "delete");
 
         user.setDeleted(true);
         user.setDeletedAt(Instant.now());
         userRepository.save(user);
+        // Deleted accounts must not be able to refresh — kill every live session now.
+        refreshTokenService.revokeAllForUser(userId);
         auditLogService.record(currentUserId, userId, AuditAction.USER_DELETED, AuditStatus.SUCCESS,
                 "Deleted user: " + user.getEmail() + " (" + userId + ")");
     }
@@ -282,6 +293,9 @@ public class AdminService {
         if (userId.equals(currentUserId) && newRole != User.Role.ADMIN) {
             throw new IllegalArgumentException("You cannot remove your own ADMIN role");
         }
+        if (newRole != User.Role.ADMIN) {
+            ensureNotLastActiveAdmin(user, "demote");
+        }
 
         user.setRole(newRole);
         userRepository.save(user);
@@ -297,26 +311,34 @@ public class AdminService {
     }
 
     @Transactional
-    public AdminUserResponse setUserBlocked(String userId, boolean blocked, String currentUserId) {
+    public AdminUserResponse setUserBlocked(String userId, boolean blocked, String currentUserId, String reason) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User", userId));
 
         if (userId.equals(currentUserId) && blocked) {
             throw new IllegalArgumentException("You cannot block your own account");
         }
+        if (blocked) {
+            ensureNotLastActiveAdmin(user, "block");
+        }
 
         user.setBlocked(blocked);
         userRepository.save(user);
         if (blocked) {
+            // A blocked user must lose every live session immediately — no refresh.
+            refreshTokenService.revokeAllForUser(userId);
+        }
+        String reasonDetail = (reason == null || reason.isBlank()) ? "" : " - Reason: " + reason.trim();
+        if (blocked) {
             activityService.record(currentUserId, null, ActivityType.USER_BLOCKED,
                     "User blocked", user.getFullName(), null);
             auditLogService.record(currentUserId, userId, AuditAction.USER_BLOCKED, AuditStatus.SUCCESS,
-                    "Blocked user: " + user.getEmail());
+                    "Blocked user: " + user.getEmail() + reasonDetail);
         } else {
             activityService.record(currentUserId, null, ActivityType.USER_UNBLOCKED,
                     "User unblocked", user.getFullName(), null);
             auditLogService.record(currentUserId, userId, AuditAction.USER_UNBLOCKED, AuditStatus.SUCCESS,
-                    "Unblocked user: " + user.getEmail());
+                    "Unblocked user: " + user.getEmail() + reasonDetail);
         }
         return toAdminUserResponse(user, postRepository.countByUserId(user.getId()));
     }
@@ -695,6 +717,41 @@ public class AdminService {
             case "mostactive", "most_active", "updatedat", "updated" -> "updatedAt";
             default -> "createdAt";
         };
+    }
+
+    /**
+     * Rejects operations that would leave the platform with zero active admins.
+     * An admin counts as active only when not deleted and not blocked.
+     */
+    private void ensureNotLastActiveAdmin(User target, String operation) {
+        boolean isActiveAdmin = target.getRole() == User.Role.ADMIN
+                && !target.isDeleted() && !target.isBlocked();
+        if (isActiveAdmin
+                && userRepository.countByRoleAndDeletedFalseAndBlockedFalse(User.Role.ADMIN) <= 1) {
+            throw new IllegalArgumentException("Cannot " + operation + " the last active admin");
+        }
+    }
+
+    /**
+     * Parses a date filter. Accepts either a full ISO instant or a date-only
+     * value (yyyy-MM-dd). Date-only values are resolved in UTC; {@code endOfDay}
+     * pushes the bound to the last instant of that day so "to" filters are inclusive.
+     */
+    private Instant parseDate(String raw, boolean endOfDay, String message) {
+        if (raw == null || raw.isBlank()) return null;
+        try {
+            return Instant.parse(raw);
+        } catch (Exception ignored) {
+            // fall through to date-only parsing
+        }
+        try {
+            LocalDate date = LocalDate.parse(raw.trim());
+            return endOfDay
+                    ? date.atTime(LocalTime.MAX).toInstant(ZoneOffset.UTC)
+                    : date.atStartOfDay(ZoneOffset.UTC).toInstant();
+        } catch (Exception e) {
+            throw new IllegalArgumentException(message + ": " + raw);
+        }
     }
 
     private User.Role normalizeRole(String role) {

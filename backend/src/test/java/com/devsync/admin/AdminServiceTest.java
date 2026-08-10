@@ -3,6 +3,8 @@ package com.devsync.admin;
 import com.devsync.activity.ActivityService;
 import com.devsync.admin.dto.AdminPostResponse;
 import com.devsync.audit.AuditLogService;
+import com.devsync.audit.entity.AuditAction;
+import com.devsync.audit.entity.AuditStatus;
 import com.devsync.admin.dto.AdminProjectDetail;
 import com.devsync.admin.dto.AdminProjectListItem;
 import com.devsync.admin.dto.AdminProjectStats;
@@ -34,6 +36,7 @@ import com.devsync.user.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageImpl;
@@ -41,6 +44,9 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.ZoneOffset;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -66,6 +72,7 @@ class AdminServiceTest {
     @Mock private BoardColumnRepository boardColumnRepository;
     @Mock private ActivityService activityService;
     @Mock private AuditLogService auditLogService;
+    @Mock private com.devsync.auth.RefreshTokenService refreshTokenService;
 
     private AdminService adminService;
 
@@ -74,7 +81,7 @@ class AdminServiceTest {
         adminService = new AdminService(userRepository, projectRepository, teamRoomRepository,
                 taskRepository, postRepository, messageRepository, commentRepository, postLikeRepository,
                 projectMemberRepository, boardRepository, boardColumnRepository,
-                activityService, auditLogService);
+                activityService, auditLogService, refreshTokenService);
     }
 
     @Test
@@ -122,10 +129,10 @@ class AdminServiceTest {
         User u1 = userWithId("u1");
         User u2 = userWithId("u2");
         PageImpl<User> page = new PageImpl<>(List.of(u1, u2), PageRequest.of(0, 10), 2);
-        when(userRepository.searchAdminUsers(isNull(), isNull(), isNull(), any(Pageable.class)))
+        when(userRepository.searchAdminUsers(isNull(), isNull(), isNull(), isNull(), isNull(), any(Pageable.class)))
                 .thenReturn(page);
 
-        PageResponse<AdminUserListItem> result = adminService.getUsersPage(0, 10, "createdAt", "desc", null, null, null);
+        PageResponse<AdminUserListItem> result = adminService.getUsersPage(0, 10, "createdAt", "desc", null, null, null, null, null);
 
         assertThat(result.getContent()).hasSize(2);
         assertThat(result.getPage()).isZero();
@@ -140,19 +147,59 @@ class AdminServiceTest {
         User blocked = userWithId("u1");
         blocked.setBlocked(true);
         PageImpl<User> page = new PageImpl<>(List.of(blocked), PageRequest.of(0, 10), 1);
-        when(userRepository.searchAdminUsers(isNull(), isNull(), eq("BLOCKED"), any(Pageable.class)))
+        when(userRepository.searchAdminUsers(isNull(), isNull(), eq("BLOCKED"), isNull(), isNull(), any(Pageable.class)))
                 .thenReturn(page);
 
-        PageResponse<AdminUserListItem> result = adminService.getUsersPage(0, 10, null, null, null, null, "blocked");
+        PageResponse<AdminUserListItem> result = adminService.getUsersPage(0, 10, null, null, null, null, "blocked", null, null);
 
         assertThat(result.getContent().get(0).getStatus()).isEqualTo("BLOCKED");
     }
 
     @Test
     void getUsersPage_shouldThrow_ForInvalidRoleFilter() {
-        assertThatThrownBy(() -> adminService.getUsersPage(0, 10, null, null, null, "SUPERADMIN", null))
+        assertThatThrownBy(() -> adminService.getUsersPage(0, 10, null, null, null, "SUPERADMIN", null, null, null))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Invalid role filter");
+    }
+
+    @Test
+    void getUsersPage_shouldPassSearchAndRoleFiltersToRepository() {
+        User u1 = userWithId("u1");
+        PageImpl<User> page = new PageImpl<>(List.of(u1), PageRequest.of(0, 10), 1);
+        when(userRepository.searchAdminUsers(eq("dev"), eq(User.Role.ADMIN), isNull(), isNull(), isNull(), any(Pageable.class)))
+                .thenReturn(page);
+
+        PageResponse<AdminUserListItem> result =
+                adminService.getUsersPage(0, 10, null, null, "  dev  ", "ADMIN", null, null, null);
+
+        assertThat(result.getTotalElements()).isEqualTo(1);
+    }
+
+    @Test
+    void getUsersPage_shouldParseCreatedDateFiltersInclusiveEndOfDay() {
+        User u1 = userWithId("u1");
+        PageImpl<User> page = new PageImpl<>(List.of(u1), PageRequest.of(0, 10), 1);
+        when(userRepository.searchAdminUsers(isNull(), isNull(), isNull(), any(), any(), any(Pageable.class)))
+                .thenReturn(page);
+
+        adminService.getUsersPage(0, 10, null, null, null, null, null, "2026-01-01", "2026-01-31");
+
+        ArgumentCaptor<Instant> fromCaptor = ArgumentCaptor.forClass(Instant.class);
+        ArgumentCaptor<Instant> toCaptor = ArgumentCaptor.forClass(Instant.class);
+        verify(userRepository).searchAdminUsers(
+                isNull(), isNull(), isNull(), fromCaptor.capture(), toCaptor.capture(), any(Pageable.class));
+
+        assertThat(fromCaptor.getValue())
+                .isEqualTo(LocalDate.parse("2026-01-01").atStartOfDay(ZoneOffset.UTC).toInstant());
+        assertThat(toCaptor.getValue())
+                .isEqualTo(LocalDate.parse("2026-01-31").atTime(LocalTime.MAX).toInstant(ZoneOffset.UTC));
+    }
+
+    @Test
+    void getUsersPage_shouldThrow_ForInvalidFromDate() {
+        assertThatThrownBy(() -> adminService.getUsersPage(0, 10, null, null, null, null, null, "not-a-date", null))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Invalid from date");
     }
 
     @Test
@@ -195,6 +242,34 @@ class AdminServiceTest {
         assertThat(user.isDeleted()).isTrue();
         assertThat(user.getDeletedAt()).isNotNull();
         verify(userRepository).save(user);
+    }
+
+    @Test
+    void deleteUser_shouldThrow_WhenDeletingLastActiveAdmin() {
+        User admin = userWithId("admin-1");
+        admin.setRole(User.Role.ADMIN);
+        when(userRepository.findById("admin-1")).thenReturn(Optional.of(admin));
+        when(userRepository.countByRoleAndDeletedFalseAndBlockedFalse(User.Role.ADMIN)).thenReturn(1L);
+
+        assertThatThrownBy(() -> adminService.deleteUser("admin-1", "other-admin"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("last active admin");
+
+        verify(userRepository, never()).save(any());
+    }
+
+    @Test
+    void deleteUser_shouldAllow_WhenAnotherActiveAdminExists() {
+        User admin = userWithId("admin-1");
+        admin.setRole(User.Role.ADMIN);
+        when(userRepository.findById("admin-1")).thenReturn(Optional.of(admin));
+        when(userRepository.countByRoleAndDeletedFalseAndBlockedFalse(User.Role.ADMIN)).thenReturn(2L);
+        when(userRepository.save(any(User.class))).thenReturn(admin);
+
+        adminService.deleteUser("admin-1", "other-admin");
+
+        assertThat(admin.isDeleted()).isTrue();
+        verify(userRepository).save(admin);
     }
 
     @Test
@@ -276,11 +351,54 @@ class AdminServiceTest {
     }
 
     @Test
+    void updateUserRole_shouldThrow_WhenDemotingLastActiveAdmin() {
+        User admin = userWithId("admin-1");
+        admin.setRole(User.Role.ADMIN);
+        when(userRepository.findById("admin-1")).thenReturn(Optional.of(admin));
+        when(userRepository.countByRoleAndDeletedFalseAndBlockedFalse(User.Role.ADMIN)).thenReturn(1L);
+
+        assertThatThrownBy(() -> adminService.updateUserRole("admin-1", "USER", "other-admin"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("last active admin");
+
+        verify(userRepository, never()).save(any());
+    }
+
+    @Test
+    void updateUserRole_shouldAllowDemotion_WhenAnotherActiveAdminExists() {
+        User admin = userWithId("admin-1");
+        admin.setRole(User.Role.ADMIN);
+        when(userRepository.findById("admin-1")).thenReturn(Optional.of(admin));
+        when(userRepository.countByRoleAndDeletedFalseAndBlockedFalse(User.Role.ADMIN)).thenReturn(2L);
+        when(userRepository.save(any(User.class))).thenReturn(admin);
+        when(postRepository.countByUserId("admin-1")).thenReturn(0L);
+
+        AdminUserResponse response = adminService.updateUserRole("admin-1", "USER", "other-admin");
+
+        assertThat(admin.getRole()).isEqualTo(User.Role.USER);
+        assertThat(response.getRole()).isEqualTo("USER");
+    }
+
+    @Test
+    void updateUserRole_shouldAllowGrantingAdmin_WhenNoAdminExists() {
+        // Promoting the first admin is always allowed - no active admin to protect.
+        User user = userWithId("u1");
+        when(userRepository.findById("u1")).thenReturn(Optional.of(user));
+        when(userRepository.save(any(User.class))).thenReturn(user);
+        when(postRepository.countByUserId("u1")).thenReturn(0L);
+
+        AdminUserResponse response = adminService.updateUserRole("u1", "ADMIN", "admin-1");
+
+        assertThat(user.getRole()).isEqualTo(User.Role.ADMIN);
+        assertThat(response.getRole()).isEqualTo("ADMIN");
+    }
+
+    @Test
     void setUserBlocked_shouldThrow_WhenBlockingSelf() {
         User admin = userWithId("admin-1");
         when(userRepository.findById("admin-1")).thenReturn(Optional.of(admin));
 
-        assertThatThrownBy(() -> adminService.setUserBlocked("admin-1", true, "admin-1"))
+        assertThatThrownBy(() -> adminService.setUserBlocked("admin-1", true, "admin-1", null))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("cannot block your own account");
 
@@ -294,10 +412,50 @@ class AdminServiceTest {
         when(userRepository.save(any(User.class))).thenReturn(user);
         when(postRepository.countByUserId("u1")).thenReturn(0L);
 
-        AdminUserResponse response = adminService.setUserBlocked("u1", true, "admin-1");
+        AdminUserResponse response = adminService.setUserBlocked("u1", true, "admin-1", null);
 
         assertThat(user.isBlocked()).isTrue();
         assertThat(response.isBlocked()).isTrue();
+    }
+
+    @Test
+    void setUserBlocked_shouldRecordReasonInAuditLog() {
+        User user = userWithId("u1");
+        when(userRepository.findById("u1")).thenReturn(Optional.of(user));
+        when(userRepository.save(any(User.class))).thenReturn(user);
+        when(postRepository.countByUserId("u1")).thenReturn(0L);
+
+        adminService.setUserBlocked("u1", true, "admin-1", "  Spam account  ");
+
+        verify(auditLogService).record(eq("admin-1"), eq("u1"), eq(AuditAction.USER_BLOCKED),
+                eq(AuditStatus.SUCCESS), eq("Blocked user: u1@test.com - Reason: Spam account"));
+    }
+
+    @Test
+    void setUserBlocked_shouldNotAddReason_WhenAbsent() {
+        User user = userWithId("u1");
+        when(userRepository.findById("u1")).thenReturn(Optional.of(user));
+        when(userRepository.save(any(User.class))).thenReturn(user);
+        when(postRepository.countByUserId("u1")).thenReturn(0L);
+
+        adminService.setUserBlocked("u1", true, "admin-1", null);
+
+        verify(auditLogService).record(eq("admin-1"), eq("u1"), eq(AuditAction.USER_BLOCKED),
+                eq(AuditStatus.SUCCESS), eq("Blocked user: u1@test.com"));
+    }
+
+    @Test
+    void setUserBlocked_shouldThrow_WhenBlockingLastActiveAdmin() {
+        User admin = userWithId("admin-1");
+        admin.setRole(User.Role.ADMIN);
+        when(userRepository.findById("admin-1")).thenReturn(Optional.of(admin));
+        when(userRepository.countByRoleAndDeletedFalseAndBlockedFalse(User.Role.ADMIN)).thenReturn(1L);
+
+        assertThatThrownBy(() -> adminService.setUserBlocked("admin-1", true, "other-admin", null))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("last active admin");
+
+        verify(userRepository, never()).save(any());
     }
 
     @Test

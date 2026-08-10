@@ -10,6 +10,7 @@ import com.devsync.admin.dto.AdminProjectStats;
 import com.devsync.admin.dto.AdminUserDetail;
 import com.devsync.admin.dto.AdminUserListItem;
 import com.devsync.admin.dto.AdminUserResponse;
+import com.devsync.admin.dto.BlockUserRequest;
 import com.devsync.admin.dto.DashboardResponse;
 import com.devsync.admin.dto.PlatformStatsResponse;
 import com.devsync.admin.dto.UpdateRoleRequest;
@@ -70,8 +71,11 @@ public class AdminController {
             @RequestParam(required = false) String sortDir,
             @RequestParam(required = false) String search,
             @RequestParam(required = false) String role,
-            @RequestParam(required = false) String status) {
-        return ResponseEntity.ok(adminService.getUsersPage(page, size, sortBy, sortDir, search, role, status));
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String from,
+            @RequestParam(required = false) String to) {
+        return ResponseEntity.ok(adminService.getUsersPage(
+                page, size, sortBy, sortDir, search, role, status, from, to));
     }
 
     @GetMapping("/users/{userId}")
@@ -103,15 +107,23 @@ public class AdminController {
     @PutMapping("/users/{userId}/block")
     public ResponseEntity<AdminUserResponse> blockUser(
             @PathVariable String userId,
+            @RequestBody(required = false) BlockUserRequest request,
             @AuthenticationPrincipal UserDetails userDetails) {
-        return ResponseEntity.ok(adminService.setUserBlocked(userId, true, userDetails.getUsername()));
+        return ResponseEntity.ok(adminService.setUserBlocked(
+                userId, true, userDetails.getUsername(), reasonOf(request)));
     }
 
     @PutMapping("/users/{userId}/unblock")
     public ResponseEntity<AdminUserResponse> unblockUser(
             @PathVariable String userId,
+            @RequestBody(required = false) BlockUserRequest request,
             @AuthenticationPrincipal UserDetails userDetails) {
-        return ResponseEntity.ok(adminService.setUserBlocked(userId, false, userDetails.getUsername()));
+        return ResponseEntity.ok(adminService.setUserBlocked(
+                userId, false, userDetails.getUsername(), reasonOf(request)));
+    }
+
+    private String reasonOf(BlockUserRequest request) {
+        return request == null ? null : request.getReason();
     }
 
     @DeleteMapping("/posts/{postId}")
@@ -192,6 +204,21 @@ public class AdminController {
     @GetMapping("/activity/stats")
     public ResponseEntity<AdminActivityStats> getAdminActivityStats() {
         return ResponseEntity.ok(activityService.getAdminActivityStats());
+    }
+
+    @GetMapping("/activity/export")
+    public ResponseEntity<byte[]> exportAdminActivity(
+            @RequestParam(required = false) String projectId,
+            @RequestParam(required = false) String userId,
+            @RequestParam(required = false) String activityType,
+            @RequestParam(required = false) String from,
+            @RequestParam(required = false) String to) {
+        List<ActivityResponse> activities = activityService.exportActivities(projectId, userId, activityType, from, to);
+        String csv = activityService.toCsv(activities);
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.parseMediaType("text/csv"));
+        headers.setContentDisposition(ContentDisposition.attachment().filename("activities.csv").build());
+        return new ResponseEntity<>(csv.getBytes(StandardCharsets.UTF_8), headers, HttpStatus.OK);
     }
 
     // ---------- Admin Audit Logs ----------

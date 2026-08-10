@@ -11,6 +11,7 @@ import com.devsync.kanban.repository.BoardColumnRepository;
 import com.devsync.kanban.repository.BoardRepository;
 import com.devsync.kanban.repository.TaskRepository;
 import com.devsync.project.entity.Project;
+import com.devsync.project.entity.ProjectMember;
 import com.devsync.project.repository.ProjectMemberRepository;
 import com.devsync.project.repository.ProjectRepository;
 import com.devsync.user.repository.UserRepository;
@@ -104,6 +105,76 @@ class BoardServiceTest {
         BoardResponse.TaskDto dto = boardService.createTask(request, "owner1");
 
         org.assertj.core.api.Assertions.assertThat(dto.getTitle()).isEqualTo("Build feature");
+    }
+
+    @Test
+    void createTask_shouldThrow_WhenUserIsNotProjectMember() {
+        // Unauthorized task access: a stranger must never create tasks.
+        BoardColumn col = columnWithId("c1", "b1");
+        Board board = boardWithId("b1", "p1");
+        Project project = projectWithId("p1");
+
+        when(columnRepository.findById("c1")).thenReturn(Optional.of(col));
+        when(boardRepository.findById("b1")).thenReturn(Optional.of(board));
+        when(projectRepository.findById("p1")).thenReturn(Optional.of(project));
+        when(projectMemberRepository.findByProjectIdAndUserId("p1", "stranger"))
+                .thenReturn(Optional.empty());
+
+        CreateTaskRequest request = mock(CreateTaskRequest.class);
+        when(request.getColumnId()).thenReturn("c1");
+
+        assertThatThrownBy(() -> boardService.createTask(request, "stranger"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("permission");
+
+        verify(taskRepository, never()).save(any());
+    }
+
+    @Test
+    void createTask_shouldThrow_WhenMemberIsNotAdminOrOwner() {
+        // A plain MEMBER-role participant cannot modify tasks either.
+        BoardColumn col = columnWithId("c1", "b1");
+        Board board = boardWithId("b1", "p1");
+        Project project = projectWithId("p1");
+        ProjectMember member = ProjectMember.builder()
+                .projectId("p1").userId("member1").role(ProjectMember.Role.MEMBER).build();
+
+        when(columnRepository.findById("c1")).thenReturn(Optional.of(col));
+        when(boardRepository.findById("b1")).thenReturn(Optional.of(board));
+        when(projectRepository.findById("p1")).thenReturn(Optional.of(project));
+        when(projectMemberRepository.findByProjectIdAndUserId("p1", "member1"))
+                .thenReturn(Optional.of(member));
+
+        CreateTaskRequest request = mock(CreateTaskRequest.class);
+        when(request.getColumnId()).thenReturn("c1");
+
+        assertThatThrownBy(() -> boardService.createTask(request, "member1"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("permission");
+
+        verify(taskRepository, never()).save(any());
+    }
+
+    @Test
+    void updateTask_shouldThrow_WhenUserIsNotProjectMember() {
+        Task task = Task.builder().boardId("b1").title("Existing").build();
+        task.setId("t1");
+        Board board = boardWithId("b1", "p1");
+        Project project = projectWithId("p1");
+
+        when(taskRepository.findById("t1")).thenReturn(Optional.of(task));
+        when(boardRepository.findById("b1")).thenReturn(Optional.of(board));
+        when(projectRepository.findById("p1")).thenReturn(Optional.of(project));
+        when(projectMemberRepository.findByProjectIdAndUserId("p1", "stranger"))
+                .thenReturn(Optional.empty());
+
+        CreateTaskRequest request = mock(CreateTaskRequest.class);
+
+        assertThatThrownBy(() -> boardService.updateTask("t1", request, "stranger"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("permission");
+
+        verify(taskRepository, never()).save(any());
     }
 
     @Test

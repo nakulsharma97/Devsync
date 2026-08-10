@@ -29,14 +29,27 @@ public class RateLimitingFilter extends OncePerRequestFilter {
     private static final int MAX_REQUESTS = 10;
     private static final long WINDOW_MS = 60_000; // 1 minute
 
+    /**
+     * Whether to trust the X-Forwarded-For header. Only enable this when the app
+     * sits behind a reverse proxy you control. Default false — the header is
+     * trivially spoofable when the app is reachable directly, which would let
+     * attackers bypass the rate limit entirely.
+     */
+    @org.springframework.beans.factory.annotation.Value("${app.rate-limit.trust-x-forwarded-for:false}")
+    private boolean trustXForwardedFor;
+
+    @org.springframework.beans.factory.annotation.Value("${app.rate-limit.enabled:true}")
+    private boolean enabled;
+
     @Override
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
         String path = request.getRequestURI();
 
-        // Only rate-limit auth endpoints
-        if (!path.startsWith("/api/auth/")) {
+        // Only rate-limit auth endpoints; can be disabled behind a dedicated
+        // edge limiter (app.rate-limit.enabled=false).
+        if (!enabled || !path.startsWith("/api/auth/")) {
             filterChain.doFilter(request, response);
             return;
         }
@@ -65,9 +78,13 @@ public class RateLimitingFilter extends OncePerRequestFilter {
     }
 
     private String getClientIp(HttpServletRequest request) {
-        String xff = request.getHeader("X-Forwarded-For");
-        if (xff != null && !xff.isBlank()) {
-            return xff.split(",")[0].trim();
+        // X-Forwarded-For is spoofable unless the app is behind a trusted proxy.
+        // Never trust it by default.
+        if (trustXForwardedFor) {
+            String xff = request.getHeader("X-Forwarded-For");
+            if (xff != null && !xff.isBlank()) {
+                return xff.split(",")[0].trim();
+            }
         }
         return request.getRemoteAddr();
     }
