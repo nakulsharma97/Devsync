@@ -92,6 +92,12 @@ export default function Notifications() {
   const openNotification = useCallback(
     (n: NotificationDto) => {
       markRead(n);
+      // Project invitations are accepted/declined from the Projects page — a
+      // non-member can't open the project itself.
+      if (n.type === "PROJECT_INVITE") {
+        navigate("/projects");
+        return;
+      }
       navigate(resolveNotificationUrl(n));
     },
     [markRead, navigate]

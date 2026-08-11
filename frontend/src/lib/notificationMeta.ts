@@ -69,12 +69,13 @@ export function resolveNotificationUrl(
   n: Pick<NotificationDto, "actionUrl" | "referenceType" | "referenceId">
 ): string {
   if (n.actionUrl) {
-    // Legacy: "/projects/<id>" -> kanban board route.
+    // "/projects/<id>" -> the project workspace.
     const projectsMatch = /^\/projects\/([^/]+)$/.exec(n.actionUrl);
-    if (projectsMatch) return `/board/${projectsMatch[1]}`;
+    if (projectsMatch) return `/projects/${projectsMatch[1]}`;
     // Known-good frontend routes.
     if (
       n.actionUrl.startsWith("/board/") ||
+      n.actionUrl.startsWith("/projects/") ||
       n.actionUrl.startsWith("/messages") ||
       n.actionUrl === "/feed" ||
       n.actionUrl === "/dashboard" ||
@@ -84,6 +85,6 @@ export function resolveNotificationUrl(
     }
   }
   // Fall back to reference-based navigation.
-  if (n.referenceType === "project" && n.referenceId) return `/board/${n.referenceId}`;
+  if (n.referenceType === "project" && n.referenceId) return `/projects/${n.referenceId}`;
   return "/notifications";
 }

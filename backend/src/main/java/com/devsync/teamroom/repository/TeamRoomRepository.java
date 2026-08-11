@@ -17,6 +17,9 @@ public interface TeamRoomRepository extends JpaRepository<TeamRoom, String> {
     @Query("SELECT r FROM TeamRoom r WHERE r.projectId = :projectId")
     List<TeamRoom> findByProjectId(@Param("projectId") String projectId);
 
+    @Query("SELECT r FROM TeamRoom r WHERE r.projectId = :projectId ORDER BY r.createdAt ASC")
+    java.util.Optional<TeamRoom> findFirstByProjectIdOrderByCreatedAtAsc(@Param("projectId") String projectId);
+
     @Query("SELECT r FROM TeamRoom r WHERE (:keyword IS NULL OR LOWER(r.name) LIKE LOWER(CONCAT('%', :keyword, '%'))) " +
             "AND EXISTS (SELECT 1 FROM TeamRoomParticipant tp WHERE tp.roomId = r.id AND tp.userId = :userId)")
     List<TeamRoom> searchRoomsForUser(@Param("keyword") String keyword, @Param("userId") String userId,

@@ -13,5 +13,7 @@ public interface FileAttachmentRepository extends JpaRepository<FileAttachment, 
 
     List<FileAttachment> findByContextIdIn(Collection<String> contextIds);
 
+    List<FileAttachment> findByProjectIdOrderByCreatedAtDesc(String projectId);
+
     Optional<FileAttachment> findByStoredName(String storedName);
 }
