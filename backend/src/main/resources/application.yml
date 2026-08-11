@@ -6,9 +6,12 @@ spring:
     name: devsync-backend
 
   datasource:
-    url: jdbc:mysql://localhost:3306/dev?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
-    username: root
-    password: 12345
+    # Profile-neutral: production requires these from the environment (the `prod`
+    # profile has NO defaults and fails fast when any are missing). Local-dev
+    # defaults live in application-dev.yml only.
+    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3306/dev?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC}
+    username: ${SPRING_DATASOURCE_USERNAME:root}
+    password: ${SPRING_DATASOURCE_PASSWORD:}
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   flyway:
@@ -53,7 +56,10 @@ spring:
 
 app:
   jwt:
-    secret: ${JWT_SECRET:devsync-default-secret-key-for-local-development-only-change-in-prod}
+    # NO fallback secret here on purpose: JWT_SECRET is required, and missing it
+    # fails startup immediately (placeholders without defaults are fatal). Safe
+    # development/test-only defaults live in application-dev.yml / application-test.yml.
+    secret: ${JWT_SECRET}
     # Short-lived access tokens: 15 minutes. A stolen access token is only usable
     # briefly; refresh happens through the rotating HttpOnly cookie.
     expiration-ms: ${DEVSYNC_JWT_ACCESS_EXPIRATION_MS:900000}
@@ -66,6 +72,13 @@ app:
 
   otp:
     expiration-minutes: 10
+
+  account-token:
+    # Single-use password-reset / email-verification tokens.
+    expiration-minutes: ${DEVSYNC_ACCOUNT_TOKEN_EXPIRATION_MINUTES:15}
+    # Where reset/verify links in emails point (e.g. https://app.example.com).
+    # Same origin as the frontend; only the link target, never a secret.
+    frontend-url: ${FRONTEND_URL:http://localhost:5173}
 
   admin:
     # Opt-in bootstrap admin seeding. Disabled by default - production must set

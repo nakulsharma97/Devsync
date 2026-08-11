@@ -35,6 +35,45 @@ public class EmailService {
     }
 
     /**
+     * Send a password reset link. The token in the link is single-use and
+     * expires; only its hash is stored server-side.
+     */
+    public void sendPasswordResetEmail(String to, String resetLink) {
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setFrom(fromEmail);
+        message.setTo(to);
+        message.setSubject("Reset your DevSync password");
+        message.setText(
+            "Hello,\n\n"
+            + "We received a request to reset your DevSync password. Click the link below to choose a new one:\n\n"
+            + "  " + resetLink + "\n\n"
+            + "This link expires in 15 minutes and can only be used once.\n\n"
+            + "If you didn't request this, you can safely ignore this email — your password won't change.\n\n"
+            + "— The DevSync Team"
+        );
+        mailSender.send(message);
+    }
+
+    /**
+     * Send an email verification link.
+     */
+    public void sendVerificationEmail(String to, String verifyLink) {
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setFrom(fromEmail);
+        message.setTo(to);
+        message.setSubject("Verify your DevSync email");
+        message.setText(
+            "Hello,\n\n"
+            + "Verify your DevSync email address by clicking the link below:\n\n"
+            + "  " + verifyLink + "\n\n"
+            + "This link expires in 15 minutes and can only be used once.\n\n"
+            + "If you didn't request this, you can safely ignore this email.\n\n"
+            + "— The DevSync Team"
+        );
+        mailSender.send(message);
+    }
+
+    /**
      * Send a welcome email after registration.
      */
     public void sendWelcomeEmail(String to, String fullName) {

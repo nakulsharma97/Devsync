@@ -124,7 +124,7 @@ export default function SearchPage() {
                 </div>
                 <div className="min-w-0">
                   <p className="text-sm font-medium">{u.fullName}</p>
-                  <p className="text-xs text-muted-foreground">{u.email}</p>
+                  <p className="text-xs text-muted-foreground">@{u.username ?? "user"}</p>
                 </div>
               </div>
             ))}

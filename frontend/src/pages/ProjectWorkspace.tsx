@@ -759,7 +759,7 @@ function MembersTab({
                   <p className="text-sm font-medium truncate">
                     {m.fullName} {isSelf && <span className="text-muted-foreground text-xs">(you)</span>}
                   </p>
-                  <p className="text-[11px] text-muted-foreground truncate">{m.email}</p>
+                  <p className="text-[11px] text-muted-foreground truncate">@{m.username ?? "member"}</p>
                 </div>
 
                 {canManage && !isOwnerRow ? (

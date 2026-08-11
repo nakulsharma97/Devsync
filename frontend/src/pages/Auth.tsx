@@ -444,7 +444,7 @@ export default function AuthPage() {
             <div className="flex gap-3 mb-6">
               <a
                 href={`${
-                  import.meta.env.VITE_API_URL || "http://localhost:8080/api"
+                  import.meta.env.VITE_API_URL || "/api"
                 }/../oauth2/authorization/github`}
                 className="flex-1 flex items-center justify-center gap-2 h-10 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20 transition-all text-sm text-white/70 hover:text-white"
               >
@@ -453,7 +453,7 @@ export default function AuthPage() {
               </a>
               <a
                 href={`${
-                  import.meta.env.VITE_API_URL || "http://localhost:8080/api"
+                  import.meta.env.VITE_API_URL || "/api"
                 }/../oauth2/authorization/google`}
                 className="flex-1 flex items-center justify-center gap-2 h-10 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20 transition-all text-sm text-white/70 hover:text-white"
               >
@@ -578,6 +578,7 @@ export default function AuthPage() {
                       {mode === "login" && (
                         <button
                           type="button"
+                          onClick={() => navigate("/forgot-password")}
                           className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors"
                         >
                           Forgot password?

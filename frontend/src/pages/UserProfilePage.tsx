@@ -16,7 +16,7 @@ import {
   Rss,
   Sparkles,
 } from "lucide-react";
-import { userService, type UserDto } from "@/services/userService";
+import { userService, type PublicUserDto } from "@/services/userService";
 import { postService, type PostDto } from "@/services/postService";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -25,7 +25,7 @@ export default function UserProfilePage() {
   const navigate = useNavigate();
   const { user: currentUser } = useAuth();
 
-  const [profileUser, setProfileUser] = useState<UserDto | null>(null);
+  const [profileUser, setProfileUser] = useState<PublicUserDto | null>(null);
   const [posts, setPosts] = useState<PostDto[]>([]);
   const [followerCount] = useState(0);
   const [followingCount] = useState(0);
@@ -134,9 +134,9 @@ export default function UserProfilePage() {
 
             {/* Badges */}
             <div className="flex items-center gap-2 mt-2 flex-wrap">
-              {profileUser.role && (
+              {profileUser.jobTitle && (
                 <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-accent/10 text-accent border border-accent/20 font-medium flex items-center gap-1">
-                  <Briefcase className="w-2.5 h-2.5" /> {profileUser.role}
+                  <Briefcase className="w-2.5 h-2.5" /> {profileUser.jobTitle}
                 </span>
               )}
               {profileUser.location && (

@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 import { X, Users, FolderKanban, Loader2, Image as ImageIcon, ChevronRight } from "lucide-react";
 import type { ConversationDto, MessageDto } from "@/services/messageService";
-import type { UserDto } from "@/services/userService";
+import type { PublicUserDto } from "@/services/userService";
 import type { TeamRoomDto } from "@/services/roomService";
 import { timeAgo } from "@/lib/format";
 import { AuthorizedImage, FileRow, isImageAttachment } from "./AttachmentView";
@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
 interface ConversationDetailsProps {
   conversation: ConversationDto | null;
   /** Real profile fetched by the page (GET /users/{id}) — shared with the composer flow. */
-  profile: UserDto | null;
+  profile: PublicUserDto | null;
   /** Real room data fetched by the page (GET /rooms/{id}) — shared with the composer flow. */
   room: TeamRoomDto | null;
   loading: boolean;

@@ -7,7 +7,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useTyping } from "@/hooks/useTyping";
 import { messageService, type ConversationDto, type MessageDto } from "@/services/messageService";
 import { wsService } from "@/services/websocketService";
-import { userService, type UserDto } from "@/services/userService";
+import { userService, type PublicUserDto } from "@/services/userService";
 import { roomService, type TeamRoomDto } from "@/services/roomService";
 import { TypingIndicator } from "@/components/TypingIndicator";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
@@ -20,7 +20,7 @@ import { ConversationDetails } from "@/components/messages/ConversationDetails";
 import { timeAgo } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
-function presenceStatusText(conv: ConversationDto | null, presence: Record<string, string>, profile: UserDto | null): string {
+function presenceStatusText(conv: ConversationDto | null, presence: Record<string, string>, profile: PublicUserDto | null): string {
   if (!conv) return "";
   if (conv.type === "room") return conv.participantCount > 0 ? `${conv.participantCount} members` : "Team chat";
   const status = presence[conv.otherUserId || ""] ?? profile?.presenceStatus ?? conv.otherUserPresence ?? "OFFLINE";
@@ -52,7 +52,7 @@ export default function Messages() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [newChatOpen, setNewChatOpen] = useState(false);
   const [highlightId, setHighlightId] = useState<string | null>(null);
-  const [profile, setProfile] = useState<UserDto | null>(null);
+  const [profile, setProfile] = useState<PublicUserDto | null>(null);
   const [room, setRoom] = useState<TeamRoomDto | null>(null);
   const [detailsLoading, setDetailsLoading] = useState(false);
   /** Optimistic messages that never got a server echo (no ACK channel exists). */

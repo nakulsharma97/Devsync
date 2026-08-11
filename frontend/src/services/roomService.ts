@@ -11,7 +11,6 @@ export interface TeamRoomDto {
   participants: Array<{
     userId: string;
     fullName: string;
-    email: string;
     avatarUrl: string | null;
     invitedBy: string | null;
   }>;

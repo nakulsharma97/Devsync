@@ -106,12 +106,19 @@ export default defineConfig({
   server: {
     // Freebuff requires HMR to remain disabled to avoid serving source .tsx files
     hmr: false,
-    // Proxy /api requests to Spring Boot backend
+    // Proxy /api and /ws to the Spring Boot backend so the same-origin URL
+    // scheme works in development exactly as it does behind nginx in production.
     proxy: {
       '/api': {
         target: 'http://localhost:8080',
         changeOrigin: true,
         secure: false,
+      },
+      '/ws': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+        secure: false,
+        ws: true,
       },
     },
   },

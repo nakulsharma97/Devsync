@@ -1,6 +1,7 @@
 package com.devsync.kanban;
 
 import com.devsync.activity.ActivityService;
+import com.devsync.notification.NotificationService;
 import com.devsync.kanban.dto.BoardResponse;
 import com.devsync.kanban.entity.Board;
 import com.devsync.kanban.entity.BoardColumn;
@@ -40,13 +41,15 @@ class BoardServiceFilterTest {
     @Mock private ProjectRepository projectRepository;
     @Mock private ProjectMemberRepository projectMemberRepository;
     @Mock private ActivityService activityService;
+    @Mock private NotificationService notificationService;
 
     private BoardService boardService;
 
     @BeforeEach
     void setUp() {
         boardService = new BoardService(boardRepository, columnRepository, taskRepository,
-                userRepository, projectRepository, projectMemberRepository, activityService);
+                userRepository, projectRepository, projectMemberRepository, activityService,
+                notificationService);
     }
 
     @Test
@@ -58,7 +61,7 @@ class BoardServiceFilterTest {
         when(projectMemberRepository.existsByProjectIdAndUserId("p1", "u1")).thenReturn(false);
 
         assertThatThrownBy(() -> boardService.filterTasks("p1", null, null, null, null, 0, 20, "u1"))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(org.springframework.security.access.AccessDeniedException.class)
                 .hasMessageContaining("not a member");
     }
 

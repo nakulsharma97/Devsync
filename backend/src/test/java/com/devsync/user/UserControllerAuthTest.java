@@ -1,6 +1,6 @@
 package com.devsync.user;
 
-import com.devsync.user.dto.UserResponse;
+import com.devsync.user.dto.PublicUserResponse;
 import com.devsync.user.dto.UpdateUserRequest;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,9 +28,9 @@ class UserControllerAuthTest {
     @Test
     @WithMockUser(username = "user-1")
     void getUser_shouldReturn200_WhenOwnProfile() throws Exception {
-        UserResponse ownProfile = UserResponse.builder()
-                .id("user-1").email("me@test.com").fullName("Me")
-                .username("meuser").role("USER").build();
+        PublicUserResponse ownProfile = PublicUserResponse.builder()
+                .id("user-1").fullName("Me")
+                .username("meuser").build();
 
         when(userService.getUserByIdWithAuth("user-1", "user-1"))
                 .thenReturn(ownProfile);
@@ -38,15 +38,16 @@ class UserControllerAuthTest {
         mockMvc.perform(get("/api/users/user-1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value("user-1"))
-                .andExpect(jsonPath("$.email").value("me@test.com"));
+                // Privacy: email is never part of the public profile shape.
+                .andExpect(jsonPath("$.email").doesNotExist());
     }
 
     @Test
     @WithMockUser(username = "user-1")
     void getUser_shouldReturn200_WhenSharedProject() throws Exception {
-        UserResponse otherUser = UserResponse.builder()
-                .id("user-2").email("other@test.com").fullName("Other User")
-                .username("otheruser").role("USER").build();
+        PublicUserResponse otherUser = PublicUserResponse.builder()
+                .id("user-2").fullName("Other User")
+                .username("otheruser").build();
 
         when(userService.getUserByIdWithAuth("user-2", "user-1"))
                 .thenReturn(otherUser);
@@ -54,7 +55,10 @@ class UserControllerAuthTest {
         mockMvc.perform(get("/api/users/user-2"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value("user-2"))
-                .andExpect(jsonPath("$.fullName").value("Other User"));
+                .andExpect(jsonPath("$.fullName").value("Other User"))
+                // Privacy: sensitive fields must be absent for other users.
+                .andExpect(jsonPath("$.email").doesNotExist())
+                .andExpect(jsonPath("$.lastLoginAt").doesNotExist());
     }
 
     @Test

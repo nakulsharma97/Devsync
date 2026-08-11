@@ -48,15 +48,21 @@ C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\main\java\com\de
 C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\main\java\com\devsync\audit\entity\AuditLog.java
 C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\main\java\com\devsync\audit\entity\AuditStatus.java
 C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\main\java\com\devsync\audit\repository\AuditLogRepository.java
+C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\main\java\com\devsync\auth\AccountRecoveryService.java
 C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\main\java\com\devsync\auth\AuthController.java
 C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\main\java\com\devsync\auth\AuthException.java
 C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\main\java\com\devsync\auth\AuthService.java
 C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\main\java\com\devsync\auth\dto\AuthResponse.java
+C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\main\java\com\devsync\auth\dto\EmailRequest.java
 C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\main\java\com\devsync\auth\dto\LoginRequest.java
 C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\main\java\com\devsync\auth\dto\RefreshTokenRequest.java
 C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\main\java\com\devsync\auth\dto\RegisterRequest.java
+C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\main\java\com\devsync\auth\dto\ResetPasswordRequest.java
+C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\main\java\com\devsync\auth\dto\VerifyEmailRequest.java
 C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\main\java\com\devsync\auth\dto\VerifyOtpRequest.java
 C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\main\java\com\devsync\auth\EmailService.java
+C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\main\java\com\devsync\auth\entity\AccountToken.java
+C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\main\java\com\devsync\auth\entity\AccountTokenType.java
 C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\main\java\com\devsync\auth\entity\RefreshToken.java
 C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\main\java\com\devsync\auth\JwtAuthenticationFilter.java
 C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\main\java\com\devsync\auth\JwtTokenProvider.java
@@ -64,6 +70,7 @@ C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\main\java\com\de
 C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\main\java\com\devsync\auth\RateLimitingFilter.java
 C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\main\java\com\devsync\auth\RefreshTokenCookie.java
 C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\main\java\com\devsync\auth\RefreshTokenService.java
+C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\main\java\com\devsync\auth\repository\AccountTokenRepository.java
 C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\main\java\com\devsync\auth\repository\RefreshTokenRepository.java
 C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\main\java\com\devsync\auth\UserDetailsServiceImpl.java
 C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\main\java\com\devsync\auth\WsRateLimiter.java
@@ -100,6 +107,7 @@ C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\main\java\com\de
 C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\main\java\com\devsync\config\JwtStompChannelInterceptor.java
 C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\main\java\com\devsync\config\OAuth2Config.java
 C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\main\java\com\devsync\config\OpenApiConfig.java
+C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\main\java\com\devsync\config\ProductionConfigValidator.java
 C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\main\java\com\devsync\config\SecurityConfig.java
 C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\main\java\com\devsync\config\WebConfig.java
 C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\main\java\com\devsync\config\WebSocketConfig.java
@@ -215,6 +223,7 @@ C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\main\java\com\de
 C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\main\java\com\devsync\teamroom\repository\TeamRoomRepository.java
 C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\main\java\com\devsync\teamroom\TeamRoomController.java
 C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\main\java\com\devsync\teamroom\TeamRoomService.java
+C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\main\java\com\devsync\user\dto\PublicUserResponse.java
 C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\main\java\com\devsync\user\dto\UpdateUserRequest.java
 C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\main\java\com\devsync\user\dto\UserResponse.java
 C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\main\java\com\devsync\user\entity\User.java

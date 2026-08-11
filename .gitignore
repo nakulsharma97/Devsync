@@ -12,13 +12,17 @@ dist
 dist-ssr
 *.local
 
+# Environment files — never commit secrets. Keep the example template tracked.
+.env
+.env.*
+!.env.example
+
 # Stale local build/output copies (SST/Hono experiment artifacts)
 isolate
 main.ts
 sst-env.d.ts
 integrations.md
 src/lib
-.env
 
 # Locally generated DB TLS certificates (see scripts/generate-db-certs.sh)
 certs/

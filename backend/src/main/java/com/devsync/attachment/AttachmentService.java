@@ -7,8 +7,22 @@ import com.devsync.attachment.entity.AttachmentContext;
 import com.devsync.attachment.entity.FileAttachment;
 import com.devsync.attachment.repository.FileAttachmentRepository;
 import com.devsync.common.ResourceNotFoundException;
+import com.devsync.feed.entity.Comment;
+import com.devsync.feed.entity.Post;
+import com.devsync.feed.repository.CommentRepository;
+import com.devsync.feed.repository.PostRepository;
+import com.devsync.kanban.entity.Board;
+import com.devsync.kanban.entity.Task;
+import com.devsync.kanban.repository.BoardRepository;
+import com.devsync.kanban.repository.TaskRepository;
 import com.devsync.message.repository.MessageRepository;
+import com.devsync.project.entity.Project;
+import com.devsync.project.entity.ProjectMember;
 import com.devsync.project.repository.ProjectMemberRepository;
+import com.devsync.project.repository.ProjectRepository;
+import com.devsync.teamroom.entity.TeamRoom;
+import com.devsync.teamroom.repository.TeamRoomParticipantRepository;
+import com.devsync.teamroom.repository.TeamRoomRepository;
 import com.devsync.user.entity.User;
 import com.devsync.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -61,10 +75,17 @@ public class AttachmentService {
     private final ActivityService activityService;
     private final ProjectMemberRepository projectMemberRepository;
     private final MessageRepository messageRepository;
+    private final ProjectRepository projectRepository;
+    private final TeamRoomRepository roomRepository;
+    private final TeamRoomParticipantRepository participantRepository;
+    private final TaskRepository taskRepository;
+    private final BoardRepository boardRepository;
+    private final PostRepository postRepository;
+    private final CommentRepository commentRepository;
 
     @Transactional
     public AttachmentResponse upload(MultipartFile file, String contextType, String contextId,
-                                     String projectId, String uploaderId) {
+                                     String projectId, String uploaderId, boolean isAdmin) {
         if (file == null || file.isEmpty()) {
             throw new IllegalArgumentException("File is empty");
         }
@@ -72,9 +93,14 @@ public class AttachmentService {
             throw new IllegalArgumentException("File exceeds the maximum allowed size (" + (maxSize / 1024 / 1024) + "MB)");
         }
         String originalName = file.getOriginalFilename() == null ? "file" : file.getOriginalFilename();
+        AttachmentContext context = parseContext(contextType);
+
+        // Authorize FIRST and derive the effective project server-side from the
+        // context — projectId/contextId from the client are never trusted.
+        String effectiveProjectId = authorizeUpload(uploaderId, isAdmin, context, contextId, projectId);
+
         validateFile(file, originalName);
 
-        AttachmentContext context = parseContext(contextType);
         String storedName = fileStorageService.store(file, originalName);
 
         // url is NOT NULL — seed it with the (already working) by-name endpoint,
@@ -82,7 +108,7 @@ public class AttachmentService {
         String byNameUrl = "/api/attachments/by-name/" + storedName + "/download";
         FileAttachment attachment = attachmentRepository.save(FileAttachment.builder()
                 .uploaderId(uploaderId)
-                .projectId(projectId)
+                .projectId(effectiveProjectId)
                 .contextType(context)
                 .contextId(contextId)
                 .originalName(originalName)
@@ -95,9 +121,136 @@ public class AttachmentService {
         String url = "/api/attachments/" + attachment.getId() + "/download";
         attachment.setUrl(url);
         attachmentRepository.save(attachment);
-        activityService.record(uploaderId, projectId, ActivityType.FILE_UPLOADED,
+        activityService.record(uploaderId, effectiveProjectId, ActivityType.FILE_UPLOADED,
                 "File uploaded", originalName, url);
         return toResponse(attachment, userRepository.findById(uploaderId).orElse(null));
+    }
+
+    /**
+     * Verifies the caller may upload into the given context and returns the
+     * effective project id (or null for DM/feed contexts). The client-supplied
+     * projectId is only accepted when it matches the server-derived project.
+     *
+     * <ul>
+     *   <li>MESSAGE {@code room_<id>} or {@code <id>}: caller must be a room participant;
+     *       if the room belongs to a project, the caller must be a member and the
+     *       project must exist and be active.</li>
+     *   <li>MESSAGE {@code dm_<userId>}: target must be a real user, not the caller.</li>
+     *   <li>POST / FEED_COMMENT: only the author (or an admin) may attach files.</li>
+     *   <li>TASK_COMMENT: task must belong to a project the caller is a member of.</li>
+     * </ul>
+     */
+    private String authorizeUpload(String uploaderId, boolean isAdmin, AttachmentContext context,
+                                   String contextId, String suppliedProjectId) {
+        if (contextId == null || contextId.isBlank()) {
+            throw new IllegalArgumentException("contextId is required");
+        }
+        return switch (context) {
+            case MESSAGE -> authorizeMessageUpload(uploaderId, isAdmin, contextId, suppliedProjectId);
+            case POST -> authorizePostUpload(uploaderId, isAdmin, contextId, suppliedProjectId);
+            case FEED_COMMENT -> authorizeCommentUpload(uploaderId, isAdmin, contextId, suppliedProjectId);
+            case TASK_COMMENT -> authorizeTaskCommentUpload(uploaderId, isAdmin, contextId, suppliedProjectId);
+        };
+    }
+
+    private String authorizeMessageUpload(String uploaderId, boolean isAdmin, String contextId,
+                                          String suppliedProjectId) {
+        String roomId = null;
+        String otherUserId = null;
+        String raw = contextId;
+        if (raw.startsWith("room_")) {
+            roomId = raw.substring("room_".length());
+        } else if (raw.startsWith("dm_")) {
+            otherUserId = raw.substring("dm_".length());
+        } else {
+            roomId = raw; // workspace Files tab passes the raw room id
+        }
+
+        if (roomId != null && !roomId.isBlank()) {
+            String resolvedRoomId = roomId;
+            TeamRoom room = roomRepository.findById(resolvedRoomId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Room", resolvedRoomId));
+            if (!isAdmin && !participantRepository.existsByRoomIdAndUserId(resolvedRoomId, uploaderId)) {
+                throw new AccessDeniedException("You are not a participant in this room");
+            }
+            if (room.getProjectId() == null) {
+                rejectProjectMismatch(suppliedProjectId, null);
+                return null;
+            }
+            Project project = requireActiveProject(room.getProjectId());
+            if (!isAdmin && !projectMemberRepository.existsByProjectIdAndUserId(project.getId(), uploaderId)) {
+                throw new AccessDeniedException("You are not a member of this project");
+            }
+            rejectProjectMismatch(suppliedProjectId, project.getId());
+            return project.getId();
+        }
+
+        if (otherUserId != null && !otherUserId.isBlank()) {
+            if (otherUserId.equals(uploaderId)) {
+                throw new IllegalArgumentException("Cannot attach a file to a conversation with yourself");
+            }
+            String resolvedOtherUserId = otherUserId;
+            userRepository.findById(resolvedOtherUserId)
+                    .orElseThrow(() -> new ResourceNotFoundException("User", resolvedOtherUserId));
+            rejectProjectMismatch(suppliedProjectId, null);
+            return null;
+        }
+
+        throw new IllegalArgumentException("Invalid message context: " + contextId);
+    }
+
+    private String authorizePostUpload(String uploaderId, boolean isAdmin, String contextId,
+                                       String suppliedProjectId) {
+        Post post = postRepository.findById(contextId)
+                .orElseThrow(() -> new ResourceNotFoundException("Post", contextId));
+        if (!isAdmin && !uploaderId.equals(post.getUserId())) {
+            throw new AccessDeniedException("Only the post author can attach files");
+        }
+        rejectProjectMismatch(suppliedProjectId, null);
+        return null;
+    }
+
+    private String authorizeCommentUpload(String uploaderId, boolean isAdmin, String contextId,
+                                          String suppliedProjectId) {
+        Comment comment = commentRepository.findById(contextId)
+                .orElseThrow(() -> new ResourceNotFoundException("Comment", contextId));
+        if (!isAdmin && !uploaderId.equals(comment.getUserId())) {
+            throw new AccessDeniedException("Only the comment author can attach files");
+        }
+        rejectProjectMismatch(suppliedProjectId, null);
+        return null;
+    }
+
+    private String authorizeTaskCommentUpload(String uploaderId, boolean isAdmin, String contextId,
+                                              String suppliedProjectId) {
+        Task task = taskRepository.findById(contextId)
+                .orElseThrow(() -> new ResourceNotFoundException("Task", contextId));
+        Board board = boardRepository.findById(task.getBoardId())
+                .orElseThrow(() -> new ResourceNotFoundException("Board", task.getBoardId()));
+        Project project = requireActiveProject(board.getProjectId());
+        if (!isAdmin && !projectMemberRepository.existsByProjectIdAndUserId(project.getId(), uploaderId)) {
+            throw new AccessDeniedException("You are not a member of this project");
+        }
+        rejectProjectMismatch(suppliedProjectId, project.getId());
+        return project.getId();
+    }
+
+    private Project requireActiveProject(String projectId) {
+        Project project = projectRepository.findById(projectId)
+                .orElseThrow(() -> new ResourceNotFoundException("Project", projectId));
+        if (project.isDeleted()) {
+            throw new ResourceNotFoundException("Project", projectId);
+        }
+        if (project.getStatus() == Project.ProjectStatus.ARCHIVED) {
+            throw new IllegalArgumentException("This project is archived and file uploads are disabled");
+        }
+        return project;
+    }
+
+    private void rejectProjectMismatch(String supplied, String derived) {
+        if (supplied != null && !supplied.isBlank() && !supplied.equals(derived)) {
+            throw new IllegalArgumentException("projectId does not match the upload context");
+        }
     }
 
     /**
@@ -241,6 +394,17 @@ public class AttachmentService {
                         a -> toResponse(a, userMap.get(a.getUploaderId()))));
     }
 
+    /**
+     * True when the attachment exists and was uploaded by the given user.
+     * Used by MessageService to stop a message referencing another user's file.
+     */
+    public boolean isUploader(String attachmentId, String userId) {
+        if (attachmentId == null || userId == null) return false;
+        return attachmentRepository.findById(attachmentId)
+                .map(a -> userId.equals(a.getUploaderId()))
+                .orElse(false);
+    }
+
     public AttachmentResponse toResponse(FileAttachment attachment, User uploader) {
         return AttachmentResponse.builder()
                 .id(attachment.getId())
@@ -256,12 +420,6 @@ public class AttachmentService {
                 .url(attachment.getUrl())
                 .createdAt(attachment.getCreatedAt())
                 .build();
-    }
-
-    public String getStoredName(String attachmentId) {
-        FileAttachment attachment = attachmentRepository.findById(attachmentId)
-                .orElseThrow(() -> new ResourceNotFoundException("Attachment", attachmentId));
-        return attachment.getStoredName();
     }
 
     private AttachmentContext parseContext(String contextType) {

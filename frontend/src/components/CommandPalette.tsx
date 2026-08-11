@@ -192,7 +192,7 @@ export function CommandPalette({
           ...((users as UserHit[]) || []).map((u) => ({
             id: `user-${u.id}`,
             label: u.fullName || u.username || "User",
-            description: u.email || u.username,
+            description: u.username ? `@${u.username}` : u.fullName,
             type: "user" as const,
             to: `/messages/dm_${u.id}`,
           })),

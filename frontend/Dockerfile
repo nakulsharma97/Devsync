@@ -1,5 +1,14 @@
 FROM oven/bun:1-alpine AS build
 WORKDIR /app
+
+# Vite bakes these into the bundle at build time. Defaults to same-origin
+# paths (/api, /ws) which the nginx reverse proxy forwards to the backend —
+# no hostname is hardcoded. Override per deployment:
+#   docker build --build-arg VITE_API_URL=https://api.example.com/api ...
+ARG VITE_API_URL=/api
+ARG VITE_WS_URL=/ws
+ENV VITE_API_URL=$VITE_API_URL VITE_WS_URL=$VITE_WS_URL
+
 COPY package.json bun.lock ./
 RUN bun install --frozen-lockfile
 COPY . .

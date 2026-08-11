@@ -29,7 +29,6 @@ public class PostResponse {
     public static class UserInfo {
         private String id;
         private String fullName;
-        private String email;
         private String username;
         private String avatarUrl;
     }

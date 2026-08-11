@@ -226,6 +226,18 @@ Production architecture, healthchecks, backup/restore, and troubleshooting:
 | `DEVSYNC_JWT_REFRESH_EXPIRATION_MS` | No | Refresh-token lifetime (default 30 days) |
 | `DEVSYNC_COOKIE_SECURE` | **Yes (prod)** | `true` behind HTTPS — refresh cookie `Secure` |
 | `DEVSYNC_WS_RATE_LIMIT_ENABLED/_MAX_MESSAGES/_MAX_SUBSCRIPTIONS` | No | Per-user WebSocket rate limits |
+| `VITE_API_URL` (build arg) | No | Frontend API base URL — default `/api` (same-origin) |
+| `VITE_WS_URL` (build arg) | No | Frontend WebSocket URL — default `/ws` (same-origin) |
+
+> **Frontend URLs**: the production bundle is built with same-origin paths
+> (`VITE_API_URL=/api`, `VITE_WS_URL=/ws`) and the nginx container proxies both
+> to the backend, so no hostname is hardcoded and `ws`/`wss` is derived from the
+> page protocol. Local development uses `frontend/.env.development`
+> (`http://localhost:8080/api` / `http://localhost:8080/ws`). To serve the API
+> from a separate host, override the Docker build args:
+> `VITE_API_URL=https://api.example.com/api` `VITE_WS_URL=wss://api.example.com/ws`.
+> Set `DEVSYNC_CORS_ORIGINS` to your production origin(s) so the backend accepts
+> browser traffic and WebSocket handshakes from that domain.
 
 > **Auth model**: access tokens are short-lived (15 min) JWTs; refresh tokens are
 > HttpOnly SameSite cookies scoped to `/api/auth`, rotated on every use, revoked on

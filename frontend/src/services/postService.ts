@@ -5,7 +5,6 @@ import api from "./api";
 export interface PostUserDto {
   id: string;
   fullName: string;
-  email: string;
   avatarUrl: string | null;
   username: string | null;
 }

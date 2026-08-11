@@ -1,6 +1,7 @@
 package com.devsync.kanban;
 
 import com.devsync.activity.ActivityService;
+import com.devsync.notification.NotificationService;
 import com.devsync.kanban.dto.BoardResponse;
 import com.devsync.kanban.entity.Board;
 import com.devsync.kanban.entity.Task;
@@ -37,6 +38,7 @@ class BoardServiceCalendarTest {
     @Mock private ProjectRepository projectRepository;
     @Mock private ProjectMemberRepository projectMemberRepository;
     @Mock private ActivityService activityService;
+    @Mock private NotificationService notificationService;
 
     private BoardService boardService;
 
@@ -46,7 +48,8 @@ class BoardServiceCalendarTest {
     @BeforeEach
     void setUp() {
         boardService = new BoardService(boardRepository, columnRepository, taskRepository,
-                userRepository, projectRepository, projectMemberRepository, activityService);
+                userRepository, projectRepository, projectMemberRepository, activityService,
+                notificationService);
         from = Instant.parse("2026-06-01T00:00:00Z");
         to = Instant.parse("2026-06-30T23:59:59Z");
     }

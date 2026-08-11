@@ -5,12 +5,10 @@ export interface ProjectMemberDto {
   userId: string;
   role: string;
   fullName: string;
-  email: string;
   avatarUrl: string | null;
   username?: string | null;
   presenceStatus?: string | null;
   lastActiveAt?: string | null;
-  lastLoginAt?: string | null;
 }
 
 export interface ProjectDto {
@@ -115,9 +113,10 @@ export const projectService = {
 
   // ── Invitations ───────────────────────────────────────────
 
-  async invite(projectId: string, usernameOrEmail: string, message?: string): Promise<InvitationDto> {
+  /** Invite by user id — search results are privacy-scoped and carry no email. */
+  async invite(projectId: string, userId: string, message?: string): Promise<InvitationDto> {
     const res = await api.post(`/projects/${projectId}/invite`, {
-      usernameOrEmail,
+      userId,
       message: message || undefined,
     });
     return res.data;

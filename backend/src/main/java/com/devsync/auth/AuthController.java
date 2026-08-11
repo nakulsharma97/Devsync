@@ -6,6 +6,9 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.RequestBody;
+
+import java.util.Map;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
@@ -16,6 +19,7 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
 
     private final AuthService authService;
+    private final AccountRecoveryService accountRecoveryService;
     private final RefreshTokenCookie refreshTokenCookie;
 
     @PostMapping("/register")
@@ -62,6 +66,34 @@ public class AuthController {
     public ResponseEntity<Void> sendOtp(@RequestParam String email) {
         authService.sendOtp(email);
         return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<Map<String, Boolean>> forgotPassword(@Valid @RequestBody EmailRequest request) {
+        // Always the same generic response — the endpoint must not reveal
+        // whether the email exists or whether a reset email was sent.
+        accountRecoveryService.requestPasswordReset(request.getEmail());
+        return ResponseEntity.ok(Map.of("success", true));
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<Map<String, Boolean>> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+        accountRecoveryService.resetPassword(request);
+        return ResponseEntity.ok(Map.of("success", true));
+    }
+
+    @PostMapping("/email/verify/request")
+    public ResponseEntity<Map<String, Boolean>> requestEmailVerification(@Valid @RequestBody EmailRequest request) {
+        // Generic response; already-verified / unknown / rate-limited emails are
+        // silently skipped server-side.
+        accountRecoveryService.requestEmailVerification(request.getEmail());
+        return ResponseEntity.ok(Map.of("success", true));
+    }
+
+    @PostMapping("/email/verify")
+    public ResponseEntity<Map<String, Boolean>> verifyEmail(@Valid @RequestBody VerifyEmailRequest request) {
+        accountRecoveryService.verifyEmail(request.getToken());
+        return ResponseEntity.ok(Map.of("success", true));
     }
 
     @PostMapping("/otp/verify")

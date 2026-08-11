@@ -2,6 +2,27 @@ import api from "./api";
 import type { UserDto } from "./authService";
 export type { UserDto };
 
+/**
+ * Privacy-scoped profile returned for other users and search results — never
+ * contains email, account metadata or login timestamps.
+ */
+export interface PublicUserDto {
+  id: string;
+  username: string | null;
+  fullName: string;
+  avatarUrl: string | null;
+  bio: string | null;
+  jobTitle: string | null;
+  company: string | null;
+  location: string | null;
+  githubUrl: string | null;
+  twitterUrl: string | null;
+  websiteUrl: string | null;
+  createdAt: string;
+  presenceStatus: string | null;
+  lastActiveAt: string | null;
+}
+
 export interface UpdateUserData {
   fullName?: string;
   username?: string;
@@ -26,12 +47,12 @@ export const userService = {
     return res.data;
   },
 
-  async getUser(id: string): Promise<UserDto> {
+  async getUser(id: string): Promise<PublicUserDto> {
     const res = await api.get(`/users/${id}`);
     return res.data;
   },
 
-  async searchUsers(query: string): Promise<UserDto[]> {
+  async searchUsers(query: string): Promise<PublicUserDto[]> {
     const res = await api.get(`/users?q=${encodeURIComponent(query)}`);
     return res.data;
   },
