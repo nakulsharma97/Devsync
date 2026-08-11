@@ -32,7 +32,7 @@ public class Project extends BaseEntity {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     @Builder.Default
-    private ProjectVisibility visibility = ProjectVisibility.PUBLIC;
+    private ProjectVisibility visibility = ProjectVisibility.PRIVATE;
 
     @Column(nullable = false)
     @Builder.Default

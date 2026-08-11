@@ -1,7 +1,11 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
 import { useApi } from "@/hooks/useApi";
-import { projectService, type ProjectDto } from "@/services/projectService";
+import {
+  projectService,
+  type InvitationDto,
+  type ProjectDto,
+} from "@/services/projectService";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -26,8 +30,14 @@ import {
   MessageSquare,
   Clock,
   ArrowUpRight,
+  Globe,
+  Lock,
+  UserPlus,
+  Check,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 const projectGradients = [
   "from-indigo-500 to-purple-600",
@@ -37,36 +47,70 @@ const projectGradients = [
   "from-pink-500 to-rose-600",
 ];
 
+type Visibility = "PRIVATE" | "PUBLIC";
+
 export default function Projects() {
   const navigate = useNavigate();
   const { data: projects, loading, refetch } = useApi(() =>
     projectService.getMyProjects()
   );
+  const {
+    data: invitations,
+    loading: invitesLoading,
+    refetch: refetchInvitations,
+  } = useApi(() => projectService.getMyInvitations());
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [visibility, setVisibility] = useState<Visibility>("PRIVATE");
   const [creating, setCreating] = useState(false);
+  const [respondingInviteId, setRespondingInviteId] = useState<string | null>(null);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
     setCreating(true);
     try {
-      await projectService.createProject({
+      const created = await projectService.createProject({
         name: name.trim(),
         description: description.trim() || undefined,
+        visibility,
       });
       toast("Project created!");
       setOpen(false);
       setName("");
       setDescription("");
+      setVisibility("PRIVATE");
       refetch();
+      // Open the new project workspace.
+      navigate(`/projects/${created.id}`);
     } catch (err: unknown) {
       toast(getErrorMessage(err, "Failed to create project"));
     } finally {
       setCreating(false);
     }
   };
+
+  const handleInviteResponse = async (invitation: InvitationDto, accept: boolean) => {
+    setRespondingInviteId(invitation.id);
+    try {
+      if (accept) {
+        await projectService.acceptInvitation(invitation.id);
+        toast(`You joined ${invitation.projectName}`);
+      } else {
+        await projectService.declineInvitation(invitation.id);
+        toast("Invitation declined");
+      }
+      refetchInvitations();
+      refetch();
+    } catch (err: unknown) {
+      toast(getErrorMessage(err, accept ? "Failed to accept invitation" : "Failed to decline invitation"));
+    } finally {
+      setRespondingInviteId(null);
+    }
+  };
+
+  const pendingInvitations = (invitations ?? []).filter((i) => i.status === "PENDING");
 
   return (
     <div className="relative space-y-6 max-w-6xl">
@@ -140,6 +184,25 @@ export default function Projects() {
                   className="min-h-[84px] w-full resize-none text-sm bg-transparent border border-border/40 rounded-lg p-3 focus:outline-none focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20 placeholder:text-muted-foreground/50 transition-all"
                 />
               </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Visibility</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  <VisibilityOption
+                    active={visibility === "PRIVATE"}
+                    onClick={() => setVisibility("PRIVATE")}
+                    icon={<Lock className="w-4 h-4" />}
+                    title="Private"
+                    hint="Only invited members can access"
+                  />
+                  <VisibilityOption
+                    active={visibility === "PUBLIC"}
+                    onClick={() => setVisibility("PUBLIC")}
+                    icon={<Globe className="w-4 h-4" />}
+                    title="Public"
+                    hint="Anyone can discover and join"
+                  />
+                </div>
+              </div>
               <Button
                 type="submit"
                 disabled={creating || !name.trim()}
@@ -159,6 +222,68 @@ export default function Projects() {
         </Dialog>
       </div>
 
+      {/* Pending invitations */}
+      {!invitesLoading && pendingInvitations.length > 0 && (
+        <div className="relative rounded-2xl border border-indigo-500/25 bg-gradient-to-br from-indigo-500/[0.07] to-purple-500/[0.04] p-4">
+          <h3 className="text-sm font-semibold flex items-center gap-2 mb-3">
+            <UserPlus className="w-4 h-4 text-indigo-400" />
+            Project invitations
+          </h3>
+          <div className="space-y-2">
+            {pendingInvitations.map((inv) => (
+              <div
+                key={inv.id}
+                className="flex items-center gap-3 bg-card/70 border border-border/40 rounded-xl p-3"
+              >
+                <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-indigo-500/20 to-purple-500/20 flex items-center justify-center shrink-0 overflow-hidden">
+                  {inv.senderAvatar ? (
+                    <img src={inv.senderAvatar} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    <span className="text-xs font-bold text-indigo-400">
+                      {inv.senderName?.charAt(0) || "?"}
+                    </span>
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">
+                    {inv.senderName} invited you to{" "}
+                    <span className="text-indigo-400">{inv.projectName}</span>
+                  </p>
+                  <p className="text-xs text-muted-foreground truncate">
+                    {inv.message || "Join this project and start collaborating"}
+                  </p>
+                </div>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <Button
+                    size="sm"
+                    disabled={respondingInviteId === inv.id}
+                    onClick={() => handleInviteResponse(inv, true)}
+                    className="text-xs"
+                  >
+                    {respondingInviteId === inv.id ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Check className="w-3.5 h-3.5 mr-1" />
+                    )}
+                    Accept
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={respondingInviteId === inv.id}
+                    onClick={() => handleInviteResponse(inv, false)}
+                    className="text-xs"
+                  >
+                    <X className="w-3.5 h-3.5 mr-1" />
+                    Decline
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Content */}
       {loading ? (
         <SkeletonCardList count={6} />
@@ -169,7 +294,8 @@ export default function Projects() {
               key={project.id}
               project={project}
               index={index}
-              onOpen={() => navigate(`/board/${project.id}`)}
+              onOpen={() => navigate(`/projects/${project.id}`)}
+              onBoard={() => navigate(`/board/${project.id}`)}
               onChat={() => navigate("/messages")}
             />
           ))}
@@ -196,19 +322,60 @@ export default function Projects() {
   );
 }
 
+function VisibilityOption({
+  active,
+  onClick,
+  icon,
+  title,
+  hint,
+}: {
+  active: boolean;
+  onClick: () => void;
+  icon: React.ReactNode;
+  title: string;
+  hint: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={cn(
+        "text-left rounded-xl border p-3 transition-all",
+        active
+          ? "border-indigo-500/50 bg-indigo-500/[0.08] ring-2 ring-indigo-500/20"
+          : "border-border/40 hover:border-border/70 bg-transparent"
+      )}
+    >
+      <div className="flex items-center gap-2">
+        <span className={cn("w-8 h-8 rounded-lg flex items-center justify-center", active ? "bg-indigo-500/15 text-indigo-500" : "bg-muted/60 text-muted-foreground")}>
+          {icon}
+        </span>
+        <span className={cn("text-sm font-medium", active ? "text-indigo-600 dark:text-indigo-300" : "text-foreground")}>
+          {title}
+        </span>
+      </div>
+      <p className="text-[11px] text-muted-foreground mt-1.5 leading-snug">{hint}</p>
+    </button>
+  );
+}
+
 // ── Project Card ──────────────────────────────────────────
 
 function ProjectCard({
   project,
   index,
   onOpen,
+  onBoard,
   onChat,
 }: {
   project: ProjectDto;
   index: number;
   onOpen: () => void;
+  onBoard: () => void;
   onChat: () => void;
 }) {
+  const isPublic = project.visibility === "PUBLIC";
   return (
     <Card
       onClick={onOpen}
@@ -240,7 +407,20 @@ function ProjectCard({
               </div>
             </div>
           </div>
-          <StatusPill status={project.status} />
+          <div className="flex flex-col items-end gap-1.5 shrink-0">
+            <StatusPill status={project.status} />
+            <span
+              className={cn(
+                "inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-full border",
+                isPublic
+                  ? "text-emerald-600 dark:text-emerald-400 border-emerald-500/25 bg-emerald-500/[0.07]"
+                  : "text-amber-600 dark:text-amber-400 border-amber-500/25 bg-amber-500/[0.07]"
+              )}
+            >
+              {isPublic ? <Globe className="w-2.5 h-2.5" /> : <Lock className="w-2.5 h-2.5" />}
+              {isPublic ? "Public" : "Private"}
+            </span>
+          </div>
         </div>
 
         {project.description && (
@@ -265,7 +445,20 @@ function ProjectCard({
           className="flex-1 text-xs bg-gradient-to-r from-indigo-500 to-purple-600 text-white hover:from-indigo-600 hover:to-purple-700 shadow-sm"
         >
           <ArrowUpRight className="w-3 h-3 mr-1" />
-          Open Board
+          Open Project
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={(e) => {
+            e.stopPropagation();
+            onBoard();
+          }}
+          className="flex-1 text-xs"
+          title="Open Kanban board"
+        >
+          <FolderKanban className="w-3 h-3 mr-1" />
+          Board
         </Button>
         <Button
           size="sm"
@@ -275,6 +468,7 @@ function ProjectCard({
             onChat();
           }}
           className="flex-1 text-xs"
+          title="Open team chat"
         >
           <MessageSquare className="w-3 h-3 mr-1" />
           Team Chat

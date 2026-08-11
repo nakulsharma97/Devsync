@@ -9,6 +9,7 @@ const mocks = vi.hoisted(() => ({
   useApi: vi.fn(),
   createProject: vi.fn(),
   refetch: vi.fn(),
+  refetchInvitations: vi.fn(),
 }));
 
 vi.mock("@/hooks/useApi", () => ({
@@ -24,6 +25,16 @@ vi.mock("@/services/projectService", () => ({
     deleteProject: vi.fn(),
     addMember: vi.fn(),
     removeMember: vi.fn(),
+    updateMemberRole: vi.fn(),
+    changeVisibility: vi.fn(),
+    joinProject: vi.fn(),
+    discoverProjects: vi.fn(),
+    invite: vi.fn(),
+    getProjectInvitations: vi.fn(),
+    getMyInvitations: vi.fn(),
+    acceptInvitation: vi.fn(),
+    declineInvitation: vi.fn(),
+    cancelInvitation: vi.fn(),
   },
 }));
 
@@ -38,6 +49,8 @@ function projectFixture(overrides: Partial<ProjectDto> = {}): ProjectDto {
     description: "The flagship developer platform",
     ownerId: "u1",
     status: "ACTIVE",
+    visibility: "PRIVATE",
+    currentUserRole: "OWNER",
     repositoryUrl: null,
     imageUrl: null,
     memberCount: 3,
@@ -77,11 +90,18 @@ function renderPage() {
 describe("Projects", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // useApi is called twice (projects + invitations); both get the same shape.
+    mocks.useApi.mockReturnValue({
+      data: null,
+      loading: false,
+      error: null,
+      refetch: mocks.refetch,
+    });
   });
 
-  it("renders project cards with names, status pills and member counts", async () => {
+  it("renders project cards with names, status pills, member counts and visibility badges", async () => {
     mockProjects([
-      projectFixture({ id: "p1", name: "DevSync App", status: "ACTIVE" }),
+      projectFixture({ id: "p1", name: "DevSync App", status: "ACTIVE", visibility: "PUBLIC" }),
       projectFixture({
         id: "p2",
         name: "Legacy",
@@ -100,8 +120,11 @@ describe("Projects", () => {
     expect(screen.getByText("Archived")).toBeInTheDocument();
     expect(screen.getByText("3 members")).toBeInTheDocument();
     expect(screen.getByText("The flagship developer platform")).toBeInTheDocument();
-    expect(screen.getAllByText("Open Board").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Open Project").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Team Chat").length).toBeGreaterThan(0);
+    // Visibility badges: p1 public, p2 private.
+    expect(screen.getAllByText("Public").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Private").length).toBeGreaterThan(0);
     // Header counts
     expect(screen.getByText(/2 total/)).toBeInTheDocument();
     expect(screen.getByText(/1 active/)).toBeInTheDocument();
@@ -122,7 +145,7 @@ describe("Projects", () => {
     expect(screen.getByText("Create a new project")).toBeInTheDocument();
   });
 
-  it("creates a project from the dialog and refetches", async () => {
+  it("creates a PRIVATE project by default and navigates to the workspace", async () => {
     mockProjects([]);
     mocks.createProject.mockResolvedValue(projectFixture());
     const user = userEvent.setup({ delay: null });
@@ -141,8 +164,29 @@ describe("Projects", () => {
       expect(mocks.createProject).toHaveBeenCalledWith({
         name: "Brand New App",
         description: "A shiny new workspace",
+        visibility: "PRIVATE",
       })
     );
-    await waitFor(() => expect(mocks.refetch).toHaveBeenCalled());
+  });
+
+  it("creates a PUBLIC project when the Public option is selected", async () => {
+    mockProjects([]);
+    mocks.createProject.mockResolvedValue(projectFixture({ visibility: "PUBLIC" }));
+    const user = userEvent.setup({ delay: null });
+
+    renderPage();
+
+    await user.click(screen.getByRole("button", { name: /New Project/i }));
+    await user.type(screen.getByLabelText("Project name"), "Open Source App");
+    await user.click(screen.getByRole("button", { name: /^Public/ }));
+    await user.click(screen.getByRole("button", { name: "Create Project" }));
+
+    await waitFor(() =>
+      expect(mocks.createProject).toHaveBeenCalledWith({
+        name: "Open Source App",
+        description: undefined,
+        visibility: "PUBLIC",
+      })
+    );
   });
 });

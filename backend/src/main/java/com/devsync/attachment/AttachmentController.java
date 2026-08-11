@@ -72,6 +72,20 @@ public class AttachmentController {
                 contextType, contextId, userDetails.getUsername(), isAdmin));
     }
 
+    /**
+     * Files tab for the project workspace: every file shared inside the project.
+     * Members and admins only.
+     */
+    @GetMapping("/project/{projectId}")
+    public ResponseEntity<List<AttachmentResponse>> listByProject(
+            @PathVariable String projectId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        boolean isAdmin = userDetails.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+        return ResponseEntity.ok(attachmentService.listByProject(
+                projectId, userDetails.getUsername(), isAdmin));
+    }
+
     private ResponseEntity<Resource> fileResponse(AttachmentService.AttachmentDownload download) {
         return ResponseEntity.ok()
                 .contentType(download.mediaType())

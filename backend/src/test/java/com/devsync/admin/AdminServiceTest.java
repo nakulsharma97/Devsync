@@ -694,6 +694,7 @@ class AdminServiceTest {
         Project project = Project.builder()
                 .name("DevSync")
                 .ownerId(ownerId)
+                .visibility(Project.ProjectVisibility.PUBLIC)
                 .build();
         project.setId(id);
         return project;

@@ -80,10 +80,12 @@ public class ProjectService {
 
     @Transactional
     public ProjectResponse createProject(CreateProjectRequest request, String ownerId) {
+        Project.ProjectVisibility visibility = parseVisibility(request.getVisibility());
         Project project = Project.builder()
                 .name(request.getName())
                 .description(request.getDescription())
                 .ownerId(ownerId)
+                .visibility(visibility)
                 .repositoryUrl(request.getRepositoryUrl())
                 .imageUrl(request.getImageUrl())
                 .build();
@@ -277,6 +279,22 @@ public class ProjectService {
         User user = userRepository.findById(userId).orElse(null);
         if (user != null && user.getRole() == User.Role.ADMIN) return true;
         return memberRepository.existsByProjectIdAndUserId(project.getId(), userId);
+    }
+
+    /**
+     * Parses an optional visibility value, defaulting to PRIVATE. PUBLIC/PRIVATE
+     * are case-insensitive; anything else is rejected rather than silently ignored.
+     */
+    private Project.ProjectVisibility parseVisibility(String visibility) {
+        if (visibility == null || visibility.isBlank()) {
+            return Project.ProjectVisibility.PRIVATE;
+        }
+        try {
+            return Project.ProjectVisibility.valueOf(visibility.trim().toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException(
+                    "Invalid visibility: " + visibility + " (expected PUBLIC or PRIVATE)");
+        }
     }
 
     private ProjectMember.Role parseMemberRole(String role) {

@@ -56,6 +56,64 @@ class ProjectServiceAuthTest {
         updateRequest.setDescription("Updated description");
     }
 
+    private java.util.function.Function<Project, Project> idAssigningSave(String id) {
+        return p -> {
+            p.setId(id);
+            return p;
+        };
+    }
+
+    private void stubOwnerMembership() {
+        when(memberRepository.findByProjectId(anyString())).thenReturn(java.util.List.of(
+                ProjectMember.builder().projectId("project-x").userId("owner-1")
+                        .role(ProjectMember.Role.OWNER).build()));
+        when(userRepository.findAllById(any())).thenReturn(java.util.List.of());
+    }
+
+    @Test
+    void createProject_shouldDefaultToPrivateVisibility() {
+        CreateProjectRequest request = new CreateProjectRequest();
+        request.setName("New Project");
+        request.setDescription("desc");
+
+        when(projectRepository.save(any(Project.class))).thenAnswer(inv -> idAssigningSave("project-x").apply(inv.getArgument(0)));
+        when(memberRepository.save(any(ProjectMember.class))).thenAnswer(inv -> inv.getArgument(0));
+        stubOwnerMembership();
+
+        var response = projectService.createProject(request, "owner-1");
+
+        assertThat(response.getVisibility()).isEqualTo("PRIVATE");
+        assertThat(response.getCurrentUserRole()).isEqualTo("OWNER");
+        assertThat(response.getMemberCount()).isEqualTo(1);
+    }
+
+    @Test
+    void createProject_shouldHonourExplicitVisibility() {
+        CreateProjectRequest request = new CreateProjectRequest();
+        request.setName("Public Project");
+        request.setVisibility("public"); // case-insensitive
+
+        when(projectRepository.save(any(Project.class))).thenAnswer(inv -> idAssigningSave("project-x").apply(inv.getArgument(0)));
+        when(memberRepository.save(any(ProjectMember.class))).thenAnswer(inv -> inv.getArgument(0));
+        stubOwnerMembership();
+
+        var response = projectService.createProject(request, "owner-1");
+
+        assertThat(response.getVisibility()).isEqualTo("PUBLIC");
+    }
+
+    @Test
+    void createProject_shouldRejectInvalidVisibility() {
+        CreateProjectRequest request = new CreateProjectRequest();
+        request.setName("Bad Project");
+        request.setVisibility("SECRET");
+
+        assertThatThrownBy(() -> projectService.createProject(request, "owner-1"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Invalid visibility");
+        verify(projectRepository, never()).save(any());
+    }
+
     @Test
     void updateProject_shouldSucceed_WhenOwner() {
         when(projectRepository.findById("project-1")).thenReturn(Optional.of(project));

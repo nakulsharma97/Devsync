@@ -41,6 +41,11 @@ export const attachmentService = {
    * Upload a file as a MESSAGE attachment. The backend requires the uploader
    * to be authorized; downloads go through the authenticated endpoint.
    */
+  async listByProject(projectId: string): Promise<AttachmentDto[]> {
+    const res = await api.get(`/attachments/project/${projectId}`);
+    return res.data;
+  },
+
   async upload(file: File, contextId: string, projectId?: string | null): Promise<AttachmentDto> {
     const form = new FormData();
     form.append("file", file);

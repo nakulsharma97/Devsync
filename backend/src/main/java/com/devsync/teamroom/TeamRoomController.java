@@ -46,6 +46,25 @@ public class TeamRoomController {
         return ResponseEntity.ok(roomService.inviteToRoom(roomId, request, userDetails.getUsername()));
     }
 
+    @PostMapping("/{roomId}/join")
+    public ResponseEntity<Void> joinRoom(
+            @PathVariable String roomId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        roomService.joinRoom(roomId, userDetails.getUsername());
+        return ResponseEntity.ok().build();
+    }
+
+    /**
+     * Find-or-create the team chat for a project (used by the workspace).
+     * Idempotent: returns the existing room when one already exists.
+     */
+    @PostMapping("/project/{projectId}")
+    public ResponseEntity<TeamRoomResponse> getOrCreateProjectRoom(
+            @PathVariable String projectId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        return ResponseEntity.ok(roomService.getOrCreateProjectRoom(projectId, userDetails.getUsername()));
+    }
+
     @GetMapping("/{roomId}/participants")
     public ResponseEntity<List<TeamRoomResponse.ParticipantDto>> getParticipants(
             @PathVariable String roomId,

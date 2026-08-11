@@ -1,6 +1,7 @@
 package com.devsync.project.dto;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
@@ -12,6 +13,10 @@ public class CreateProjectRequest {
 
     @Size(max = 2000, message = "Description must be at most 2000 characters")
     private String description;
+
+    /** PUBLIC or PRIVATE (case-insensitive). Defaults to PRIVATE when omitted. */
+    @Pattern(regexp = "(?i)^(PUBLIC|PRIVATE)$", message = "Visibility must be PUBLIC or PRIVATE")
+    private String visibility;
 
     private String repositoryUrl;
     private String imageUrl;

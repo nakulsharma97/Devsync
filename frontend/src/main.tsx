@@ -36,6 +36,7 @@ import NotFound from "./pages/NotFound";
 // in memory afterwards.
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const Projects = lazy(() => import("./pages/Projects"));
+const ProjectWorkspace = lazy(() => import("./pages/ProjectWorkspace"));
 const Messages = lazy(() => import("./pages/Messages"));
 const BoardPage = lazy(() => import("./pages/BoardPage"));
 const Profile = lazy(() => import("./pages/Profile"));
@@ -71,6 +72,7 @@ function App() {
             >
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/projects" element={<Projects />} />
+              <Route path="/projects/:projectId" element={<ProjectWorkspace />} />
               <Route path="/analytics" element={<Analytics />} />
               <Route path="/messages" element={<Messages />} />
               <Route path="/messages/:conversationId" element={<Messages />} />

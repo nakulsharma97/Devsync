@@ -20,4 +20,8 @@ export const teamRoomService = {
     const res = await api.get("/rooms");
     return res.data;
   },
+  async getOrCreateProjectRoom(projectId: string): Promise<any> {
+    const res = await api.post(`/rooms/project/${projectId}`);
+    return res.data;
+  },
 };

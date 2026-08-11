@@ -195,6 +195,28 @@ public class AttachmentService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * All files shared inside a project (message attachments and similar), for
+     * the workspace Files tab. Only project members (or admins) may list them —
+     * never an arbitrary authenticated user.
+     */
+    @Transactional(readOnly = true)
+    public List<AttachmentResponse> listByProject(String projectId, String userId, boolean isAdmin) {
+        if (!isAdmin && !projectMemberRepository.existsByProjectIdAndUserId(projectId, userId)) {
+            throw new AccessDeniedException("You don't have permission to view these files");
+        }
+        List<FileAttachment> attachments = attachmentRepository.findByProjectIdOrderByCreatedAtDesc(projectId);
+        if (attachments.isEmpty()) return List.of();
+
+        Set<String> uploaderIds = attachments.stream().map(FileAttachment::getUploaderId).collect(Collectors.toSet());
+        Map<String, User> userMap = uploaderIds.isEmpty() ? Collections.emptyMap()
+                : userRepository.findAllById(uploaderIds).stream()
+                        .collect(Collectors.toMap(User::getId, u -> u));
+        return attachments.stream()
+                .map(a -> toResponse(a, userMap.get(a.getUploaderId())))
+                .toList();
+    }
+
     private boolean canAccess(FileAttachment attachment, String userId, boolean isAdmin) {
         try {
             ensureCanAccess(attachment, userId, isAdmin);
