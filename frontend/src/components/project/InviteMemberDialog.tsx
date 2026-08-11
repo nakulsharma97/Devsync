@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { userService, type UserDto } from "@/services/userService";
+import { userService, type PublicUserDto } from "@/services/userService";
 import { projectService, type ProjectMemberDto } from "@/services/projectService";
 import { Search, Loader2, UserPlus, Check } from "lucide-react";
 import { toast } from "sonner";
@@ -32,7 +32,7 @@ export function InviteMemberDialog({
   onInvited,
 }: InviteMemberDialogProps) {
   const [query, setQuery] = useState("");
-  const [results, setResults] = useState<UserDto[]>([]);
+  const [results, setResults] = useState<PublicUserDto[]>([]);
   const [searching, setSearching] = useState(false);
   const [invitingId, setInvitingId] = useState<string | null>(null);
   const [invitedIds, setInvitedIds] = useState<Set<string>>(new Set());
@@ -75,10 +75,10 @@ export function InviteMemberDialog({
     };
   }, [query, search]);
 
-  const handleInvite = async (user: UserDto) => {
+  const handleInvite = async (user: PublicUserDto) => {
     setInvitingId(user.id);
     try {
-      await projectService.invite(projectId, user.username || user.email);
+      await projectService.invite(projectId, user.id);
       setInvitedIds((prev) => new Set(prev).add(user.id));
       toast(`Invitation sent to ${user.fullName}`);
       onInvited?.();

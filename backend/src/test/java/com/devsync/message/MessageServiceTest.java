@@ -128,6 +128,33 @@ class MessageServiceTest {
     }
 
     @Test
+    void sendMessage_shouldReject_WhenAttachmentNotOwnedBySender() {
+        SendMessageRequest request = mock(SendMessageRequest.class);
+        when(request.getAttachmentId()).thenReturn("att-1");
+        when(attachmentService.isUploader("att-1", "u1")).thenReturn(false);
+
+        assertThatThrownBy(() -> messageService.sendMessage(request, "u1"))
+                .isInstanceOf(org.springframework.security.access.AccessDeniedException.class)
+                .hasMessageContaining("does not belong");
+
+        verify(messageRepository, never()).save(any());
+    }
+
+    @Test
+    void sendMessage_shouldAllow_WhenAttachmentOwnedBySender() {
+        when(attachmentService.isUploader("att-1", "u1")).thenReturn(true);
+        when(messageRepository.save(any(Message.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        SendMessageRequest request = mock(SendMessageRequest.class);
+        when(request.getAttachmentId()).thenReturn("att-1");
+        when(request.getContent()).thenReturn("Here is the file");
+
+        MessageResponse response = messageService.sendMessage(request, "u1");
+
+        assertThat(response.getAttachmentId()).isEqualTo("att-1");
+    }
+
+    @Test
     void sendMessage_shouldAllowDirectMessages_WhenNoRoom() {
         when(messageRepository.save(any(Message.class))).thenAnswer(inv -> inv.getArgument(0));
 

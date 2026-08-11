@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { Search, Plus, Users, Loader2, MessageSquare } from "lucide-react";
 import type { ConversationDto } from "@/services/messageService";
-import { userService, type UserDto } from "@/services/userService";
+import { userService, type PublicUserDto } from "@/services/userService";
 import { timeAgo } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
@@ -127,7 +127,7 @@ function ConversationRow({
   );
 }
 
-function PeopleResult({ user, onClick }: { user: UserDto; onClick: () => void }) {
+function PeopleResult({ user, onClick }: { user: PublicUserDto; onClick: () => void }) {
   return (
     <button
       onClick={onClick}
@@ -168,7 +168,7 @@ export function ConversationList({
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
   const [tab, setTab] = useState<SearchTab>("people");
-  const [people, setPeople] = useState<UserDto[]>([]);
+  const [people, setPeople] = useState<PublicUserDto[]>([]);
   const [peopleLoading, setPeopleLoading] = useState(false);
   const [peopleError, setPeopleError] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);

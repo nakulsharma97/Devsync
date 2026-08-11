@@ -1,5 +1,6 @@
 package com.devsync.user;
 
+import com.devsync.user.dto.PublicUserResponse;
 import com.devsync.user.dto.UpdateUserRequest;
 import com.devsync.user.dto.UserResponse;
 import jakarta.validation.Valid;
@@ -29,14 +30,14 @@ public class UserController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<UserResponse> getUser(
+    public ResponseEntity<PublicUserResponse> getUser(
             @PathVariable String id,
             @AuthenticationPrincipal UserDetails userDetails) {
         return ResponseEntity.ok(userService.getUserByIdWithAuth(id, userDetails.getUsername()));
     }
 
     @GetMapping
-    public ResponseEntity<List<UserResponse>> searchUsers(@RequestParam(required = false) String q, @AuthenticationPrincipal UserDetails userDetails) {
+    public ResponseEntity<List<PublicUserResponse>> searchUsers(@RequestParam(required = false) String q, @AuthenticationPrincipal UserDetails userDetails) {
         return ResponseEntity.ok(userService.searchUsers(q, userDetails.getUsername()));
     }
 

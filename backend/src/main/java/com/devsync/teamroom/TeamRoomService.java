@@ -163,7 +163,6 @@ public class TeamRoomService {
                     return TeamRoomResponse.ParticipantDto.builder()
                             .userId(p.getUserId())
                             .fullName(user != null ? user.getFullName() : "Unknown")
-                            .email(user != null ? user.getEmail() : "")
                             .avatarUrl(user != null ? user.getAvatarUrl() : null)
                             .invitedBy(p.getInvitedBy())
                             .build();

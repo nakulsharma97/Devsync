@@ -3,7 +3,7 @@ package com.devsync.user;
 import com.devsync.common.ResourceNotFoundException;
 import com.devsync.presence.PresenceService;
 import com.devsync.project.repository.ProjectMemberRepository;
-import com.devsync.user.dto.UserResponse;
+import com.devsync.user.dto.PublicUserResponse;
 import com.devsync.user.entity.User;
 import com.devsync.user.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -52,10 +52,9 @@ class UserServiceAuthTest {
 
         when(userRepository.findById("user-1")).thenReturn(Optional.of(me));
 
-        UserResponse response = userService.getUserByIdWithAuth("user-1", "user-1");
+        PublicUserResponse response = userService.getUserByIdWithAuth("user-1", "user-1");
 
         assertThat(response.getId()).isEqualTo("user-1");
-        assertThat(response.getEmail()).isEqualTo("me@test.com");
         assertThat(response.getFullName()).isEqualTo("Me");
 
         // Should NOT check project membership for own profile
@@ -72,11 +71,10 @@ class UserServiceAuthTest {
         when(projectMemberRepository.findProjectIdsByUserId("user-2"))
                 .thenReturn(List.of("project-2", "project-3")); // shares project-2
 
-        UserResponse response = userService.getUserByIdWithAuth("user-2", "user-1");
+        PublicUserResponse response = userService.getUserByIdWithAuth("user-2", "user-1");
 
         assertThat(response.getId()).isEqualTo("user-2");
         assertThat(response.getFullName()).isEqualTo("Other User");
-        assertThat(response.getEmail()).isEqualTo("other@example.com");
     }
 
     @Test
@@ -114,7 +112,7 @@ class UserServiceAuthTest {
 
         when(userRepository.findById("user-1")).thenReturn(Optional.of(me));
 
-        UserResponse response = userService.getUserByIdWithAuth("user-1", "user-1");
+        PublicUserResponse response = userService.getUserByIdWithAuth("user-1", "user-1");
 
         assertThat(response.getId()).isEqualTo("user-1");
         verify(projectMemberRepository, never()).findProjectIdsByUserId(anyString());

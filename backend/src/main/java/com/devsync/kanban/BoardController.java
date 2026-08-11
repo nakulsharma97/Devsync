@@ -22,13 +22,17 @@ public class BoardController {
     private final BoardService boardService;
 
     @GetMapping("/{boardId}")
-    public ResponseEntity<BoardResponse> getBoard(@PathVariable String boardId) {
-        return ResponseEntity.ok(boardService.getBoard(boardId));
+    public ResponseEntity<BoardResponse> getBoard(
+            @PathVariable String boardId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        return ResponseEntity.ok(boardService.getBoard(boardId, userDetails.getUsername()));
     }
 
     @GetMapping("/project/{projectId}")
-    public ResponseEntity<BoardResponse> getProjectBoard(@PathVariable String projectId) {
-        BoardResponse board = boardService.getProjectBoard(projectId);
+    public ResponseEntity<BoardResponse> getProjectBoard(
+            @PathVariable String projectId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        BoardResponse board = boardService.getProjectBoard(projectId, userDetails.getUsername());
         return board == null ? ResponseEntity.noContent().build() : ResponseEntity.ok(board);
     }
 
@@ -60,14 +64,10 @@ public class BoardController {
             @PathVariable String taskId,
             @Valid @RequestBody CreateTaskRequest request,
             @AuthenticationPrincipal UserDetails userDetails) {
+        // The response is resolved from the updated task itself (same
+        // authorization) rather than by looking up a "board" from a column id.
         boardService.updateTask(taskId, request, userDetails.getUsername());
-        BoardResponse board = boardService.getBoard(getBoardIdFromColumn(request.getColumnId()));
-        return board.getColumns().stream()
-                .flatMap(c -> c.getTasks().stream())
-                .filter(t -> t.getId().equals(taskId))
-                .findFirst()
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+        return ResponseEntity.ok(boardService.getTaskDto(taskId, userDetails.getUsername()));
     }
 
     @DeleteMapping("/tasks/{taskId}")
@@ -99,9 +99,5 @@ public class BoardController {
             @AuthenticationPrincipal UserDetails userDetails) {
         return ResponseEntity.ok(boardService.filterTasks(projectId, priority, label, status, keyword,
                 page, size, userDetails.getUsername()));
-    }
-
-    private String getBoardIdFromColumn(String columnId) {
-        return columnId;
     }
 }

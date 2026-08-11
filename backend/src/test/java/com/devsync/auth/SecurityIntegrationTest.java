@@ -227,6 +227,7 @@ class SecurityIntegrationTest {
                         .file(new org.springframework.mock.web.MockMultipartFile(
                                 "file", "photo.png", "image/png", png))
                         .param("contextType", "MESSAGE")
+                        .param("contextId", "dm_" + otherUserId)
                         .header("Authorization", bearer(uploader)))
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();

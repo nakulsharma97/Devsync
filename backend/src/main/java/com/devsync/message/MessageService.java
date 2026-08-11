@@ -41,6 +41,13 @@ public class MessageService {
 
     @Transactional
     public MessageResponse sendMessage(SendMessageRequest request, String senderId) {
+        // A message may only carry an attachment the sender uploaded — referencing
+        // another user's attachment would leak it into a different conversation.
+        if (request.getAttachmentId() != null
+                && !attachmentService.isUploader(request.getAttachmentId(), senderId)) {
+            throw new org.springframework.security.access.AccessDeniedException(
+                    "Attachment does not belong to you");
+        }
         String[] projectId = {null};
         if (request.getRoomId() != null) {
             // Sending into a room requires membership — same rule as reading a room.

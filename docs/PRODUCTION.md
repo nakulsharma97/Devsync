@@ -33,10 +33,23 @@
 
 - **HTTPS** is terminated at the reverse proxy (nginx on the host, a cloud LB, or a
   managed CDN). The app itself is plain HTTP inside the Docker network.
+- **Same-origin URLs**: the frontend bundle is built with `VITE_API_URL=/api` and
+  `VITE_WS_URL=/ws`, so the browser only ever talks to your domain — no backend
+  hostname is baked into the bundle, and the WebSocket scheme (`ws`/`wss`) is
+  derived from the page protocol automatically. Override via the Docker build
+  args only when the API is served from a separate host.
 - **WebSocket**: the proxy must forward the `Upgrade`/`Connection` headers for
-  `/ws/` (see `frontend/nginx.conf`) — real-time chat/presence breaks without it.
+  `/ws` **and its trailing-slash paths** (see `frontend/nginx.conf` — a bare
+  `location /ws` prefix, because the STOMP handshake hits `/ws` exactly).
+- **OAuth2 login**: `/oauth2/**` and `/login/**` are backend endpoints and are
+  proxied too, otherwise the GitHub/Google “Sign in” buttons resolve to the SPA
+  catch-all.
+- **CORS**: with same-origin routing, browsers still send an `Origin` header on
+  the WebSocket handshake, so `DEVSYNC_CORS_ORIGINS` must include your production
+  origin(s) (e.g. `https://devsync.example.com`).
 - **Uploads** live on a persistent volume (`uploads`) mounted at `/app/uploads`;
-  the backend serves them back at `/uploads/**`.
+  the backend serves them back through the authenticated `/api/attachments/**`
+  endpoints.
 
 ## Environment variables
 
@@ -45,7 +58,8 @@
 | `JWT_SECRET` | **Yes** | 256-bit+ signing secret. `openssl rand -base64 64`. Never commit. |
 | `MYSQL_ROOT_PASSWORD` | **Yes** (compose) | MySQL root password. |
 | `MYSQL_PASSWORD` | **Yes** (compose) | Password for the dedicated `devsync` DB user (app never uses root). |
-| `DEVSYNC_CORS_ORIGINS` | No | Comma-separated allowed origins. Default: localhost. |
+| `DEVSYNC_CORS_ORIGINS` | No | Comma-separated allowed origins. Default: localhost. Must include your production origin (also used for WebSocket handshakes). |
+| `VITE_API_URL` / `VITE_WS_URL` (build args) | No | Frontend API/WS URLs, baked in at build time. Defaults `/api` and `/ws` (same-origin, recommended). |
 | `DEVSYNC_TRUST_X_FORWARDED_FOR` | No | `true` only behind your own reverse proxy. |
 | `DEVSYNC_ADMIN_SEED_ENABLED` / `_EMAIL` / `_PASSWORD` | No | Opt-in bootstrap admin. Default `false`; never default credentials. |
 | `MAIL_USERNAME` / `MAIL_PASSWORD` | For OTP | SMTP credentials for OTP emails. |

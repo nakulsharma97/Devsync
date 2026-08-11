@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Search, Loader2, MessageSquarePlus } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { userService, type UserDto } from "@/services/userService";
+import { userService, type PublicUserDto } from "@/services/userService";
 import { cn } from "@/lib/utils";
 
 interface NewChatDialogProps {
@@ -24,7 +24,7 @@ function presenceColor(status: string | null | undefined): string {
 
 export function NewChatDialog({ open, onOpenChange, onSelectUser }: NewChatDialogProps) {
   const [query, setQuery] = useState("");
-  const [users, setUsers] = useState<UserDto[]>([]);
+  const [users, setUsers] = useState<PublicUserDto[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);

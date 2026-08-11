@@ -147,8 +147,8 @@ public class FeedService {
 
     private PostResponse toPostResponseWithCounts(Post post, User user, long likeCount, long commentCount) {
         PostResponse.UserInfo userInfo = user != null
-                ? PostResponse.UserInfo.builder().id(user.getId()).fullName(user.getFullName()).email(user.getEmail()).username(user.getUsername()).avatarUrl(user.getAvatarUrl()).build()
-                : PostResponse.UserInfo.builder().id(post.getUserId()).fullName("Unknown").email("").build();
+                ? PostResponse.UserInfo.builder().id(user.getId()).fullName(user.getFullName()).username(user.getUsername()).avatarUrl(user.getAvatarUrl()).build()
+                : PostResponse.UserInfo.builder().id(post.getUserId()).fullName("Unknown").build();
         return PostResponse.builder()
                 .id(post.getId()).content(post.getContent()).imageUrl(post.getImageUrl()).postType(post.getPostType())
                 .likeCount(likeCount).commentCount(commentCount)
@@ -158,8 +158,8 @@ public class FeedService {
 
     private PostResponse toPostResponse(Post post, User user) {
         PostResponse.UserInfo userInfo = user != null
-                ? PostResponse.UserInfo.builder().id(user.getId()).fullName(user.getFullName()).email(user.getEmail()).username(user.getUsername()).avatarUrl(user.getAvatarUrl()).build()
-                : PostResponse.UserInfo.builder().id(post.getUserId()).fullName("Unknown").email("").build();
+                ? PostResponse.UserInfo.builder().id(user.getId()).fullName(user.getFullName()).username(user.getUsername()).avatarUrl(user.getAvatarUrl()).build()
+                : PostResponse.UserInfo.builder().id(post.getUserId()).fullName("Unknown").build();
         return PostResponse.builder()
                 .id(post.getId()).content(post.getContent()).imageUrl(post.getImageUrl()).postType(post.getPostType())
                 .likeCount(postLikeRepository.countByPostId(post.getId())).commentCount(commentRepository.countByPostId(post.getId()))
@@ -175,8 +175,8 @@ public class FeedService {
 
     private CommentResponse toCommentResponse(Comment comment, User user) {
         PostResponse.UserInfo userInfo = user != null
-                ? PostResponse.UserInfo.builder().id(user.getId()).fullName(user.getFullName()).email(user.getEmail()).username(user.getUsername()).avatarUrl(user.getAvatarUrl()).build()
-                : PostResponse.UserInfo.builder().id(comment.getUserId()).fullName("Unknown").email("").build();
+                ? PostResponse.UserInfo.builder().id(user.getId()).fullName(user.getFullName()).username(user.getUsername()).avatarUrl(user.getAvatarUrl()).build()
+                : PostResponse.UserInfo.builder().id(comment.getUserId()).fullName("Unknown").build();
         return CommentResponse.builder()
                 .id(comment.getId()).content(comment.getContent()).createdAt(comment.getCreatedAt()).user(userInfo)
                 .build();

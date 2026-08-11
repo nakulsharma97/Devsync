@@ -1,10 +1,28 @@
+# Local-development profile (SPRING_PROFILES_ACTIVE=dev).
+#
+# The values below are DEVELOPMENT-ONLY. Production runs with SPRING_PROFILES_ACTIVE=prod
+# (or no profile) and must provide real secrets via environment variables — the prod
+# profile has no defaults and ProductionConfigValidator refuses to start if any
+# development fallback value is detected.
+
 spring:
+  datasource:
+    # Local MySQL (root / 12345) — override with SPRING_DATASOURCE_* if yours differs.
+    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3306/dev?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC}
+    username: ${SPRING_DATASOURCE_USERNAME:root}
+    password: ${SPRING_DATASOURCE_PASSWORD:12345}
   flyway:
     enabled: true
   jpa:
     show-sql: true
     hibernate:
       ddl-auto: none
+
+app:
+  jwt:
+    # DEVELOPMENT-ONLY signing secret. Production must set JWT_SECRET and must
+    # never use this value (the prod validator rejects it).
+    secret: ${JWT_SECRET:devsync-local-development-only-secret-not-for-production}
 
 logging:
   level:

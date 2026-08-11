@@ -39,7 +39,11 @@ export function clearRateLimit(): void {
   rateLimitStore.retryAt = null;
 }
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8080/api";
+// Same-origin by default: the nginx reverse proxy (prod) and the Vite dev
+// server (dev) both forward /api to the backend. A bare path never leaks a
+// localhost hostname into a production bundle, and the browser always uses the
+// correct http/https scheme.
+const API_BASE_URL = import.meta.env.VITE_API_URL || "/api";
 
 const api = axios.create({
   baseURL: API_BASE_URL,

@@ -20,12 +20,11 @@ import { useDevSyncAuth } from "@/contexts/AuthContext";
 
 interface NetworkUser {
   id: string;
-  email: string;
   fullName: string;
   username: string;
   bio?: string;
   avatarUrl?: string;
-  role: string;
+  role?: string;
   isSelf: boolean;
   isFollowing: boolean;
   followsYou: boolean;
@@ -68,14 +67,14 @@ export default function Network() {
       result = result.filter((u) => u.followsYou);
     }
 
-    // Search filter
+    // Search filter (the server already matches name, username and email —
+    // email is never exposed in responses, so it can't be filtered client-side).
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       result = result.filter(
         (u) =>
           u.fullName.toLowerCase().includes(q) ||
           u.username.toLowerCase().includes(q) ||
-          u.email.toLowerCase().includes(q) ||
           (u.bio && u.bio.toLowerCase().includes(q)),
       );
     }

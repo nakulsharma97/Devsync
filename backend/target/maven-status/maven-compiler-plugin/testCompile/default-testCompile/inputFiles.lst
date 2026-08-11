@@ -5,6 +5,8 @@ C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\test\java\com\de
 C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\test\java\com\devsync\analytics\AnalyticsServiceTest.java
 C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\test\java\com\devsync\attachment\AttachmentServiceTest.java
 C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\test\java\com\devsync\audit\AuditLogServiceTest.java
+C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\test\java\com\devsync\auth\AccountRecoveryIntegrationTest.java
+C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\test\java\com\devsync\auth\AccountRecoveryServiceTest.java
 C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\test\java\com\devsync\auth\AuthControllerTest.java
 C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\test\java\com\devsync\auth\AuthServiceTest.java
 C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\test\java\com\devsync\auth\JwtAuthenticationFilterTest.java
@@ -18,6 +20,7 @@ C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\test\java\com\de
 C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\test\java\com\devsync\collab\JoinRequestServiceTest.java
 C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\test\java\com\devsync\config\DataInitializerTest.java
 C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\test\java\com\devsync\config\OAuth2ConfigTest.java
+C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\test\java\com\devsync\config\ProductionConfigValidatorTest.java
 C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\test\java\com\devsync\controller\HealthControllerTest.java
 C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\test\java\com\devsync\DevSyncApplicationTests.java
 C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\test\java\com\devsync\feed\FeedServiceTest.java
@@ -27,15 +30,18 @@ C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\test\java\com\de
 C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\test\java\com\devsync\github\GitHubTokenCryptoTest.java
 C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\test\java\com\devsync\github\GitHubWebhookControllerTest.java
 C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\test\java\com\devsync\github\GitHubWebhookServiceTest.java
+C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\test\java\com\devsync\kanban\BoardSecurityIntegrationTest.java
 C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\test\java\com\devsync\kanban\BoardServiceCalendarTest.java
 C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\test\java\com\devsync\kanban\BoardServiceFilterTest.java
 C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\test\java\com\devsync\kanban\BoardServiceTest.java
 C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\test\java\com\devsync\message\MessageServiceTest.java
+C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\test\java\com\devsync\message\TypingAuthIntegrationTest.java
 C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\test\java\com\devsync\message\WebSocketAuthTest.java
 C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\test\java\com\devsync\message\WsRateLimitTest.java
 C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\test\java\com\devsync\pinned\PinnedProjectServiceTest.java
 C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\test\java\com\devsync\presence\PresenceServiceTest.java
 C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\test\java\com\devsync\presence\PresenceSessionTrackerTest.java
+C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\test\java\com\devsync\privacy\PrivacyResponseIntegrationTest.java
 C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\test\java\com\devsync\project\ProjectServiceAuthTest.java
 C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\test\java\com\devsync\report\ReportAdminControllerTest.java
 C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\test\java\com\devsync\report\ReportAdminServiceTest.java

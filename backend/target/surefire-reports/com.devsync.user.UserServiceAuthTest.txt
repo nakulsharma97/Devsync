@@ -1,4 +1,4 @@
 -------------------------------------------------------------------------------
 Test set: com.devsync.user.UserServiceAuthTest
 -------------------------------------------------------------------------------
-Tests run: 6, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.042 s -- in com.devsync.user.UserServiceAuthTest
+Tests run: 6, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.033 s -- in com.devsync.user.UserServiceAuthTest

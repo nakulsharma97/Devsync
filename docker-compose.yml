@@ -54,6 +54,10 @@ services:
       dockerfile: Dockerfile
     restart: unless-stopped
     environment:
+      # Production profile: required secrets come from the environment (no
+      # defaults) and ProductionConfigValidator fails startup if a known
+      # development fallback value is detected.
+      SPRING_PROFILES_ACTIVE: prod
       # TLS to MySQL: VERIFY_CA against the generated CA (see scripts/generate-db-certs.sh).
       # For a local non-TLS MySQL, override with:
       #   SPRING_DATASOURCE_URL="jdbc:mysql://localhost:3306/devsync_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC"
@@ -102,6 +106,12 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      # Same-origin by default (/api + /ws proxied by nginx). Override with
+      # absolute URLs if the frontend and API are served from different hosts:
+      #   VITE_API_URL=https://api.example.com/api  VITE_WS_URL=wss://api.example.com/ws
+      args:
+        VITE_API_URL: ${VITE_API_URL:-/api}
+        VITE_WS_URL: ${VITE_WS_URL:-/ws}
     restart: unless-stopped
     ports:
       - "80:8080"

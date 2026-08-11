@@ -30,7 +30,6 @@ public class TeamRoomResponse {
     public static class ParticipantDto {
         private String userId;
         private String fullName;
-        private String email;
         private String avatarUrl;
         private String invitedBy;
     }

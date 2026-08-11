@@ -60,7 +60,6 @@ function projectFixture(overrides: Partial<ProjectDto> = {}): ProjectDto {
         userId: "u1",
         role: "OWNER",
         fullName: "Buffy Test",
-        email: "buffy@test.com",
         avatarUrl: null,
       },
     ],

@@ -23,7 +23,10 @@ spring:
           google:
             client-id: test-client-id
             client-secret: test-client-secret
-jwt:
-  secret: test-secret-key-that-is-at-least-256-bits-long-for-testing-purposes-only
-  expiration: 3600000
-  refresh-expiration: 86400000
+
+app:
+  jwt:
+    # Test-only secret — never used outside the test profile.
+    secret: ${JWT_SECRET:test-secret-key-that-is-at-least-32-bytes-long-for-tests-only}
+    expiration-ms: 3600000
+    refresh-expiration-ms: 86400000

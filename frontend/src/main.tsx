@@ -26,6 +26,9 @@ import PageTransition from "@/components/PageTransition";
 import { RouteSkeleton } from "@/components/Skeletons";
 import Landing from "./pages/Landing";
 import AuthPage from "./pages/Auth";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
+import VerifyEmail from "./pages/VerifyEmail";
 import NotFound from "./pages/NotFound";
 
 // ── Route-level code splitting ────────────────────────────────
@@ -63,6 +66,9 @@ function App() {
             <Route path="/" element={<Landing />} />
             <Route path="/auth" element={<AuthPage />} />
             <Route path="/auth/callback" element={<AuthPage />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/verify-email" element={<VerifyEmail />} />
             <Route
               element={
                 <ProtectedRoute>

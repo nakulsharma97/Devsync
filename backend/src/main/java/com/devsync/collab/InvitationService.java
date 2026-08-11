@@ -45,8 +45,7 @@ public class InvitationService {
         Project project = findActiveProject(projectId);
         assertCanManage(project, senderId);
 
-        User receiver = userRepository.findByEmailOrUsername(request.getUsernameOrEmail())
-                .orElseThrow(() -> new IllegalArgumentException("No user found with that username or email"));
+        User receiver = resolveInvitee(request);
         if (receiver.getId().equals(senderId)) {
             throw new IllegalArgumentException("You cannot invite yourself");
         }
@@ -223,6 +222,23 @@ public class InvitationService {
             throw new IllegalArgumentException("This project is archived");
         }
         return project;
+    }
+
+    /**
+     * Resolves the invitee by user id when provided (preferred — search results
+     * are privacy-scoped and no longer carry email), otherwise falls back to the
+     * legacy username-or-email lookup.
+     */
+    private User resolveInvitee(InviteRequest request) {
+        if (request.getUserId() != null && !request.getUserId().isBlank()) {
+            return userRepository.findById(request.getUserId())
+                    .orElseThrow(() -> new IllegalArgumentException("No user found with that id"));
+        }
+        if (request.getUsernameOrEmail() == null || request.getUsernameOrEmail().isBlank()) {
+            throw new IllegalArgumentException("A user id or username/email is required");
+        }
+        return userRepository.findByEmailOrUsername(request.getUsernameOrEmail())
+                .orElseThrow(() -> new IllegalArgumentException("No user found with that username or email"));
     }
 
     private boolean canManage(Project project, String userId) {

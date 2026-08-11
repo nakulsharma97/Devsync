@@ -34,6 +34,7 @@ class AuthControllerTest {
     private ObjectMapper objectMapper;
 
     @Mock private AuthService authService;
+    @Mock private AccountRecoveryService accountRecoveryService;
     @Mock private RefreshTokenCookie refreshTokenCookie;
     @InjectMocks private AuthController authController;
 

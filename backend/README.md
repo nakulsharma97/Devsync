@@ -19,25 +19,30 @@ CREATE DATABASE dev CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 The default schema name is `dev` (override with `SPRING_DATASOURCE_DB=...` if you
 use a different one). Flyway creates all tables on first startup.
 
-### 2. Configure
+### 2. Run (development)
 
-Edit `src/main/resources/application.yml` or set environment variables:
-
-```bash
-export JWT_SECRET=your-256-bit-secret-key-here
-export MAIL_USERNAME=your-email@gmail.com
-export MAIL_PASSWORD=your-app-password
-```
-
-### 3. Run
+Run with the `dev` profile — it supplies local-only defaults (MySQL `root` / `12345`,
+a development JWT secret). These values are DEV-ONLY and are refused by the
+production validator.
 
 ```bash
 cd backend
-mvn clean install
+SPRING_PROFILES_ACTIVE=dev mvn spring-boot:run
+```
+
+Or without a profile, by providing the same configuration explicitly:
+
+```bash
+export JWT_SECRET=your-256-bit-secret-key-here
+export SPRING_DATASOURCE_PASSWORD=12345
+export MAIL_USERNAME=your-email@gmail.com
+export MAIL_PASSWORD=your-app-password
 mvn spring-boot:run
 ```
 
-The API starts at: **http://localhost:8080**
+The API starts at: **http://localhost:8080**. The base `application.yml` has **no
+secret defaults** — running without a profile and without `JWT_SECRET` fails
+immediately (fail-fast).
 
 ---
 
@@ -53,6 +58,8 @@ The API starts at: **http://localhost:8080**
 | `DEVSYNC_ADMIN_EMAIL` | When seeding | – | Email of the bootstrap admin account. |
 | `DEVSYNC_ADMIN_PASSWORD` | When seeding | – | Password of the bootstrap admin account. Never logged, never exposed via API, stored BCrypt-encoded. |
 | `DEVSYNC_CORS_ORIGINS` | No | `http://localhost:5173,http://localhost:3000` | Comma-separated allowed CORS origins. Set to your real frontend origin in production. |
+| `FRONTEND_URL` | No | `http://localhost:5173` | Origin used in password-reset / email-verification links sent by email (e.g. `https://app.example.com`). |
+| `DEVSYNC_ACCOUNT_TOKEN_EXPIRATION_MINUTES` | No | `15` | Lifetime of single-use reset/verification tokens. |
 | `DEVSYNC_TRUST_X_FORWARDED_FOR` | No | `false` | Set `true` ONLY when the app sits behind a reverse proxy you control (nginx/LB). Never trust the header when the app is directly reachable — it is spoofable and would bypass rate limiting. |
 | `UPLOAD_DIR` / `UPLOAD_MAX_SIZE` | No | `./uploads` / `10485760` | File upload location and max size in bytes. |
 
@@ -60,6 +67,33 @@ The API starts at: **http://localhost:8080**
 > variables (which defaulted to `admin@devsync.com` / `Admin@123`) have been removed.
 
 ---
+
+## Configuration Profiles
+
+| Profile | File | Purpose |
+|---------|------|---------|
+| *(none)* | `application.yml` | Profile-neutral base. All secrets come from environment variables — **no secret defaults**, missing `JWT_SECRET` fails startup. |
+| `dev` | `application-dev.yml` | Local development. Contains the ONLY development fallback values (MySQL `root`/`12345`, a dev JWT secret), clearly labeled and overridable via env. |
+| `test` | `application-test.yml` | Automated tests (H2, in-memory, test-only secrets). |
+| `prod` | `application-prod.yml` | Production. Strict: every required secret is a placeholder **without a default** so a missing variable aborts startup. |
+| `oauth` | `application-oauth.yml` | OAuth2 login providers (GitHub/Google). Secrets are env-only and required — activating this profile without the env vars fails startup. |
+
+### Fail-fast production validation
+
+With `SPRING_PROFILES_ACTIVE=prod`, `ProductionConfigValidator` runs at startup and aborts
+the application when:
+
+- `JWT_SECRET` is missing, shorter than 32 characters, or equal to a known development fallback value;
+- `SPRING_DATASOURCE_PASSWORD` is missing or equal to the known local-development value (`12345`);
+- SMTP credentials are half-configured (`MAIL_USERNAME` without `MAIL_PASSWORD` or vice versa);
+- admin seeding is enabled without `DEVSYNC_ADMIN_EMAIL` / `DEVSYNC_ADMIN_PASSWORD`;
+- GitHub integration is half-configured, or enabled without `GITHUB_REDIRECT_URI`;
+- OAuth login providers are half-configured.
+
+The validator logs only the **names** of the offending variables — values are never logged,
+and startup aborts with `IllegalStateException`. This complements Spring's placeholder
+resolution: `application-prod.yml` declares secrets as `${VAR}` with no default, so a missing
+variable fails even earlier.
 
 ## Admin Accounts
 
@@ -105,6 +139,21 @@ Guidelines:
 - If the configured email already belongs to an **admin**, seeding is skipped - the existing password, name and role are **never** modified.
 - If the configured email belongs to a normal **USER** account, seeding is refused with a clear startup error - the account is **never silently promoted**. Grant the `ADMIN` role via the admin panel instead.
 - If seeding is enabled but credentials are missing, startup logs an error and creates nothing.
+
+## Password Reset & Email Verification
+
+Password reset and email verification share one secure token design:
+
+- **Single-use tokens** — consumed on first use; every reuse is rejected.
+- **Short-lived** — default 15 minutes (`DEVSYNC_ACCOUNT_TOKEN_EXPIRATION_MINUTES`). Expired tokens are deleted on sight.
+- **Hashed at rest** — only the SHA-256 hash of the token is stored; the raw token exists only in the email link.
+- **Generic responses** — `POST /api/auth/forgot-password` and `POST /api/auth/email/verify/request` always return `{success: true}` regardless of whether the email exists, so neither endpoint can be used to enumerate accounts.
+- **Rate-limited per email** (3 requests / 15 min, silently refused beyond that) on top of the global per-IP auth limiter.
+- **Session revocation** — a successful reset sets the new password and revokes every refresh session (`RefreshTokenService.revokeAllForUser`), forcing a fresh login. Raw tokens and passwords are never logged.
+
+Flow: `POST /api/auth/forgot-password` → email link → `POST /api/auth/reset-password` (token + new password) → all refresh sessions revoked → login again.
+
+**Email verification is optional in the current product.** Registration and password login do not require a verified address (only OAuth2 and OTP logins auto-verify). Unverified accounts can still use the app; the verification endpoints (`POST /api/auth/email/verify/request` + `POST /api/auth/email/verify`) and the `/verify-email` page exist so users can opt in. If verification ever becomes mandatory, the gate is `UserDetailsServiceImpl` mapping `emailVerified` to Spring Security's `enabled` flag (single change point) — but flipping that would break existing unverified accounts, so it is deliberately off.
 
 ## Security Notes
 
@@ -161,6 +210,10 @@ deletes, and be covered by tests. There is intentionally **no** scheduled purge 
 | POST | `/api/auth/otp/send?email=` | Send OTP for email login |
 | POST | `/api/auth/otp/verify` | Verify OTP and login |
 | POST | `/api/auth/oauth/callback` | OAuth2 callback handler |
+| POST | `/api/auth/forgot-password` | Request password reset (generic response) |
+| POST | `/api/auth/reset-password` | Set new password with single-use token |
+| POST | `/api/auth/email/verify/request` | Request email verification link (generic response) |
+| POST | `/api/auth/email/verify` | Verify email with single-use token |
 | GET | `/api/auth/me` | Get current user (requires auth) |
 
 ### Users (`/api/users`)

@@ -57,10 +57,17 @@ class WebSocketService {
 
     this.userId = userId;
     this.token = token;
-    const wsUrl = import.meta.env.VITE_WS_URL || "http://localhost:8080/ws";
+    // Same-origin by default (/ws, proxied by nginx in prod and by the Vite dev
+    // server in dev). Relative URLs use the page's own scheme, so wss is chosen
+    // automatically over HTTPS; absolute http(s) URLs are converted to ws(s).
+    const rawWsUrl = import.meta.env.VITE_WS_URL || "/ws";
+    const wsUrl =
+      rawWsUrl.startsWith("/") || rawWsUrl.startsWith("ws")
+        ? rawWsUrl
+        : rawWsUrl.replace("http", "ws");
 
     this.client = new Client({
-      webSocketFactory: () => new WebSocket(wsUrl.replace("http", "ws")),
+      webSocketFactory: () => new WebSocket(wsUrl),
       connectHeaders: {
         Authorization: `Bearer ${token}`,
         "X-User-Id": userId,

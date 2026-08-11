@@ -46,7 +46,6 @@ function postFixture(overrides: Partial<PostDto> = {}): PostDto {
     user: {
       id: "u1",
       fullName: "Buffy Test",
-      email: "buffy@test.com",
       avatarUrl: null,
       username: "buffytest",
     },
@@ -62,7 +61,6 @@ function commentFixture(overrides: Partial<CommentDto> = {}): CommentDto {
     user: {
       id: "u2",
       fullName: "Ada Lovelace",
-      email: "ada@test.com",
       avatarUrl: null,
       username: "ada",
     },
@@ -107,7 +105,7 @@ describe("Feed", () => {
         postFixture({
           id: "p2",
           content: "Second post",
-          user: { id: "u2", fullName: "Ada Lovelace", email: "ada@test.com", avatarUrl: null, username: "ada" },
+          user: { id: "u2", fullName: "Ada Lovelace", avatarUrl: null, username: "ada" },
         }),
       ],
       totalPages: 1,
@@ -229,7 +227,7 @@ describe("Feed", () => {
       commentFixture({
         id: "c2",
         content: "Thanks!",
-        user: { id: "u1", fullName: "Buffy Test", email: "buffy@test.com", avatarUrl: null, username: "buffytest" },
+        user: { id: "u1", fullName: "Buffy Test", avatarUrl: null, username: "buffytest" },
       })
     );
     const user = userEvent.setup();

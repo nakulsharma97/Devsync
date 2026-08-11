@@ -337,12 +337,10 @@ public class ProjectService {
                     return ProjectResponse.MemberDto.builder()
                             .id(m.getId()).userId(m.getUserId()).role(m.getRole().name())
                             .fullName(user != null ? user.getFullName() : "Unknown")
-                            .email(user != null ? user.getEmail() : "")
                             .avatarUrl(user != null ? user.getAvatarUrl() : null)
                             .username(user != null ? user.getUsername() : null)
                             .presenceStatus(user != null ? presenceService.effectiveStatus(user) : "OFFLINE")
                             .lastActiveAt(user != null ? user.getLastActiveAt() : null)
-                            .lastLoginAt(user != null ? user.getLastLoginAt() : null)
                             .build();
                 })
                 .toList();

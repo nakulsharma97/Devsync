@@ -12,14 +12,17 @@ import com.devsync.kanban.entity.Task;
 import com.devsync.kanban.repository.BoardColumnRepository;
 import com.devsync.kanban.repository.BoardRepository;
 import com.devsync.kanban.repository.TaskRepository;
+import com.devsync.notification.NotificationService;
 import com.devsync.project.entity.Project;
 import com.devsync.project.entity.ProjectMember;
 import com.devsync.project.repository.ProjectMemberRepository;
 import com.devsync.project.repository.ProjectRepository;
+import com.devsync.user.entity.User;
 import com.devsync.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -41,20 +44,33 @@ public class BoardService {
     private final ProjectRepository projectRepository;
     private final ProjectMemberRepository projectMemberRepository;
     private final ActivityService activityService;
+    private final NotificationService notificationService;
 
-    public BoardResponse getBoard(String boardId) {
-        Board board = boardRepository.findById(boardId)
-                .orElseThrow(() -> new ResourceNotFoundException("Board", boardId));
-        return toResponse(board);
+    /**
+     * Read access to a board. The board must belong to a project the caller can
+     * view (owner, platform admin, or any project member including VIEWER).
+     */
+    public BoardResponse getBoard(String boardId, String userId) {
+        verifyBoardReadAccess(boardId, userId);
+        return toResponse(findBoard(boardId));
     }
 
-    public BoardResponse getProjectBoard(String projectId) {
+    /**
+     * Read access to a project's board by project id — never trust the path
+     * parameter alone; the caller must be able to view the project.
+     */
+    public BoardResponse getProjectBoard(String projectId, String userId) {
+        Project project = findProject(projectId);
+        if (!canViewProject(project, userId)) {
+            throw new AccessDeniedException("You are not a member of this project");
+        }
         List<Board> boards = boardRepository.findByProjectId(projectId);
         return boards.isEmpty() ? null : toResponse(boards.get(0));
     }
 
     @Transactional
     public BoardResponse createBoard(String name, String projectId, String createdBy, List<String> columnNames) {
+        verifyProjectWriteAccess(projectId, createdBy);
         Board board = boardRepository.save(Board.builder()
                 .name(name).projectId(projectId).createdBy(createdBy).build());
         for (int i = 0; i < columnNames.size(); i++) {
@@ -67,7 +83,13 @@ public class BoardService {
     @Transactional
     public BoardResponse.TaskDto createTask(CreateTaskRequest request, String userId) {
         String boardId = getBoardIdFromColumn(request.getColumnId());
-        verifyBoardAccess(boardId, userId);
+        verifyBoardWriteAccess(boardId, userId);
+        String projectId = projectIdOfBoard(boardId);
+
+        // The assignee must exist and be an active member of the same project —
+        // never a user from another project, a non-member, or a deleted/blocked
+        // account.
+        verifyAssignee(request.getAssigneeId(), projectId);
 
         int nextPosition = taskRepository.findMaxPositionByColumnId(request.getColumnId()).orElse(-1) + 1;
         Task task = taskRepository.save(Task.builder()
@@ -79,12 +101,12 @@ public class BoardService {
                 .priority(request.getPriority() != null ? Task.Priority.valueOf(request.getPriority()) : Task.Priority.MEDIUM)
                 .dueDate(request.getDueDate()).labels(request.getLabels())
                 .build());
-        String projectId = projectIdOfBoard(boardId);
         activityService.record(userId, projectId, ActivityType.TASK_CREATED,
                 "Task created", task.getTitle(), null);
         if (request.getAssigneeId() != null && !request.getAssigneeId().equals(userId)) {
             activityService.record(userId, projectId, ActivityType.TASK_ASSIGNED,
                     "Task assigned", task.getTitle(), null);
+            notifyAssigned(projectId, task.getId(), task.getTitle(), userId, request.getAssigneeId());
         }
         return toTaskDto(task);
     }
@@ -93,7 +115,16 @@ public class BoardService {
     public void updateTaskPosition(UpdateTaskPositionRequest request, String userId) {
         Task task = taskRepository.findById(request.getTaskId())
                 .orElseThrow(() -> new ResourceNotFoundException("Task", request.getTaskId()));
-        verifyTaskProjectEditable(task);
+        verifyBoardWriteAccess(task.getBoardId(), userId);
+
+        // The destination column must belong to the SAME board — otherwise a
+        // task could be moved into another project's board by column id.
+        BoardColumn newColumn = columnRepository.findById(request.getNewColumnId())
+                .orElseThrow(() -> new ResourceNotFoundException("BoardColumn", request.getNewColumnId()));
+        if (!newColumn.getBoardId().equals(task.getBoardId())) {
+            throw new IllegalArgumentException("Task cannot be moved to a column in another board");
+        }
+
         String oldColumnId = task.getColumnId();
         task.setColumnId(request.getNewColumnId());
         task.setPosition(request.getNewPosition());
@@ -114,8 +145,14 @@ public class BoardService {
     public Task updateTask(String taskId, CreateTaskRequest request, String userId) {
         Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new ResourceNotFoundException("Task", taskId));
-        verifyBoardAccess(task.getBoardId(), userId);
+        verifyBoardWriteAccess(task.getBoardId(), userId);
+        String projectId = projectIdOfBoard(task.getBoardId());
+        String oldAssigneeId = task.getAssigneeId();
 
+        if (request.getAssigneeId() != null && !request.getAssigneeId().equals(oldAssigneeId)) {
+            // Assignment change: the new assignee must be a valid project member.
+            verifyAssignee(request.getAssigneeId(), projectId);
+        }
         if (request.getTitle() != null) task.setTitle(request.getTitle());
         if (request.getDescription() != null) task.setDescription(request.getDescription());
         if (request.getAssigneeId() != null) task.setAssigneeId(request.getAssigneeId());
@@ -123,8 +160,17 @@ public class BoardService {
         if (request.getDueDate() != null) task.setDueDate(request.getDueDate());
         if (request.getLabels() != null) task.setLabels(request.getLabels());
         task = taskRepository.save(task);
-        activityService.record(userId, projectIdOfBoard(task.getBoardId()), ActivityType.TASK_UPDATED,
+        activityService.record(userId, projectId, ActivityType.TASK_UPDATED,
                 "Task updated", task.getTitle(), null);
+
+        // Notify only on an actual assignment change — never on unrelated edits
+        // that keep the same assignee (no duplicate notifications).
+        String newAssigneeId = task.getAssigneeId();
+        if (newAssigneeId != null && !newAssigneeId.equals(oldAssigneeId) && !newAssigneeId.equals(userId)) {
+            activityService.record(userId, projectId, ActivityType.TASK_ASSIGNED,
+                    "Task assigned", task.getTitle(), null);
+            notifyAssigned(projectId, task.getId(), task.getTitle(), userId, newAssigneeId);
+        }
         return task;
     }
 
@@ -132,7 +178,7 @@ public class BoardService {
     public void deleteTask(String taskId, String userId) {
         Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new ResourceNotFoundException("Task", taskId));
-        verifyBoardAccess(task.getBoardId(), userId);
+        verifyBoardWriteAccess(task.getBoardId(), userId);
         String projectId = projectIdOfBoard(task.getBoardId());
         taskRepository.deleteById(taskId);
         activityService.record(userId, projectId, ActivityType.TASK_DELETED,
@@ -177,11 +223,9 @@ public class BoardService {
     public Page<BoardResponse.TaskDto> filterTasks(String projectId, String priority, String label,
                                                    String status, String keyword, int page, int size,
                                                    String userId) {
-        Project project = projectRepository.findById(projectId)
-                .filter(p -> !p.isDeleted())
-                .orElseThrow(() -> new ResourceNotFoundException("Project", projectId));
+        Project project = findProject(projectId);
         if (!canViewProject(project, userId)) {
-            throw new IllegalArgumentException("You are not a member of this project");
+            throw new AccessDeniedException("You are not a member of this project");
         }
         // Validate input first — an invalid filter must be rejected even when the
         // project has no boards yet.
@@ -212,36 +256,93 @@ public class BoardService {
         return projectMemberRepository.existsByProjectIdAndUserId(project.getId(), userId);
     }
 
-    private String projectIdOfBoard(String boardId) {
-        return boardRepository.findById(boardId).map(Board::getProjectId).orElse(null);
+    /**
+     * A single task DTO after an update — the response for PUT /tasks/{id}.
+     * Read access is verified against the task's board.
+     */
+    @Transactional(readOnly = true)
+    public BoardResponse.TaskDto getTaskDto(String taskId, String userId) {
+        Task task = taskRepository.findById(taskId)
+                .orElseThrow(() -> new ResourceNotFoundException("Task", taskId));
+        verifyBoardReadAccess(task.getBoardId(), userId);
+        return toTaskDto(task);
     }
 
-    private boolean isDoneColumn(String name) {
-        String n = name == null ? "" : name.toLowerCase();
-        return n.contains("done") || n.contains("complete");
-    }
-
-    private void verifyBoardAccess(String boardId, String userId) {
-        Board board = boardRepository.findById(boardId)
-                .orElseThrow(() -> new ResourceNotFoundException("Board", boardId));
-        Project project = projectRepository.findById(board.getProjectId())
-                .orElseThrow(() -> new ResourceNotFoundException("Project", board.getProjectId()));
-        ensureProjectEditable(project);
-        if (project.getOwnerId().equals(userId)) return;
-        boolean isAdmin = projectMemberRepository.findByProjectIdAndUserId(board.getProjectId(), userId)
-                .filter(m -> m.getRole() == ProjectMember.Role.ADMIN || m.getRole() == ProjectMember.Role.OWNER)
-                .isPresent();
-        if (!isAdmin) {
-            throw new IllegalArgumentException("You don't have permission to modify tasks in this project");
+    /**
+     * Assignment rules: the assignee must exist and be an active member of the
+     * same project. Deleted, blocked and unknown users are rejected; users from
+     * another project (non-members) get 403. A null/blank assignee means
+     * "unassigned" and is always allowed.
+     */
+    private void verifyAssignee(String assigneeId, String projectId) {
+        if (assigneeId == null || assigneeId.isBlank()) return;
+        User assignee = userRepository.findById(assigneeId)
+                .orElseThrow(() -> new IllegalArgumentException("Assignee not found"));
+        if (assignee.isDeleted()) {
+            throw new IllegalArgumentException("Cannot assign a task to a deleted user");
+        }
+        if (assignee.isBlocked()) {
+            throw new IllegalArgumentException("Cannot assign a task to a blocked user");
+        }
+        Project project = findProject(projectId);
+        boolean isMember = project.getOwnerId().equals(assigneeId)
+                || projectMemberRepository.existsByProjectIdAndUserId(projectId, assigneeId);
+        if (!isMember) {
+            throw new AccessDeniedException("Assignee is not a member of this project");
         }
     }
 
-    private void verifyTaskProjectEditable(Task task) {
-        Board board = boardRepository.findById(task.getBoardId())
-                .orElseThrow(() -> new ResourceNotFoundException("Board", task.getBoardId()));
-        Project project = projectRepository.findById(board.getProjectId())
-                .orElseThrow(() -> new ResourceNotFoundException("Project", board.getProjectId()));
+    /**
+     * Notifies the assignee through the existing notification system. The
+     * caller only reaches this point after a genuine assignment change, so no
+     * duplicate notification is emitted for unchanged assignments.
+     */
+    private void notifyAssigned(String projectId, String taskId, String taskTitle,
+                                String actorId, String assigneeId) {
+        Project project = findProject(projectId);
+        User actor = userRepository.findById(actorId).orElse(null);
+        String actorName = actor != null ? actor.getFullName() : "Someone";
+        notificationService.createNotification(
+                assigneeId, "TASK_ASSIGNED", "Task assigned",
+                actorName + " assigned you a task in " + project.getName(),
+                actorId, actorName, actor != null ? actor.getAvatarUrl() : null,
+                taskId, "task", "/board/" + projectId);
+    }
+
+    /**
+     * Read access: project owner, platform admin, or any project member
+     * (including VIEWER). Everything else is 403.
+     */
+    private void verifyBoardReadAccess(String boardId, String userId) {
+        Project project = findProject(findBoard(boardId).getProjectId());
+        if (!canViewProject(project, userId)) {
+            throw new AccessDeniedException("You are not a member of this project");
+        }
+    }
+
+    /**
+     * Write access to a board's tasks: the project must be editable (not
+     * archived/deleted) and the caller must hold a role that can modify tasks
+     * (OWNER, ADMIN, MEMBER). VIEWER and non-members are 403.
+     */
+    private void verifyBoardWriteAccess(String boardId, String userId) {
+        verifyProjectWriteAccess(findBoard(boardId).getProjectId(), userId);
+    }
+
+    /**
+     * Write access by project id (used when the board may not exist yet, e.g.
+     * createBoard). Archived/deleted projects reject all writes; VIEWER and
+     * non-members get 403.
+     */
+    private void verifyProjectWriteAccess(String projectId, String userId) {
+        Project project = findProject(projectId);
         ensureProjectEditable(project);
+        if (project.getOwnerId().equals(userId)) return;
+        ProjectMember member = projectMemberRepository.findByProjectIdAndUserId(project.getId(), userId)
+                .orElseThrow(() -> new AccessDeniedException("You are not a member of this project"));
+        if (member.getRole() == ProjectMember.Role.VIEWER) {
+            throw new AccessDeniedException("Viewers cannot modify tasks in this project");
+        }
     }
 
     /**
@@ -255,6 +356,26 @@ public class BoardService {
         if (project.getStatus() == Project.ProjectStatus.ARCHIVED) {
             throw new IllegalArgumentException("This project is archived and is read-only");
         }
+    }
+
+    private Board findBoard(String boardId) {
+        return boardRepository.findById(boardId)
+                .orElseThrow(() -> new ResourceNotFoundException("Board", boardId));
+    }
+
+    private Project findProject(String projectId) {
+        return projectRepository.findById(projectId)
+                .filter(p -> !p.isDeleted())
+                .orElseThrow(() -> new ResourceNotFoundException("Project", projectId));
+    }
+
+    private String projectIdOfBoard(String boardId) {
+        return boardRepository.findById(boardId).map(Board::getProjectId).orElse(null);
+    }
+
+    private boolean isDoneColumn(String name) {
+        String n = name == null ? "" : name.toLowerCase();
+        return n.contains("done") || n.contains("complete");
     }
 
     private void reorderColumn(String columnId) {

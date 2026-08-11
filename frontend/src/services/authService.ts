@@ -100,9 +100,22 @@ export const authService = {
     return !!localStorage.getItem("accessToken");
   },
 
+  /** Generic response — the server never reveals whether the email exists. */
   async forgotPassword(email: string): Promise<void> {
-    console.warn(`Forgot password not yet implemented on the server (${email})`);
-    // Endpoint will be added in a future update
+    await api.post("/auth/forgot-password", { email });
+  },
+
+  async resetPassword(token: string, newPassword: string): Promise<void> {
+    await api.post("/auth/reset-password", { token, newPassword });
+  },
+
+  /** Sends a verification link to an unverified account (silently skipped otherwise). */
+  async requestEmailVerification(email: string): Promise<void> {
+    await api.post("/auth/email/verify/request", { email });
+  },
+
+  async verifyEmail(token: string): Promise<void> {
+    await api.post("/auth/email/verify", { token });
   },
 
   async loginWithOAuth(provider: string): Promise<void> {

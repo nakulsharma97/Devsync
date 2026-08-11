@@ -27,8 +27,10 @@ public class AttachmentController {
             @RequestParam(required = false) String contextId,
             @RequestParam(required = false) String projectId,
             @AuthenticationPrincipal UserDetails userDetails) {
+        boolean isAdmin = userDetails.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
         return ResponseEntity.ok(attachmentService.upload(
-                file, contextType, contextId, projectId, userDetails.getUsername()));
+                file, contextType, contextId, projectId, userDetails.getUsername(), isAdmin));
     }
 
     /**

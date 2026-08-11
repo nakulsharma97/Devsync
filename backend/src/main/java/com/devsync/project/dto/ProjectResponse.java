@@ -36,11 +36,9 @@ public class ProjectResponse {
         private String userId;
         private String role;
         private String fullName;
-        private String email;
         private String avatarUrl;
         private String username;
         private String presenceStatus;
         private java.time.Instant lastActiveAt;
-        private java.time.Instant lastLoginAt;
     }
 }

@@ -74,7 +74,7 @@ public class SearchService {
             userRepository.searchUsers(kw, userId).stream().limit(CAP)
                     .forEach(u -> all.add(SearchResultItem.builder()
                             .type("USER").id(u.getId()).title(u.getFullName())
-                            .subtitle("@" + (u.getUsername() != null ? u.getUsername() : u.getEmail()))
+                            .subtitle(u.getUsername() != null ? "@" + u.getUsername() : "Developer")
                             .url("/user/" + u.getId()).build()));
         }
         if (requestedType.isEmpty() || requestedType.equals("TEAM")) {

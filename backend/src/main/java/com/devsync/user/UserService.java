@@ -3,6 +3,7 @@ package com.devsync.user;
 import com.devsync.common.ResourceNotFoundException;
 import com.devsync.presence.PresenceService;
 import com.devsync.project.repository.ProjectMemberRepository;
+import com.devsync.user.dto.PublicUserResponse;
 import com.devsync.user.dto.UpdateUserRequest;
 import com.devsync.user.dto.UserResponse;
 import com.devsync.user.entity.User;
@@ -31,15 +32,16 @@ public class UserService {
     /**
      * Looks up a user profile but only allows access if the requesting user
      * has a relationship (shared project) with the target user, or is viewing
-     * their own profile.
+     * their own profile. Other users always get the privacy-scoped
+     * {@link PublicUserResponse} — email and account metadata stay private.
      */
-    public UserResponse getUserByIdWithAuth(String targetUserId, String requestingUserId) {
+    public PublicUserResponse getUserByIdWithAuth(String targetUserId, String requestingUserId) {
         User user = userRepository.findById(targetUserId)
                 .orElseThrow(() -> new ResourceNotFoundException("User", targetUserId));
 
         // Allow viewing own profile
         if (targetUserId.equals(requestingUserId)) {
-            return toResponse(user);
+            return toPublicResponse(user);
         }
 
         // Check for shared project membership
@@ -51,7 +53,7 @@ public class UserService {
             throw new IllegalArgumentException("You do not have a shared project with this user");
         }
 
-        return toResponse(user);
+        return toPublicResponse(user);
     }
 
     @Transactional
@@ -80,17 +82,21 @@ public class UserService {
         return toResponse(user);
     }
 
-    public List<UserResponse> searchUsers(String query, String excludeUserId) {
+    /**
+     * Public directory search — results are privacy-scoped and never include
+     * email, account metadata or login timestamps.
+     */
+    public List<PublicUserResponse> searchUsers(String query, String excludeUserId) {
         if (query == null || query.isBlank()) {
             // Deleted accounts are hidden from normal user searches; the query
             // runs in the database rather than loading the whole users table.
             return userRepository.findActiveUsers().stream()
                     .filter(u -> !u.getId().equals(excludeUserId))
-                    .map(this::toResponse)
+                    .map(this::toPublicResponse)
                     .toList();
         }
         return userRepository.searchUsers(query, excludeUserId).stream()
-                .map(this::toResponse)
+                .map(this::toPublicResponse)
                 .toList();
     }
 
@@ -100,6 +106,7 @@ public class UserService {
                 .toList();
     }
 
+    /** Full account view — reserved for the account owner and platform admins. */
     public UserResponse toResponse(User user) {
         return UserResponse.builder()
                 .id(user.getId())
@@ -119,6 +126,26 @@ public class UserService {
                 .authProvider(user.getAuthProvider())
                 .createdAt(user.getCreatedAt())
                 .lastLoginAt(user.getLastLoginAt())
+                .presenceStatus(presenceService.effectiveStatus(user))
+                .lastActiveAt(user.getLastActiveAt())
+                .build();
+    }
+
+    /** Privacy-scoped profile for search results and other users. */
+    public PublicUserResponse toPublicResponse(User user) {
+        return PublicUserResponse.builder()
+                .id(user.getId())
+                .username(user.getUsername())
+                .fullName(user.getFullName())
+                .avatarUrl(user.getAvatarUrl())
+                .bio(user.getBio())
+                .jobTitle(user.getJobTitle())
+                .company(user.getCompany())
+                .location(user.getLocation())
+                .githubUrl(user.getGithubUrl())
+                .twitterUrl(user.getTwitterUrl())
+                .websiteUrl(user.getWebsiteUrl())
+                .createdAt(user.getCreatedAt())
                 .presenceStatus(presenceService.effectiveStatus(user))
                 .lastActiveAt(user.getLastActiveAt())
                 .build();
