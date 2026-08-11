@@ -12,9 +12,17 @@ export interface Conversation {
 }
 
 export const conversationService = {
+  /**
+   * Resolve the conversation id for a DM with a user.
+   *
+   * The backend derives conversations from message history (no stored
+   * conversation entity) and has no create-or-get endpoint — the previous
+   * POST /messages/conversations/create-or-get call returned 404. Opening
+   * /messages/dm_<userId> can therefore never create a duplicate: the
+   * conversation exists as soon as the first message is sent.
+   */
   async createOrGet(otherUserId: string): Promise<{ conversationId: string }> {
-    const res = await api.post("/messages/conversations/create-or-get", { otherUserId });
-    return res.data;
+    return { conversationId: `dm_${otherUserId}` };
   },
   async getMyConversations(): Promise<Conversation[]> {
     const res = await api.get("/messages/conversations");

@@ -10,12 +10,77 @@ import {
   Monitor,
   Database,
   Cloud,
+  Triangle,
+  Orbit,
+  Atom,
+  Boxes,
+  Waves,
+  Landmark,
 } from "lucide-react";
 
 // ─── CSS keyframes — injected via <style> in Landing ────────────
+// NOTE: keyframes referenced by landing sections live here so the
+// Landing page is self-contained (Auth.tsx defines its own copies).
 
 export const keyframesStyle = `
-html { scroll-behavior: smooth; }
+html {
+  scroll-behavior: smooth;
+  /* Keep anchored sections clear of the fixed navbar */
+  scroll-padding-top: 5.5rem;
+}
+
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes slide-in-left {
+  from { opacity: 0; transform: translateX(-40px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@keyframes slide-in-right {
+  from { opacity: 0; transform: translateX(40px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+@keyframes gradient-pan {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+@keyframes shine-sweep {
+  0% { transform: translateX(-160%) skewX(-20deg); }
+  60%, 100% { transform: translateX(260%) skewX(-20deg); }
+}
+
+.animate-fade-in-up { animation: fade-in-up 0.6s ease-out both; }
+.animate-fade-in { animation: fade-in 0.6s ease-out both; }
+.animate-slide-in-left { animation: slide-in-left 0.6s ease-out both; }
+.animate-slide-in-right { animation: slide-in-right 0.6s ease-out both; }
+.animate-marquee { animation: marquee 34s linear infinite; }
+.animate-gradient-pan {
+  background-size: 200% auto;
+  animation: gradient-pan 6s ease-in-out infinite;
+}
+.animate-shine-sweep { animation: shine-sweep 3.2s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-in-up,
+  .animate-fade-in,
+  .animate-slide-in-left,
+  .animate-slide-in-right,
+  .animate-marquee,
+  .animate-gradient-pan,
+  .animate-shine-sweep {
+    animation: none !important;
+  }
+}
 `;
 
 // ─── Feature Cards ──────────────────────────────────────────────
@@ -34,6 +99,24 @@ export const features: Feature[] = [
   { icon: Terminal, title: "Dev Environment in Browser", description: "Full Linux terminal, VS Code extensions, and database clients. Everything runs in your browser, nothing on your machine.", iconBg: "from-orange-500 to-amber-600" },
   { icon: Shield, title: "Enterprise Security", description: "SOC 2 compliant, end-to-end encryption, SSO, audit logs, and granular permission controls for teams of any size.", iconBg: "from-red-500 to-rose-600" },
   { icon: Layers, title: "Smart Workspaces", description: "Organize projects with intelligent workspaces. AI suggests folder structures, dependencies, and team assignments automatically.", iconBg: "from-violet-500 to-fuchsia-600" },
+];
+
+// ─── Trusted-by Logo Marquee ────────────────────────────────────
+
+export interface Company {
+  name: string;
+  icon: typeof Code2;
+}
+
+export const companies: Company[] = [
+  { name: "Nimbus", icon: Cloud },
+  { name: "Vertex", icon: Triangle },
+  { name: "Orbit", icon: Orbit },
+  { name: "Quantum", icon: Atom },
+  { name: "Helix", icon: Boxes },
+  { name: "Drift", icon: Waves },
+  { name: "Beacon", icon: Landmark },
+  { name: "Apex", icon: Zap },
 ];
 
 // ─── Stats ──────────────────────────────────────────────────────
@@ -72,7 +155,9 @@ export const testimonials: Testimonial[] = [
 export interface PricingPlan {
   name: string;
   price: string;
+  priceYearly: string;
   period: string;
+  periodYearly: string;
   description: string;
   features: string[];
   cta: string;
@@ -80,9 +165,9 @@ export interface PricingPlan {
 }
 
 export const pricing: PricingPlan[] = [
-  { name: "Starter", price: "$0", period: "/month", description: "Perfect for individual developers and open-source projects.", features: ["Unlimited public projects", "AI code suggestions", "Community support", "1 GB storage", "Basic analytics"], cta: "Get Started Free", popular: false },
-  { name: "Pro", price: "$19", period: "/month", description: "For professional developers who need more power and privacy.", features: ["Everything in Starter", "Unlimited private projects", "Priority AI features", "50 GB storage", "Advanced analytics", "Custom domains", "Team collaboration"], cta: "Start Free Trial", popular: true },
-  { name: "Enterprise", price: "$99", period: "/month", description: "For teams that need enterprise-grade security and control.", features: ["Everything in Pro", "SSO & SAML", "Audit logs", "Unlimited storage", "99.99% SLA", "Dedicated support", "Custom integrations", "On-premise option"], cta: "Contact Sales", popular: false },
+  { name: "Starter", price: "$0", priceYearly: "$0", period: "/month", periodYearly: "/month, billed yearly", description: "Perfect for individual developers and open-source projects.", features: ["Unlimited public projects", "AI code suggestions", "Community support", "1 GB storage", "Basic analytics"], cta: "Get Started Free", popular: false },
+  { name: "Pro", price: "$19", priceYearly: "$15", period: "/month", periodYearly: "/month, billed yearly", description: "For professional developers who need more power and privacy.", features: ["Everything in Starter", "Unlimited private projects", "Priority AI features", "50 GB storage", "Advanced analytics", "Custom domains", "Team collaboration"], cta: "Start Free Trial", popular: true },
+  { name: "Enterprise", price: "$99", priceYearly: "$79", period: "/month", periodYearly: "/month, billed yearly", description: "For teams that need enterprise-grade security and control.", features: ["Everything in Pro", "SSO & SAML", "Audit logs", "Unlimited storage", "99.99% SLA", "Dedicated support", "Custom integrations", "On-premise option"], cta: "Contact Sales", popular: false },
 ];
 
 // ─── Benefits ───────────────────────────────────────────────────

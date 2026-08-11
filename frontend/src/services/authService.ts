@@ -18,6 +18,9 @@ export interface UserDto {
   authProvider: string;
   createdAt: string;
   lastLoginAt: string | null;
+  /** Present on /users responses (search, by-id) — absent on /auth/me. */
+  presenceStatus?: string | null;
+  lastActiveAt?: string | null;
 }
 
 export interface AuthResponse {

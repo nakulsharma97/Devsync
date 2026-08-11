@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from "react";
+import { createContext, useContext, useState, useCallback, useEffect, useMemo, type ReactNode } from "react";
 import { authService, type AuthResponse } from "@/services/authService";
 import { wsService } from "@/services/websocketService";
 
@@ -142,26 +142,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     window.location.href = "/";
   }, []);
 
-  return (
-    <AuthContext.Provider
-      value={{
-        user,
-        isLoading,
-        isAuthenticated: !!user,
-        isAdmin: user?.role === "ADMIN",
-        error,
-        login,
-        register,
-        logout,
-        clearError,
-        forgotPassword,
-        loginWithOAuth,
-        refreshUser,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
+  // Memoized so consumers only re-render when auth state actually changes
+  // (the callback identities are stable via useCallback above).
+  const value = useMemo(
+    () => ({
+      user,
+      isLoading,
+      isAuthenticated: !!user,
+      isAdmin: user?.role === "ADMIN",
+      error,
+      login,
+      register,
+      logout,
+      clearError,
+      forgotPassword,
+      loginWithOAuth,
+      refreshUser,
+    }),
+    [
+      user,
+      isLoading,
+      error,
+      login,
+      register,
+      logout,
+      clearError,
+      forgotPassword,
+      loginWithOAuth,
+      refreshUser,
+    ]
   );
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {

@@ -1,4 +1,4 @@
 -------------------------------------------------------------------------------
 Test set: com.devsync.report.ReportAdminControllerTest
 -------------------------------------------------------------------------------
-Tests run: 10, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 4.212 s -- in com.devsync.report.ReportAdminControllerTest
+Tests run: 10, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 5.665 s -- in com.devsync.report.ReportAdminControllerTest

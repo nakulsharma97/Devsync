@@ -181,7 +181,7 @@ All schema changes flow through Flyway migrations (`backend/src/main/resources/d
 
 ```bash
 # 1. Database
-mysql -u root -p -e "CREATE DATABASE IF NOT EXISTS devsync_db;"
+mysql -u root -p -e "CREATE DATABASE IF NOT EXISTS dev;"
 
 # 2. Backend (http://localhost:8080)
 cd backend

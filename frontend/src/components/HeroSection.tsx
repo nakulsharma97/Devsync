@@ -1,17 +1,17 @@
-import { lazy, Suspense, useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router";
 import { Button } from "@/components/ui/button";
 import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
 import { Rocket, Terminal, Check } from "lucide-react";
 import GlassCodeEditor from "@/components/GlassCodeEditor";
-
-const OrganicBlob = lazy(() => import("@/components/OrganicBlob"));
+import { prefersReducedMotion } from "@/lib/utils";
 
 export default function HeroSection() {
   const navigate = useNavigate();
   const sectionRef = useRef<HTMLDivElement>(null);
 
-  // ── Mouse parallax ──
+  // ── Mouse parallax (transform-only via motion values — GPU composited, no
+  // React re-renders. Skipped entirely when the user prefers reduced motion.) ──
   const mouseX = useMotionValue(0.5);
   const mouseY = useMotionValue(0.5);
   const springX = useSpring(mouseX, { stiffness: 30, damping: 20 });
@@ -27,6 +27,7 @@ export default function HeroSection() {
   const gridY = useTransform(springY, [0, 1], [-20, 20]);
 
   useEffect(() => {
+    if (prefersReducedMotion) return;
     const handleMouse = (e: MouseEvent) => {
       mouseX.set(e.clientX / window.innerWidth);
       mouseY.set(e.clientY / window.innerHeight);
@@ -35,17 +36,29 @@ export default function HeroSection() {
     return () => window.removeEventListener("mousemove", handleMouse);
   }, [mouseX, mouseY]);
 
-  const [scrollY, setScrollY] = useState(0);
+  // Scroll-hint visibility. Boolean state only flips at the 50px threshold
+  // (rAF-throttled), so the hero does NOT re-render on every scroll event.
+  const [showScrollHint, setShowScrollHint] = useState(true);
   useEffect(() => {
-    const handleScroll = () => setScrollY(window.scrollY);
+    let frame = 0;
+    const handleScroll = () => {
+      if (frame) return;
+      frame = requestAnimationFrame(() => {
+        frame = 0;
+        setShowScrollHint(window.scrollY <= 50);
+      });
+    };
     window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      if (frame) cancelAnimationFrame(frame);
+    };
   }, []);
 
   return (
     <section
       ref={sectionRef}
-      className="relative min-h-screen flex items-center pt-24 overflow-hidden dark:bg-[#050816] bg-gradient-to-b from-slate-50 to-white"
+      className="relative min-h-screen flex items-center pt-24 overflow-hidden bg-gradient-to-b from-background to-card/70"
     >
       {/* Parallax grid layer - only in dark mode */}
       <motion.div
@@ -61,6 +74,26 @@ export default function HeroSection() {
           }}
         />
       </motion.div>
+
+      {/* Ambient aurora glow */}
+      <motion.div
+        className="absolute -top-40 -left-40 w-[560px] h-[560px] rounded-full pointer-events-none opacity-60 dark:opacity-40 blur-3xl will-change-transform"
+        style={{
+          x: blobX,
+          y: blobY,
+          background:
+            "radial-gradient(circle at 50% 50%, rgba(99,102,241,0.16) 0%, transparent 70%)",
+        }}
+      />
+      <motion.div
+        className="absolute top-1/3 -right-32 w-[480px] h-[480px] rounded-full pointer-events-none opacity-50 dark:opacity-30 blur-3xl will-change-transform"
+        style={{
+          x: blobX,
+          y: blobY,
+          background:
+            "radial-gradient(circle at 50% 50%, rgba(168,85,247,0.12) 0%, transparent 70%)",
+        }}
+      />
 
       <div className="mx-auto max-w-7xl px-4 sm:px-6 relative z-10 w-full">
         <div className="grid lg:grid-cols-2 gap-8 lg:gap-16 items-center">
@@ -105,10 +138,10 @@ export default function HeroSection() {
               Collaborate.
               <br />
               <span
-                className="bg-clip-text text-transparent"
+                className="bg-clip-text text-transparent animate-gradient-pan inline-block"
                 style={{
                   backgroundImage:
-                    "linear-gradient(135deg, #818cf8 0%, #6366f1 30%, #a78bfa 60%, #c4b5fd 100%)",
+                    "linear-gradient(120deg, #818cf8 0%, #6366f1 25%, #a78bfa 50%, #c4b5fd 70%, #818cf8 100%)",
                 }}
               >
                 Ship at light speed.
@@ -225,30 +258,6 @@ export default function HeroSection() {
             style={{ x: editorX, y: editorY }}
           >
             <motion.div
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 1, delay: 0.3, ease: "easeOut" }}
-              className="w-full max-w-[420px] h-[380px] relative"
-              style={{ x: blobX, y: blobY }}
-            >
-              <Suspense
-                fallback={
-                  <div className="w-full h-full flex items-center justify-center">
-                    <div
-                      className="w-12 h-12 rounded-full border-2 animate-spin"
-                      style={{
-                        borderColor: "rgba(99, 102, 241, 0.2)",
-                        borderTopColor: "#6366f1",
-                      }}
-                    />
-                  </div>
-                }
-              >
-                <OrganicBlob />
-              </Suspense>
-            </motion.div>
-
-            <motion.div
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.6, ease: "easeOut" }}
@@ -263,10 +272,11 @@ export default function HeroSection() {
       {/* Scroll indicator */}
       <motion.div
         initial={{ opacity: 0 }}
-        animate={{ opacity: scrollY > 50 ? 0 : 1 }}
+        animate={{ opacity: showScrollHint ? 1 : 0 }}
         transition={{ duration: 0.4 }}
         className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2"
-      >          <span className="text-xs font-mono text-muted-foreground">
+      >
+        <span className="text-xs font-mono text-muted-foreground">
           Scroll to explore
         </span>
         <motion.div

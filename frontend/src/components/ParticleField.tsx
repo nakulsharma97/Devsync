@@ -1,11 +1,11 @@
 import { useEffect, useRef } from "react";
+import { prefersReducedMotion } from "@/lib/utils";
 
 // ─── Canvas particle system ──────────────────────────────
 
 function ParticleCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const mouseRef = useRef({ x: 0.5, y: 0.5 });
-  const frameRef = useRef(0);
   const isDarkRef = useRef(
     typeof document !== "undefined" && document.documentElement.classList.contains("dark")
   );
@@ -31,8 +31,8 @@ function ParticleCanvas() {
     });
     observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
 
-    // ── Particles ──
-    const PARTICLE_COUNT = 80;
+    // ── Particles (kept modest to avoid scroll jank on low-end devices) ──
+    const PARTICLE_COUNT = 48;
     const particles: {
       x: number;
       y: number;
@@ -82,8 +82,11 @@ function ParticleCanvas() {
     window.addEventListener("resize", handleResize);
 
     let animId: number;
+    let running = true;
+    let frameCount = 0;
+
     const draw = () => {
-      frameRef.current++;
+      frameCount++;
       ctx.clearRect(0, 0, w, h);
 
       const dark = isDarkRef.current;
@@ -112,8 +115,8 @@ function ParticleCanvas() {
 
       // ── Light beams ──
       const beamAlpha = dark
-        ? 0.015 + Math.sin(frameRef.current * 0.01) * 0.008
-        : 0.02 + Math.sin(frameRef.current * 0.01) * 0.01;
+        ? 0.015 + Math.sin(frameCount * 0.01) * 0.008
+        : 0.02 + Math.sin(frameCount * 0.01) * 0.01;
       ctx.strokeStyle = `rgba(99, 102, 241, ${beamAlpha})`;
       ctx.lineWidth = 1.5;
       for (let i = 0; i < 3; i++) {
@@ -127,9 +130,9 @@ function ParticleCanvas() {
 
       // ── Floating circles ──
       for (let i = 0; i < 6; i++) {
-        const cx = (w * (i + 0.5)) / 6 + Math.sin(frameRef.current * 0.005 + i) * 40;
-        const cy = (h * ((i % 3) + 1)) / 4 + Math.cos(frameRef.current * 0.007 + i * 2) * 30;
-        const cr = 20 + Math.sin(frameRef.current * 0.01 + i) * 10;
+        const cx = (w * (i + 0.5)) / 6 + Math.sin(frameCount * 0.005 + i) * 40;
+        const cy = (h * ((i % 3) + 1)) / 4 + Math.cos(frameCount * 0.007 + i * 2) * 30;
+        const cr = 20 + Math.sin(frameCount * 0.01 + i) * 10;
         const gradient = ctx.createRadialGradient(cx, cy, 0, cx, cy, cr);
         gradient.addColorStop(0, dark ? "rgba(99, 102, 241, 0.04)" : "rgba(99, 102, 241, 0.06)");
         gradient.addColorStop(0.5, dark ? "rgba(99, 102, 241, 0.02)" : "rgba(99, 102, 241, 0.03)");
@@ -154,7 +157,7 @@ function ParticleCanvas() {
         p.vy *= 0.999;
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(129, 140, 248, ${p.alpha + Math.sin(frameRef.current * p.speed + p.x) * 0.1})`;
+        ctx.fillStyle = `rgba(129, 140, 248, ${p.alpha + Math.sin(frameCount * p.speed + p.x) * 0.1})`;
         ctx.fill();
       }
 
@@ -162,7 +165,7 @@ function ParticleCanvas() {
       if (dark) {
         for (const star of stars) {
           const twinkle =
-            star.twinkle * (0.5 + 0.5 * Math.sin(frameRef.current * 0.02 + star.phase));
+            star.twinkle * (0.5 + 0.5 * Math.sin(frameCount * 0.02 + star.phase));
           ctx.beginPath();
           ctx.arc(star.x, star.y, star.r * twinkle, 0, Math.PI * 2);
           ctx.fillStyle = `rgba(255, 255, 255, ${0.3 * twinkle})`;
@@ -188,13 +191,37 @@ function ParticleCanvas() {
         }
       }
 
-      animId = requestAnimationFrame(draw);
+      // Keep animating only while the tab is visible and the user allows motion.
+      // Pausing when hidden saves CPU/battery and prevents scroll jank when the
+      // user returns and scrolls while the loop was still burning frames.
+      if (!prefersReducedMotion && !document.hidden && running) {
+        animId = requestAnimationFrame(draw);
+      }
     };
-    draw();
+
+    // Pause the animation loop while the tab is hidden; resume on visibility.
+    const handleVisibility = () => {
+      if (document.hidden) {
+        running = false;
+        cancelAnimationFrame(animId);
+      } else if (!running && !prefersReducedMotion) {
+        running = true;
+        animId = requestAnimationFrame(draw);
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+
+    if (prefersReducedMotion) {
+      // Reduced motion: draw a single static frame (grid + particles) and stop.
+      draw();
+    } else {
+      animId = requestAnimationFrame(draw);
+    }
 
     return () => {
       cancelAnimationFrame(animId);
       observer.disconnect();
+      document.removeEventListener("visibilitychange", handleVisibility);
       window.removeEventListener("mousemove", handleMouse);
       window.removeEventListener("resize", handleResize);
     };
@@ -214,8 +241,8 @@ function ParticleCanvas() {
 export default function ParticleField() {
   return (
     <>
-      {/* Theme-aware background */}
-      <div className="absolute inset-0 dark:bg-[#050816] bg-background" />
+      {/* Theme-aware background (uses the app's --background token in both themes) */}
+      <div className="absolute inset-0 bg-background" />
 
       {/* Blue ambient gradients — stronger in dark mode */}
       <div
@@ -237,7 +264,7 @@ export default function ParticleField() {
 
       {/* Light mode ambient glow */}
       <div
-        className="absolute inset-0 pointer-events-none dark:opacity-0 opacity-100 bg-gradient-to-b from-indigo-50/40 via-white to-white"
+        className="absolute inset-0 pointer-events-none dark:opacity-0 opacity-100 bg-gradient-to-b from-indigo-50/40 via-background to-background"
       />
 
       {/* Canvas particles + grid */}

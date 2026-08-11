@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import { useLocation } from "react-router";
 
 /**
  * Skeleton component with shimmer animation.
@@ -133,14 +134,147 @@ export function SkeletonNotification() {
   );
 }
 
-/** Full-page loading state with centered spinner */
-export function LoadingPage() {
-  return (
-    <div className="flex items-center justify-center py-20">
-      <div className="flex flex-col items-center gap-3">
-        <div className="w-8 h-8 rounded-full border-2 border-indigo-500/30 border-t-indigo-500 animate-spin" />
-        <p className="text-sm text-muted-foreground">Loading...</p>
-      </div>
-    </div>
-  );
+/**
+ * Content-area skeleton shown while a lazy page chunk loads. Shapes itself
+ * roughly like the destination page (using the pathname) so navigation feels
+ * instant instead of flashing a centered spinner. Used as the Suspense
+ * fallback in main.tsx — renders inside the dashboard layout's <main>.
+ */
+export function RouteSkeleton() {
+  const { pathname } = useLocation();
+  const section = pathname.split("/")[1] || "dashboard";
+
+  switch (section) {
+    case "messages":
+      return (
+        <div className="grid md:grid-cols-[280px_1fr] gap-4">
+          <div className="border border-border/40 rounded-xl overflow-hidden hidden md:block">
+            {[0, 1, 2, 3, 4].map((i) => (
+              <SkeletonConversation key={i} />
+            ))}
+          </div>
+          <div className="space-y-3">
+            {[0, 1, 2, 3, 4].map((i) => (
+              <SkeletonMessageBubble key={i} />
+            ))}
+          </div>
+        </div>
+      );
+
+    case "feed":
+      return <SkeletonCardList count={3} />;
+
+    case "board":
+      return (
+        <div className="grid md:grid-cols-3 gap-4">
+          {[0, 1, 2].map((col) => (
+            <div key={col} className="border border-border/40 rounded-xl p-3 space-y-3">
+              <Skeleton className="h-4 w-24" />
+              {[0, 1, 2].map((i) => (
+                <SkeletonProjectCard key={i} />
+              ))}
+            </div>
+          ))}
+        </div>
+      );
+
+    case "admin":
+      return (
+        <div className="space-y-4">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {[0, 1, 2, 3].map((i) => (
+              <SkeletonStatCard key={i} />
+            ))}
+          </div>
+          <div className="border border-border/40 rounded-xl overflow-hidden">
+            {[0, 1, 2, 3, 4, 5].map((i) => (
+              <SkeletonTableRow key={i} />
+            ))}
+          </div>
+        </div>
+      );
+
+    case "analytics":
+      return (
+        <div className="space-y-4">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {[0, 1, 2, 3].map((i) => (
+              <SkeletonStatCard key={i} />
+            ))}
+          </div>
+          <div className="grid lg:grid-cols-2 gap-4">
+            <div className="border border-border/40 rounded-xl p-6">
+              <Skeleton className="h-64 w-full" />
+            </div>
+            <div className="border border-border/40 rounded-xl p-6">
+              <Skeleton className="h-64 w-full" />
+            </div>
+          </div>
+        </div>
+      );
+
+    case "notifications":
+      return (
+        <div className="max-w-2xl mx-auto border border-border/40 rounded-xl overflow-hidden">
+          {[0, 1, 2, 3, 4].map((i) => (
+            <SkeletonNotification key={i} />
+          ))}
+        </div>
+      );
+
+    case "search":
+      return (
+        <div className="space-y-4 max-w-3xl mx-auto">
+          <Skeleton className="h-10 w-full rounded-xl" />
+          <SkeletonCardList count={3} />
+        </div>
+      );
+
+    case "profile":
+    case "settings":
+      return (
+        <div className="max-w-2xl mx-auto space-y-4">
+          <div className="flex items-center gap-4 p-4 border border-border/40 rounded-xl">
+            <Skeleton className="w-16 h-16 rounded-full shrink-0" />
+            <div className="space-y-2 flex-1">
+              <Skeleton className="h-4 w-40" />
+              <Skeleton className="h-3 w-56" />
+            </div>
+          </div>
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="border border-border/40 rounded-xl p-5 space-y-3">
+              <Skeleton className="h-3 w-24" />
+              <Skeleton className="h-9 w-full" />
+              <Skeleton className="h-9 w-full" />
+            </div>
+          ))}
+        </div>
+      );
+
+    case "projects":
+      return (
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {[0, 1, 2, 3, 4, 5].map((i) => (
+            <SkeletonProjectCard key={i} />
+          ))}
+        </div>
+      );
+
+    default:
+      // dashboard + anything else: stats on top, project cards below
+      return (
+        <div className="space-y-4">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {[0, 1, 2, 3].map((i) => (
+              <SkeletonStatCard key={i} />
+            ))}
+          </div>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[0, 1, 2].map((i) => (
+              <SkeletonProjectCard key={i} />
+            ))}
+          </div>
+        </div>
+      );
+  }
 }

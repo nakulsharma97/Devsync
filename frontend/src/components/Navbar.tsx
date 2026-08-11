@@ -18,15 +18,27 @@ export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 20);
+    // rAF-throttled: the boolean only changes at the 20px threshold, so the
+    // navbar re-renders at most when it crosses it, not on every scroll event.
+    let frame = 0;
+    const handleScroll = () => {
+      if (frame) return;
+      frame = requestAnimationFrame(() => {
+        frame = 0;
+        setScrolled(window.scrollY > 20);
+      });
+    };
     window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      if (frame) cancelAnimationFrame(frame);
+    };
   }, []);
 
   return (
     <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
       scrolled
-        ? "bg-background/85 backdrop-blur-xl border-b border-border shadow-sm"
+        ? "bg-background/90 backdrop-blur-xl border-b border-border shadow-md shadow-black/5 dark:shadow-black/20"
         : "bg-background/40 backdrop-blur-sm border-b border-border/10"
     }`}>
       <div className={`mx-auto max-w-7xl px-4 sm:px-6 flex items-center justify-between transition-all duration-300 ${

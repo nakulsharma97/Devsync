@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router";
+import { searchService } from "@/services/searchService";
 import {
   LayoutDashboard,
   User,
@@ -13,7 +14,23 @@ import {
   MessageCircle,
   Command,
   ArrowRight,
+  Loader2,
 } from "lucide-react";
+
+/** A search hit from the existing search APIs (users + public projects). */
+interface SearchResultItem {
+  id: string;
+  label: string;
+  description?: string;
+  type: "user" | "project";
+  /** Precomputed destination (existing routes only). */
+  to: string;
+}
+
+type UserHit = { id: string; fullName?: string; username?: string; email?: string };
+type ProjectHit = { id: string; name?: string; title?: string; description?: string };
+
+const RESOURCE_SEARCH_MIN_CHARS = 2;
 
 interface CommandItem {
   id: string;
@@ -24,10 +41,33 @@ interface CommandItem {
   keywords: string[];
 }
 
-export function CommandPalette() {
-  const [open, setOpen] = useState(false);
+export function CommandPalette({
+  open: openProp,
+  onOpenChange,
+}: {
+  /**
+   * Controlled open state (e.g. from a header trigger). Optional — when
+   * omitted the palette manages its own state. If `open` is provided you
+   * must also provide `onOpenChange`, otherwise the palette can never close.
+   */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+} = {}) {
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = openProp ?? internalOpen;
+  const setOpen = useCallback(
+    (next: boolean) => {
+      // In controlled mode the parent owns the state; skip the internal write.
+      if (openProp === undefined) setInternalOpen(next);
+      onOpenChange?.(next);
+    },
+    [onOpenChange, openProp]
+  );
   const [query, setQuery] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [resourceResults, setResourceResults] = useState<SearchResultItem[]>([]);
+  const [resourceStatus, setResourceStatus] = useState<"idle" | "loading" | "error" | "success">("idle");
+  const requestSeq = useRef(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
 
@@ -119,22 +159,68 @@ export function CommandPalette() {
     },
   ];
 
-  const filtered = query.trim()
+  const trimmed = query.trim();
+  const filtered = trimmed
     ? items.filter(
         (item) =>
-          item.label.toLowerCase().includes(query.toLowerCase()) ||
+          item.label.toLowerCase().includes(trimmed.toLowerCase()) ||
           item.keywords.some((kw) =>
-            kw.toLowerCase().includes(query.toLowerCase()),
+            kw.toLowerCase().includes(trimmed.toLowerCase()),
           ),
       )
     : items;
+
+  // Debounced resource search (users + public projects) reusing the existing
+  // search APIs. Stale responses are ignored via a request sequence guard.
+  const showResourceSearch = trimmed.length >= RESOURCE_SEARCH_MIN_CHARS;
+  useEffect(() => {
+    if (!showResourceSearch) {
+      setResourceStatus("idle");
+      setResourceResults([]);
+      return;
+    }
+    const seq = ++requestSeq.current;
+    setResourceStatus("loading");
+    const timer = setTimeout(async () => {
+      try {
+        const [users, projects] = await Promise.all([
+          searchService.searchUsers(trimmed),
+          searchService.searchProjects(trimmed),
+        ]);
+        if (seq !== requestSeq.current) return; // stale response
+        const results: SearchResultItem[] = [
+          ...((users as UserHit[]) || []).map((u) => ({
+            id: `user-${u.id}`,
+            label: u.fullName || u.username || "User",
+            description: u.email || u.username,
+            type: "user" as const,
+            to: `/messages/dm_${u.id}`,
+          })),
+          ...((projects as ProjectHit[]) || []).map((p) => ({
+            id: `project-${p.id}`,
+            label: p.name || p.title || "Project",
+            description: p.description || undefined,
+            type: "project" as const,
+            to: `/board/${p.id}`,
+          })),
+        ];
+        setResourceResults(results);
+        setResourceStatus("success");
+      } catch {
+        if (seq !== requestSeq.current) return;
+        setResourceResults([]);
+        setResourceStatus("error");
+      }
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [showResourceSearch, trimmed]);
 
   // Keyboard shortcut: Cmd+K / Ctrl+K
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === "k") {
         e.preventDefault();
-        setOpen((prev) => !prev);
+        setOpen(!open);
       }
       if (e.key === "Escape") {
         setOpen(false);
@@ -142,7 +228,7 @@ export function CommandPalette() {
     };
     document.addEventListener("keydown", handler);
     return () => document.removeEventListener("keydown", handler);
-  }, []);
+  }, [open, setOpen]);
 
   // Reset on open
   useEffect(() => {
@@ -167,7 +253,7 @@ export function CommandPalette() {
         setOpen(false);
       }
     },
-    [filtered, selectedIndex],
+    [filtered, selectedIndex, setOpen],
   );
 
   if (!open) return null;
@@ -204,52 +290,119 @@ export function CommandPalette() {
           </div>
 
           {/* Results */}
-          <div className="max-h-72 overflow-y-auto p-2">
-            {filtered.length === 0 ? (
-              <div className="px-3 py-8 text-center text-sm text-muted-foreground">
-                No results for "<span className="text-foreground">{query}</span>"
-              </div>
-            ) : (
-              filtered.map((item, index) => (
-                <button
-                  key={item.id}
-                  onClick={() => {
-                    item.action();
-                    setOpen(false);
-                  }}
-                  onMouseEnter={() => setSelectedIndex(index)}
-                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-150 ${
-                    index === selectedIndex
-                      ? "bg-accent/10 text-accent"
-                      : "text-foreground hover:bg-accent/5"
-                  }`}
-                >
-                  <div
-                    className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
+          <div className="max-h-80 overflow-y-auto p-2">
+            {filtered.length > 0 && (
+              <>
+                <div className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+                  Navigate
+                </div>
+                {filtered.map((item, index) => (
+                  <button
+                    key={item.id}
+                    onClick={() => {
+                      item.action();
+                      setOpen(false);
+                    }}
+                    onMouseEnter={() => setSelectedIndex(index)}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-150 ${
                       index === selectedIndex
-                        ? "bg-accent/15 text-accent"
-                        : "bg-muted text-muted-foreground"
+                        ? "bg-accent/10 text-accent"
+                        : "text-foreground hover:bg-accent/5"
                     }`}
                   >
-                    <item.icon className="w-3.5 h-3.5" />
+                    <div
+                      className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
+                        index === selectedIndex
+                          ? "bg-accent/15 text-accent"
+                          : "bg-muted text-muted-foreground"
+                      }`}
+                    >
+                      <item.icon className="w-3.5 h-3.5" />
+                    </div>
+                    <div className="flex-1 text-left">
+                      <div className="font-medium">{item.label}</div>
+                      {item.description && (
+                        <div className="text-xs text-muted-foreground">
+                          {item.description}
+                        </div>
+                      )}
+                    </div>
+                    <ArrowRight
+                      className={`w-3.5 h-3.5 ${
+                        index === selectedIndex
+                          ? "text-accent opacity-100"
+                          : "text-muted-foreground opacity-0"
+                      } transition-opacity`}
+                    />
+                  </button>
+                ))}
+              </>
+            )}
+
+            {/* Resource search (users + projects) */}
+            {showResourceSearch && (
+              <>
+                {filtered.length > 0 && (
+                  <div className="my-1.5 mx-2 border-t border-border/40" />
+                )}
+                {resourceStatus === "loading" && (
+                  <div className="flex items-center gap-2 px-3 py-3 text-sm text-muted-foreground">
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" /> Searching…
                   </div>
-                  <div className="flex-1 text-left">
-                    <div className="font-medium">{item.label}</div>
-                    {item.description && (
-                      <div className="text-xs text-muted-foreground">
-                        {item.description}
-                      </div>
-                    )}
+                )}
+                {resourceStatus === "error" && (
+                  <div className="px-3 py-6 text-center text-sm text-muted-foreground">
+                    Search is unavailable right now
                   </div>
-                  <ArrowRight
-                    className={`w-3.5 h-3.5 ${
-                      index === selectedIndex
-                        ? "text-accent opacity-100"
-                        : "text-muted-foreground opacity-0"
-                    } transition-opacity`}
-                  />
-                </button>
-              ))
+                )}
+                {resourceStatus === "success" && resourceResults.length === 0 && filtered.length === 0 && (
+                  <div className="px-3 py-8 text-center text-sm text-muted-foreground">
+                    No results for "<span className="text-foreground">{query}</span>"
+                  </div>
+                )}
+                {resourceStatus === "success" && resourceResults.length > 0 && (
+                  <>
+                    <div className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+                      Resources
+                    </div>
+                    {resourceResults.map((item) => (
+                      <button
+                        key={item.id}
+                        onClick={() => {
+                          navigate(item.to);
+                          setOpen(false);
+                        }}
+                        className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-150 text-foreground hover:bg-accent/5"
+                      >
+                        <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 bg-muted text-muted-foreground">
+                          {item.type === "user" ? (
+                            <User className="w-3.5 h-3.5" />
+                          ) : (
+                            <FolderGit2 className="w-3.5 h-3.5" />
+                          )}
+                        </div>
+                        <div className="flex-1 text-left min-w-0">
+                          <div className="font-medium truncate">{item.label}</div>
+                          {item.description && (
+                            <div className="text-xs text-muted-foreground truncate">
+                              {item.description}
+                            </div>
+                          )}
+                        </div>
+                        <span
+                          className={`shrink-0 text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-full ${
+                            item.type === "user"
+                              ? "bg-indigo-500/10 text-indigo-500 dark:text-indigo-400"
+                              : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                          }`}
+                        >
+                          {item.type}
+                        </span>
+                      </button>
+                    ))}
+                  </>
+                )}
+              </>
             )}
           </div>
 

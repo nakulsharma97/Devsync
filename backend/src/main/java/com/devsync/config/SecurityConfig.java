@@ -5,6 +5,7 @@ import com.devsync.auth.JwtTokenProvider;
 import com.devsync.auth.RateLimitingFilter;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -16,6 +17,7 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
@@ -29,6 +31,12 @@ public class SecurityConfig {
     private final RateLimitingFilter rateLimitingFilter;
     private final JwtTokenProvider jwtTokenProvider;
     private final UserDetailsService userDetailsService;
+
+    /**
+     * Resolves lazily: a ClientRegistrationRepository only exists when OAuth2
+     * client registrations are configured (spring.security.oauth2.client.*).
+     */
+    private final ObjectProvider<ClientRegistrationRepository> clientRegistrationRepository;
 
     @Autowired
     @Lazy
@@ -62,14 +70,21 @@ public class SecurityConfig {
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 .anyRequest().authenticated()
             )
-            .oauth2Login(oauth2 -> oauth2
+            .addFilterBefore(rateLimitingFilter, UsernamePasswordAuthenticationFilter.class)
+            .addFilterBefore(jwtAuthFilter(), UsernamePasswordAuthenticationFilter.class);
+
+        // OAuth2 login is optional: only register the filter chain when OAuth2
+        // client registrations are configured (e.g. application-oauth.yml).
+        // Without them the app still boots and /oauth2/authorization endpoints
+        // simply return 404 instead of failing the whole context at startup.
+        if (clientRegistrationRepository.getIfAvailable() != null) {
+            http.oauth2Login(oauth2 -> oauth2
                 .userInfoEndpoint(userInfo -> userInfo
                     .userService(oAuth2Config.oAuth2UserService())
                 )
                 .successHandler(oAuth2Config.oAuth2SuccessHandler())
-            )
-            .addFilterBefore(rateLimitingFilter, UsernamePasswordAuthenticationFilter.class)
-            .addFilterBefore(jwtAuthFilter(), UsernamePasswordAuthenticationFilter.class);
+            );
+        }
 
         return http.build();
     }
