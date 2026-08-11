@@ -23,23 +23,26 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AdminRoute } from "@/components/AdminRoute";
 import DashboardLayout from "@/components/DashboardLayout";
 import PageTransition from "@/components/PageTransition";
+import { RouteSkeleton } from "@/components/Skeletons";
 import Landing from "./pages/Landing";
 import AuthPage from "./pages/Auth";
 import NotFound from "./pages/NotFound";
-import Dashboard from "./pages/Dashboard";
-import Projects from "./pages/Projects";
-import Messages from "./pages/Messages";
-import Profile from "./pages/Profile";
-import Settings from "./pages/Settings";
-import Notifications from "./pages/Notifications";
-import BoardPage from "./pages/BoardPage";
-import Feed from "./pages/Feed";
-import SearchPage from "./pages/SearchPage";
 
 // ── Route-level code splitting ────────────────────────────────
-// Admin-only pages and the Recharts-heavy analytics page load only when
-// visited, keeping the initial bundle small. Deep links still work: the
-// lazy chunks resolve on navigation.
+// Heavy feature pages (dashboard, feed, messages, kanban, …) plus the
+// Recharts-heavy analytics and admin pages load only when first visited,
+// keeping the initial bundle small (Landing + Auth + layout load eagerly).
+// Deep links still work: the lazy chunks resolve on navigation and are cached
+// in memory afterwards.
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const Projects = lazy(() => import("./pages/Projects"));
+const Messages = lazy(() => import("./pages/Messages"));
+const BoardPage = lazy(() => import("./pages/BoardPage"));
+const Profile = lazy(() => import("./pages/Profile"));
+const Settings = lazy(() => import("./pages/Settings"));
+const Notifications = lazy(() => import("./pages/Notifications"));
+const Feed = lazy(() => import("./pages/Feed"));
+const SearchPage = lazy(() => import("./pages/SearchPage"));
 const Analytics = lazy(() => import("./pages/Analytics"));
 const Admin = lazy(() => import("./pages/Admin"));
 const AdminUsers = lazy(() => import("./pages/AdminUsers"));
@@ -48,21 +51,13 @@ const AdminReports = lazy(() => import("./pages/AdminReports"));
 const AdminActivity = lazy(() => import("./pages/AdminActivity"));
 const AdminAuditLogs = lazy(() => import("./pages/AdminAuditLogs"));
 
-function RouteLoader() {
-  return (
-    <div className="min-h-[50vh] flex items-center justify-center">
-      <div className="h-8 w-8 rounded-full border-2 border-indigo-500/30 border-t-indigo-500 animate-spin" />
-    </div>
-  );
-}
-
 function App() {
   return (
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
       <BrowserRouter>
         <AuthProvider>
           <PageTransition>
-          <Suspense fallback={<RouteLoader />}>
+          <Suspense fallback={<RouteSkeleton />}>
           <Routes>
             <Route path="/" element={<Landing />} />
             <Route path="/auth" element={<AuthPage />} />

@@ -1,6 +1,7 @@
 import ScrollProgress from "@/components/ScrollProgress";
 import Navbar from "@/components/Navbar";
 import HeroSection from "@/components/HeroSection";
+import LogoMarquee from "@/components/LogoMarquee";
 import StatsBar from "@/components/StatsBar";
 import FeaturesSection from "@/components/FeaturesSection";
 import HowItWorksSection from "@/components/HowItWorksSection";
@@ -26,6 +27,7 @@ export default function Landing() {
         <ScrollProgress />
         <Navbar />
         <HeroSection />
+        <LogoMarquee />
         <StatsBar />
         <FeaturesSection />
         <HowItWorksSection />

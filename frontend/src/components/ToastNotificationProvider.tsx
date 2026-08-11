@@ -3,6 +3,7 @@
 import { useEffect, useRef, useCallback } from "react";
 import { toast } from "sonner";
 import { notificationService, type NotificationDto } from "@/services/notificationService";
+import { wsService } from "@/services/websocketService";
 import { Heart, MessageCircle, UserPlus, Bell, X } from "lucide-react";
 
 /** Map notification type to icon & color */
@@ -69,10 +70,21 @@ export function ToastNotificationProvider() {
     };
     document.addEventListener("visibilitychange", handleVisibility);
 
+    // Real-time: the backend pushes new notifications over the EXISTING STOMP
+    // connection (/user/queue/notifications). The shownIdsRef set dedupes with
+    // the polling path so a notification never toasts twice.
+    const unsubWs = wsService.onNotification((n: NotificationDto) => {
+      if (!n || !n.id || n.read) return;
+      if (shownIdsRef.current.has(n.id)) return;
+      shownIdsRef.current.add(n.id);
+      showNotificationToast(n);
+    });
+
     return () => {
       clearTimeout(initialTimer);
       if (intervalRef.current) clearInterval(intervalRef.current);
       document.removeEventListener("visibilitychange", handleVisibility);
+      unsubWs();
     };
   }, [checkForNew]);
 

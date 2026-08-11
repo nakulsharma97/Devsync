@@ -198,25 +198,31 @@
 }
 
 /* ── Page Transition Animations ───────────────────── */
+/* NOTE: page-enter must NOT animate `transform` at all. With animation-fill-mode
+   "forwards" (set inline by PageTransition) any animated transform — even one
+   ending at the identity matrix, which Chromium reports as matrix(1,0,0,1,0,0)
+   rather than `none` — creates a containing block that makes position:fixed
+   descendants (navbar, scroll progress, particle background) scroll away with
+   the page instead of staying fixed. Opacity-only keeps the enter animation
+   while leaving fixed positioning intact. */
 @keyframes page-enter {
   from {
     opacity: 0;
-    transform: translateY(12px);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
   }
 }
 
+/* Same rule applies here: no transform anywhere in the transition so that
+   position:fixed descendants (sidebars, drawers, overlays) are never re-anchored
+   to this wrapper, on any page. */
 @keyframes page-exit {
   from {
     opacity: 1;
-    transform: translateY(0);
   }
   to {
     opacity: 0;
-    transform: translateY(-8px);
   }
 }
 
@@ -232,6 +238,41 @@
 @keyframes shimmer {
   100% {
     transform: translateX(100%);
+  }
+}
+
+/* ── Shared entrance & shine animations ──────────────── */
+/* Defined globally so any page (landing, auth, dashboard, …) can use them. */
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes shine-sweep {
+  0% {
+    transform: translateX(-160%) skewX(-20deg);
+  }
+  60%,
+  100% {
+    transform: translateX(260%) skewX(-20deg);
+  }
+}
+.animate-fade-in-up {
+  animation: fade-in-up 0.6s ease-out both;
+}
+.animate-shine-sweep {
+  animation: shine-sweep 3.2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-in-up,
+  .animate-shine-sweep {
+    animation: none !important;
   }
 }
 

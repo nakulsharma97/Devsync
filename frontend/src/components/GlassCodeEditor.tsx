@@ -89,16 +89,16 @@ export default function GlassCodeEditor() {
     : "linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 249, 252, 0.98) 100%)";
 
   const borderColor = dark ? "rgba(99, 102, 241, 0.25)" : "rgba(99, 102, 241, 0.15)";
-  const textColor = dark ? "rgba(200, 210, 250, 0.8)" : "rgba(30, 41, 59, 0.9)";
-  const textDim = dark ? "rgba(200, 210, 250, 0.5)" : "rgba(100, 116, 139, 0.6)";
-  const textMuted = dark ? "rgba(200, 210, 250, 0.15)" : "rgba(148, 163, 184, 0.4)";
-  const lineNumColor = dark ? "rgba(99, 102, 241, 0.25)" : "rgba(99, 102, 241, 0.2)";
-  const activeBg = dark ? "rgba(99, 102, 241, 0.06)" : "rgba(99, 102, 241, 0.04)";
-  const statusColor = dark ? "rgba(165, 180, 252, 0.5)" : "rgba(100, 116, 139, 0.6)";
+  const textColor = dark ? "rgba(214, 222, 255, 0.92)" : "rgba(15, 23, 42, 0.95)";
+  const textDim = dark ? "rgba(200, 210, 250, 0.62)" : "rgba(71, 85, 105, 0.75)";
+  const textMuted = dark ? "rgba(200, 210, 250, 0.18)" : "rgba(148, 163, 184, 0.45)";
+  const lineNumColor = dark ? "rgba(129, 140, 248, 0.4)" : "rgba(99, 102, 241, 0.3)";
+  const activeBg = dark ? "rgba(99, 102, 241, 0.08)" : "rgba(99, 102, 241, 0.05)";
+  const statusColor = dark ? "rgba(165, 180, 252, 0.65)" : "rgba(71, 85, 105, 0.75)";
   const statusBorder = dark ? "rgba(99, 102, 241, 0.1)" : "rgba(99, 102, 241, 0.08)";
-  const keywordColor = dark ? "rgba(129, 140, 248, 0.8)" : "rgba(99, 102, 241, 0.85)";
-  const stringColor = dark ? "rgba(52, 211, 153, 0.8)" : "rgba(5, 150, 105, 0.85)";
-  const commentColor = dark ? "rgba(52, 211, 153, 0.4)" : "rgba(5, 150, 105, 0.5)";
+  const keywordColor = dark ? "rgba(147, 197, 253, 0.95)" : "rgba(99, 102, 241, 0.9)";
+  const stringColor = dark ? "rgba(52, 211, 153, 0.9)" : "rgba(4, 120, 87, 0.9)";
+  const commentColor = dark ? "rgba(52, 211, 153, 0.55)" : "rgba(4, 120, 87, 0.55)";
 
   return (
     <motion.div

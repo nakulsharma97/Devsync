@@ -1,4 +1,5 @@
 import { useRef, useState, useEffect } from "react";
+import { prefersReducedMotion } from "@/lib/utils";
 
 interface ScrollRevealProps {
   children: React.ReactNode;
@@ -25,6 +26,10 @@ export function ScrollReveal({ children, className = "", delay = 0 }: ScrollReve
     observer.observe(el);
     return () => observer.disconnect();
   }, []);
+
+  if (prefersReducedMotion) {
+    return <div ref={ref} className={className}>{children}</div>;
+  }
 
   return (
     <div
@@ -57,12 +62,15 @@ export function ScrollRevealFromLeft({ children, className = "" }: ScrollRevealP
     return () => observer.disconnect();
   }, []);
 
-  const animationStyle = visible ? {
-    animation: "fade-in-up 0.6s ease-out both",
-  } : { opacity: 0 };
+  if (prefersReducedMotion) {
+    return <div ref={ref} className={className}>{children}</div>;
+  }
 
   return (
-    <div ref={ref} className={className} style={animationStyle}>
+    <div
+      ref={ref}
+      className={`${className} ${visible ? "animate-slide-in-left" : "opacity-0"}`}
+    >
       {children}
     </div>
   );
@@ -88,13 +96,15 @@ export function ScrollRevealFromRight({ children, className = "" }: ScrollReveal
     return () => observer.disconnect();
   }, []);
 
-  const animationStyle = visible ? {
-    animation: "fade-in-up 0.6s ease-out both",
-    animationDelay: "0.1s",
-  } : { opacity: 0 };
+  if (prefersReducedMotion) {
+    return <div ref={ref} className={className}>{children}</div>;
+  }
 
   return (
-    <div ref={ref} className={className} style={animationStyle}>
+    <div
+      ref={ref}
+      className={`${className} ${visible ? "animate-slide-in-right" : "opacity-0"}`}
+    >
       {children}
     </div>
   );

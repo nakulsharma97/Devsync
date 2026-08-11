@@ -1,4 +1,6 @@
 import api from "./api";
+import type { AttachmentDto } from "./attachmentService";
+export type { AttachmentDto };
 
 export interface MessageDto {
   id: string;
@@ -10,6 +12,8 @@ export interface MessageDto {
   content: string;
   messageType: string;
   systemMessage: boolean;
+  attachmentId?: string | null;
+  attachment?: AttachmentDto | null;
   createdAt: string;
 }
 
@@ -52,6 +56,7 @@ export const messageService = {
     content: string;
     messageType?: string;
     systemMessage?: boolean;
+    attachmentId?: string;
   }): Promise<MessageDto> {
     const res = await api.post("/messages", data);
     return res.data;

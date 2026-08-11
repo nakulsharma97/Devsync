@@ -33,6 +33,8 @@ class WebSocketService {
   private activeSubscriptions: Map<string, () => void> = new Map();
   /** Active listeners for each topic (may have listeners before STOMP is connected) */
   private messageCallbacks: Map<string, Set<MessageCallback>> = new Map();
+  /** Direct-message listeners keyed by peer user id — routed precisely on /user/queue/messages. */
+  private directCallbacks: Map<string, Set<MessageCallback>> = new Map();
   private notificationCallbacks: Set<MessageCallback> = new Set();
   private typingCallbacks: Set<MessageCallback> = new Set();
   private presenceCallbacks: Set<MessageCallback> = new Set();
@@ -142,6 +144,16 @@ class WebSocketService {
     this.client = null;
     this.activeSubscriptions.clear();
     this.pendingSubscriptions.clear();
+    // Drop stale message/typing/notification/presence listeners so a session
+    // change (e.g. logout) can never keep firing into components of a previous
+    // auth context. connectionCallbacks are intentionally kept: they are the
+    // status-propagation channel for mounted components (e.g. the Messages
+    // "Connecting..." indicator) and every subscriber unsubscribes on unmount.
+    this.messageCallbacks.clear();
+    this.directCallbacks.clear();
+    this.notificationCallbacks.clear();
+    this.typingCallbacks.clear();
+    this.presenceCallbacks.clear();
   }
 
   /** Is the STOMP session currently active? */
@@ -190,6 +202,27 @@ class WebSocketService {
         this.activeSubscriptions.delete(roomId);
         this.pendingSubscriptions.delete(roomId);
         this.messageCallbacks.delete(topic);
+      }
+    };
+  }
+
+  /**
+   * Subscribe to direct messages with a specific peer.
+   *
+   * DM messages arrive on /user/queue/messages for both participants, so this
+   * routes them precisely: a message from the peer OR addressed to the peer
+   * (the echo of our own send) is delivered to this callback.
+   * Returns an unsubscribe function.
+   */
+  subscribeToDirect(otherUserId: string, callback: MessageCallback): () => void {
+    if (!this.directCallbacks.has(otherUserId)) {
+      this.directCallbacks.set(otherUserId, new Set());
+    }
+    this.directCallbacks.get(otherUserId)!.add(callback);
+    return () => {
+      this.directCallbacks.get(otherUserId)?.delete(callback);
+      if (this.directCallbacks.get(otherUserId)?.size === 0) {
+        this.directCallbacks.delete(otherUserId);
       }
     };
   }
@@ -321,6 +354,7 @@ class WebSocketService {
     content: string;
     messageType?: string;
     systemMessage?: boolean;
+    attachmentId?: string;
   }) {
     this.client?.publish({
       destination: "/app/chat.send",
@@ -341,11 +375,13 @@ class WebSocketService {
       this.messageCallbacks.get(topic)?.forEach((cb) => cb(data));
     }
 
-    // Route to DM subscribers (stored under "dm" key or any topic)
+    // Route to direct-message subscribers for this peer — incoming messages
+    // carry the sender's id, echoes of our own sends carry the receiver's id.
     if (!data.roomId) {
-      // Notify all listeners who care about DMs
-      this.messageCallbacks.forEach((callbacks) => {
-        callbacks.forEach((cb) => cb(data));
+      this.directCallbacks.forEach((callbacks, peerId) => {
+        if (data.senderId === peerId || data.receiverId === peerId) {
+          callbacks.forEach((cb) => cb(data));
+        }
       });
     }
   }

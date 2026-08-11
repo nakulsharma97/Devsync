@@ -13,8 +13,11 @@ Spring Boot 3.4 + Java 21 REST API backend for the DevSync developer collaborati
 ### 1. Create Database
 
 ```sql
-CREATE DATABASE devsync CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE DATABASE dev CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 ```
+
+The default schema name is `dev` (override with `SPRING_DATASOURCE_DB=...` if you
+use a different one). Flyway creates all tables on first startup.
 
 ### 2. Configure
 
