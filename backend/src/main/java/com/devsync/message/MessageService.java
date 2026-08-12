@@ -10,6 +10,9 @@ import com.devsync.message.dto.ConversationResponse;
 import com.devsync.message.dto.MessageResponse;
 import com.devsync.message.dto.SendMessageRequest;
 import com.devsync.message.entity.Message;
+import com.devsync.message.entity.MessageRead;
+import com.devsync.message.entity.MessageStatus;
+import com.devsync.message.repository.MessageReadRepository;
 import com.devsync.message.repository.MessageRepository;
 import com.devsync.project.entity.Project;
 import com.devsync.project.repository.ProjectRepository;
@@ -23,6 +26,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -30,7 +34,10 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class MessageService {
 
+    private static final int MAX_ROOM_READ_BATCH = 1000;
+
     private final MessageRepository messageRepository;
+    private final MessageReadRepository messageReadRepository;
     private final UserRepository userRepository;
     private final TeamRoomRepository roomRepository;
     private final TeamRoomParticipantRepository participantRepository;
@@ -41,12 +48,22 @@ public class MessageService {
 
     @Transactional
     public MessageResponse sendMessage(SendMessageRequest request, String senderId) {
+        // A message must target exactly one conversation — a room or a direct
+        // recipient. Messages addressed to nobody (or to both) are rejected.
+        boolean hasRoom = request.getRoomId() != null;
+        boolean hasReceiver = request.getReceiverId() != null;
+        if (hasRoom == hasReceiver) {
+            throw new IllegalArgumentException("A message must target either a room or a direct recipient");
+        }
         // A message may only carry an attachment the sender uploaded — referencing
         // another user's attachment would leak it into a different conversation.
         if (request.getAttachmentId() != null
                 && !attachmentService.isUploader(request.getAttachmentId(), senderId)) {
             throw new org.springframework.security.access.AccessDeniedException(
                     "Attachment does not belong to you");
+        }
+        if (hasReceiver) {
+            validateDirectRecipient(request.getReceiverId(), senderId);
         }
         String[] projectId = {null};
         if (request.getRoomId() != null) {
@@ -83,6 +100,80 @@ public class MessageService {
         return toResponse(message);
     }
 
+    /**
+     * A direct message may only be sent to an existing, active account. The
+     * sender is already validated by the JWT filter (blocked/deleted users are
+     * unauthenticated), so only the recipient is checked here.
+     */
+    private void validateDirectRecipient(String receiverId, String senderId) {
+        if (receiverId.equals(senderId)) {
+            throw new IllegalArgumentException("You cannot send a message to yourself");
+        }
+        User receiver = userRepository.findById(receiverId)
+                .orElseThrow(() -> new IllegalArgumentException("Recipient not found"));
+        if (receiver.isDeleted()) {
+            throw new IllegalArgumentException("Recipient account is no longer available");
+        }
+        if (receiver.isBlocked()) {
+            throw new IllegalArgumentException("Recipient account is blocked");
+        }
+    }
+
+    /**
+     * Called after a real-time broadcast: the message has left the server, so
+     * its status advances SENT → DELIVERED (unless already read, which never
+     * regresses).
+     */
+    @Transactional
+    public void markDelivered(String messageId) {
+        messageRepository.markDelivered(messageId, MessageStatus.DELIVERED, MessageStatus.SENT);
+    }
+
+    /**
+     * Opening a DM marks every inbound message from {@code otherUserId} as READ.
+     * Returns the remaining unread count for that conversation (0 after a
+     * successful mark) so the client can sync its badge.
+     */
+    @Transactional
+    public long markDirectRead(String otherUserId, String userId) {
+        if (otherUserId.equals(userId)) {
+            throw new IllegalArgumentException("Invalid conversation");
+        }
+        messageRepository.markDirectRead(otherUserId, userId, MessageStatus.READ, Instant.now());
+        return unreadDirectCount(otherUserId, userId);
+    }
+
+    /**
+     * Opening a room inserts read receipts for every unread message in it and
+     * returns the remaining unread count. Only participants may mark a room read
+     * (same rule as reading or sending into it).
+     */
+    @Transactional
+    public long markRoomRead(String roomId, String userId) {
+        if (!participantRepository.existsByRoomIdAndUserId(roomId, userId)) {
+            throw new IllegalArgumentException("You are not a participant in this room");
+        }
+        List<String> unreadIds = messageReadRepository.findUnreadMessageIdsByRoom(roomId, userId);
+        if (unreadIds.size() > MAX_ROOM_READ_BATCH) {
+            // Pathological backlog: mark the most recent messages, keep older
+            // ones unread rather than issuing one giant write.
+            unreadIds = unreadIds.subList(unreadIds.size() - MAX_ROOM_READ_BATCH, unreadIds.size());
+        }
+        if (!unreadIds.isEmpty()) {
+            Instant now = Instant.now();
+            messageReadRepository.saveAll(unreadIds.stream()
+                    .map(id -> MessageRead.builder()
+                            .messageId(id).userId(userId).readAt(now).build())
+                    .toList());
+        }
+        return messageReadRepository.countUnreadByRoom(roomId, userId);
+    }
+
+    private long unreadDirectCount(String partnerId, String userId) {
+        return messageRepository.countBySenderIdAndReceiverIdAndStatusNotAndHiddenFalse(
+                partnerId, userId, MessageStatus.READ);
+    }
+
     public List<MessageResponse> getRoomMessages(String roomId, String userId) {
         if (roomId != null && !participantRepository.existsByRoomIdAndUserId(roomId, userId)) {
             throw new IllegalArgumentException("You are not a participant in this room");
@@ -115,6 +206,7 @@ public class MessageService {
                     .roomId(room.getId())
                     .lastMessage(lastMsg != null ? lastMsg.getContent() : null)
                     .lastMessageAt(lastMsg != null ? lastMsg.getCreatedAt() : room.getCreatedAt())
+                    .unreadCount((int) messageReadRepository.countUnreadByRoom(room.getId(), userId))
                     .participantCount((int) count)
                     .build());
         }
@@ -142,6 +234,7 @@ public class MessageService {
                     .avatarUrl(partner.getAvatarUrl())
                     .lastMessage(lastMsg != null ? lastMsg.getContent() : null)
                     .lastMessageAt(lastMsg != null ? lastMsg.getCreatedAt() : partner.getCreatedAt())
+                    .unreadCount((int) unreadDirectCount(partnerId, userId))
                     .participantCount(2)
                     .build());
         }
@@ -221,6 +314,8 @@ public class MessageService {
                 .systemMessage(message.isSystemMessage())
                 .attachmentId(message.getAttachmentId())
                 .attachment(attachment)
+                .status(message.getStatus() != null ? message.getStatus().name() : "SENT")
+                .readAt(message.getReadAt())
                 .createdAt(message.getCreatedAt())
                 .build();
     }

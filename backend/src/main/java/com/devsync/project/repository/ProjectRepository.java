@@ -11,9 +11,11 @@ import org.springframework.data.repository.query.Param;
 import java.util.List;
 
 public interface ProjectRepository extends JpaRepository<Project, String> {
-    List<Project> findByOwnerId(String ownerId);
+    @Query("SELECT p FROM Project p WHERE p.ownerId = :ownerId AND p.deleted = false")
+    List<Project> findByOwnerId(@Param("ownerId") String ownerId);
 
-    @Query("SELECT p FROM Project p JOIN ProjectMember pm ON p.id = pm.projectId WHERE pm.userId = :userId")
+    @Query("SELECT p FROM Project p JOIN ProjectMember pm ON p.id = pm.projectId " +
+            "WHERE pm.userId = :userId AND p.deleted = false")
     List<Project> findProjectsByUserId(@Param("userId") String userId);
 
     List<Project> findTop5ByOrderByCreatedAtDesc();

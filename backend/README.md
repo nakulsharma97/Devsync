@@ -61,6 +61,7 @@ immediately (fail-fast).
 | `FRONTEND_URL` | No | `http://localhost:5173` | Origin used in password-reset / email-verification links sent by email (e.g. `https://app.example.com`). |
 | `DEVSYNC_ACCOUNT_TOKEN_EXPIRATION_MINUTES` | No | `15` | Lifetime of single-use reset/verification tokens. |
 | `DEVSYNC_TRUST_X_FORWARDED_FOR` | No | `false` | Set `true` ONLY when the app sits behind a reverse proxy you control (nginx/LB). Never trust the header when the app is directly reachable — it is spoofable and would bypass rate limiting. |
+| `DEVSYNC_RATE_LIMIT_INVITE_PER_MINUTE` | No | `10` | Max invitation / join-request / join POSTs per minute per user (or per IP when unauthenticated). |
 | `UPLOAD_DIR` / `UPLOAD_MAX_SIZE` | No | `./uploads` / `10485760` | File upload location and max size in bytes. |
 
 > There are **no default admin credentials**. The old `ADMIN_SEED_EMAIL` / `ADMIN_SEED_PASSWORD`
@@ -162,6 +163,47 @@ Flow: `POST /api/auth/forgot-password` → email link → `POST /api/auth/reset-
 - Admin passwords are BCrypt-encoded with the shared `PasswordEncoder`; they are never logged and never returned by any API.
 - Existing admins can be managed (role changes, blocking) from the Admin dashboard in the React frontend.
 
+### Web hardening
+
+- **Security headers** are sent on every API response: `X-Content-Type-Options: nosniff`,
+  `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin`. The React
+  SPA additionally receives a full CSP from nginx (see `frontend/nginx.conf`) — external
+  scripts only, Google Fonts allow-listed, `frame-ancestors 'none'`, WebSocket via
+  `connect-src 'self' ws: wss:`.
+- **HSTS** is advertised only when `app.security.hsts=true` (set in `application-prod.yml`)
+  **and** the request is secure — Spring checks `request.isSecure()`, which the prod profile
+  enables via `server.forward-headers-strategy: framework` (nginx sets `X-Forwarded-Proto`).
+  Plain-HTTP requests never receive the header.
+- **CORS** is restricted to the explicit origins in `app.cors.allowed-origins`
+  (`DEVSYNC_CORS_ORIGINS`) — never a wildcard, and never a wildcard with credentials.
+- **CSRF** is disabled deliberately and documented in `SecurityConfig`: the API is stateless
+  and every authenticated request uses a Bearer token, so there is no ambient-authority
+  cookie to forge. The refresh token is an HttpOnly, SameSite=Lax cookie scoped to
+  `/api/auth`, which is not vulnerable to CSRF (Lax cookies are not sent cross-site) and
+  cannot be exfiltrated by XSS. If cookie-based session auth is ever introduced, CSRF
+  protection MUST be re-enabled.
+
+### Rate limiting
+
+| Surface | Scope | Limit | Config |
+|---|---|---|---|
+| Auth endpoints (`/api/auth/**`) | per IP | 10/min | `app.rate-limit.enabled` (default on) |
+| Password reset / email verify | per email (on top of IP) | 3/15 min | hard-coded in `AccountRecoveryService` |
+| OTP generation | per email | 3/15 min | hard-coded in `OtpService` |
+| Invite / join / join-request POSTs | per user (IP if unauthenticated) | 10/min | `app.rate-limit.invite.per-minute` |
+| WebSocket messages / subscriptions | per user | 120/min, 30/min | `DEVSYNC_WS_RATE_LIMIT_*` |
+
+All HTTP limiting goes through the `RateLimiter` interface
+(`com.devsync.ratelimit`). The default `InMemoryFixedWindowRateLimiter` is correct for a
+single instance and for development, but its state is local to the JVM and resets on
+restart. For a clustered production deployment, provide a Redis-backed `RateLimiter` bean
+(`INCR` + `EXPIRE`) — no other code changes. `app.rate-limit.trust-x-forwarded-for` must
+only be enabled behind a proxy you control (`DEVSYNC_TRUST_X_FORWARDED_FOR=true` in
+compose); the header is spoofable when the app is directly reachable.
+
+`X-Forwarded-For` is only trusted when `app.rate-limit.trust-x-forwarded-for=true` — never
+enable it unless the app is behind a proxy you control.
+
 ## Activity & Audit Logging
 
 ### Activity timeline
@@ -237,6 +279,16 @@ deletes, and be covered by tests. There is intentionally **no** scheduled purge 
 | POST | `/api/projects/{id}/members` | Add member |
 | DELETE | `/api/projects/{id}/members/{userId}` | Remove member |
 
+**Project lifecycle:** a project moves through `ACTIVE → COMPLETED → ARCHIVED` (status)
+and can be soft-deleted (`deleted = true` + `deletedAt`). Archived projects stay readable to
+authorized members but reject all modifications. Deletion is **soft** from both the owner
+(`DELETE /api/projects/{id}`) and admin (`DELETE /api/admin/projects/{id}`) paths: the row and
+all related records (members, boards, tasks, rooms, messages, attachments, invitations,
+notifications, GitHub links, audit) are preserved for history. Deleted projects are excluded
+from every read path (my projects, search, discover, pinned, analytics) and every resource
+service rejects access to them; pending invitations can no longer be accepted. There is
+intentionally no hard-delete cascade — no unrelated user data is ever touched.
+
 ### Team Rooms (`/api/rooms`)
 
 | Method | Endpoint | Description |
@@ -251,10 +303,24 @@ deletes, and be covered by tests. There is intentionally **no** scheduled purge 
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/api/messages/conversations` | Get all conversations |
+| GET | `/api/messages/conversations` | Get all conversations (incl. unread counts) |
 | GET | `/api/messages/room/{roomId}` | Get room messages |
 | GET | `/api/messages/dm/{userId}` | Get DM conversation |
 | POST | `/api/messages` | Send a message |
+| POST | `/api/messages/dm/{userId}/read` | Mark a DM as read (returns unread count) |
+| POST | `/api/messages/room/{roomId}/read` | Mark a room as read (returns unread count) |
+
+**Message read state (V14):** every message carries a status — `SENT` (persisted),
+`DELIVERED` (pushed over the real-time transport), `READ` (recipient opened the
+conversation). DMs track read state on the message row (a DM has one recipient); room
+messages use a per-user `message_reads` receipt table. `GET /api/messages/conversations`
+returns per-conversation `unreadCount`; opening a conversation (or receiving a message
+while it is open) marks the relevant messages read via the `POST …/read` endpoints.
+
+**Authorization:** room messages require room participation (and an active, non-archived
+project for project rooms); DMs are only visible to the two participants. A DM must target
+a single existing, active account — sending to yourself, a deleted/blocked account, or an
+unknown id is rejected, and a message must target exactly one of `roomId`/`receiverId`.
 
 ### WebSocket (`/ws`)
 

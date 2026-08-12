@@ -14,6 +14,8 @@ export interface MessageDto {
   systemMessage: boolean;
   attachmentId?: string | null;
   attachment?: AttachmentDto | null;
+  status?: string | null;
+  readAt?: string | null;
   createdAt: string;
 }
 
@@ -59,6 +61,18 @@ export const messageService = {
     attachmentId?: string;
   }): Promise<MessageDto> {
     const res = await api.post("/messages", data);
+    return res.data;
+  },
+
+  /** Mark a direct conversation as read. Returns the remaining unread count. */
+  async markDirectRead(otherUserId: string): Promise<{ unreadCount: number }> {
+    const res = await api.post(`/messages/dm/${otherUserId}/read`);
+    return res.data;
+  },
+
+  /** Mark a room as read for the current user. Returns the remaining unread count. */
+  async markRoomRead(roomId: string): Promise<{ unreadCount: number }> {
+    const res = await api.post(`/messages/room/${roomId}/read`);
     return res.data;
   },
 };

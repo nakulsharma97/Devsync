@@ -34,6 +34,12 @@ spring:
     hibernate:
       ddl-auto: validate
 
+server:
+  # nginx already sets X-Forwarded-Proto; honor it so request.isSecure() is true
+  # behind the TLS-terminating proxy. Required for Strict-Transport-Security to
+  # be emitted (Spring only writes it on secure requests).
+  forward-headers-strategy: framework
+
 app:
   jwt:
     secret: ${JWT_SECRET}
@@ -41,6 +47,11 @@ app:
     # HTTPS terminates at the reverse proxy (nginx/cloud LB) — the refresh-token
     # cookie must be Secure so it is never sent over plain HTTP.
     cookie-secure: ${DEVSYNC_COOKIE_SECURE:true}
+  security:
+    # Strict-Transport-Security is HTTPS-only. Enabled here because the prod
+    # deployment is always served over HTTPS (nginx/LB); never enable it for
+    # plain-HTTP deployments or browsers will refuse to connect.
+    hsts: true
 
 logging:
   level:

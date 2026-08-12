@@ -225,6 +225,23 @@ export default function Messages() {
     }
   }, [conversationId, isRoom, actualId]);
 
+  /**
+   * The open conversation is being viewed, so mark it read and sync the badge.
+   * Backend returns the authoritative remaining unread count.
+   */
+  const markConversationRead = useCallback((convId: string, targetId: string, isRoomConv: boolean) => {
+    const action = isRoomConv
+      ? messageService.markRoomRead(targetId)
+      : messageService.markDirectRead(targetId);
+    action
+      .then(({ unreadCount }) => {
+        setConversations((prev) => (prev ? prev.map((c) => (c.id === convId ? { ...c, unreadCount } : c)) : prev));
+      })
+      .catch(() => {
+        // Non-fatal — the badge corrects itself on the next list refresh.
+      });
+  }, []);
+
   // ── Load messages when the conversation changes ────────────
   useEffect(() => {
     if (!conversationId) return;
@@ -235,10 +252,14 @@ export default function Messages() {
       : messageService.getConversation(actualId);
 
     fetch
-      .then(setMessages)
+      .then((msgs) => {
+        setMessages(msgs);
+        // Opening a conversation marks its messages as read.
+        markConversationRead(conversationId, actualId, isRoom);
+      })
       .catch(() => toast("Failed to load messages"))
       .finally(() => setMsgLoading(false));
-  }, [conversationId, isRoom, actualId]);
+  }, [conversationId, isRoom, actualId, markConversationRead]);
 
   // ── Real-time messages: one subscription for rooms OR DMs on the
   //    EXISTING STOMP connection (no new socket, no duplicates) ──
@@ -265,6 +286,9 @@ export default function Messages() {
         }
         return [...prev, data];
       });
+      // The user is viewing this conversation — incoming messages are read
+      // immediately, so the badge clears without a page refresh.
+      markConversationRead(conversationId, actualId, isRoom);
       // Keep the conversation list preview (last message) fresh.
       refreshConversationsSoon();
     };
@@ -289,7 +313,7 @@ export default function Messages() {
       if (unsubscribe) unsubscribe();
       unsubConnection();
     };
-  }, [conversationId, isRoom, actualId, myId, clearSend, refreshConversationsSoon]);
+  }, [conversationId, isRoom, actualId, myId, clearSend, refreshConversationsSoon, markConversationRead]);
 
   // ── Scroll management ──────────────────────────────────────
   const scrollToBottom = useCallback((behavior: ScrollBehavior = "smooth") => {

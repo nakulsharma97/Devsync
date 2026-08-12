@@ -34,6 +34,7 @@ C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\test\java\com\de
 C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\test\java\com\devsync\kanban\BoardServiceCalendarTest.java
 C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\test\java\com\devsync\kanban\BoardServiceFilterTest.java
 C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\test\java\com\devsync\kanban\BoardServiceTest.java
+C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\test\java\com\devsync\message\MessageReadIntegrationTest.java
 C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\test\java\com\devsync\message\MessageServiceTest.java
 C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\test\java\com\devsync\message\TypingAuthIntegrationTest.java
 C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\test\java\com\devsync\message\WebSocketAuthTest.java
@@ -42,7 +43,12 @@ C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\test\java\com\de
 C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\test\java\com\devsync\presence\PresenceServiceTest.java
 C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\test\java\com\devsync\presence\PresenceSessionTrackerTest.java
 C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\test\java\com\devsync\privacy\PrivacyResponseIntegrationTest.java
+C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\test\java\com\devsync\project\ProjectLifecycleIntegrationTest.java
 C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\test\java\com\devsync\project\ProjectServiceAuthTest.java
+C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\test\java\com\devsync\ratelimit\RateLimiterTest.java
+C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\test\java\com\devsync\ratelimit\SecurityHeadersHstsIntegrationTest.java
+C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\test\java\com\devsync\ratelimit\SecurityHeadersIntegrationTest.java
+C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\test\java\com\devsync\ratelimit\SpamProtectionFilterTest.java
 C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\test\java\com\devsync\report\ReportAdminControllerTest.java
 C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\test\java\com\devsync\report\ReportAdminServiceTest.java
 C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\test\java\com\devsync\report\ReportModerationIntegrationTest.java

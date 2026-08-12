@@ -258,4 +258,69 @@ class ProjectServiceAuthTest {
         assertThatThrownBy(() -> projectService.updateProject("ghost", updateRequest, "user-1"))
                 .isInstanceOf(com.devsync.common.ResourceNotFoundException.class);
     }
+
+    @Test
+    void deleteProject_shouldSoftDelete_WhenOwner() {
+        when(projectRepository.findById("project-1")).thenReturn(Optional.of(project));
+        when(projectRepository.save(any(Project.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        projectService.deleteProject("project-1", "owner-1");
+
+        assertThat(project.isDeleted()).isTrue();
+        assertThat(project.getDeletedAt()).isNotNull();
+        // Related records (members, boards, tasks, rooms, ...) must NOT be deleted
+        verify(memberRepository, never()).delete(any());
+        verify(projectRepository, never()).delete(any());
+        verify(projectRepository, never()).deleteById(anyString());
+        verify(activityService).record(eq("owner-1"), eq("project-1"),
+                eq(com.devsync.activity.entity.ActivityType.PROJECT_DELETED), anyString(), anyString(), any());
+    }
+
+    @Test
+    void deleteProject_shouldThrow_WhenNonOwner() {
+        when(projectRepository.findById("project-1")).thenReturn(Optional.of(project));
+
+        assertThatThrownBy(() -> projectService.deleteProject("project-1", "member-1"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Only the project owner");
+        verify(projectRepository, never()).save(any());
+        verify(activityService, never()).record(any(), any(), any(), any(), any(), any());
+    }
+
+    @Test
+    void deleteProject_shouldThrow_WhenProjectAlreadyDeleted() {
+        project.setDeleted(true);
+        project.setDeletedAt(java.time.Instant.now());
+        when(projectRepository.findById("project-1")).thenReturn(Optional.of(project));
+
+        assertThatThrownBy(() -> projectService.deleteProject("project-1", "owner-1"))
+                .isInstanceOf(com.devsync.common.ResourceNotFoundException.class);
+        verify(projectRepository, never()).save(any());
+    }
+
+    @Test
+    void getProject_shouldThrow_WhenProjectDeleted() {
+        project.setDeleted(true);
+        project.setDeletedAt(java.time.Instant.now());
+        when(projectRepository.findById("project-1")).thenReturn(Optional.of(project));
+
+        assertThatThrownBy(() -> projectService.getProject("project-1", "owner-1"))
+                .isInstanceOf(com.devsync.common.ResourceNotFoundException.class);
+    }
+
+    @Test
+    void getProject_shouldRemainReadable_WhenArchived() {
+        project.setStatus(Project.ProjectStatus.ARCHIVED);
+        when(projectRepository.findById("project-1")).thenReturn(Optional.of(project));
+        when(memberRepository.findByProjectId("project-1")).thenReturn(java.util.List.of(
+                ProjectMember.builder().projectId("project-1").userId("member-1")
+                        .role(ProjectMember.Role.MEMBER).build()));
+        when(memberRepository.existsByProjectIdAndUserId("project-1", "member-1")).thenReturn(true);
+        when(userRepository.findAllById(any())).thenReturn(java.util.List.of());
+
+        var response = projectService.getProject("project-1", "member-1");
+
+        assertThat(response.getStatus()).isEqualTo("ARCHIVED");
+        assertThat(response.getCurrentUserRole()).isEqualTo("MEMBER");
+    }
 }

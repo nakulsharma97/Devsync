@@ -38,6 +38,8 @@ com\devsync\attachment\FileStorageService.class
 com\devsync\admin\dto\AdminProjectSummary$AdminProjectSummaryBuilder.class
 com\devsync\audit\entity\AuditLog.class
 com\devsync\github\dto\GitHubAuthUrlResponse$GitHubAuthUrlResponseBuilder.class
+com\devsync\message\entity\MessageRead$MessageReadBuilder.class
+com\devsync\message\entity\MessageRead.class
 com\devsync\admin\dto\AdminUserListItem$AdminUserListItemBuilder.class
 com\devsync\bookmark\BookmarkController.class
 com\devsync\report\entity\Report$ReportBuilder.class
@@ -90,6 +92,7 @@ com\devsync\config\CorsConfig.class
 com\devsync\common\PageResponse.class
 com\devsync\bookmark\dto\BookmarkRequest.class
 com\devsync\admin\AdminController.class
+com\devsync\ratelimit\InMemoryFixedWindowRateLimiter.class
 com\devsync\user\entity\User.class
 com\devsync\bookmark\dto\BookmarkResponse.class
 com\devsync\kanban\repository\BoardColumnRepository.class
@@ -97,12 +100,14 @@ com\devsync\kanban\dto\UpdateTaskPositionRequest.class
 com\devsync\report\dto\ReportResponse.class
 com\devsync\admin\dto\AdminPostAuthor.class
 com\devsync\collab\dto\InviteRequest.class
+com\devsync\ratelimit\SpamProtectionFilter.class
 com\devsync\feed\entity\Post$PostBuilder.class
 com\devsync\presence\PresenceController.class
 com\devsync\kanban\repository\TaskRepository.class
 com\devsync\admin\dto\AdminProjectStats$AdminProjectStatsBuilder.class
 com\devsync\teamroom\dto\TeamRoomResponse$ParticipantDto.class
 com\devsync\notification\dto\NotificationResponse.class
+com\devsync\message\entity\MessageStatus.class
 com\devsync\auth\dto\AuthResponse.class
 com\devsync\auth\RefreshTokenService.class
 com\devsync\github\dto\GitHubIssueDto.class
@@ -173,7 +178,6 @@ com\devsync\activity\dto\ActivityUserDto$ActivityUserDtoBuilder.class
 com\devsync\config\JpaConfig.class
 com\devsync\user\dto\UserResponse.class
 com\devsync\admin\dto\AdminProjectMember$AdminProjectMemberBuilder.class
-com\devsync\auth\RateLimitingFilter$RateLimitEntry.class
 com\devsync\collab\dto\JoinRequestResponse$JoinRequestResponseBuilder.class
 com\devsync\teamroom\entity\TeamRoomParticipant.class
 com\devsync\report\dto\AdminReportDetail$AdminReportDetailBuilder.class
@@ -188,6 +192,7 @@ com\devsync\collab\repository\ProjectInvitationRepository.class
 com\devsync\github\GitHubException.class
 com\devsync\search\SearchController.class
 com\devsync\auth\OtpService$OtpRateLimit.class
+com\devsync\ratelimit\InMemoryFixedWindowRateLimiter$Window.class
 com\devsync\teamroom\dto\CreateRoomRequest.class
 com\devsync\auth\UserDetailsServiceImpl.class
 com\devsync\auth\AuthService.class
@@ -221,6 +226,7 @@ com\devsync\activity\entity\Activity$ActivityBuilder.class
 com\devsync\common\PageResponse$PageResponseBuilder.class
 com\devsync\collab\dto\InvitationResponse$InvitationResponseBuilder.class
 com\devsync\report\ReportAdminService.class
+com\devsync\ratelimit\RateLimiter.class
 com\devsync\kanban\entity\BoardColumn$BoardColumnBuilder.class
 com\devsync\project\entity\ProjectMember$ProjectMemberBuilder.class
 com\devsync\admin\dto\AdminUserDetail$AdminUserDetailBuilder.class
@@ -316,6 +322,7 @@ com\devsync\attachment\AttachmentService$AttachmentDownload.class
 com\devsync\activity\dto\AdminActivityStats$AdminActivityStatsBuilder.class
 com\devsync\github\GitHubOAuthClient.class
 com\devsync\report\ReportReason.class
+com\devsync\message\repository\MessageReadRepository.class
 com\devsync\report\ReportService.class
 com\devsync\teamroom\dto\TeamRoomResponse.class
 com\devsync\analytics\AnalyticsService.class

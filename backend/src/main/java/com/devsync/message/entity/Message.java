@@ -4,6 +4,8 @@ import com.devsync.common.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.Instant;
+
 @Entity
 @Table(name = "messages")
 @Getter
@@ -39,4 +41,12 @@ public class Message extends BaseEntity {
 
     @Column(name = "attachment_id")
     private String attachmentId;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    @Builder.Default
+    private MessageStatus status = MessageStatus.SENT;
+
+    @Column(name = "read_at")
+    private Instant readAt;
 }

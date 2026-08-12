@@ -43,6 +43,10 @@ public class WebSocketController {
             messagingTemplate.convertAndSendToUser(request.getReceiverId(), "/queue/messages", response);
             messagingTemplate.convertAndSendToUser(userId, "/queue/messages", response);
         }
+
+        // The message has left the server over the real-time transport:
+        // SENT -> DELIVERED (READ is applied when the recipient opens the chat).
+        messageService.markDelivered(response.getId());
     }
 
     @MessageMapping("/chat.typing")
