@@ -1,4 +1,4 @@
 -------------------------------------------------------------------------------
 Test set: com.devsync.message.WebSocketAuthTest
 -------------------------------------------------------------------------------
-Tests run: 6, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 22.81 s -- in com.devsync.message.WebSocketAuthTest
+Tests run: 6, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 22.85 s -- in com.devsync.message.WebSocketAuthTest

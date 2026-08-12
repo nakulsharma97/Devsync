@@ -94,6 +94,10 @@ app:
   rate-limit:
     # Only set to true behind a reverse proxy you control (nginx, cloud LB).
     trust-x-forwarded-for: ${DEVSYNC_TRUST_X_FORWARDED_FOR:false}
+    # Invitation / join-request / join spam protection: max POSTs per minute
+    # per user (or per IP when unauthenticated).
+    invite:
+      per-minute: ${DEVSYNC_RATE_LIMIT_INVITE_PER_MINUTE:10}
     # WebSocket/STOMP traffic (chat, typing, presence, subscriptions). In-memory
     # per-user buckets — single-instance only; move to Redis when scaling out.
     ws:

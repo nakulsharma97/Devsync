@@ -1,5 +1,6 @@
 package com.devsync.user;
 
+import com.devsync.ratelimit.RateLimiter;
 import com.devsync.user.dto.PublicUserResponse;
 import com.devsync.user.dto.UpdateUserRequest;
 import org.junit.jupiter.api.Test;
@@ -24,6 +25,9 @@ class UserControllerAuthTest {
     @Autowired private MockMvc mockMvc;
 
     @MockitoBean private UserService userService;
+    // The slice loads RateLimitingFilter (a Filter bean) but not the in-memory
+    // RateLimiter @Component — mock the interface for the web-layer test.
+    @MockitoBean private RateLimiter rateLimiter;
 
     @Test
     @WithMockUser(username = "user-1")

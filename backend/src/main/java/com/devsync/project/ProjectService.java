@@ -19,6 +19,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -138,13 +139,22 @@ public class ProjectService {
         return toResponse(project, userId);
     }
 
+    /**
+     * Soft-deletes the project: the row is flagged {@code deleted} and kept so all
+     * related records (members, boards, tasks, rooms, messages, attachments,
+     * invitations, notifications, audit) stay consistent and historically intact.
+     * Every read path excludes deleted projects and every resource service rejects
+     * access to them, so a soft-deleted project is unreachable without destroying
+     * audit history or leaving orphan records behind.
+     */
     @Transactional
     public void deleteProject(String projectId, String currentUserId) {
         Project project = findActive(projectId);
         if (!project.getOwnerId().equals(currentUserId))
             throw new IllegalArgumentException("Only the project owner can delete this project");
-        memberRepository.findByProjectId(projectId).forEach(memberRepository::delete);
-        projectRepository.deleteById(projectId);
+        project.setDeleted(true);
+        project.setDeletedAt(Instant.now());
+        projectRepository.save(project);
         activityService.record(currentUserId, projectId, ActivityType.PROJECT_DELETED,
                 "Project deleted", project.getName(), null);
     }

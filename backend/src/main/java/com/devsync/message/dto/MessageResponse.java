@@ -23,5 +23,7 @@ public class MessageResponse {
     private boolean systemMessage;
     private String attachmentId;
     private com.devsync.attachment.dto.AttachmentResponse attachment;
+    private String status; // SENT / DELIVERED / READ
+    private Instant readAt;
     private Instant createdAt;
 }

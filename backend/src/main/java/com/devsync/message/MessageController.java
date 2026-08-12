@@ -45,4 +45,28 @@ public class MessageController {
             @AuthenticationPrincipal UserDetails userDetails) {
         return ResponseEntity.ok(messageService.sendMessage(request, userDetails.getUsername()));
     }
+
+    /**
+     * Mark a direct conversation as read — all messages from {@code otherUserId}
+     * to the caller become READ. Returns the remaining unread count.
+     */
+    @PostMapping("/dm/{otherUserId}/read")
+    public ResponseEntity<java.util.Map<String, Long>> markDirectRead(
+            @PathVariable String otherUserId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        long unread = messageService.markDirectRead(otherUserId, userDetails.getUsername());
+        return ResponseEntity.ok(java.util.Map.of("unreadCount", unread));
+    }
+
+    /**
+     * Mark a room as read for the caller — inserts read receipts for every
+     * unread message. Returns the remaining unread count.
+     */
+    @PostMapping("/room/{roomId}/read")
+    public ResponseEntity<java.util.Map<String, Long>> markRoomRead(
+            @PathVariable String roomId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        long unread = messageService.markRoomRead(roomId, userDetails.getUsername());
+        return ResponseEntity.ok(java.util.Map.of("unreadCount", unread));
+    }
 }

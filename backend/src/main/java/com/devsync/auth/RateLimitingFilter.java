@@ -1,33 +1,35 @@
 package com.devsync.auth;
 
+import com.devsync.ratelimit.RateLimiter;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Rate limiter for authentication endpoints.
  * Limits requests to 10 per minute per IP address.
- * Also tracks per-user rate limits via request body analysis.
  *
- * ⚠️ In-memory only — resets on server restart.
- * For production deployments, replace with Redis-based rate limiting.
+ * ⚠️ The backing {@link RateLimiter} is in-memory by default — resets on server
+ * restart and is not shared across instances. For production deployments,
+ * replace the {@code RateLimiter} bean with a Redis-backed implementation
+ * (see com.devsync.ratelimit.RateLimiter).
  */
 @Component
 @Order(1)
+@RequiredArgsConstructor
 public class RateLimitingFilter extends OncePerRequestFilter {
-    // Rate limiting filter - updated for CI trigger
 
-    private final Map<String, RateLimitEntry> requestCounts = new ConcurrentHashMap<>();
     private static final int MAX_REQUESTS = 10;
-    private static final long WINDOW_MS = 60_000; // 1 minute
+    private static final long WINDOW_SECONDS = 60; // 1 minute
+
+    private final RateLimiter rateLimiter;
 
     /**
      * Whether to trust the X-Forwarded-For header. Only enable this when the app
@@ -55,17 +57,7 @@ public class RateLimitingFilter extends OncePerRequestFilter {
         }
 
         String clientIp = getClientIp(request);
-        long now = System.currentTimeMillis();
-
-        RateLimitEntry entry = requestCounts.compute(clientIp, (key, existing) -> {
-            if (existing == null || now - existing.windowStart > WINDOW_MS) {
-                return new RateLimitEntry(now, 1);
-            }
-            existing.count++;
-            return existing;
-        });
-
-        if (entry.count > MAX_REQUESTS) {
+        if (!rateLimiter.tryAcquire("auth:" + clientIp, MAX_REQUESTS, WINDOW_SECONDS)) {
             response.setStatus(429);
             response.setContentType("application/json");
             response.getWriter().write(
@@ -87,15 +79,5 @@ public class RateLimitingFilter extends OncePerRequestFilter {
             }
         }
         return request.getRemoteAddr();
-    }
-
-    private static class RateLimitEntry {
-        final long windowStart;
-        int count;
-
-        RateLimitEntry(long windowStart, int count) {
-            this.windowStart = windowStart;
-            this.count = count;
-        }
     }
 }

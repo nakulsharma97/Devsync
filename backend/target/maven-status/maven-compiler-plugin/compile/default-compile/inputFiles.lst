@@ -161,8 +161,11 @@ C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\main\java\com\de
 C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\main\java\com\devsync\message\dto\MessageResponse.java
 C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\main\java\com\devsync\message\dto\SendMessageRequest.java
 C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\main\java\com\devsync\message\entity\Message.java
+C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\main\java\com\devsync\message\entity\MessageRead.java
+C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\main\java\com\devsync\message\entity\MessageStatus.java
 C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\main\java\com\devsync\message\MessageController.java
 C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\main\java\com\devsync\message\MessageService.java
+C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\main\java\com\devsync\message\repository\MessageReadRepository.java
 C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\main\java\com\devsync\message\repository\MessageRepository.java
 C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\main\java\com\devsync\message\WebSocketController.java
 C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\main\java\com\devsync\notification\dto\NotificationResponse.java
@@ -190,6 +193,9 @@ C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\main\java\com\de
 C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\main\java\com\devsync\project\ProjectService.java
 C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\main\java\com\devsync\project\repository\ProjectMemberRepository.java
 C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\main\java\com\devsync\project\repository\ProjectRepository.java
+C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\main\java\com\devsync\ratelimit\InMemoryFixedWindowRateLimiter.java
+C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\main\java\com\devsync\ratelimit\RateLimiter.java
+C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\main\java\com\devsync\ratelimit\SpamProtectionFilter.java
 C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\main\java\com\devsync\report\dto\AdminReportDetail.java
 C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\main\java\com\devsync\report\dto\AdminReportListItem.java
 C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\main\java\com\devsync\report\dto\AdminReportStats.java
