@@ -14,4 +14,6 @@ public class SendMessageRequest {
     private String messageType;
     private boolean systemMessage;
     private String attachmentId;
+    /** Reply thread: set to the parent message id when replying. */
+    private String parentMessageId;
 }

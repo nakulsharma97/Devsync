@@ -62,6 +62,8 @@ public interface ProjectRepository extends JpaRepository<Project, String> {
 
     long countByOwnerId(String ownerId);
 
+    long countByOwnerIdAndVisibilityAndDeletedFalse(String ownerId, Project.ProjectVisibility visibility);
+
     long countByCreatedAtBetween(Instant from, Instant to);
 
     /** Aggregates project creations per calendar day in a single query. */

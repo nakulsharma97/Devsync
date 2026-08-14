@@ -13,6 +13,11 @@ export interface TaskDto {
   dueDate: string | null;
   labels: string[];
   createdAt: string;
+  /** Sprint / milestone grouping fields. */
+  milestone?: string | null;
+  sprint?: string | null;
+  /** Task ids this task depends on (blocked-by). */
+  dependencies?: string[];
 }
 
 export interface ColumnDto {
@@ -58,6 +63,8 @@ export const boardService = {
     priority?: string;
     dueDate?: string;
     labels?: string;
+    milestone?: string;
+    sprint?: string;
   }): Promise<TaskDto> {
     const res = await api.post("/boards/tasks", data);
     return res.data;
@@ -77,6 +84,8 @@ export const boardService = {
       priority?: string;
       dueDate?: string;
       labels?: string;
+      milestone?: string;
+      sprint?: string;
     }
   ): Promise<TaskDto> {
     const res = await api.put(`/boards/tasks/${taskId}`, data);
@@ -85,5 +94,24 @@ export const boardService = {
 
   async deleteTask(taskId: string): Promise<void> {
     await api.delete(`/boards/tasks/${taskId}`);
+  },
+
+  // ── Task dependencies ────────────────────────────────────
+
+  /** Mark {@code taskId} as depending on {@code dependsOnId} (blocked-by). */
+  async addDependency(taskId: string, dependsOnId: string): Promise<void> {
+    await api.post(`/boards/tasks/${taskId}/dependencies`, { dependsOnId });
+  },
+
+  async removeDependency(taskId: string, dependsOnId: string): Promise<void> {
+    await api.delete(`/boards/tasks/${taskId}/dependencies/${dependsOnId}`);
+  },
+
+  // ── Calendar ─────────────────────────────────────────────
+
+  /** Tasks with due dates in [from, to] across the caller's projects. */
+  async calendarTasks(from: string, to: string): Promise<TaskDto[]> {
+    const res = await api.get("/boards/tasks/calendar", { params: { from, to } });
+    return res.data;
   },
 };

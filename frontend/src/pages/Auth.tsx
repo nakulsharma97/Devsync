@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router";
+import { landingService, type PublicStats } from "@/services/landingService";
 
 // ─── Code Editor Mockup (compact, animated) ──────────────────
 
@@ -48,7 +49,7 @@ function CodePreview() {
               <span className="text-white/30">;</span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-white/20">// AI-powered collaboration</span>
+              <span className="text-white/20">// Real-time collaboration</span>
             </div>
             <div className="flex items-center gap-2">
               <span className="text-purple-400">const</span>
@@ -70,26 +71,22 @@ function CodePreview() {
               <span className="text-emerald-400">"engineering"</span>
               <span className="text-white/30">,</span>
             </div>
-            <div className="flex items-center gap-2 pl-4">
-              <span className="text-sky-400">ai</span>
-              <span className="text-white/30">:</span>
-              <span className="text-amber-300">true</span>
-              <span className="text-white/30">,</span>
-            </div>
             <div className="flex items-center gap-2">
               <span className="text-white/60">{'})};'}</span>
             </div>
             <div className="flex items-center gap-2 mt-2 bg-indigo-500/10 -mx-3 px-3 rounded py-1 border-l-2 border-indigo-400">
-              <span className="text-indigo-300/80">// Deploy with one click</span>
+              <span className="text-indigo-300/80">// Move the task to Done</span>
               <span className="inline-flex items-center gap-1 text-[8px] text-indigo-400 bg-indigo-500/20 px-1.5 py-0.5 rounded-full animate-pulse">
                 <span className="w-1 h-1 rounded-full bg-indigo-400" />
-                Deploying
+                Kanban
               </span>
             </div>
             <div className="flex items-center gap-2">
               <span className="text-purple-400">await</span>
-              <span className="text-blue-300">app</span>
-              <span className="text-white/60">.deploy();</span>
+              <span className="text-blue-300">board</span>
+              <span className="text-white/60">.move(task,</span>
+              <span className="text-amber-300">"done"</span>
+              <span className="text-white/60">);</span>
             </div>
           </div>
         </div>
@@ -101,7 +98,7 @@ function CodePreview() {
         </span>
         <span className="flex items-center gap-1">
           <Users className="w-2.5 h-2.5 text-emerald-400" />
-          3 collaborators
+          Team online
         </span>
       </div>
     </div>
@@ -136,36 +133,13 @@ function FeatureCard({
   );
 }
 
-// ─── Animated Stat ──────────────────────────────────────────
+// ─── Animated Stat (real server-computed numbers) ───────────
 
-function AnimatedStat({ value, label }: { value: string; label: string }) {
-  const [visible, setVisible] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setVisible(true);
-          observer.disconnect();
-        }
-      },
-      { threshold: 0.3 }
-    );
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, []);
-
+function AnimatedStat({ value, label }: { value: number; label: string }) {
   return (
-    <div ref={ref} className="text-center">
-      <p
-        className={`text-xl md:text-2xl font-bold text-white transition-all duration-700 ${
-          visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
-        }`}
-      >
-        {value}
+    <div className="text-center">
+      <p className="text-xl md:text-2xl font-bold text-white tabular-nums">
+        {value.toLocaleString()}
       </p>
       <p className="text-[10px] text-white/40 mt-0.5">{label}</p>
     </div>
@@ -216,6 +190,20 @@ const keyframesStyle = `
 export default function AuthPage() {
   const { isAuthenticated, isLoading, login, register } = useAuth();
   const navigate = useNavigate();
+  const [stats, setStats] = useState<PublicStats | null>(null);
+
+  // Real platform aggregates for the showcase panel — never hardcoded.
+  useEffect(() => {
+    let cancelled = false;
+    landingService
+      .getStats()
+      .then((s) => !cancelled && setStats(s))
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const [mode, setMode] = useState<"login" | "register">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -316,7 +304,7 @@ export default function AuthPage() {
       {/* ─── SPLIT LAYOUT ─── */}
       <div className="relative z-10 min-h-screen flex">
         {/* ─── LEFT: Product Showcase ─── */}
-        <div className="hidden lg:flex lg:w-1/2 flex-col justify-between p-8 xl:p-12 relative overflow-hidden">
+        <div className="hidden lg:flex lg:w-1/2 flex-col justify-start p-8 xl:p-12 relative overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-br from-indigo-950/40 via-transparent to-purple-950/20 pointer-events-none" />
 
           {/* Back to home */}
@@ -332,23 +320,25 @@ export default function AuthPage() {
             </button>
           </div>
 
-          <div className="relative z-10 space-y-8 -mt-16">
+          <div className="relative z-10 space-y-8 mt-10">
             {/* Hero text */}
             <div className="animate-fade-in-up delay-1">
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-500/15 text-indigo-300 text-[10px] font-medium border border-indigo-500/25 mb-4">
                 <span className="w-1.5 h-1.5 rounded-full bg-indigo-400" />
-                50,000+ developers onboard
+                {stats && stats.users > 0
+                  ? `${stats.users.toLocaleString()} developer${stats.users === 1 ? "" : "s"} registered`
+                  : "Now in Public Beta"}
               </span>
               <h2 className="text-3xl xl:text-4xl font-bold tracking-tight leading-tight mt-3">
                 The developer platform
                 <br />
                 <span className="bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
-                  built for speed.
+                  built for collaboration.
                 </span>
               </h2>
               <p className="text-sm text-white/50 mt-3 max-w-md leading-relaxed">
-                AI-powered coding, real-time collaboration, and instant
-                deployment — all in your browser.
+                Projects, Kanban boards, real-time team chat, file sharing and
+                GitHub integration — one workspace for your whole team.
               </p>
             </div>
 
@@ -361,40 +351,42 @@ export default function AuthPage() {
             <div className="grid grid-cols-2 gap-4 animate-fade-in-up delay-3 max-w-lg">
               <FeatureCard
                 icon={Zap}
-                title="AI Autocomplete"
-                description="Smart code suggestions"
+                title="Project Workspaces"
+                description="Public or private projects"
                 gradient="from-indigo-500 to-purple-600"
               />
               <FeatureCard
                 icon={Users}
-                title="Live Collab"
-                description="Real-time multiplayer"
+                title="Team Chat"
+                description="Real-time messaging"
                 gradient="from-emerald-500 to-teal-600"
               />
               <FeatureCard
                 icon={Shield}
-                title="Enterprise Security"
-                description="SOC 2 compliant"
+                title="Kanban Boards"
+                description="Tasks, labels and due dates"
                 gradient="from-amber-500 to-orange-600"
               />
               <FeatureCard
                 icon={Globe}
-                title="One-Click Deploy"
-                description="Push to production"
+                title="GitHub Integration"
+                description="Link repositories to projects"
                 gradient="from-cyan-500 to-blue-600"
               />
             </div>
 
-            {/* Stats */}
-            <div className="grid grid-cols-3 gap-6 pt-4 border-t border-white/10 animate-fade-in-up delay-4 max-w-lg">
-              <AnimatedStat value="50K+" label="Developers" />
-              <AnimatedStat value="12K+" label="Projects" />
-              <AnimatedStat value="99.9%" label="Uptime" />
-            </div>
+            {/* Stats — real server-computed aggregates */}
+            {stats && (
+              <div className="grid grid-cols-3 gap-6 pt-4 border-t border-white/10 animate-fade-in-up delay-4 max-w-lg">
+                <AnimatedStat value={stats.users} label="Developers" />
+                <AnimatedStat value={stats.projects} label="Projects" />
+                <AnimatedStat value={stats.tasksCompleted} label="Tasks Done" />
+              </div>
+            )}
           </div>
 
           {/* Footer */}
-          <div className="relative z-10 text-xs text-white/30">
+          <div className="relative z-10 mt-auto pt-8 text-xs text-white/30">
             &copy; {new Date().getFullYear()} DevSync. All rights reserved.
           </div>
         </div>

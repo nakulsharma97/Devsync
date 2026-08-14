@@ -2,6 +2,7 @@ package com.devsync.collab;
 
 import com.devsync.activity.ActivityService;
 import com.devsync.activity.entity.ActivityType;
+import com.devsync.billing.EntitlementService;
 import com.devsync.collab.dto.InvitationResponse;
 import com.devsync.collab.dto.InviteRequest;
 import com.devsync.collab.entity.InvitationStatus;
@@ -39,11 +40,16 @@ public class InvitationService {
     private final UserRepository userRepository;
     private final NotificationService notificationService;
     private final ActivityService activityService;
+    private final EntitlementService entitlementService;
 
     @Transactional
     public InvitationResponse invite(String projectId, InviteRequest request, String senderId) {
         Project project = findActiveProject(projectId);
         assertCanManage(project, senderId);
+
+        // Plan member cap (owner's plan): enforced before the invitation is
+        // created so pending invitations can never exceed the active-member limit.
+        entitlementService.assertCanAddMember(projectId);
 
         User receiver = resolveInvitee(request);
         if (receiver.getId().equals(senderId)) {
@@ -94,6 +100,7 @@ public class InvitationService {
 
         Project project = findActiveProject(invitation.getProjectId());
         if (!memberRepository.existsByProjectIdAndUserId(project.getId(), userId)) {
+            entitlementService.assertCanAddMember(project.getId());
             memberRepository.save(ProjectMember.builder()
                     .projectId(project.getId()).userId(userId)
                     .role(ProjectMember.Role.MEMBER).build());

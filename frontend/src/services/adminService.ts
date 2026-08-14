@@ -371,6 +371,73 @@ export interface AuditLogQuery {
   to?: string;
 }
 
+// ---------- Admin Reviews & Feedback types ----------
+
+export type ReviewStatus = "PENDING" | "APPROVED" | "REJECTED";
+export type FeedbackStatus = "OPEN" | "IN_REVIEW" | "RESOLVED" | "CLOSED";
+
+export interface AdminReviewListItem {
+  id: string;
+  userId: string;
+  reviewerName: string;
+  reviewerUsername?: string | null;
+  reviewerEmail?: string | null;
+  reviewerAvatarUrl?: string | null;
+  rating: number;
+  title?: string | null;
+  comment: string;
+  category: string;
+  status: ReviewStatus;
+  featured: boolean;
+  moderatedBy?: string | null;
+  moderatedAt?: string | null;
+  createdAt: string;
+}
+
+export interface AdminReviewStats {
+  pending: number;
+  approved: number;
+  rejected: number;
+}
+
+export interface AdminFeedbackListItem {
+  id: string;
+  userId: string;
+  userName: string;
+  userUsername?: string | null;
+  userEmail?: string | null;
+  userAvatarUrl?: string | null;
+  category: string;
+  message: string;
+  rating?: number | null;
+  status: FeedbackStatus;
+  adminNote?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AdminFeedbackStats {
+  open: number;
+  inReview: number;
+  resolved: number;
+  closed: number;
+}
+
+export interface AdminReviewsQuery {
+  page?: number;
+  size?: number;
+  search?: string;
+  status?: ReviewStatus | "ALL";
+}
+
+export interface AdminFeedbackQuery {
+  page?: number;
+  size?: number;
+  search?: string;
+  status?: FeedbackStatus | "ALL";
+  category?: string | "ALL";
+}
+
 // ---------- Frontend helper types ----------
 
 export interface CreateReportInput {
@@ -590,4 +657,79 @@ export const adminService = {
     document.body.removeChild(link);
     window.URL.revokeObjectURL(url);
   },
+
+  // ---------- Reviews & Feedback moderation ----------
+
+  async getAdminReviews(query: AdminReviewsQuery = {}): Promise<PageResponse<AdminReviewListItem>> {
+    const res = await api.get("/admin/reviews", { params: query });
+    return res.data;
+  },
+
+  async getAdminReviewStats(): Promise<AdminReviewStats> {
+    const res = await api.get("/admin/reviews/stats");
+    return res.data;
+  },
+
+  async approveReview(reviewId: string): Promise<AdminReviewListItem> {
+    const res = await api.put(`/admin/reviews/${reviewId}/approve`);
+    return res.data;
+  },
+
+  async rejectReview(reviewId: string): Promise<AdminReviewListItem> {
+    const res = await api.put(`/admin/reviews/${reviewId}/reject`);
+    return res.data;
+  },
+
+  async setReviewFeatured(reviewId: string, featured: boolean): Promise<AdminReviewListItem> {
+    const res = await api.put(`/admin/reviews/${reviewId}/feature`, { featured });
+    return res.data;
+  },
+
+  async deleteReview(reviewId: string): Promise<void> {
+    await api.delete(`/admin/reviews/${reviewId}`);
+  },
+
+  async getAdminFeedback(query: AdminFeedbackQuery = {}): Promise<PageResponse<AdminFeedbackListItem>> {
+    const res = await api.get("/admin/feedback", { params: query });
+    return res.data;
+  },
+
+  async getAdminFeedbackStats(): Promise<AdminFeedbackStats> {
+    const res = await api.get("/admin/feedback/stats");
+    return res.data;
+  },
+
+  async updateFeedbackStatus(feedbackId: string, status: FeedbackStatus): Promise<AdminFeedbackListItem> {
+    const res = await api.put(`/admin/feedback/${feedbackId}/status`, { status });
+    return res.data;
+  },
+
+  // ---------- Billing ----------
+
+  async getSubscriptionsPage(query: {
+    page?: number;
+    size?: number;
+    search?: string;
+    planCode?: string;
+    status?: string;
+  } = {}): Promise<PageResponse<AdminSubscriptionListItem>> {
+    const res = await api.get("/admin/billing/subscriptions", { params: query });
+    return res.data;
+  },
+
+  async cancelSubscription(subscriptionId: string): Promise<void> {
+    await api.post(`/admin/billing/subscriptions/${subscriptionId}/cancel`);
+  },
 };
+
+export interface AdminSubscriptionListItem {
+  id: string;
+  userId: string;
+  userName: string;
+  userEmail?: string | null;
+  planCode: string;
+  status: string;
+  currentPeriodEnd?: string | null;
+  cancelAtPeriodEnd: boolean;
+  createdAt: string;
+}

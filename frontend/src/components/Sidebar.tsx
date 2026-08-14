@@ -18,6 +18,9 @@ import {
   Flag,
   Activity,
   ScrollText,
+  Star,
+  MessageSquarePlus,
+  CreditCard,
 } from "lucide-react";
 import { notificationService } from "@/services/notificationService";
 import { conversationService } from "@/services/conversationService";
@@ -35,12 +38,17 @@ const navItems = [
   { to: "/bookmarks", icon: Bookmark, label: "Bookmarks" },
   { to: "/search", icon: Search, label: "Search" },
   { to: "/messages", icon: MessageCircle, label: "Messages" },
+  { to: "/feedback", icon: MessageSquarePlus, label: "Give Feedback" },
   { to: "/admin/dashboard", icon: Shield, label: "Admin Dashboard" },
   { to: "/admin/users", icon: Users, label: "Admin Users" },
   { to: "/admin/projects", icon: FolderGit2, label: "Admin Projects" },
   { to: "/admin/reports", icon: Flag, label: "Admin Reports" },
+  { to: "/admin/reviews", icon: Star, label: "Admin Reviews" },
+  { to: "/admin/feedback", icon: MessageSquarePlus, label: "Admin Feedback" },
+  { to: "/admin/billing", icon: CreditCard, label: "Admin Billing" },
   { to: "/admin/activity", icon: Activity, label: "Admin Activity" },
   { to: "/admin/audit-logs", icon: ScrollText, label: "Admin Audit Logs" },
+  { to: "/settings/billing", icon: CreditCard, label: "Billing" },
   { to: "/settings", icon: Settings, label: "Settings" },
 ];
 

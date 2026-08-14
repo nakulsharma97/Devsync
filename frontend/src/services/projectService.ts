@@ -67,6 +67,8 @@ export const projectService = {
     visibility?: string;
     repositoryUrl?: string;
     imageUrl?: string;
+    /** Optional project template: SPRINT_BOARD | BUG_TRACKER | FEATURE_BACKLOG. */
+    template?: string;
   }): Promise<ProjectDto> {
     const res = await api.post("/projects", data);
     return res.data;
@@ -143,5 +145,18 @@ export const projectService = {
 
   async cancelInvitation(id: string): Promise<void> {
     await api.delete(`/invitations/${id}`);
+  },
+
+  // ── Shared project notes (Markdown doc) ───────────────────
+
+  /** The note stores opaque Yjs state — the client keeps Markdown text inside it. */
+  async getNote(projectId: string): Promise<{ projectId: string; version: number; yjsState: string | null; updatedBy: string | null; updatedAt: string | null }> {
+    const res = await api.get(`/projects/${projectId}/notes`);
+    return res.data;
+  },
+
+  async saveNote(projectId: string, version: number, yjsState: string): Promise<{ projectId: string; version: number; yjsState: string; updatedBy: string | null; updatedAt: string | null }> {
+    const res = await api.put(`/projects/${projectId}/notes`, { version, yjsState });
+    return res.data;
   },
 };

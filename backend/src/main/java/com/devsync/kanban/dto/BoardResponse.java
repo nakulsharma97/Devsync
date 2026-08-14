@@ -49,5 +49,9 @@ public class BoardResponse {
         private Instant dueDate;
         private List<String> labels;
         private Instant createdAt;
+        private String milestone;
+        private String sprint;
+        /** Task ids this task depends on (blocked-by). */
+        private List<String> dependencies;
     }
 }

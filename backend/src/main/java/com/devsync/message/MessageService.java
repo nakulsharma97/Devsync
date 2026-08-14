@@ -11,8 +11,10 @@ import com.devsync.message.dto.MessageResponse;
 import com.devsync.message.dto.SendMessageRequest;
 import com.devsync.message.entity.Message;
 import com.devsync.message.entity.MessageRead;
+import com.devsync.message.entity.MessageReaction;
 import com.devsync.message.entity.MessageStatus;
 import com.devsync.message.repository.MessageReadRepository;
+import com.devsync.message.repository.MessageReactionRepository;
 import com.devsync.message.repository.MessageRepository;
 import com.devsync.project.entity.Project;
 import com.devsync.project.repository.ProjectRepository;
@@ -23,6 +25,7 @@ import com.devsync.user.entity.User;
 import com.devsync.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -38,6 +41,7 @@ public class MessageService {
 
     private final MessageRepository messageRepository;
     private final MessageReadRepository messageReadRepository;
+    private final MessageReactionRepository reactionRepository;
     private final UserRepository userRepository;
     private final TeamRoomRepository roomRepository;
     private final TeamRoomParticipantRepository participantRepository;
@@ -59,7 +63,7 @@ public class MessageService {
         // another user's attachment would leak it into a different conversation.
         if (request.getAttachmentId() != null
                 && !attachmentService.isUploader(request.getAttachmentId(), senderId)) {
-            throw new org.springframework.security.access.AccessDeniedException(
+            throw new AccessDeniedException(
                     "Attachment does not belong to you");
         }
         if (hasReceiver) {
@@ -85,6 +89,28 @@ public class MessageService {
                 }
             });
         }
+        if (request.getParentMessageId() != null) {
+            // Reply: the parent must exist and live in the same conversation — a
+            // reply can never jump across rooms/DMs. For a room, the room must
+            // match; for a DM, the reply sender must be one of the parent's two
+            // participants (the parent's sender or receiver) and the reply must
+            // be addressed to the other one.
+            Message parent = messageRepository.findById(request.getParentMessageId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Message", request.getParentMessageId()));
+            boolean sameConversation;
+            if (parent.getRoomId() != null) {
+                sameConversation = Objects.equals(parent.getRoomId(), request.getRoomId());
+            } else {
+                boolean replyToParentSender = Objects.equals(parent.getSenderId(), senderId)
+                        && Objects.equals(parent.getReceiverId(), request.getReceiverId());
+                boolean replyToParentReceiver = Objects.equals(parent.getReceiverId(), senderId)
+                        && Objects.equals(parent.getSenderId(), request.getReceiverId());
+                sameConversation = replyToParentSender || replyToParentReceiver;
+            }
+            if (parent.isHidden() || !sameConversation) {
+                throw new IllegalArgumentException("Reply does not belong to this conversation");
+            }
+        }
         Message message = Message.builder()
                 .senderId(senderId)
                 .roomId(request.getRoomId())
@@ -93,6 +119,7 @@ public class MessageService {
                 .messageType(request.getMessageType() != null ? request.getMessageType() : "text")
                 .systemMessage(request.isSystemMessage())
                 .attachmentId(request.getAttachmentId())
+                .parentMessageId(request.getParentMessageId())
                 .build();
         message = messageRepository.save(message);
         activityService.record(senderId, projectId[0], ActivityType.MESSAGE_SENT,
@@ -180,13 +207,156 @@ public class MessageService {
         }
         List<Message> messages = messageRepository.findByRoomIdOrderByCreatedAtAsc(roomId, PageRequest.of(0, 100))
                 .stream().filter(m -> !m.isHidden()).toList();
-        return toResponsesWithBatchUsers(messages);
+        return toResponsesWithBatchUsers(messages, userId);
     }
 
     public List<MessageResponse> getConversation(String userId, String otherId, int limit) {
         List<Message> messages = messageRepository.findConversation(userId, otherId, PageRequest.of(0, limit))
                 .stream().filter(m -> !m.isHidden()).toList();
-        return toResponsesWithBatchUsers(messages);
+        return toResponsesWithBatchUsers(messages, userId);
+    }
+
+    // ── Message upgrades: edit / delete / react / threads / search ──────
+
+    /**
+     * Edits a message. Only the sender (or a global admin) may edit; hidden
+     * (deleted) messages are immutable. The conversation access rules are the
+     * same as reading: the editor must be a participant.
+     */
+    @Transactional
+    public MessageResponse editMessage(String messageId, String userId, String newContent) {
+        if (newContent == null || newContent.isBlank()) {
+            throw new IllegalArgumentException("Message content is required");
+        }
+        Message message = findAccessibleMessage(messageId, userId);
+        if (!message.getSenderId().equals(userId) && !isAdmin(userId)) {
+            throw new AccessDeniedException("Only the sender can edit this message");
+        }
+        message.setContent(newContent.trim());
+        message.setEdited(true);
+        message.setEditedAt(Instant.now());
+        messageRepository.save(message);
+        return toResponse(message);
+    }
+
+    /**
+     * Soft-deletes a message (sets {@code hidden}) so threads and history stay
+     * consistent — the row is never physically removed. Only the sender (or a
+     * global admin) may delete.
+     */
+    @Transactional
+    public void deleteMessage(String messageId, String userId) {
+        Message message = findAccessibleMessage(messageId, userId);
+        if (!message.getSenderId().equals(userId) && !isAdmin(userId)) {
+            throw new AccessDeniedException("Only the sender can delete this message");
+        }
+        message.setHidden(true);
+        messageRepository.save(message);
+    }
+
+    /**
+     * Toggles the caller's reaction on a message. Returns the full aggregated
+     * reaction state so clients can apply it atomically.
+     */
+    @Transactional
+    public List<MessageResponse.ReactionDto> toggleReaction(String messageId, String userId, String emoji) {
+        if (emoji == null || emoji.isBlank() || emoji.length() > 16) {
+            throw new IllegalArgumentException("A valid emoji is required");
+        }
+        findAccessibleMessage(messageId, userId);
+        reactionRepository.findByMessageIdAndUserIdAndEmoji(messageId, userId, emoji)
+                .ifPresentOrElse(
+                        reactionRepository::delete,
+                        () -> reactionRepository.save(MessageReaction.builder()
+                                .messageId(messageId).userId(userId).emoji(emoji).build()));
+        return reactionSummary(messageId, userId);
+    }
+
+    /** Reply thread: every message replying to {@code parentMessageId} (oldest first). */
+    @Transactional(readOnly = true)
+    public List<MessageResponse> getThread(String parentMessageId, String userId) {
+        // Access is derived from the parent's conversation.
+        findAccessibleMessage(parentMessageId, userId);
+        return toResponsesWithBatchUsers(
+                messageRepository.findByParentMessageIdOrderByCreatedAtAsc(parentMessageId), userId);
+    }
+
+    /**
+     * Search the caller's own conversations (DMs + rooms they participate in).
+     * A user can never search another conversation's messages.
+     */
+    @Transactional(readOnly = true)
+    public List<MessageResponse> searchMessages(String userId, String keyword, int limit) {
+        if (keyword == null || keyword.isBlank()) {
+            throw new IllegalArgumentException("A search keyword is required");
+        }
+        String k = keyword.trim();
+        List<Message> found = messageRepository.searchMessagesForUser(k, userId,
+                PageRequest.of(0, Math.min(Math.max(limit, 1), 50)));
+        return toResponsesWithBatchUsers(found.stream().filter(m -> !m.isHidden()).toList(), userId);
+    }
+
+    /** Internal: resolves a message for broadcast routing (no auth — caller already authorized the mutation). */
+    public Message findForBroadcast(String messageId) {
+        return messageRepository.findById(messageId).orElse(null);
+    }
+
+    private Message findAccessibleMessage(String messageId, String userId) {
+        Message message = messageRepository.findById(messageId)
+                .orElseThrow(() -> new ResourceNotFoundException("Message", messageId));
+        if (message.isHidden()) {
+            throw new ResourceNotFoundException("Message", messageId);
+        }
+        if (message.getRoomId() != null) {
+            if (!participantRepository.existsByRoomIdAndUserId(message.getRoomId(), userId)) {
+                throw new AccessDeniedException("You are not a participant in this conversation");
+            }
+        } else {
+            boolean involved = message.getSenderId().equals(userId)
+                    || message.getReceiverId().equals(userId);
+            if (!involved && !isAdmin(userId)) {
+                throw new AccessDeniedException("You are not a participant in this conversation");
+            }
+        }
+        return message;
+    }
+
+    private boolean isAdmin(String userId) {
+        return userRepository.findById(userId)
+                .map(u -> u.getRole() == User.Role.ADMIN)
+                .orElse(false);
+    }
+
+    /** Aggregates reactions for a set of message ids (batch, no N+1). */
+    private Map<String, List<MessageResponse.ReactionDto>> reactionsByMessage(Collection<String> messageIds,
+                                                                              String userId) {
+        if (messageIds.isEmpty()) return Collections.emptyMap();
+        List<MessageReaction> all = reactionRepository.findByMessageIdIn(messageIds);
+        Map<String, List<MessageReaction>> byMessage = all.stream()
+                .collect(Collectors.groupingBy(MessageReaction::getMessageId));
+        Map<String, List<MessageResponse.ReactionDto>> result = new HashMap<>();
+        for (Map.Entry<String, List<MessageReaction>> e : byMessage.entrySet()) {
+            Map<String, Long> counts = e.getValue().stream()
+                    .collect(Collectors.groupingBy(MessageReaction::getEmoji, Collectors.counting()));
+            result.put(e.getKey(), counts.entrySet().stream()
+                    .map(en -> MessageResponse.ReactionDto.builder()
+                            .emoji(en.getKey())
+                            .count(en.getValue())
+                            .reactedByMe(e.getValue().stream()
+                                    .anyMatch(r -> r.getUserId().equals(userId) && r.getEmoji().equals(en.getKey())))
+                            .build())
+                    .sorted(Comparator.comparing(MessageResponse.ReactionDto::getEmoji))
+                    .toList());
+        }
+        return result;
+    }
+
+    private List<MessageResponse.ReactionDto> reactionSummary(String messageId, String userId) {
+        if (messageId == null) {
+            // Unsaved message (e.g. inside a unit test with a mocked repository).
+            return List.of();
+        }
+        return reactionsByMessage(Set.of(messageId), userId).getOrDefault(messageId, List.of());
     }
 
     public List<ConversationResponse> getConversations(String userId) {
@@ -257,18 +427,17 @@ public class MessageService {
     }
 
     /**
-     * Batch-load all message senders into a user map, then map all messages in one pass.
-     * Eliminates the N+1 query issue where toResponse() calls findById per message.
+     * Batch-load senders, attachments, reactions and reply counts, then map all
+     * messages in one pass. Eliminates the N+1 query issue where toResponse()
+     * calls findById per message.
      */
-    private List<MessageResponse> toResponsesWithBatchUsers(List<Message> messages) {
+    private List<MessageResponse> toResponsesWithBatchUsers(List<Message> messages, String viewerId) {
         if (messages.isEmpty()) return List.of();
 
-        // Batch-load ALL unique sender IDs in a single query
         Set<String> senderIds = messages.stream()
                 .map(Message::getSenderId)
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
-
         Map<String, User> userMap = senderIds.isEmpty() ? Collections.emptyMap()
                 : userRepository.findAllById(senderIds).stream()
                         .collect(Collectors.toMap(User::getId, u -> u));
@@ -279,29 +448,31 @@ public class MessageService {
                 .collect(Collectors.toSet());
         Map<String, AttachmentResponse> attachmentMap = attachmentService.batchByIds(attachmentIds);
 
+        Set<String> messageIds = messages.stream().map(Message::getId).collect(Collectors.toSet());
+        Map<String, List<MessageResponse.ReactionDto>> reactions = reactionsByMessage(messageIds, viewerId);
+        Map<String, Long> replyCounts = messageRepository.countByParentMessageIdIn(messageIds).stream()
+                .collect(Collectors.toMap(row -> (String) row[0], row -> (Long) row[1]));
+
         return messages.stream()
-                .map(msg -> toResponse(msg, userMap, attachmentMap))
+                .map(msg -> buildResponse(msg, userMap.get(msg.getSenderId()),
+                        attachmentMap.get(msg.getAttachmentId()),
+                        reactions.getOrDefault(msg.getId(), List.of()),
+                        replyCounts.getOrDefault(msg.getId(), 0L)))
                 .toList();
     }
 
     private MessageResponse toResponse(Message message) {
-        User sender = userRepository.findById(message.getSenderId()).orElse(null); // single message, fine
+        User sender = userRepository.findById(message.getSenderId()).orElse(null);
         AttachmentResponse attachment = message.getAttachmentId() != null
                 ? attachmentService.batchByIds(Set.of(message.getAttachmentId())).get(message.getAttachmentId())
                 : null;
-        return buildResponse(message, sender, attachment);
+        return buildResponse(message, sender, attachment,
+                reactionSummary(message.getId(), message.getSenderId()),
+                message.getId() != null ? messageRepository.countByParentMessageId(message.getId()) : 0L);
     }
 
-    private MessageResponse toResponse(Message message, Map<String, User> userMap,
-                                       Map<String, AttachmentResponse> attachmentMap) {
-        User sender = userMap.get(message.getSenderId());
-        AttachmentResponse attachment = message.getAttachmentId() != null
-                ? attachmentMap.get(message.getAttachmentId())
-                : null;
-        return buildResponse(message, sender, attachment);
-    }
-
-    private MessageResponse buildResponse(Message message, User sender, AttachmentResponse attachment) {
+    private MessageResponse buildResponse(Message message, User sender, AttachmentResponse attachment,
+                                          List<MessageResponse.ReactionDto> reactions, long replyCount) {
         return MessageResponse.builder()
                 .id(message.getId())
                 .senderId(message.getSenderId())
@@ -317,6 +488,11 @@ public class MessageService {
                 .status(message.getStatus() != null ? message.getStatus().name() : "SENT")
                 .readAt(message.getReadAt())
                 .createdAt(message.getCreatedAt())
+                .parentMessageId(message.getParentMessageId())
+                .edited(message.isEdited())
+                .editedAt(message.getEditedAt())
+                .reactions(reactions)
+                .replyCount(replyCount)
                 .build();
     }
 }

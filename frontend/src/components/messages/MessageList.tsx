@@ -1,6 +1,6 @@
-import { Copy, Check, Loader2, MessageSquare } from "lucide-react";
+import { Copy, Check, Loader2, MessageSquare, Pencil, Reply, Trash2 } from "lucide-react";
 import { useState } from "react";
-import type { MessageDto } from "@/services/messageService";
+import type { MessageDto, ReactionDto } from "@/services/messageService";
 import { formatChatTime, formatDayLabel } from "@/lib/format";
 import { MessageAttachment } from "./AttachmentView";
 import { cn } from "@/lib/utils";
@@ -15,6 +15,16 @@ interface MessageListProps {
   failedIds?: Set<string>;
   onRetry?: (msg: MessageDto) => void;
   onRegisterRef: (id: string, el: HTMLDivElement | null) => void;
+  /** Reply to a message (opens the reply composer with the parent set). */
+  onReply?: (msg: MessageDto) => void;
+  /** Open the reply thread for a message. */
+  onOpenThread?: (msg: MessageDto) => void;
+  /** Toggle the caller's reaction on a message. */
+  onToggleReaction?: (msg: MessageDto, emoji: string) => void;
+  /** Start editing a message inline. */
+  onEdit?: (msg: MessageDto) => void;
+  /** Delete (soft-delete) a message. */
+  onDelete?: (msg: MessageDto) => void;
 }
 
 function isOptimistic(msg: MessageDto): boolean {
@@ -44,6 +54,11 @@ function MessageBubble({
   failed,
   onRetry,
   registerRef,
+  onReply,
+  onOpenThread,
+  onToggleReaction,
+  onEdit,
+  onDelete,
 }: {
   msg: MessageDto;
   myId: string;
@@ -52,10 +67,18 @@ function MessageBubble({
   failed?: boolean;
   onRetry?: (msg: MessageDto) => void;
   registerRef: MessageListProps["onRegisterRef"];
+  onReply?: (msg: MessageDto) => void;
+  onOpenThread?: (msg: MessageDto) => void;
+  onToggleReaction?: (msg: MessageDto, emoji: string) => void;
+  onEdit?: (msg: MessageDto) => void;
+  onDelete?: (msg: MessageDto) => void;
 }) {
   const [copied, setCopied] = useState(false);
+  const [reacting, setReacting] = useState(false);
   const own = msg.senderId === myId;
   const optimistic = isOptimistic(msg);
+  const reactions = msg.reactions ?? [];
+  const replyCount = msg.replyCount ?? 0;
 
   if (msg.systemMessage) {
     return (
@@ -72,6 +95,16 @@ function MessageBubble({
       </div>
     );
   }
+
+  const handleReact = async (emoji: string) => {
+    if (!onToggleReaction || optimistic || reacting) return;
+    setReacting(true);
+    try {
+      await onToggleReaction(msg, emoji);
+    } finally {
+      setReacting(false);
+    }
+  };
 
   return (
     <div
@@ -115,32 +148,128 @@ function MessageBubble({
           >
             {msg.attachment && <MessageAttachment attachment={msg.attachment} />}
             {msg.content && <p>{msg.content}</p>}
+            {msg.edited && (
+              <span
+                className={cn(
+                  "block text-[9px] italic mt-0.5",
+                  own ? "text-white/60" : "text-muted-foreground/60"
+                )}
+                title={msg.editedAt ? `Edited ${new Date(msg.editedAt).toLocaleString()}` : "Edited"}
+              >
+                (edited)
+              </span>
+            )}
           </div>
 
-          {/* Hover copy action */}
+          {/* Hover actions */}
           {!optimistic && (
-            <button
-              onClick={async () => {
-                try {
-                  await navigator.clipboard.writeText(msg.content);
-                  setCopied(true);
-                  setTimeout(() => setCopied(false), 1200);
-                } catch {
-                  // clipboard unavailable
-                }
-              }}
-              aria-label="Copy message"
-              title="Copy message"
+            <div
               className={cn(
-                "absolute -top-2.5 p-1.5 rounded-md bg-popover border border-border shadow-md text-muted-foreground hover:text-foreground transition-all",
+                "absolute -top-2.5 flex items-center gap-0.5 rounded-md bg-popover border border-border shadow-md p-0.5",
                 own ? "left-0 translate-x-[-50%]" : "right-0 translate-x-[50%]",
-                "opacity-0 group-hover/bubble:opacity-100 focus-visible:opacity-100"
+                "opacity-0 group-hover/bubble:opacity-100 focus-within:opacity-100 transition-all"
               )}
             >
-              {copied ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3" />}
-            </button>
+              {onReply && (
+                <button
+                  onClick={() => onReply(msg)}
+                  aria-label="Reply"
+                  title="Reply"
+                  className="p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-accent/10 transition-colors"
+                >
+                  <Reply className="w-3 h-3" />
+                </button>
+              )}
+              {onToggleReaction && (
+                <button
+                  onClick={() => handleReact("👍")}
+                  disabled={reacting}
+                  aria-label="React with thumbs up"
+                  title="React 👍"
+                  className="p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-accent/10 transition-colors disabled:opacity-40"
+                >
+                  {reacting ? (
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                  ) : (
+                    <span className="text-xs leading-none">👍</span>
+                  )}
+                </button>
+              )}
+              {own && onEdit && (
+                <button
+                  onClick={() => onEdit(msg)}
+                  aria-label="Edit message"
+                  title="Edit message"
+                  className="p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-accent/10 transition-colors"
+                >
+                  <Pencil className="w-3 h-3" />
+                </button>
+              )}
+              <button
+                onClick={async () => {
+                  try {
+                    await navigator.clipboard.writeText(msg.content);
+                    setCopied(true);
+                    setTimeout(() => setCopied(false), 1200);
+                  } catch {
+                    // clipboard unavailable
+                  }
+                }}
+                aria-label="Copy message"
+                title="Copy message"
+                className="p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-accent/10 transition-colors"
+              >
+                {copied ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3" />}
+              </button>
+              {own && onDelete && (
+                <button
+                  onClick={() => onDelete(msg)}
+                  aria-label="Delete message"
+                  title="Delete message"
+                  className="p-1.5 rounded text-muted-foreground hover:text-red-500 hover:bg-red-500/10 transition-colors"
+                >
+                  <Trash2 className="w-3 h-3" />
+                </button>
+              )}
+            </div>
           )}
         </div>
+
+        {/* Reactions */}
+        {reactions.length > 0 && !optimistic && (
+          <div className="flex items-center gap-1 mt-1 flex-wrap">
+            {reactions.map((r: ReactionDto) => (
+              <button
+                key={r.emoji}
+                onClick={() => handleReact(r.emoji)}
+                disabled={reacting}
+                title={`${r.count} reaction${r.count !== 1 ? "s" : ""}`}
+                aria-label={`Toggle ${r.emoji} reaction`}
+                className={cn(
+                  "inline-flex items-center gap-1 text-[11px] rounded-full border px-1.5 py-0.5 transition-colors",
+                  r.reactedByMe
+                    ? "bg-indigo-500/15 border-indigo-500/30 text-indigo-500 dark:text-indigo-300"
+                    : "bg-muted/40 border-border/40 text-muted-foreground hover:bg-muted/70"
+                )}
+              >
+                <span aria-hidden>{r.emoji}</span>
+                <span className="font-medium">{r.count}</span>
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Thread summary */}
+        {replyCount > 0 && onOpenThread && !optimistic && (
+          <button
+            onClick={() => onOpenThread(msg)}
+            className="mt-1 inline-flex items-center gap-1.5 text-[11px] font-medium text-indigo-500 dark:text-indigo-400 hover:underline"
+            title="View replies"
+          >
+            <MessageSquare className="w-3 h-3" />
+            {replyCount} {replyCount === 1 ? "reply" : "replies"}
+          </button>
+        )}
 
         {/* Meta row */}
         <span
@@ -178,6 +307,11 @@ export function MessageList({
   failedIds,
   onRetry,
   onRegisterRef,
+  onReply,
+  onOpenThread,
+  onToggleReaction,
+  onEdit,
+  onDelete,
 }: MessageListProps) {
   if (loading) {
     return (
@@ -215,6 +349,11 @@ export function MessageList({
         failed={failedIds?.has(String(msg.id))}
         onRetry={onRetry}
         registerRef={onRegisterRef}
+        onReply={onReply}
+        onOpenThread={onOpenThread}
+        onToggleReaction={onToggleReaction}
+        onEdit={onEdit}
+        onDelete={onDelete}
       />
     );
   }

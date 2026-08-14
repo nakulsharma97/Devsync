@@ -3,6 +3,7 @@ package com.devsync.attachment;
 import com.devsync.activity.ActivityService;
 import com.devsync.activity.entity.ActivityType;
 import com.devsync.attachment.dto.AttachmentResponse;
+import com.devsync.billing.EntitlementService;
 import com.devsync.attachment.entity.AttachmentContext;
 import com.devsync.attachment.entity.FileAttachment;
 import com.devsync.attachment.repository.FileAttachmentRepository;
@@ -82,6 +83,7 @@ public class AttachmentService {
     private final BoardRepository boardRepository;
     private final PostRepository postRepository;
     private final CommentRepository commentRepository;
+    private final EntitlementService entitlementService;
 
     @Transactional
     public AttachmentResponse upload(MultipartFile file, String contextType, String contextId,
@@ -98,6 +100,10 @@ public class AttachmentService {
         // Authorize FIRST and derive the effective project server-side from the
         // context — projectId/contextId from the client are never trusted.
         String effectiveProjectId = authorizeUpload(uploaderId, isAdmin, context, contextId, projectId);
+
+        // Plan storage quota (server-side): current usage + this file must fit
+        // the user's plan. Existing files are never deleted on downgrade.
+        entitlementService.assertCanUpload(uploaderId, file.getSize());
 
         validateFile(file, originalName);
 

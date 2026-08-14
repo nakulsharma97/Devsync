@@ -215,10 +215,38 @@ export function RouteSkeleton() {
 
     case "notifications":
       return (
-        <div className="max-w-2xl mx-auto border border-border/40 rounded-xl overflow-hidden">
-          {[0, 1, 2, 3, 4].map((i) => (
-            <SkeletonNotification key={i} />
-          ))}
+        <div className="mx-auto w-full max-w-6xl grid gap-6 lg:grid-cols-[minmax(0,1fr)_300px] items-start">
+          <div className="space-y-5">
+            <Skeleton className="h-8 w-48" />
+            <Skeleton className="h-9 w-64 rounded-full" />
+            <div className="space-y-2.5">
+              {[0, 1, 2, 3].map((i) => (
+                <div key={i} className="flex items-start gap-3.5 p-4 rounded-2xl border border-border/40">
+                  <Skeleton className="w-10 h-10 rounded-full shrink-0" />
+                  <div className="space-y-2 flex-1">
+                    <Skeleton className="h-2.5 w-20" />
+                    <Skeleton className="h-3.5 w-3/4" />
+                    <Skeleton className="h-3 w-1/2" />
+                    <Skeleton className="h-2 w-16" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="hidden lg:block space-y-5">
+            <div className="rounded-2xl border border-border/40 p-5 space-y-3">
+              <Skeleton className="h-4 w-24" />
+              {[0, 1, 2].map((i) => (
+                <Skeleton key={i} className="h-8 w-full" />
+              ))}
+            </div>
+            <div className="rounded-2xl border border-border/40 p-5 space-y-3">
+              <Skeleton className="h-4 w-20" />
+              {[0, 1, 2].map((i) => (
+                <Skeleton key={i} className="h-10 w-full" />
+              ))}
+            </div>
+          </div>
         </div>
       );
 

@@ -53,6 +53,13 @@ public interface MessageRepository extends JpaRepository<Message, String> {
 
     List<Message> findTop5ByRoomIdInOrderByCreatedAtDesc(Collection<String> roomIds);
 
+    List<Message> findByParentMessageIdOrderByCreatedAtAsc(String parentMessageId);
+
+    @Query("SELECT m.parentMessageId, COUNT(m) FROM Message m WHERE m.parentMessageId IN :parentIds GROUP BY m.parentMessageId")
+    List<Object[]> countByParentMessageIdIn(@Param("parentIds") Collection<String> parentIds);
+
+    long countByParentMessageId(String parentMessageId);
+
     @Query("SELECT m FROM Message m WHERE (:keyword IS NULL OR LOWER(m.content) LIKE LOWER(CONCAT('%', :keyword, '%'))) " +
             "AND (m.senderId = :userId OR m.receiverId = :userId OR " +
             "m.roomId IN (SELECT tp.roomId FROM TeamRoomParticipant tp WHERE tp.userId = :userId))")

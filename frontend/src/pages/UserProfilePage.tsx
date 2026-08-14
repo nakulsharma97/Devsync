@@ -1,61 +1,117 @@
-import { useState, useEffect, useCallback } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import {
   User,
   AtSign,
-  Github,
-  Globe,
   MapPin,
   MessageCircle,
   ArrowLeft,
-  Heart,
-  MessageSquare,
   Briefcase,
-  Rss,
-  Sparkles,
+  Building2,
+  Flame,
+  FolderKanban,
+  CheckCircle2,
+  MessageSquare,
+  FileText,
+  CalendarDays,
 } from "lucide-react";
-import { userService, type PublicUserDto } from "@/services/userService";
-import { postService, type PostDto } from "@/services/postService";
-import { useAuth } from "@/contexts/AuthContext";
+import { publicProfileService, type PublicProfileDto } from "@/services/publicProfileService";
+import { cn } from "@/lib/utils";
+
+const HEATMAP_DAYS = 13 * 7; // 13 weeks
+
+/** Build a dense [date → count] map from the server's sparse heatmap points. */
+function useHeatmap(profile: PublicProfileDto | null): Map<string, number> {
+  return useMemo(() => {
+    const map = new Map<string, number>();
+    for (const p of profile?.contributions.heatmap ?? []) {
+      map.set(p.date.slice(0, 10), p.count);
+    }
+    return map;
+  }, [profile]);
+}
+
+/** GitHub-style contribution grid for the last {@link HEATMAP_DAYS} days. */
+function ContributionHeatmap({ counts }: { counts: Map<string, number> }) {
+  const days = useMemo(() => {
+    const result: { date: string; count: number }[] = [];
+    const today = new Date();
+    for (let i = HEATMAP_DAYS - 1; i >= 0; i--) {
+      const d = new Date(today);
+      d.setDate(today.getDate() - i);
+      const key = d.toISOString().slice(0, 10);
+      result.push({ date: key, count: counts.get(key) ?? 0 });
+    }
+    return result;
+  }, [counts]);
+
+  const max = Math.max(1, ...days.map((d) => d.count));
+
+  return (
+    <div className="overflow-x-auto pb-1">
+      <div className="grid grid-flow-col grid-rows-7 gap-1 min-w-max">
+        {days.map(({ date, count }) => {
+          const intensity = count === 0 ? 0 : count >= max * 0.75 ? 4 : count >= max * 0.5 ? 3 : count >= max * 0.25 ? 2 : 1;
+          return (
+            <span
+              key={date}
+              title={`${date}: ${count} contribution${count !== 1 ? "s" : ""}`}
+              className={cn(
+                "w-3 h-3 rounded-[3px]",
+                intensity === 0 && "bg-muted/50",
+                intensity === 1 && "bg-indigo-500/30",
+                intensity === 2 && "bg-indigo-500/50",
+                intensity === 3 && "bg-indigo-500/75",
+                intensity === 4 && "bg-indigo-500"
+              )}
+            />
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function StatCard({ icon, label, value }: { icon: React.ReactNode; label: string; value: number }) {
+  return (
+    <div className="rounded-xl border border-border/40 bg-card p-4">
+      <div className="flex items-center gap-2 text-muted-foreground mb-1.5">
+        {icon}
+        <span className="text-[11px] font-medium uppercase tracking-wide">{label}</span>
+      </div>
+      <p className="text-2xl font-bold">{value.toLocaleString()}</p>
+    </div>
+  );
+}
 
 export default function UserProfilePage() {
-  const { userId } = useParams<{ userId: string }>();
+  const { username } = useParams<{ username: string }>();
   const navigate = useNavigate();
-  const { user: currentUser } = useAuth();
 
-  const [profileUser, setProfileUser] = useState<PublicUserDto | null>(null);
-  const [posts, setPosts] = useState<PostDto[]>([]);
-  const [followerCount] = useState(0);
-  const [followingCount] = useState(0);
+  const [profile, setProfile] = useState<PublicProfileDto | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const isOwnProfile = currentUser?.id === userId;
+  const counts = useHeatmap(profile);
 
   const fetchProfile = useCallback(async () => {
-    if (!userId) return;
+    if (!username) return;
+    setLoading(true);
+    setError(null);
     try {
-      const [userData, userPosts] = await Promise.all([
-        userService.getUser(userId),
-        postService.getPostsByUser(userId).catch(() => [] as PostDto[]),
-      ]);
-      setProfileUser(userData);
-      setPosts(userPosts);
-    } catch (err) {
-      console.error("Failed to load profile:", err);
+      setProfile(await publicProfileService.getProfile(username));
+    } catch {
+      setError("This profile doesn't exist or is no longer available.");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
-  }, [userId, isOwnProfile]);
+  }, [username]);
 
   useEffect(() => {
     fetchProfile();
   }, [fetchProfile]);
-
-  const handleMessage = async () => {
-    if (!userId) return;
-    navigate(`/messages/dm_${userId}`);
-  };
 
   if (loading) {
     return (
@@ -68,13 +124,13 @@ export default function UserProfilePage() {
     );
   }
 
-  if (!profileUser) {
+  if (error || !profile) {
     return (
       <div className="flex flex-col items-center justify-center py-20">
         <div className="w-12 h-12 rounded-2xl bg-accent/10 flex items-center justify-center mb-4 ring-1 ring-accent/20">
           <User className="w-6 h-6 text-accent" />
         </div>
-        <h3 className="text-sm font-semibold text-foreground">User not found</h3>
+        <h3 className="text-sm font-semibold text-foreground">Profile not found</h3>
         <p className="text-sm text-muted-foreground mt-1">This user doesn't exist or has been removed.</p>
         <Button variant="outline" size="sm" onClick={() => navigate(-1)} className="mt-4">
           <ArrowLeft className="w-3.5 h-3.5 mr-1.5" /> Go back
@@ -83,14 +139,17 @@ export default function UserProfilePage() {
     );
   }
 
-  const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString(undefined, {
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  };
+  const c = profile.contributions;
+  const memberSince = profile.memberSince
+    ? new Date(profile.memberSince).toLocaleDateString(undefined, { month: "short", year: "numeric" })
+    : null;
+  const badges: string[] = [];
+  if (c.currentStreak >= 30) badges.push("🔥 30+ day streak");
+  else if (c.currentStreak >= 7) badges.push("🔥 7+ day streak");
+  else if (c.currentStreak >= 3) badges.push("🔥 On a roll");
+  if (c.projectsCreated >= 5) badges.push("🚀 Builder");
+  if (c.tasksCompleted >= 25) badges.push("✅ Task Master");
+  if (c.messagesSent >= 100) badges.push("💬 Team Communicator");
 
   return (
     <div className="relative">
@@ -108,15 +167,15 @@ export default function UserProfilePage() {
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-card border border-border/50 rounded-xl p-6 mb-8 relative overflow-hidden hover:border-accent/30 hover:shadow-lg hover:shadow-accent/5 transition-all duration-300"
+        className="bg-card border border-border/50 rounded-xl p-6 mb-6 relative overflow-hidden hover:border-accent/30 hover:shadow-lg hover:shadow-accent/5 transition-all duration-300"
       >
         <div className="absolute inset-0 bg-gradient-to-br from-accent/[0.02] to-transparent pointer-events-none" />
 
-        <div className="flex items-start gap-5 relative">
+        <div className="flex items-start gap-5 relative flex-wrap">
           {/* Avatar */}
           <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-accent/20 to-accent/5 flex items-center justify-center ring-1 ring-accent/20 shrink-0 overflow-hidden shadow-sm">
-            {profileUser.avatarUrl ? (
-              <img src={profileUser.avatarUrl} alt="" className="w-full h-full object-cover" />
+            {profile.avatarUrl ? (
+              <img src={profile.avatarUrl} alt="" className="w-full h-full object-cover" />
             ) : (
               <User className="w-8 h-8 text-accent" />
             )}
@@ -124,145 +183,90 @@ export default function UserProfilePage() {
 
           {/* Info */}
           <div className="flex-1 min-w-0">
-            <h2 className="text-xl font-bold text-foreground truncate">
-              {profileUser.fullName}
-            </h2>
+            <h2 className="text-xl font-bold text-foreground truncate">{profile.displayName}</h2>
             <p className="text-sm text-muted-foreground flex items-center gap-1 mt-0.5">
               <AtSign className="w-3.5 h-3.5 shrink-0" />
-              <span className="truncate">@{profileUser.username}</span>
+              <span className="truncate">@{profile.username}</span>
             </p>
 
-            {/* Badges */}
+            {/* Badges — only from data the user actually provided */}
             <div className="flex items-center gap-2 mt-2 flex-wrap">
-              {profileUser.jobTitle && (
+              {profile.jobTitle && (
                 <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-accent/10 text-accent border border-accent/20 font-medium flex items-center gap-1">
-                  <Briefcase className="w-2.5 h-2.5" /> {profileUser.jobTitle}
+                  <Briefcase className="w-2.5 h-2.5" /> {profile.jobTitle}
                 </span>
               )}
-              {profileUser.location && (
+              {profile.company && (
                 <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-muted/50 text-muted-foreground border border-border/30 flex items-center gap-1">
-                  <MapPin className="w-2.5 h-2.5" /> {profileUser.location}
+                  <Building2 className="w-2.5 h-2.5" /> {profile.company}
+                </span>
+              )}
+              {profile.location && (
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-muted/50 text-muted-foreground border border-border/30 flex items-center gap-1">
+                  <MapPin className="w-2.5 h-2.5" /> {profile.location}
                 </span>
               )}
             </div>
 
-            {/* Social links */}
-            {(profileUser.githubUrl || profileUser.websiteUrl) && (
-              <div className="flex items-center gap-3 mt-2 flex-wrap">
-                {profileUser.githubUrl && (
-                  <a
-                    href={profileUser.githubUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+            {/* Bio */}
+            {profile.bio && (
+              <p className="text-sm text-muted-foreground mt-3 leading-relaxed">{profile.bio}</p>
+            )}
+
+            {/* Earned badges */}
+            {badges.length > 0 && (
+              <div className="flex items-center gap-2 mt-3 flex-wrap">
+                {badges.map((b) => (
+                  <span
+                    key={b}
+                    className="text-[10px] px-2 py-1 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 font-medium"
                   >
-                    <Github className="w-3 h-3" /> {profileUser.githubUrl.replace('https://github.com/', '')}
-                  </a>
-                )}
-                {profileUser.websiteUrl && (
-                  <a
-                    href={profileUser.websiteUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
-                  >
-                    <Globe className="w-3 h-3" /> Portfolio
-                  </a>
-                )}
+                    {b}
+                  </span>
+                ))}
               </div>
             )}
 
-            {/* Bio */}
-            {profileUser.bio && (
-              <p className="text-sm text-muted-foreground mt-3 leading-relaxed">
-                {profileUser.bio}
-              </p>
-            )}
-
-            {/* Stats */}
             <div className="flex items-center gap-4 mt-4 text-xs text-muted-foreground">
-              <span>
-                <strong className="text-foreground">{followerCount}</strong> followers
-              </span>
-              <span>
-                <strong className="text-foreground">{followingCount}</strong> following
-              </span>
-              <span>
-                <strong className="text-foreground">{posts.length}</strong> posts
-              </span>
+              {memberSince && (
+                <span className="inline-flex items-center gap-1">
+                  <CalendarDays className="w-3.5 h-3.5" /> Member since {memberSince}
+                </span>
+              )}
+              {c.currentStreak > 0 && (
+                <span className="inline-flex items-center gap-1 text-orange-500">
+                  <Flame className="w-3.5 h-3.5" /> {c.currentStreak} day streak
+                </span>
+              )}
             </div>
           </div>
 
-          {/* Actions */}
-          {!isOwnProfile && (
-            <div className="flex items-center gap-2 shrink-0">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleMessage}
-                className="text-xs"
-              >
-                <MessageCircle className="w-3.5 h-3.5 mr-1.5" /> Message
-              </Button>
-            </div>
-          )}
         </div>
       </motion.div>
 
-      {/* Posts */}
-      <div className="mb-4">
-        <div className="flex items-center gap-2 mb-4">
-          <div className="w-5 h-5 rounded-md bg-accent/10 flex items-center justify-center">
-            <Rss className="w-3 h-3 text-accent" />
-          </div>
-          <h3 className="text-sm font-semibold text-foreground">Recent Posts</h3>
-        </div>
+      {/* Contribution stats */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-6">
+        <StatCard icon={<FolderKanban className="w-3.5 h-3.5" />} label="Projects" value={c.projectsCreated} />
+        <StatCard icon={<CheckCircle2 className="w-3.5 h-3.5" />} label="Tasks done" value={c.tasksCompleted} />
+        <StatCard icon={<MessageSquare className="w-3.5 h-3.5" />} label="Messages" value={c.messagesSent} />
+        <StatCard icon={<FileText className="w-3.5 h-3.5" />} label="Posts" value={c.postsCreated} />
+        <StatCard icon={<MessageCircle className="w-3.5 h-3.5" />} label="Comments" value={c.commentsAdded} />
+      </div>
 
-        {posts.length === 0 ? (
-          <div className="border border-border/50 rounded-xl p-12 flex flex-col items-center text-center gap-4 bg-card">
-            <div className="w-10 h-10 rounded-2xl bg-accent/10 flex items-center justify-center ring-1 ring-accent/20">
-              <Sparkles className="w-5 h-5 text-accent" />
-            </div>
-            <p className="text-sm text-muted-foreground">
-              No posts yet. Check back later!
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {posts.map((post) => (
-              <div
-                key={post.id}
-                className="border border-border/50 rounded-xl p-4 bg-card hover:border-accent/20 transition-all duration-200"
-              >
-                <div className="flex items-center gap-2 mb-2 text-xs text-muted-foreground">
-                  <span className="font-medium text-foreground">
-                    {post.user?.fullName || "Unknown"}
-                  </span>
-                  <span className="text-muted-foreground/30">·</span>
-                  <span>{formatDate(post.createdAt)}</span>
-                </div>
-                <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">
-                  {post.content}
-                </p>
-                {post.imageUrl && (
-                  <img
-                    src={post.imageUrl}
-                    alt="Post attachment"
-                    className="mt-3 max-h-60 rounded-lg object-cover border border-border/50"
-                    loading="lazy"
-                  />
-                )}
-                <div className="flex items-center gap-4 mt-3 pt-3 border-t border-border/50 text-xs text-muted-foreground">
-                  <span className="flex items-center gap-1.5">
-                    <Heart className="w-3.5 h-3.5" /> {post.likeCount || 0} {(post.likeCount || 0) === 1 ? "like" : "likes"}
-                  </span>
-                  <span className="flex items-center gap-1.5">
-                    <MessageSquare className="w-3.5 h-3.5" /> {post.commentCount || 0} {(post.commentCount || 0) === 1 ? "comment" : "comments"}
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
+      {/* Heatmap */}
+      <div className="rounded-xl border border-border/50 bg-card p-5 mb-6">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+            <Flame className="w-4 h-4 text-orange-500" />
+            Contribution activity
+          </h3>
+          <span className="text-[11px] text-muted-foreground">Last {HEATMAP_DAYS} days</span>
+        </div>
+        <ContributionHeatmap counts={counts} />
+        {c.heatmap.length === 0 && (
+          <p className="text-xs text-muted-foreground mt-3">
+            No contributions yet — this developer is just getting started.
+          </p>
         )}
       </div>
     </div>

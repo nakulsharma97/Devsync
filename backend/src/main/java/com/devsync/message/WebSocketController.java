@@ -49,6 +49,40 @@ public class WebSocketController {
         messageService.markDelivered(response.getId());
     }
 
+    /** Broadcast a message edit to its conversation (room topic or both DM queues). */
+    @MessageMapping("/chat.edit")
+    public void editMessage(@Payload EditRequest request, Principal principal) {
+        MessageResponse updated = messageService.editMessage(request.getMessageId(), principal.getName(), request.getContent());
+        broadcastToConversation(updated, request.getMessageId());
+    }
+
+    /** Broadcast a message deletion (soft) to its conversation. */
+    @MessageMapping("/chat.delete")
+    public void deleteMessage(@Payload DeleteRequest request, Principal principal) {
+        messageService.deleteMessage(request.getMessageId(), principal.getName());
+        broadcastToConversation(Map.of("id", request.getMessageId(), "deleted", true), request.getMessageId());
+    }
+
+    /** Broadcast a reaction toggle to its conversation. */
+    @MessageMapping("/chat.react")
+    public void react(@Payload ReactRequest request, Principal principal) {
+        var reactions = messageService.toggleReaction(request.getMessageId(), principal.getName(), request.getEmoji());
+        broadcastToConversation(Map.of("id", request.getMessageId(), "reactions", reactions),
+                request.getMessageId());
+    }
+
+    /** Routes a broadcast to the message's room topic or both DM participants. */
+    private void broadcastToConversation(Object payload, String messageId) {
+        com.devsync.message.entity.Message message = messageService.findForBroadcast(messageId);
+        if (message == null) return;
+        if (message.getRoomId() != null) {
+            messagingTemplate.convertAndSend("/topic/room/" + message.getRoomId(), payload);
+        } else {
+            messagingTemplate.convertAndSendToUser(message.getSenderId(), "/queue/messages", payload);
+            messagingTemplate.convertAndSendToUser(message.getReceiverId(), "/queue/messages", payload);
+        }
+    }
+
     @MessageMapping("/chat.typing")
     public void typing(@Payload TypingIndicator indicator, Principal principal) {
         String userId = principal.getName();
@@ -96,6 +130,23 @@ public class WebSocketController {
     @Data
     public static class PresenceMessage {
         private String status;
+    }
+
+    @Data
+    public static class EditRequest {
+        private String messageId;
+        private String content;
+    }
+
+    @Data
+    public static class DeleteRequest {
+        private String messageId;
+    }
+
+    @Data
+    public static class ReactRequest {
+        private String messageId;
+        private String emoji;
     }
 
     @Data

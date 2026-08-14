@@ -8,6 +8,7 @@ import com.devsync.message.entity.Message;
 import com.devsync.message.entity.MessageRead;
 import com.devsync.message.entity.MessageStatus;
 import com.devsync.message.repository.MessageReadRepository;
+import com.devsync.message.repository.MessageReactionRepository;
 import com.devsync.message.repository.MessageRepository;
 import com.devsync.presence.PresenceService;
 import com.devsync.project.entity.Project;
@@ -34,6 +35,7 @@ class MessageServiceTest {
 
     @Mock private MessageRepository messageRepository;
     @Mock private MessageReadRepository messageReadRepository;
+    @Mock private MessageReactionRepository reactionRepository;
     @Mock private UserRepository userRepository;
     @Mock private TeamRoomRepository roomRepository;
     @Mock private TeamRoomParticipantRepository participantRepository;
@@ -46,8 +48,8 @@ class MessageServiceTest {
 
     @BeforeEach
     void setUp() {
-        messageService = new MessageService(messageRepository, messageReadRepository, userRepository,
-                roomRepository, participantRepository, projectRepository, activityService,
+        messageService = new MessageService(messageRepository, messageReadRepository, reactionRepository,
+                userRepository, roomRepository, participantRepository, projectRepository, activityService,
                 attachmentService, presenceService);
     }
 

@@ -19,4 +19,6 @@ public class CreateTaskRequest {
     private String priority;
     private Instant dueDate;
     private String labels;
+    private String milestone;
+    private String sprint;
 }

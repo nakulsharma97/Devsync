@@ -1,7 +1,10 @@
 package com.devsync.common;
 
 import com.devsync.auth.AuthException;
+import com.devsync.billing.FeatureLimitException;
+import com.devsync.billing.PaymentNotConfiguredException;
 import com.devsync.github.GitHubException;
+import com.devsync.notes.NoteConflictException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
@@ -54,6 +57,40 @@ public class GlobalExceptionHandler {
                 .error(status.getReasonPhrase())
                 .message(message)
                 .timestamp(Instant.now())
+                .build());
+    }
+
+    @ExceptionHandler(FeatureLimitException.class)
+    public ResponseEntity<ErrorResponse> handleFeatureLimit(FeatureLimitException ex) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ErrorResponse.builder()
+                .status(403)
+                .error("Plan Limit Reached")
+                .message(ex.getMessage())
+                .timestamp(Instant.now())
+                .code(ex.getCode())
+                .build());
+    }
+
+    @ExceptionHandler(PaymentNotConfiguredException.class)
+    public ResponseEntity<ErrorResponse> handlePaymentNotConfigured(PaymentNotConfiguredException ex) {
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(ErrorResponse.builder()
+                .status(503)
+                .error("Payment Not Configured")
+                .message(ex.getMessage())
+                .timestamp(Instant.now())
+                .code("PAYMENT_NOT_CONFIGURED")
+                .build());
+    }
+
+    @ExceptionHandler(NoteConflictException.class)
+    public ResponseEntity<ErrorResponse> handleNoteConflict(NoteConflictException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(ErrorResponse.builder()
+                .status(409)
+                .error("Conflict")
+                .message(ex.getMessage())
+                .timestamp(Instant.now())
+                .code("NOTE_CONFLICT")
+                .details(List.of("currentVersion=" + ex.getCurrentVersion()))
                 .build());
     }
 

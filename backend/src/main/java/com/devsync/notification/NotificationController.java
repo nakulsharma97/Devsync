@@ -1,5 +1,6 @@
 package com.devsync.notification;
 
+import com.devsync.common.PageResponse;
 import com.devsync.notification.dto.NotificationResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -7,7 +8,6 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -18,10 +18,11 @@ public class NotificationController {
     private final NotificationService notificationService;
 
     @GetMapping
-    public ResponseEntity<List<NotificationResponse>> getNotifications(
-            @RequestParam(defaultValue = "50") int limit,
+    public ResponseEntity<PageResponse<NotificationResponse>> getNotifications(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int size,
             @AuthenticationPrincipal UserDetails userDetails) {
-        return ResponseEntity.ok(notificationService.getNotifications(userDetails.getUsername(), limit));
+        return ResponseEntity.ok(notificationService.getNotifications(userDetails.getUsername(), page, size));
     }
 
     @GetMapping("/unread-count")

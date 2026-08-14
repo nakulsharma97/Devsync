@@ -16,6 +16,7 @@
 #   FRONTEND_URL                     (origin used in reset/verify email links)
 #   MAIL_USERNAME / MAIL_PASSWORD    (SMTP — both together or neither)
 #   GITHUB_CLIENT_ID / GITHUB_CLIENT_SECRET / GITHUB_REDIRECT_URI / GITHUB_WEBHOOK_SECRET
+#   RAZORPAY_KEY_ID / RAZORPAY_KEY_SECRET / RAZORPAY_WEBHOOK_SECRET (fail-fast below)
 #
 # Additionally, ProductionConfigValidator (active only in this profile) aborts
 # startup when a known development fallback value (e.g. the dev JWT secret or
@@ -43,6 +44,12 @@ server:
 app:
   jwt:
     secret: ${JWT_SECRET}
+  billing:
+    # Fail-fast: production cannot boot without Razorpay credentials.
+    razorpay:
+      key-id: ${RAZORPAY_KEY_ID}
+      key-secret: ${RAZORPAY_KEY_SECRET}
+      webhook-secret: ${RAZORPAY_WEBHOOK_SECRET}
   auth:
     # HTTPS terminates at the reverse proxy (nginx/cloud LB) — the refresh-token
     # cookie must be Secure so it is never sent over plain HTTP.

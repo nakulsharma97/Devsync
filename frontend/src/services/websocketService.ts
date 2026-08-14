@@ -39,6 +39,10 @@ class WebSocketService {
   private typingCallbacks: Set<MessageCallback> = new Set();
   private presenceCallbacks: Set<MessageCallback> = new Set();
   private connectionCallbacks: Set<ConnectionCallback> = new Set();
+  /** Generic topic listeners (e.g. project notes) keyed by topic. */
+  private topicCallbacks: Map<string, Set<MessageCallback>> = new Map();
+  /** Active generic STOMP subscriptions (recreated on reconnect). */
+  private activeTopicSubs: Map<string, () => void> = new Map();
 
   /** Subscriptions queued while disconnected — auto-processed on connect */
   private pendingSubscriptions: Map<string, PendingSubscription> = new Map();
@@ -127,6 +131,8 @@ class WebSocketService {
 
       // Process any pending room subscriptions
       this.processPendingSubscriptions();
+      // Recreate generic topic subscriptions (notes, etc.)
+      this.processPendingTopicSubscriptions();
     };
 
     this.client.onDisconnect = () => {
@@ -135,6 +141,7 @@ class WebSocketService {
       this.connectionCallbacks.forEach((cb) => cb(false));
       // Clear active subscriptions so they get recreated on reconnect
       this.activeSubscriptions.clear();
+      this.activeTopicSubs.clear();
     };
 
     this.client.onStompError = (frame: IFrame) => {
@@ -161,6 +168,8 @@ class WebSocketService {
     this.notificationCallbacks.clear();
     this.typingCallbacks.clear();
     this.presenceCallbacks.clear();
+    this.topicCallbacks.clear();
+    this.activeTopicSubs.clear();
   }
 
   /** Is the STOMP session currently active? */
@@ -308,6 +317,64 @@ class WebSocketService {
     }
   }
 
+  // ── Generic topic subscriptions (e.g. shared project notes) ──
+
+  /**
+   * Subscribe to an arbitrary topic (e.g. /topic/projects/{id}/notes).
+   * Re-subscribes automatically on reconnect. Returns an unsubscribe function.
+   */
+  subscribeToTopic(topic: string, callback: MessageCallback): () => void {
+    if (!this.topicCallbacks.has(topic)) this.topicCallbacks.set(topic, new Set());
+    this.topicCallbacks.get(topic)!.add(callback);
+
+    // Create the STOMP subscription when connected.
+    if (this.client?.active && this.connected && !this.activeTopicSubs.has(topic)) {
+      const sub = this.client.subscribe(topic, (msg: IMessage) => {
+        try {
+          const data = JSON.parse(msg.body);
+          this.topicCallbacks.get(topic)?.forEach((cb) => cb(data));
+        } catch (e) {
+          console.warn("[STOMP] Failed to parse topic message:", e);
+        }
+      });
+      this.activeTopicSubs.set(topic, () => sub.unsubscribe());
+    }
+
+    return () => {
+      this.topicCallbacks.get(topic)?.delete(callback);
+      if (this.topicCallbacks.get(topic)?.size === 0) {
+        this.activeTopicSubs.get(topic)?.();
+        this.activeTopicSubs.delete(topic);
+        this.topicCallbacks.delete(topic);
+      }
+    };
+  }
+
+  /** Recreate generic topic subscriptions after a reconnect. */
+  private processPendingTopicSubscriptions() {
+    if (!this.client?.active || !this.connected) return;
+    for (const topic of this.topicCallbacks.keys()) {
+      if (this.activeTopicSubs.has(topic)) continue;
+      const sub = this.client.subscribe(topic, (msg: IMessage) => {
+        try {
+          const data = JSON.parse(msg.body);
+          this.topicCallbacks.get(topic)?.forEach((cb) => cb(data));
+        } catch (e) {
+          console.warn("[STOMP] Failed to parse topic message:", e);
+        }
+      });
+      this.activeTopicSubs.set(topic, () => sub.unsubscribe());
+    }
+  }
+
+  /** Publish a shared-doc update to /app/notes.update (server validates membership). */
+  publishNotesUpdate(projectId: string, update: string) {
+    this.client?.publish({
+      destination: "/app/notes.update",
+      body: JSON.stringify({ projectId, update }),
+    });
+  }
+
   // ── Notifications ────────────────────────────────────────────
 
   onNotification(callback: MessageCallback) {
@@ -362,6 +429,7 @@ class WebSocketService {
     messageType?: string;
     systemMessage?: boolean;
     attachmentId?: string;
+    parentMessageId?: string;
   }) {
     this.client?.publish({
       destination: "/app/chat.send",

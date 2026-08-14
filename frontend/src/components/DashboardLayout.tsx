@@ -24,6 +24,7 @@ import {
   Flag,
   Activity,
   ScrollText,
+  CreditCard,
   TrendingUp,
   ChevronRight,
   Command,
@@ -64,6 +65,7 @@ const adminNavItems: NavItem[] = [
   { to: "/admin/users", icon: Users, label: "Admin Users" },
   { to: "/admin/projects", icon: FolderKanban, label: "Admin Projects" },
   { to: "/admin/reports", icon: Flag, label: "Admin Reports" },
+  { to: "/admin/billing", icon: CreditCard, label: "Admin Billing" },
   { to: "/admin/activity", icon: Activity, label: "Admin Activity" },
   { to: "/admin/audit-logs", icon: ScrollText, label: "Admin Audit Logs" },
 ];
@@ -191,10 +193,15 @@ export default function DashboardLayout() {
     const handleVisibility = () => {
       if (document.visibilityState === "visible") fetchUnreadCounts();
     };
+    // The Notifications page broadcasts read-state mutations so the bell badge
+    // updates immediately instead of waiting for the 30s poll.
+    const handleChanged = () => fetchUnreadCounts();
     document.addEventListener("visibilitychange", handleVisibility);
+    window.addEventListener("devsync:notifications-changed", handleChanged);
     return () => {
       clearInterval(id);
       document.removeEventListener("visibilitychange", handleVisibility);
+      window.removeEventListener("devsync:notifications-changed", handleChanged);
     };
   }, [fetchUnreadCounts]);
 

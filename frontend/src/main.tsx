@@ -43,17 +43,23 @@ const ProjectWorkspace = lazy(() => import("./pages/ProjectWorkspace"));
 const Messages = lazy(() => import("./pages/Messages"));
 const BoardPage = lazy(() => import("./pages/BoardPage"));
 const Profile = lazy(() => import("./pages/Profile"));
+const UserProfilePage = lazy(() => import("./pages/UserProfilePage"));
 const Settings = lazy(() => import("./pages/Settings"));
+const Billing = lazy(() => import("./pages/Billing"));
 const Notifications = lazy(() => import("./pages/Notifications"));
 const Feed = lazy(() => import("./pages/Feed"));
 const SearchPage = lazy(() => import("./pages/SearchPage"));
 const Analytics = lazy(() => import("./pages/Analytics"));
+const Feedback = lazy(() => import("./pages/Feedback"));
 const Admin = lazy(() => import("./pages/Admin"));
 const AdminUsers = lazy(() => import("./pages/AdminUsers"));
 const AdminProjects = lazy(() => import("./pages/AdminProjects"));
 const AdminReports = lazy(() => import("./pages/AdminReports"));
 const AdminActivity = lazy(() => import("./pages/AdminActivity"));
 const AdminAuditLogs = lazy(() => import("./pages/AdminAuditLogs"));
+const AdminReviews = lazy(() => import("./pages/AdminReviews"));
+const AdminFeedback = lazy(() => import("./pages/AdminFeedback"));
+const AdminBilling = lazy(() => import("./pages/AdminBilling"));
 
 function App() {
   return (
@@ -84,16 +90,22 @@ function App() {
               <Route path="/messages/:conversationId" element={<Messages />} />
               <Route path="/board/:projectId" element={<BoardPage />} />
               <Route path="/profile" element={<Profile />} />
+              <Route path="/profile/:username" element={<UserProfilePage />} />
               <Route path="/settings" element={<Settings />} />
+              <Route path="/settings/billing" element={<Billing />} />
               <Route path="/notifications" element={<Notifications />} />
               <Route path="/feed" element={<Feed />} />
               <Route path="/search" element={<SearchPage />} />
+              <Route path="/feedback" element={<Feedback />} />
               <Route path="/admin/dashboard" element={<AdminRoute><Admin /></AdminRoute>} />
               <Route path="/admin/users" element={<AdminRoute><AdminUsers /></AdminRoute>} />
               <Route path="/admin/projects" element={<AdminRoute><AdminProjects /></AdminRoute>} />
               <Route path="/admin/reports" element={<AdminRoute><AdminReports /></AdminRoute>} />
               <Route path="/admin/activity" element={<AdminRoute><AdminActivity /></AdminRoute>} />
               <Route path="/admin/audit-logs" element={<AdminRoute><AdminAuditLogs /></AdminRoute>} />
+              <Route path="/admin/reviews" element={<AdminRoute><AdminReviews /></AdminRoute>} />
+              <Route path="/admin/feedback" element={<AdminRoute><AdminFeedback /></AdminRoute>} />
+              <Route path="/admin/billing" element={<AdminRoute><AdminBilling /></AdminRoute>} />
               <Route path="/admin" element={<AdminRoute><Navigate to="/admin/dashboard" replace /></AdminRoute>} />
             </Route>
             <Route path="*" element={<NotFound />} />

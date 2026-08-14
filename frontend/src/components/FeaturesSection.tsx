@@ -5,12 +5,15 @@ import { features, type Feature } from "@/data/landing";
 // Literal class strings so Tailwind's scanner can compile them — dynamic
 // construction like `from-${...}` is NOT picked up at build time.
 const overlayClasses: Record<string, string> = {
-  "AI-Powered Code Editor": "from-indigo-500/10 to-purple-500/5",
-  "Live Collaboration": "from-blue-500/10 to-cyan-500/5",
-  "One-Click Deploy": "from-emerald-500/10 to-teal-500/5",
-  "Dev Environment in Browser": "from-orange-500/10 to-amber-500/5",
-  "Enterprise Security": "from-red-500/10 to-rose-500/5",
-  "Smart Workspaces": "from-violet-500/10 to-fuchsia-500/5",
+  "Project Management": "from-indigo-500/10 to-purple-500/5",
+  "Kanban Boards": "from-blue-500/10 to-cyan-500/5",
+  "Team Chat": "from-emerald-500/10 to-teal-500/5",
+  "GitHub Integration": "from-orange-500/10 to-amber-500/5",
+  "File Sharing": "from-violet-500/10 to-fuchsia-500/5",
+  "Notifications": "from-red-500/10 to-rose-500/5",
+  "Team Collaboration": "from-sky-500/10 to-indigo-500/5",
+  "Analytics": "from-teal-500/10 to-emerald-500/5",
+  "Secure by Default": "from-amber-500/10 to-orange-500/5",
 };
 
 function FeatureCard({ feature, index }: { feature: Feature; index: number }) {
@@ -81,8 +84,8 @@ export default function FeaturesSection() {
             </span>
           </h2>
           <p className="mt-4 text-muted-foreground text-base md:text-lg max-w-2xl mx-auto leading-relaxed">
-            A complete development platform with AI-powered tools, real-time
-            collaboration, and enterprise-grade infrastructure.
+            A complete collaboration platform — projects, Kanban boards, team chat,
+            file sharing and GitHub integration, with real-time updates throughout.
           </p>
         </ScrollReveal>
 

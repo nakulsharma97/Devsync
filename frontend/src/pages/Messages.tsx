@@ -1,7 +1,18 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router";
-import { ArrowLeft, Search, PanelRight, MessageSquare, Wifi, WifiOff } from "lucide-react";
+import { ArrowLeft, Search, PanelRight, MessageSquare, Wifi, WifiOff, Pencil, X, CornerUpLeft, Loader2 as Spinner } from "lucide-react";
 import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { ThreadPanel } from "@/components/messages/ThreadPanel";
 import { useAuth } from "@/contexts/AuthContext";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useTyping } from "@/hooks/useTyping";
@@ -57,6 +68,38 @@ export default function Messages() {
   const [detailsLoading, setDetailsLoading] = useState(false);
   /** Optimistic messages that never got a server echo (no ACK channel exists). */
   const [failedIds, setFailedIds] = useState<Set<string>>(new Set());
+
+  // ── Message upgrades: reply / edit / delete / threads ──
+  const [replyingTo, setReplyingTo] = useState<MessageDto | null>(null);
+  const [editing, setEditing] = useState<MessageDto | null>(null);
+  const [editText, setEditText] = useState("");
+  const [editSaving, setEditSaving] = useState(false);
+  const [threadParent, setThreadParent] = useState<MessageDto | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<MessageDto | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const replyingToRef = useRef<MessageDto | null>(null);
+
+  const beginReply = useCallback((msg: MessageDto) => {
+    setReplyingTo(msg);
+    replyingToRef.current = msg;
+    setEditing(null);
+  }, []);
+
+  const beginEdit = useCallback((msg: MessageDto) => {
+    setEditing(msg);
+    setEditText(msg.content);
+    setReplyingTo(null);
+    replyingToRef.current = null;
+  }, []);
+
+  // Reset transient message-upgrade state when the conversation changes.
+  useEffect(() => {
+    setReplyingTo(null);
+    replyingToRef.current = null;
+    setEditing(null);
+    setThreadParent(null);
+    setDeleteTarget(null);
+  }, [conversationId]);
 
   // ── Refs ───────────────────────────────────────────────────
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -343,6 +386,7 @@ export default function Messages() {
       if (!conversationId || !text.trim()) return;
       const content = text.trim();
       stopTyping();
+      const parentId = replyingToRef.current?.id ?? null;
 
       const optimistic: MessageDto = {
         id: `opt-${Date.now()}-${++optimisticCounterRef.current}`,
@@ -357,9 +401,12 @@ export default function Messages() {
         attachmentId: attachmentId ?? null,
         attachment: attachment ?? null,
         createdAt: new Date().toISOString(),
+        parentMessageId: parentId,
       };
       setMessages((prev) => [...prev, optimistic]);
       const optId = String(optimistic.id);
+      setReplyingTo(null);
+      replyingToRef.current = null;
 
       if (wsService.isConnected) {
         wsService.sendMessage({
@@ -367,6 +414,7 @@ export default function Messages() {
           receiverId: !isRoom ? actualId : undefined,
           content,
           attachmentId,
+          parentMessageId: parentId ?? undefined,
         });
         // No ACK channel exists on /app/chat.send — if the echo never arrives
         // (rejected send, dropped frame), surface a retryable failure.
@@ -383,6 +431,7 @@ export default function Messages() {
             receiverId: !isRoom ? actualId : undefined,
             content,
             attachmentId,
+            parentMessageId: parentId ?? undefined,
           })
           .then((real) => {
             setMessages((prev) => prev.map((m) => (m.id === optimistic.id ? real : m)));
@@ -437,6 +486,49 @@ export default function Messages() {
     },
     [clearSend, handleSend]
   );
+
+  // ── Message upgrades: react / edit / delete / thread ───────
+  const toggleReaction = useCallback(
+    async (msg: MessageDto, emoji: string) => {
+      try {
+        const reactions = await messageService.toggleReaction(msg.id, emoji);
+        setMessages((prev) => prev.map((m) => (m.id === msg.id ? { ...m, reactions } : m)));
+      } catch {
+        toast("Failed to update reaction");
+      }
+    },
+    []
+  );
+
+  const saveEdit = useCallback(async () => {
+    if (!editing || !editText.trim()) return;
+    setEditSaving(true);
+    try {
+      const updated = await messageService.editMessage(editing.id, editText.trim());
+      setMessages((prev) => prev.map((m) => (m.id === updated.id ? updated : m)));
+      setEditing(null);
+      toast("Message updated");
+    } catch (err) {
+      toast(err instanceof Error && err.message ? err.message : "Failed to edit message");
+    } finally {
+      setEditSaving(false);
+    }
+  }, [editing, editText]);
+
+  const confirmDelete = useCallback(async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      await messageService.deleteMessage(deleteTarget.id);
+      setMessages((prev) => prev.filter((m) => m.id !== deleteTarget.id));
+      setDeleteTarget(null);
+      toast("Message deleted");
+    } catch {
+      toast("Failed to delete message");
+    } finally {
+      setDeleting(false);
+    }
+  }, [deleteTarget]);
 
   // ── Derived UI state ───────────────────────────────────────
   const typerNames = useMemo(() => {
@@ -568,10 +660,81 @@ export default function Messages() {
                 failedIds={failedIds}
                 onRetry={retryMessage}
                 onRegisterRef={registerMsgRef}
+                onReply={beginReply}
+                onOpenThread={setThreadParent}
+                onToggleReaction={toggleReaction}
+                onEdit={beginEdit}
+                onDelete={setDeleteTarget}
               />
             </div>
 
             {typers.size > 0 && <TypingIndicator names={typerNames} />}
+
+            {/* Replying-to bar */}
+            {replyingTo && (
+              <div className="shrink-0 flex items-center gap-2 px-3 py-1.5 border-t border-border/40 bg-muted/40">
+                <CornerUpLeft className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+                <span className="text-[11px] text-muted-foreground truncate flex-1">
+                  Replying to <span className="font-medium text-foreground">{replyingTo.senderName}</span>:{" "}
+                  <span className="truncate">{replyingTo.content}</span>
+                </span>
+                <button
+                  onClick={() => {
+                    setReplyingTo(null);
+                    replyingToRef.current = null;
+                  }}
+                  aria-label="Cancel reply"
+                  className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/10 transition-colors"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
+
+            {/* Editing bar */}
+            {editing && (
+              <div className="shrink-0 border-t border-border/40 bg-muted/40 px-3 py-2 space-y-2">
+                <div className="flex items-center gap-2">
+                  <Pencil className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+                  <span className="text-[11px] text-muted-foreground flex-1 truncate">Editing message</span>
+                  <button
+                    onClick={() => setEditing(null)}
+                    aria-label="Cancel edit"
+                    className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/10 transition-colors"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+                <textarea
+                  value={editText}
+                  onChange={(e) => setEditText(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      saveEdit();
+                    }
+                  }}
+                  rows={2}
+                  aria-label="Edit message text"
+                  className="w-full text-sm bg-background/60 border border-border/40 rounded-lg p-2.5 resize-none focus:outline-none focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20"
+                />
+                <div className="flex items-center justify-end gap-1.5">
+                  <button
+                    onClick={() => setEditing(null)}
+                    className="text-xs text-muted-foreground hover:text-foreground px-2 py-1 rounded-md transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={saveEdit}
+                    disabled={editSaving || !editText.trim()}
+                    className="inline-flex items-center gap-1.5 text-xs font-medium text-white bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 rounded-lg px-3 py-1.5 transition-all disabled:opacity-40"
+                  >
+                    {editSaving ? <Spinner className="w-3 h-3 animate-spin" /> : "Save"}
+                  </button>
+                </div>
+              </div>
+            )}
 
             <MessageComposer
               onSend={handleSend}
@@ -628,6 +791,59 @@ export default function Messages() {
           />
         </SheetContent>
       </Sheet>
+
+      {/* ── Reply thread panel ──────────────────────────── */}
+      <Sheet open={!!threadParent} onOpenChange={(o) => !o && setThreadParent(null)}>
+        <SheetContent side="right" className="w-[85vw] sm:max-w-sm p-0 gap-0">
+          <SheetTitle className="sr-only">Message thread</SheetTitle>
+          {threadParent && (
+            <ThreadPanel
+              parent={threadParent}
+              myId={myId}
+              isRoom={isRoom}
+              onClose={() => setThreadParent(null)}
+              onReplySent={() => {
+                // Refresh the reply count on the parent bubble.
+                messageService
+                  .getThread(threadParent.id)
+                  .then((replies) => {
+                    setMessages((prev) =>
+                      prev.map((m) =>
+                        m.id === threadParent.id ? { ...m, replyCount: replies.length } : m
+                      )
+                    );
+                  })
+                  .catch(() => {});
+              }}
+            />
+          )}
+        </SheetContent>
+      </Sheet>
+
+      {/* ── Delete confirmation ──────────────────────────── */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={(o) => !o && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this message?</AlertDialogTitle>
+            <AlertDialogDescription>
+              The message will be removed for everyone in this conversation.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                confirmDelete();
+              }}
+              disabled={deleting}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              {deleting ? <Spinner className="w-4 h-4 animate-spin" /> : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* ── New Chat ─────────────────────────────────────── */}
       <NewChatDialog

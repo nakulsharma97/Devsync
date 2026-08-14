@@ -2,6 +2,7 @@ package com.devsync.attachment;
 
 import com.devsync.activity.ActivityService;
 import com.devsync.attachment.dto.AttachmentResponse;
+import com.devsync.billing.EntitlementService;
 import com.devsync.attachment.entity.FileAttachment;
 import com.devsync.attachment.repository.FileAttachmentRepository;
 import com.devsync.common.ResourceNotFoundException;
@@ -62,6 +63,7 @@ class AttachmentServiceTest {
     @Mock private BoardRepository boardRepository;
     @Mock private PostRepository postRepository;
     @Mock private CommentRepository commentRepository;
+    @Mock private EntitlementService entitlementService;
 
     @TempDir
     Path tempDir;
@@ -91,7 +93,7 @@ class AttachmentServiceTest {
         attachmentService = new AttachmentService(attachmentRepository, realStorage,
                 userRepository, activityService, projectMemberRepository, messageRepository,
                 projectRepository, roomRepository, participantRepository,
-                taskRepository, boardRepository, postRepository, commentRepository);
+                taskRepository, boardRepository, postRepository, commentRepository, entitlementService);
         ReflectionTestUtils.setField(attachmentService, "maxSize", 10L * 1024 * 1024);
     }
 

@@ -231,7 +231,7 @@ export default function Network() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               className="border border-border/50 rounded-xl p-4 bg-card hover:border-accent/20 hover:shadow-md hover:shadow-accent/5 transition-all duration-200 cursor-pointer"
-              onClick={() => { if (!netUser.isSelf) navigate(`/profile/${netUser.id}`); }}
+              onClick={() => { if (!netUser.isSelf) navigate(`/profile/${netUser.username}`); }}
             >
               <div className="flex items-start gap-4">
                 {/* Avatar */}

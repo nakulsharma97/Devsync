@@ -20,4 +20,9 @@ public class CreateProjectRequest {
 
     private String repositoryUrl;
     private String imageUrl;
+
+    /** Optional project template: SPRINT_BOARD, BUG_TRACKER, FEATURE_BACKLOG. */
+    @Pattern(regexp = "(?i)^(SPRINT_BOARD|BUG_TRACKER|FEATURE_BACKLOG)$",
+            message = "Template must be SPRINT_BOARD, BUG_TRACKER or FEATURE_BACKLOG")
+    private String template;
 }

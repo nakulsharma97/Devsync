@@ -15,7 +15,10 @@ C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\test\java\com\de
 C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\test\java\com\devsync\auth\RefreshFlowIntegrationTest.java
 C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\test\java\com\devsync\auth\RefreshTokenServiceTest.java
 C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\test\java\com\devsync\auth\SecurityIntegrationTest.java
+C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\test\java\com\devsync\billing\BillingIntegrationTest.java
+C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\test\java\com\devsync\billing\RazorpayClientTest.java
 C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\test\java\com\devsync\bookmark\BookmarkServiceTest.java
+C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\test\java\com\devsync\collab\CollaborationUpgradesIntegrationTest.java
 C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\test\java\com\devsync\collab\InvitationServiceTest.java
 C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\test\java\com\devsync\collab\JoinRequestServiceTest.java
 C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\test\java\com\devsync\config\DataInitializerTest.java
@@ -53,6 +56,8 @@ C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\test\java\com\de
 C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\test\java\com\devsync\report\ReportAdminServiceTest.java
 C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\test\java\com\devsync\report\ReportModerationIntegrationTest.java
 C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\test\java\com\devsync\report\ReportServiceTest.java
+C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\test\java\com\devsync\review\ReviewIntegrationTest.java
+C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\test\java\com\devsync\review\ReviewServiceTest.java
 C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\test\java\com\devsync\search\SearchServiceTest.java
 C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\test\java\com\devsync\teamroom\TeamRoomServiceAuthTest.java
 C:\Users\NAKULSHARMA\Downloads\developmentsync-main\backend\src\test\java\com\devsync\user\repository\UserRepositoryTest.java

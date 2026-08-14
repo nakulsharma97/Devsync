@@ -1,6 +1,7 @@
 package com.devsync.project;
 
 import com.devsync.activity.ActivityService;
+import com.devsync.billing.EntitlementService;
 import com.devsync.notification.NotificationService;
 import com.devsync.presence.PresenceService;
 import com.devsync.project.dto.CreateProjectRequest;
@@ -33,6 +34,8 @@ class ProjectServiceAuthTest {
     @Mock private ActivityService activityService;
     @Mock private NotificationService notificationService;
     @Mock private PresenceService presenceService;
+    @Mock private EntitlementService entitlementService;
+    @Mock private ProjectTemplateService templateService;
 
     private ProjectService projectService;
     private Project project;
@@ -41,7 +44,7 @@ class ProjectServiceAuthTest {
     @BeforeEach
     void setUp() {
         projectService = new ProjectService(projectRepository, memberRepository, userRepository,
-                activityService, notificationService, presenceService);
+                activityService, notificationService, presenceService, entitlementService, templateService);
 
         project = Project.builder()
                 .name("Test Project")

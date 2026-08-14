@@ -9,7 +9,7 @@ import { wsService } from "@/services/websocketService";
 import { timeAgo } from "@/lib/format";
 import { getNotificationMeta, resolveNotificationUrl } from "@/lib/notificationMeta";
 
-/** How many notifications the dropdown loads (backend supports limit only). */
+/** How many notifications the dropdown loads (page 0 of the paginated list). */
 const DROPDOWN_LIMIT = 20;
 
 export function NotificationBell({
@@ -37,7 +37,7 @@ export function NotificationBell({
     setLoading(true);
     setLoadError(false);
     try {
-      const list = await notificationService.getNotifications(DROPDOWN_LIMIT);
+      const list = await notificationService.getLatestNotifications(DROPDOWN_LIMIT);
       setNotifications(list);
       loadedRef.current = true;
     } catch {

@@ -2,34 +2,18 @@ import { motion } from "framer-motion";
 import { useEffect, useState, useRef } from "react";
 
 const codeLines = [
-  'import { DevSync } from "devsync";',
-  'import { AI, Collaboration } from "devsync/features";',
+  'import { createApp } from "./app";',
   "",
-  "const app = new DevSync({",
-  '  project: "my-app",',
-  '  team: "engineering",',
-  "  ai: AI.enabled,",
-  "  collab: Collaboration.realtime,",
-  "});",
+  "const app = createApp();",
   "",
-  "// Deploy with one click",
-  "await app.deploy({",
-  '  env: "production",',
-  "  preview: true,",
-  '  rollback: "instant",',
-  "});",
+  "app.start();",
   "",
-  "// AI suggests optimizations",
-  "const optimized = await AI.optimize(app, {",
-  '  target: "performance",',
-  "  aggressive: true,",
-  "});",
+  'console.log("DevSync ready");',
   "",
-  "console.log(optimized);",
+  "export default app;",
 ];
 
 export default function GlassCodeEditor() {
-  const [visibleLines, setVisibleLines] = useState(0);
   const [currentLine, setCurrentLine] = useState(0);
   const [currentChar, setCurrentChar] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -58,7 +42,6 @@ export default function GlassCodeEditor() {
       } else {
         setCurrentChar(0);
         setCurrentLine((l) => l + 1);
-        setVisibleLines((v) => Math.min(v + 1, codeLines.length));
         timeout = setTimeout(typeNext, 200 + Math.random() * 150);
       }
     };
@@ -69,12 +52,10 @@ export default function GlassCodeEditor() {
     };
   }, [currentLine, currentChar]);
 
-  useEffect(() => {
-    if (containerRef.current) {
-      containerRef.current.scrollTop = containerRef.current.scrollHeight;
-    }
-  }, [visibleLines]);
-
+  // NOTE: the editor must always open showing line 1. There is intentionally
+  // NO auto-scroll here — the snippet is short enough to fit the container, so
+  // the initial scroll position stays at scrollTop = 0 and never jumps away
+  // from the first line unless the user scrolls manually.
   const getLineContent = (index: number): string => {
     if (index < currentLine) return codeLines[index];
     if (index === currentLine) return codeLines[index].slice(0, currentChar);

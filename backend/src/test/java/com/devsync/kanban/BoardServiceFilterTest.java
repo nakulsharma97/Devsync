@@ -8,6 +8,7 @@ import com.devsync.kanban.entity.BoardColumn;
 import com.devsync.kanban.entity.Task;
 import com.devsync.kanban.repository.BoardColumnRepository;
 import com.devsync.kanban.repository.BoardRepository;
+import com.devsync.kanban.repository.TaskDependencyRepository;
 import com.devsync.kanban.repository.TaskRepository;
 import com.devsync.project.entity.Project;
 import com.devsync.project.entity.ProjectMember;
@@ -37,6 +38,7 @@ class BoardServiceFilterTest {
     @Mock private BoardRepository boardRepository;
     @Mock private BoardColumnRepository columnRepository;
     @Mock private TaskRepository taskRepository;
+    @Mock private TaskDependencyRepository dependencyRepository;
     @Mock private UserRepository userRepository;
     @Mock private ProjectRepository projectRepository;
     @Mock private ProjectMemberRepository projectMemberRepository;
@@ -48,6 +50,7 @@ class BoardServiceFilterTest {
     @BeforeEach
     void setUp() {
         boardService = new BoardService(boardRepository, columnRepository, taskRepository,
+                dependencyRepository,
                 userRepository, projectRepository, projectMemberRepository, activityService,
                 notificationService);
     }

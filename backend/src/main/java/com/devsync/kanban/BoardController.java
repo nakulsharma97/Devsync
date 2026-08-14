@@ -78,6 +78,24 @@ public class BoardController {
         return ResponseEntity.noContent().build();
     }
 
+    @PostMapping("/tasks/{taskId}/dependencies")
+    public ResponseEntity<Void> addDependency(
+            @PathVariable String taskId,
+            @RequestBody java.util.Map<String, String> body,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        boardService.addDependency(taskId, body.get("dependsOnId"), userDetails.getUsername());
+        return ResponseEntity.ok().build();
+    }
+
+    @DeleteMapping("/tasks/{taskId}/dependencies/{dependsOnId}")
+    public ResponseEntity<Void> removeDependency(
+            @PathVariable String taskId,
+            @PathVariable String dependsOnId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        boardService.removeDependency(taskId, dependsOnId, userDetails.getUsername());
+        return ResponseEntity.noContent().build();
+    }
+
     @GetMapping("/tasks/calendar")
     public ResponseEntity<List<BoardResponse.TaskDto>> calendarTasks(
             @RequestParam String from,

@@ -5,8 +5,9 @@ import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
 import { Rocket, Terminal, Check } from "lucide-react";
 import GlassCodeEditor from "@/components/GlassCodeEditor";
 import { prefersReducedMotion } from "@/lib/utils";
+import type { PublicStats } from "@/services/landingService";
 
-export default function HeroSection() {
+export default function HeroSection({ stats }: { stats: PublicStats | null }) {
   const navigate = useNavigate();
   const sectionRef = useRef<HTMLDivElement>(null);
 
@@ -58,7 +59,7 @@ export default function HeroSection() {
   return (
     <section
       ref={sectionRef}
-      className="relative min-h-screen flex items-center pt-24 overflow-hidden bg-gradient-to-b from-background to-card/70"
+      className="relative min-h-screen flex flex-col justify-center pt-32 pb-28 overflow-hidden bg-gradient-to-b from-background to-card/70"
     >
       {/* Parallax grid layer - only in dark mode */}
       <motion.div
@@ -109,7 +110,7 @@ export default function HeroSection() {
               transition={{ duration: 0.6, delay: 0.1 }}
             >
               <span
-                className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-medium tracking-wide mb-8 border shadow-lg backdrop-blur-sm dark:text-indigo-300 text-indigo-700"
+                className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-medium tracking-wide mb-10 border shadow-lg backdrop-blur-sm dark:text-indigo-300 text-indigo-700"
                 style={{
                   background: "rgba(99, 102, 241, 0.1)",
                   borderColor: "rgba(99, 102, 241, 0.25)",
@@ -121,8 +122,14 @@ export default function HeroSection() {
                   style={{ background: "#818cf8" }}
                 />
                 Now in Public Beta
-                <span className="mx-1 opacity-40">·</span>
-                <span className="dark:text-indigo-300/70 text-indigo-500">50K+ developers</span>
+                {stats && stats.users > 0 && (
+                  <>
+                    <span className="mx-1 opacity-40">·</span>
+                    <span className="dark:text-indigo-300/70 text-indigo-500">
+                      {stats.users.toLocaleString()} developer{stats.users === 1 ? "" : "s"} registered
+                    </span>
+                  </>
+                )}
               </span>
             </motion.div>
 
@@ -153,10 +160,11 @@ export default function HeroSection() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.3 }}
-              className="mt-6 text-base sm:text-lg leading-relaxed max-w-lg mx-auto lg:mx-0 text-muted-foreground"
+              className="mt-7 text-base sm:text-lg leading-relaxed max-w-lg mx-auto lg:mx-0 text-muted-foreground"
             >
-              The developer platform that combines AI-powered coding, real-time
-              collaboration, and instant deployment — all in your browser.
+              A collaboration platform for building software together — projects,
+              Kanban boards, real-time team chat, file sharing, and GitHub
+              integration in one workspace.
             </motion.p>
 
             {/* CTA Buttons */}
@@ -164,7 +172,7 @@ export default function HeroSection() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.4 }}
-              className="mt-8 flex flex-col sm:flex-row items-center gap-4 lg:justify-start"
+              className="mt-10 flex flex-col sm:flex-row items-center gap-4 lg:justify-start"
             >
               <Button
                 size="lg"
@@ -235,7 +243,7 @@ export default function HeroSection() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.5 }}
-              className="mt-6 flex items-center gap-6 justify-center lg:justify-start text-xs text-muted-foreground"
+              className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-2 justify-center lg:justify-start text-xs text-muted-foreground"
             >
               <span className="flex items-center gap-1.5">
                 <Check className="w-3.5 h-3.5 text-emerald-500" />
@@ -254,7 +262,7 @@ export default function HeroSection() {
 
           {/* ── Right Side ── */}
           <motion.div
-            className="hidden lg:flex flex-col items-center gap-6"
+            className="flex flex-col items-center gap-6"
             style={{ x: editorX, y: editorY }}
           >
             <motion.div

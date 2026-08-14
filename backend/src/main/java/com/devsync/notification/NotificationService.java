@@ -1,16 +1,16 @@
 package com.devsync.notification;
 
+import com.devsync.common.PageResponse;
 import com.devsync.common.ResourceNotFoundException;
 import com.devsync.notification.dto.NotificationResponse;
 import com.devsync.notification.entity.Notification;
 import com.devsync.notification.repository.NotificationRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -19,10 +19,23 @@ public class NotificationService {
     private final NotificationRepository notificationRepository;
     private final SimpMessagingTemplate messagingTemplate;
 
-    public List<NotificationResponse> getNotifications(String userId, int limit) {
-        return notificationRepository.findByUserIdOrderByCreatedAtDesc(userId, PageRequest.of(0, limit)).stream()
-                .map(this::toResponse)
-                .toList();
+    /** Max page size the paginated list endpoint accepts. */
+    private static final int MAX_PAGE_SIZE = 100;
+
+    @Transactional(readOnly = true)
+    public PageResponse<NotificationResponse> getNotifications(String userId, int page, int size) {
+        int safePage = Math.max(page, 0);
+        int safeSize = Math.min(Math.max(size, 1), MAX_PAGE_SIZE);
+        Page<Notification> notifications = notificationRepository
+                .findByUserIdOrderByCreatedAtDesc(userId, PageRequest.of(safePage, safeSize));
+        return PageResponse.<NotificationResponse>builder()
+                .content(notifications.getContent().stream().map(this::toResponse).toList())
+                .page(notifications.getNumber())
+                .size(notifications.getSize())
+                .totalElements(notifications.getTotalElements())
+                .totalPages(notifications.getTotalPages())
+                .last(notifications.isLast())
+                .build();
     }
 
     public long getUnreadCount(String userId) {
