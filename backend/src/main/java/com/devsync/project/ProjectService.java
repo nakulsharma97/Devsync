@@ -2,6 +2,7 @@ package com.devsync.project;
 
 import com.devsync.activity.ActivityService;
 import com.devsync.activity.entity.ActivityType;
+import com.devsync.billing.EntitlementService;
 import com.devsync.common.ResourceNotFoundException;
 import com.devsync.notification.NotificationService;
 import com.devsync.presence.PresenceService;
@@ -38,6 +39,8 @@ public class ProjectService {
     private final ActivityService activityService;
     private final NotificationService notificationService;
     private final PresenceService presenceService;
+    private final EntitlementService entitlementService;
+    private final ProjectTemplateService templateService;
 
     public List<ProjectResponse> getUserProjects(String userId) {
         List<Project> owned = projectRepository.findByOwnerId(userId);
@@ -82,6 +85,12 @@ public class ProjectService {
     @Transactional
     public ProjectResponse createProject(CreateProjectRequest request, String ownerId) {
         Project.ProjectVisibility visibility = parseVisibility(request.getVisibility());
+        // Server-side plan enforcement: private projects are capped by the
+        // owner's plan (FREE = 2). The user row is locked so two concurrent
+        // creations cannot both race past the limit.
+        if (visibility == Project.ProjectVisibility.PRIVATE) {
+            entitlementService.assertCanCreatePrivateProject(ownerId);
+        }
         Project project = Project.builder()
                 .name(request.getName())
                 .description(request.getDescription())
@@ -98,6 +107,10 @@ public class ProjectService {
                 .role(ProjectMember.Role.OWNER)
                 .build();
         memberRepository.save(ownerMember);
+
+        if (request.getTemplate() != null && templateService.supports(request.getTemplate())) {
+            templateService.seed(project.getId(), ownerId, request.getTemplate());
+        }
 
         activityService.record(ownerId, project.getId(), ActivityType.PROJECT_CREATED,
                 "Project created", project.getName(), null);
@@ -167,6 +180,7 @@ public class ProjectService {
                     .filter(m -> m.getRole() == ProjectMember.Role.ADMIN).isPresent();
             if (!isAdmin) throw new IllegalArgumentException("No permission to add members");
         }
+        entitlementService.assertCanAddMember(projectId);
         if (memberRepository.existsByProjectIdAndUserId(projectId, userId))
             throw new IllegalArgumentException("User is already a member");
         memberRepository.save(ProjectMember.builder()
@@ -202,6 +216,7 @@ public class ProjectService {
         if (project.getVisibility() != Project.ProjectVisibility.PUBLIC) {
             throw new IllegalArgumentException("This project is private - request to join instead");
         }
+        entitlementService.assertCanAddMember(projectId);
         if (memberRepository.existsByProjectIdAndUserId(projectId, userId)) {
             throw new IllegalArgumentException("You are already a member of this project");
         }

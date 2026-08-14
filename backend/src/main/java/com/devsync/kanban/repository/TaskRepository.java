@@ -47,6 +47,14 @@ public interface TaskRepository extends JpaRepository<Task, String> {
 
     long countByBoardIdIn(Collection<String> boardIds);
 
+    /**
+     * Tasks sitting in a "done"/"complete" column across the whole platform.
+     * Single indexed aggregate — matches how project analytics count completion.
+     */
+    @Query("SELECT COUNT(t) FROM Task t WHERE EXISTS (SELECT 1 FROM BoardColumn c " +
+            "WHERE c.id = t.columnId AND (LOWER(c.name) LIKE '%done%' OR LOWER(c.name) LIKE '%complete%'))")
+    long countCompletedTasks();
+
     List<Task> findTop5ByBoardIdInOrderByUpdatedAtDesc(Collection<String> boardIds);
 
     @Query("SELECT t FROM Task t WHERE (:keyword IS NULL OR LOWER(t.title) LIKE LOWER(CONCAT('%', :keyword, '%'))) " +

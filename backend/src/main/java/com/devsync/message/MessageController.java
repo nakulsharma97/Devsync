@@ -50,6 +50,50 @@ public class MessageController {
      * Mark a direct conversation as read — all messages from {@code otherUserId}
      * to the caller become READ. Returns the remaining unread count.
      */
+    @PutMapping("/{messageId}")
+    public ResponseEntity<MessageResponse> editMessage(
+            @PathVariable String messageId,
+            @RequestBody java.util.Map<String, String> body,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        return ResponseEntity.ok(messageService.editMessage(messageId, userDetails.getUsername(), body.get("content")));
+    }
+
+    /** Soft-deletes a message (sender-only; history is preserved). */
+    @DeleteMapping("/{messageId}")
+    public ResponseEntity<Void> deleteMessage(
+            @PathVariable String messageId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        messageService.deleteMessage(messageId, userDetails.getUsername());
+        return ResponseEntity.noContent().build();
+    }
+
+    /** Toggle the caller's reaction on a message. Returns the updated reaction state. */
+    @PostMapping("/{messageId}/reactions")
+    public ResponseEntity<java.util.List<MessageResponse.ReactionDto>> toggleReaction(
+            @PathVariable String messageId,
+            @RequestBody java.util.Map<String, String> body,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        return ResponseEntity.ok(messageService.toggleReaction(
+                messageId, userDetails.getUsername(), body.get("emoji")));
+    }
+
+    /** Reply thread for a message (participant-only). */
+    @GetMapping("/thread/{parentMessageId}")
+    public ResponseEntity<java.util.List<MessageResponse>> getThread(
+            @PathVariable String parentMessageId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        return ResponseEntity.ok(messageService.getThread(parentMessageId, userDetails.getUsername()));
+    }
+
+    /** Search the caller's conversations (DMs + rooms they participate in). */
+    @GetMapping("/search")
+    public ResponseEntity<java.util.List<MessageResponse>> search(
+            @RequestParam String q,
+            @RequestParam(defaultValue = "20") int limit,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        return ResponseEntity.ok(messageService.searchMessages(userDetails.getUsername(), q, limit));
+    }
+
     @PostMapping("/dm/{otherUserId}/read")
     public ResponseEntity<java.util.Map<String, Long>> markDirectRead(
             @PathVariable String otherUserId,

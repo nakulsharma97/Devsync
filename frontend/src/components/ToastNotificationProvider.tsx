@@ -40,7 +40,7 @@ export function ToastNotificationProvider() {
 
   const checkForNew = useCallback(async () => {
     try {
-      const all = await notificationService.getNotifications();
+      const all = await notificationService.getLatestNotifications(50);
       if (!all || all.length === 0) return;
 
       const newOnes = all

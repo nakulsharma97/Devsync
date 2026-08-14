@@ -18,7 +18,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { SkeletonCardList } from "@/components/Skeletons";
+import { SkeletonProjectCard } from "@/components/Skeletons";
 import { StatusPill } from "@/components/StatusPill";
 import { MemberStack } from "@/components/MemberStack";
 import { timeAgo } from "@/lib/format";
@@ -49,6 +49,15 @@ const projectGradients = [
 
 type Visibility = "PRIVATE" | "PUBLIC";
 
+type Template = "" | "SPRINT_BOARD" | "BUG_TRACKER" | "FEATURE_BACKLOG";
+
+const TEMPLATES: { code: Template; label: string; hint: string }[] = [
+  { code: "", label: "Blank", hint: "Start from scratch — no board yet" },
+  { code: "SPRINT_BOARD", label: "Sprint Board", hint: "To Do · In Progress · In Review · Done" },
+  { code: "BUG_TRACKER", label: "Bug Tracker", hint: "Triage · In Progress · Fixed · Verified" },
+  { code: "FEATURE_BACKLOG", label: "Feature Backlog", hint: "Backlog · Ready · In Progress · Done" },
+];
+
 export default function Projects() {
   const navigate = useNavigate();
   const { data: projects, loading, refetch } = useApi(() =>
@@ -63,6 +72,7 @@ export default function Projects() {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [visibility, setVisibility] = useState<Visibility>("PRIVATE");
+  const [template, setTemplate] = useState<Template>("");
   const [creating, setCreating] = useState(false);
   const [respondingInviteId, setRespondingInviteId] = useState<string | null>(null);
 
@@ -75,12 +85,14 @@ export default function Projects() {
         name: name.trim(),
         description: description.trim() || undefined,
         visibility,
+        template: template || undefined,
       });
       toast("Project created!");
       setOpen(false);
       setName("");
       setDescription("");
       setVisibility("PRIVATE");
+      setTemplate("");
       refetch();
       // Open the new project workspace.
       navigate(`/projects/${created.id}`);
@@ -113,8 +125,8 @@ export default function Projects() {
   const pendingInvitations = (invitations ?? []).filter((i) => i.status === "PENDING");
 
   return (
-    <div className="relative space-y-6 max-w-6xl">
-      {/* Decorative glows */}
+    <div className="relative w-full min-w-0 max-w-6xl space-y-6 overflow-hidden">
+      {/* Decorative glows (clipped to the page so they never create a scrollbar) */}
       <div className="absolute -top-24 -right-24 w-80 h-80 bg-gradient-to-bl from-indigo-500/[0.06] to-transparent rounded-full blur-3xl pointer-events-none" />
       <div className="absolute -bottom-24 -left-24 w-80 h-80 bg-gradient-to-tr from-purple-500/[0.05] to-transparent rounded-full blur-3xl pointer-events-none" />
 
@@ -203,6 +215,35 @@ export default function Projects() {
                   />
                 </div>
               </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Template</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  {TEMPLATES.map((t) => (
+                    <button
+                      key={t.code || "blank"}
+                      type="button"
+                      onClick={() => setTemplate(t.code)}
+                      aria-pressed={template === t.code}
+                      className={cn(
+                        "text-left rounded-xl border p-3 transition-all",
+                        template === t.code
+                          ? "border-indigo-500/50 bg-indigo-500/[0.08] ring-2 ring-indigo-500/20"
+                          : "border-border/40 hover:border-border/70 bg-transparent"
+                      )}
+                    >
+                      <span
+                        className={cn(
+                          "text-sm font-medium",
+                          template === t.code ? "text-indigo-600 dark:text-indigo-300" : "text-foreground"
+                        )}
+                      >
+                        {t.label}
+                      </span>
+                      <p className="text-[11px] text-muted-foreground mt-1 leading-snug">{t.hint}</p>
+                    </button>
+                  ))}
+                </div>
+              </div>
               <Button
                 type="submit"
                 disabled={creating || !name.trim()}
@@ -286,9 +327,13 @@ export default function Projects() {
 
       {/* Content */}
       {loading ? (
-        <SkeletonCardList count={6} />
+        <div className="relative grid w-full min-w-0 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <SkeletonProjectCard key={i} />
+          ))}
+        </div>
       ) : projects && projects.length > 0 ? (
-        <div className="relative grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="relative grid w-full min-w-0 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
           {projects.map((project, index) => (
             <ProjectCard
               key={project.id}
@@ -379,7 +424,7 @@ function ProjectCard({
   return (
     <Card
       onClick={onOpen}
-      className="group relative overflow-hidden border-border/40 hover:border-indigo-500/30 hover:-translate-y-1 hover:shadow-xl hover:shadow-indigo-500/10 transition-all duration-300 cursor-pointer animate-fade-in-up"
+      className="group @container relative min-w-0 overflow-hidden border-border/40 hover:border-indigo-500/30 hover:-translate-y-1 hover:shadow-xl hover:shadow-indigo-500/10 transition-all duration-300 cursor-pointer animate-fade-in-up"
       style={{ animationDelay: `${index * 0.05}s` }}
     >
       {/* Hover tint */}
@@ -435,44 +480,51 @@ function ProjectCard({
         </div>
       </CardHeader>
 
-      <CardContent className="flex gap-2 pt-1 pb-4 relative">
+      <CardContent className="relative mt-auto flex flex-col gap-2 pt-1 pb-4 @min-[22.5rem]:flex-row @min-[22.5rem]:flex-wrap">
+        {/*
+          Actions adapt to the CARD width (container query), not the viewport:
+          wide cards show all three in a row, narrower cards stack
+          [Open Project] over [Board] [Team Chat]. Buttons never clip.
+        */}
         <Button
           size="sm"
           onClick={(e) => {
             e.stopPropagation();
             onOpen();
           }}
-          className="flex-1 text-xs bg-gradient-to-r from-indigo-500 to-purple-600 text-white hover:from-indigo-600 hover:to-purple-700 shadow-sm"
+          className="w-full text-xs bg-gradient-to-r from-indigo-500 to-purple-600 text-white hover:from-indigo-600 hover:to-purple-700 shadow-sm @min-[22.5rem]:flex-1 @min-[22.5rem]:min-w-[7rem]"
         >
-          <ArrowUpRight className="w-3 h-3 mr-1" />
+          <ArrowUpRight className="w-3 h-3" />
           Open Project
         </Button>
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={(e) => {
-            e.stopPropagation();
-            onBoard();
-          }}
-          className="flex-1 text-xs"
-          title="Open Kanban board"
-        >
-          <FolderKanban className="w-3 h-3 mr-1" />
-          Board
-        </Button>
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={(e) => {
-            e.stopPropagation();
-            onChat();
-          }}
-          className="flex-1 text-xs"
-          title="Open team chat"
-        >
-          <MessageSquare className="w-3 h-3 mr-1" />
-          Team Chat
-        </Button>
+        <div className="flex gap-2 @min-[22.5rem]:flex-1 @min-[22.5rem]:min-w-[11rem]">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={(e) => {
+              e.stopPropagation();
+              onBoard();
+            }}
+            className="flex-1 text-xs"
+            title="Open Kanban board"
+          >
+            <FolderKanban className="w-3 h-3" />
+            Board
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={(e) => {
+              e.stopPropagation();
+              onChat();
+            }}
+            className="flex-1 text-xs"
+            title="Open team chat"
+          >
+            <MessageSquare className="w-3 h-3" />
+            Team Chat
+          </Button>
+        </div>
       </CardContent>
     </Card>
   );

@@ -1,6 +1,7 @@
 package com.devsync.collab;
 
 import com.devsync.activity.ActivityService;
+import com.devsync.billing.EntitlementService;
 import com.devsync.collab.entity.JoinRequest;
 import com.devsync.collab.entity.JoinRequestStatus;
 import com.devsync.collab.repository.JoinRequestRepository;
@@ -33,6 +34,7 @@ class JoinRequestServiceTest {
     @Mock private UserRepository userRepository;
     @Mock private NotificationService notificationService;
     @Mock private ActivityService activityService;
+    @Mock private EntitlementService entitlementService;
 
     private JoinRequestService joinRequestService;
     private Project project;
@@ -41,7 +43,7 @@ class JoinRequestServiceTest {
     @BeforeEach
     void setUp() {
         joinRequestService = new JoinRequestService(joinRequestRepository, projectRepository,
-                memberRepository, userRepository, notificationService, activityService);
+                memberRepository, userRepository, notificationService, activityService, entitlementService);
         project = Project.builder().name("DevSync").ownerId("owner-1")
                 .visibility(Project.ProjectVisibility.PUBLIC).build();
         project.setId("p1");

@@ -9,8 +9,10 @@ import com.devsync.kanban.dto.UpdateTaskPositionRequest;
 import com.devsync.kanban.entity.Board;
 import com.devsync.kanban.entity.BoardColumn;
 import com.devsync.kanban.entity.Task;
+import com.devsync.kanban.entity.TaskDependency;
 import com.devsync.kanban.repository.BoardColumnRepository;
 import com.devsync.kanban.repository.BoardRepository;
+import com.devsync.kanban.repository.TaskDependencyRepository;
 import com.devsync.kanban.repository.TaskRepository;
 import com.devsync.notification.NotificationService;
 import com.devsync.project.entity.Project;
@@ -28,10 +30,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -40,6 +40,7 @@ public class BoardService {
     private final BoardRepository boardRepository;
     private final BoardColumnRepository columnRepository;
     private final TaskRepository taskRepository;
+    private final TaskDependencyRepository dependencyRepository;
     private final UserRepository userRepository;
     private final ProjectRepository projectRepository;
     private final ProjectMemberRepository projectMemberRepository;
@@ -100,6 +101,7 @@ public class BoardService {
                 .assigneeId(request.getAssigneeId())
                 .priority(request.getPriority() != null ? Task.Priority.valueOf(request.getPriority()) : Task.Priority.MEDIUM)
                 .dueDate(request.getDueDate()).labels(request.getLabels())
+                .milestone(request.getMilestone()).sprint(request.getSprint())
                 .build());
         activityService.record(userId, projectId, ActivityType.TASK_CREATED,
                 "Task created", task.getTitle(), null);
@@ -159,6 +161,8 @@ public class BoardService {
         if (request.getPriority() != null) task.setPriority(Task.Priority.valueOf(request.getPriority()));
         if (request.getDueDate() != null) task.setDueDate(request.getDueDate());
         if (request.getLabels() != null) task.setLabels(request.getLabels());
+        if (request.getMilestone() != null) task.setMilestone(request.getMilestone());
+        if (request.getSprint() != null) task.setSprint(request.getSprint());
         task = taskRepository.save(task);
         activityService.record(userId, projectId, ActivityType.TASK_UPDATED,
                 "Task updated", task.getTitle(), null);
@@ -183,6 +187,56 @@ public class BoardService {
         taskRepository.deleteById(taskId);
         activityService.record(userId, projectId, ActivityType.TASK_DELETED,
                 "Task deleted", task.getTitle(), null);
+    }
+
+    // ── Task dependencies (blocked-by graph) ───────────────────────────
+
+    /**
+     * Adds {@code taskId} → {@code dependsOnId}. Both tasks must exist in the
+     * SAME board (cross-project dependencies are rejected) and the graph must
+     * stay acyclic — adding a dependency that would create a cycle is refused.
+     */
+    @Transactional
+    public void addDependency(String taskId, String dependsOnId, String userId) {
+        Task task = taskRepository.findById(taskId)
+                .orElseThrow(() -> new ResourceNotFoundException("Task", taskId));
+        verifyBoardWriteAccess(task.getBoardId(), userId);
+        Task dependsOn = taskRepository.findById(dependsOnId)
+                .orElseThrow(() -> new ResourceNotFoundException("Task", dependsOnId));
+        if (taskId.equals(dependsOnId)) {
+            throw new IllegalArgumentException("A task cannot depend on itself");
+        }
+        if (!dependsOn.getBoardId().equals(task.getBoardId())) {
+            throw new IllegalArgumentException("Tasks from different boards cannot depend on each other");
+        }
+        if (dependencyRepository.existsByTaskIdAndDependsOnId(taskId, dependsOnId)) {
+            return; // idempotent
+        }
+        // Cycle check: follow depends-on edges from dependsOnId — if we reach
+        // taskId, this edge would close a loop.
+        Deque<String> queue = new ArrayDeque<>();
+        Set<String> seen = new HashSet<>();
+        queue.add(dependsOnId);
+        while (!queue.isEmpty()) {
+            String current = queue.poll();
+            if (current.equals(taskId)) {
+                throw new IllegalArgumentException("This dependency would create a cycle");
+            }
+            for (TaskDependency dep : dependencyRepository.findByTaskId(current)) {
+                if (seen.add(dep.getDependsOnId())) queue.add(dep.getDependsOnId());
+            }
+        }
+        dependencyRepository.save(TaskDependency.builder()
+                .taskId(taskId).dependsOnId(dependsOnId).build());
+    }
+
+    @Transactional
+    public void removeDependency(String taskId, String dependsOnId, String userId) {
+        Task task = taskRepository.findById(taskId)
+                .orElseThrow(() -> new ResourceNotFoundException("Task", taskId));
+        verifyBoardWriteAccess(task.getBoardId(), userId);
+        dependencyRepository.findByTaskIdAndDependsOnId(taskId, dependsOnId)
+                .ifPresent(dependencyRepository::delete);
     }
 
     /**
@@ -392,11 +446,15 @@ public class BoardService {
     private BoardResponse toResponse(Board board) {
         List<BoardColumn> columns = columnRepository.findByBoardIdOrderByPositionAsc(board.getId());
         List<BoardResponse.ColumnDto> columnDtos = columns.stream()
-                .map(col -> BoardResponse.ColumnDto.builder()
-                        .id(col.getId()).name(col.getName()).position(col.getPosition()).color(col.getColor())
-                        .tasks(taskRepository.findByColumnIdOrderByPositionAsc(col.getId()).stream()
-                                .map(this::toTaskDto).toList())
-                        .build())
+                .map(col -> {
+                    List<Task> tasks = taskRepository.findByColumnIdOrderByPositionAsc(col.getId());
+                    // Batch-load dependencies for the whole board in one query.
+                    Map<String, List<String>> deps = dependenciesFor(tasks);
+                    return BoardResponse.ColumnDto.builder()
+                            .id(col.getId()).name(col.getName()).position(col.getPosition()).color(col.getColor())
+                            .tasks(tasks.stream().map(t -> toTaskDto(t, deps.getOrDefault(t.getId(), List.of()))).toList())
+                            .build();
+                })
                 .toList();
         return BoardResponse.builder()
                 .id(board.getId()).name(board.getName()).projectId(board.getProjectId())
@@ -404,7 +462,21 @@ public class BoardService {
                 .createdAt(board.getCreatedAt()).build();
     }
 
+    /** taskId → ids it depends on, in one query for a batch of tasks. */
+    private Map<String, List<String>> dependenciesFor(List<Task> tasks) {
+        if (tasks.isEmpty()) return Map.of();
+        Set<String> taskIds = tasks.stream().map(Task::getId).collect(Collectors.toSet());
+        return dependencyRepository.findByTaskIdIn(taskIds).stream()
+                .collect(Collectors.groupingBy(TaskDependency::getTaskId,
+                        Collectors.mapping(TaskDependency::getDependsOnId, Collectors.toList())));
+    }
+
     private BoardResponse.TaskDto toTaskDto(Task task) {
+        return toTaskDto(task, dependencyRepository.findByTaskId(task.getId()).stream()
+                .map(TaskDependency::getDependsOnId).toList());
+    }
+
+    private BoardResponse.TaskDto toTaskDto(Task task, List<String> dependencies) {
         String assigneeName = null, assigneeAvatar = null;
         if (task.getAssigneeId() != null) {
             var user = userRepository.findById(task.getAssigneeId()).orElse(null);
@@ -417,6 +489,8 @@ public class BoardService {
                 .priority(task.getPriority().name()).dueDate(task.getDueDate())
                 .labels(task.getLabels() != null && !task.getLabels().isBlank()
                         ? Arrays.asList(task.getLabels().split(",")) : List.of())
+                .milestone(task.getMilestone()).sprint(task.getSprint())
+                .dependencies(dependencies)
                 .createdAt(task.getCreatedAt()).build();
     }
 }

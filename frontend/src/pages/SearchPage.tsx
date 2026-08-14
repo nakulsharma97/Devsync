@@ -5,7 +5,7 @@ import { userService } from "@/services/userService";
 import { projectService, type ProjectDto } from "@/services/projectService";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, Loader2, User, FolderKanban, Globe, Lock, Users, Check } from "lucide-react";
+import { Search, Loader2, User, FolderKanban, Globe, UserPlus, Users, Check } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -192,7 +192,7 @@ export default function SearchPage() {
                         {joiningId === p.id ? (
                           <Loader2 className="w-3.5 h-3.5 animate-spin" />
                         ) : (
-                          <Lock className="w-3.5 h-3.5 mr-1" />
+                          <UserPlus className="w-3.5 h-3.5 mr-1" />
                         )}
                         Join
                       </Button>

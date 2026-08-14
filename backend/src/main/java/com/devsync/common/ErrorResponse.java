@@ -18,4 +18,6 @@ public class ErrorResponse {
     private String message;
     private Instant timestamp;
     private List<String> details;
+    /** Optional machine-readable code (e.g. PLAN_LIMIT, STORAGE_LIMIT). */
+    private String code;
 }

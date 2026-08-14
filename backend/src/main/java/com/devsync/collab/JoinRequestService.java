@@ -2,6 +2,7 @@ package com.devsync.collab;
 
 import com.devsync.activity.ActivityService;
 import com.devsync.activity.entity.ActivityType;
+import com.devsync.billing.EntitlementService;
 import com.devsync.collab.dto.JoinRequestCreateRequest;
 import com.devsync.collab.dto.JoinRequestResponse;
 import com.devsync.collab.entity.JoinRequest;
@@ -34,6 +35,7 @@ public class JoinRequestService {
     private final UserRepository userRepository;
     private final NotificationService notificationService;
     private final ActivityService activityService;
+    private final EntitlementService entitlementService;
 
     /**
      * PUBLIC projects: the user joins immediately.
@@ -50,6 +52,7 @@ public class JoinRequestService {
                 .orElseThrow(() -> new ResourceNotFoundException("User", userId));
 
         if (project.getVisibility() == Project.ProjectVisibility.PUBLIC) {
+            entitlementService.assertCanAddMember(projectId);
             memberRepository.save(ProjectMember.builder()
                     .projectId(projectId).userId(userId).role(ProjectMember.Role.MEMBER).build());
             notifyManagers(project, "PROJECT_JOINED", "New member joined",
@@ -64,6 +67,8 @@ public class JoinRequestService {
                     .build();
         }
 
+        // Keep pending join requests bounded by the member cap too.
+        entitlementService.assertCanAddMember(projectId);
         if (joinRequestRepository.existsByProjectIdAndUserId(projectId, userId)) {
             throw new IllegalArgumentException("You have already requested to join this project");
         }
@@ -88,6 +93,7 @@ public class JoinRequestService {
             throw new IllegalArgumentException("This request is no longer pending");
         }
         if (!memberRepository.existsByProjectIdAndUserId(project.getId(), joinRequest.getUserId())) {
+            entitlementService.assertCanAddMember(project.getId());
             memberRepository.save(ProjectMember.builder()
                     .projectId(project.getId()).userId(joinRequest.getUserId())
                     .role(ProjectMember.Role.MEMBER).build());

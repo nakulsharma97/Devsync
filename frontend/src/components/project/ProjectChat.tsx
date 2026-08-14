@@ -24,6 +24,25 @@ export function ProjectChat({ roomId }: { roomId: string }) {
 
   const { markTyping, stopTyping } = useTyping(roomId);
 
+  // Pending optimistic sends that have not yet been replaced by the server
+  // echo (see the live-subscription effect below). Keyed by the optimistic id.
+  const pendingEchoTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+
+  const clearPendingEcho = useCallback((optId: string) => {
+    const timer = pendingEchoTimers.current.get(optId);
+    if (timer) clearTimeout(timer);
+    pendingEchoTimers.current.delete(optId);
+  }, []);
+
+  // Clear pending timers on unmount so nothing leaks.
+  useEffect(() => {
+    const timers = pendingEchoTimers.current;
+    return () => {
+      timers.forEach((timer) => clearTimeout(timer));
+      timers.clear();
+    };
+  }, []);
+
   // Load history
   useEffect(() => {
     let cancelled = false;
@@ -47,12 +66,28 @@ export function ProjectChat({ roomId }: { roomId: string }) {
     if (!wsService.isConnected) return;
     const unsub = wsService.subscribeToRoom(roomId, (data: MessageDto) => {
       if (!data || !data.id) return;
-      setMessages((prev) =>
-        prev.some((m) => m.id === data.id) ? prev : [...prev, data]
-      );
+      setMessages((prev) => {
+        if (prev.some((m) => m.id === data.id)) return prev;
+        // Replace our optimistic send with the server echo (same content, from
+        // me) — otherwise every message appears twice.
+        const optIdx = prev.findIndex(
+          (m) =>
+            String(m.id).startsWith("opt-") &&
+            m.senderId === myId &&
+            data.senderId === myId &&
+            m.content === data.content
+        );
+        if (optIdx !== -1) {
+          clearPendingEcho(String(prev[optIdx].id));
+          const next = [...prev];
+          next[optIdx] = data;
+          return next;
+        }
+        return [...prev, data];
+      });
     });
     return () => unsub();
-  }, [roomId]);
+  }, [roomId, myId, clearPendingEcho]);
 
   useEffect(() => {
     const unsub = wsService.onConnection(setConnected);
@@ -78,10 +113,11 @@ export function ProjectChat({ roomId }: { roomId: string }) {
         if (wsService.isConnected) {
           wsService.sendMessage({ roomId, content });
           // Optimistic echo — replaced by the server echo when it arrives.
+          const optId = `opt-${Date.now()}`;
           setMessages((prev) => [
             ...prev,
             {
-              id: `opt-${Date.now()}`,
+              id: optId,
               senderId: myId,
               senderName: user?.fullName || "You",
               senderAvatar: user?.avatarUrl ?? null,
@@ -95,6 +131,15 @@ export function ProjectChat({ roomId }: { roomId: string }) {
               createdAt: new Date().toISOString(),
             },
           ]);
+          // If the echo never arrives (e.g. socket dropped mid-send), drop the
+          // optimistic bubble after a few seconds instead of leaving a ghost.
+          pendingEchoTimers.current.set(
+            optId,
+            setTimeout(() => {
+              pendingEchoTimers.current.delete(optId);
+              setMessages((prev) => prev.filter((m) => m.id !== optId));
+            }, 10000)
+          );
         } else {
           const real = await messageService.sendMessage({ roomId, content });
           setMessages((prev) => [...prev, real]);
@@ -108,6 +153,7 @@ export function ProjectChat({ roomId }: { roomId: string }) {
     },
     [text, stopTyping, roomId, myId, user]
   );
+
 
   return (
     <div className="flex flex-col h-[480px] lg:h-[540px] rounded-xl border border-border/40 bg-card overflow-hidden">
@@ -128,12 +174,13 @@ export function ProjectChat({ roomId }: { roomId: string }) {
       {/* Messages */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-3 py-3 space-y-2.5">
         {loading ? (
-          <div className="flex justify-center py-8">
+          <div className="flex flex-col items-center justify-center py-8 gap-2">
             <Loader2 className="w-5 h-5 animate-spin text-indigo-500" />
+            <p className="text-xs text-muted-foreground">Loading messages…</p>
           </div>
         ) : messages.length === 0 ? (
           <p className="text-center text-xs text-muted-foreground py-8">
-            No messages yet — say hello!
+            No messages yet — start the conversation with your team.
           </p>
         ) : (
           messages.map((m) => {

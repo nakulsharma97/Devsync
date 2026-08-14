@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import ScrollProgress from "@/components/ScrollProgress";
 import Navbar from "@/components/Navbar";
 import HeroSection from "@/components/HeroSection";
@@ -12,8 +13,33 @@ import FinalCtaSection from "@/components/FinalCtaSection";
 import FooterSection from "@/components/FooterSection";
 import ParticleField from "@/components/ParticleField";
 import { keyframesStyle } from "@/data/landing";
+import {
+  landingService,
+  type PublicReviewsResponse,
+  type PublicStats,
+} from "@/services/landingService";
 
 export default function Landing() {
+  const [stats, setStats] = useState<PublicStats | null>(null);
+  const [reviews, setReviews] = useState<PublicReviewsResponse | null>(null);
+
+  // Real, server-computed aggregates — never hardcoded. A failed fetch simply
+  // leaves the sections in their honest empty/loading state.
+  useEffect(() => {
+    let cancelled = false;
+    landingService
+      .getStats()
+      .then((s) => !cancelled && setStats(s))
+      .catch(() => {});
+    landingService
+      .getReviews()
+      .then((r) => !cancelled && setReviews(r))
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   return (
     <div className="min-h-screen bg-background text-foreground overflow-x-hidden relative">
       <style>{keyframesStyle}</style>
@@ -26,13 +52,13 @@ export default function Landing() {
       <div className="relative z-10">
         <ScrollProgress />
         <Navbar />
-        <HeroSection />
+        <HeroSection stats={stats} />
         <LogoMarquee />
-        <StatsBar />
+        <StatsBar stats={stats} />
         <FeaturesSection />
         <HowItWorksSection />
-        <TestimonialsSection />
-        <EnterpriseSection />
+        <TestimonialsSection reviews={reviews} />
+        <EnterpriseSection stats={stats} />
         <PricingSection />
         <FinalCtaSection />
         <FooterSection />

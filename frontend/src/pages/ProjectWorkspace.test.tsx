@@ -11,6 +11,7 @@ const mocks = vi.hoisted(() => ({
   getProjectInvitations: vi.fn(),
   getProjectBoard: vi.fn(),
   getProjectActivities: vi.fn(),
+  joinProject: vi.fn(),
 }));
 
 vi.mock("@/contexts/AuthContext", () => ({
@@ -32,6 +33,7 @@ vi.mock("@/services/projectService", () => ({
     acceptInvitation: vi.fn(),
     declineInvitation: vi.fn(),
     cancelInvitation: vi.fn(),
+    joinProject: mocks.joinProject,
   },
 }));
 
@@ -126,6 +128,39 @@ describe("ProjectWorkspace", () => {
     renderWorkspace();
 
     expect(await screen.findByText("You don't have access to this project")).toBeInTheDocument();
+  });
+
+  it("shows a join prompt for non-members of a public project and joins on click", async () => {
+    const user = userEvent.setup({ delay: null });
+    mocks.getProject.mockResolvedValue(
+      projectFixture({
+        visibility: "PUBLIC",
+        currentUserRole: null,
+        ownerId: "u9",
+        members: [
+          {
+            id: "m1",
+            userId: "u9",
+            role: "OWNER",
+            fullName: "Nakul Sharma",
+            avatarUrl: null,
+          },
+        ],
+        memberCount: 1,
+      })
+    );
+    mocks.joinProject.mockResolvedValue(undefined);
+    renderWorkspace();
+
+    // Member-only tabs must NOT be visible — just the join prompt.
+    expect(await screen.findByText("DevSync App")).toBeInTheDocument();
+    expect(screen.getByText("Public")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Board/i })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Join Project/i })).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /Join Project/i }));
+    expect(mocks.joinProject).toHaveBeenCalledWith("p1");
+    await waitFor(() => expect(mocks.getProject).toHaveBeenCalled());
   });
 
   it("hides manage controls for regular members", async () => {

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate, useParams } from "react-router";
+import { useNavigate, useParams, useSearchParams } from "react-router";
 import { useApi } from "@/hooks/useApi";
 import { useAuth } from "@/contexts/AuthContext";
 import { projectService, type InvitationDto, type ProjectDto } from "@/services/projectService";
@@ -7,8 +7,11 @@ import { boardService } from "@/services/boardService";
 import { activityService, type ActivityDto } from "@/services/activityService";
 import { attachmentService, type AttachmentDto } from "@/services/attachmentService";
 import { teamRoomService } from "@/services/teamRoomService";
+import { wsService } from "@/services/websocketService";
 import { formatBytes, timeAgo } from "@/lib/format";
-import { getErrorMessage } from "@/lib/utils";
+import { FilePreviewDialog } from "@/components/FilePreviewDialog";
+import { MarkdownPreview } from "@/components/MarkdownPreview";
+import { getErrorMessage, getHttpErrorMessage } from "@/lib/utils";
 import { StatusPill } from "@/components/StatusPill";
 import { InviteMemberDialog } from "@/components/project/InviteMemberDialog";
 import { ProjectChat } from "@/components/project/ProjectChat";
@@ -27,6 +30,8 @@ import {
   ArrowLeft,
   ArrowUpRight,
   Activity as ActivityIcon,
+  BookOpen,
+  Check,
   ClipboardList,
   FileText,
   FolderKanban,
@@ -55,6 +60,7 @@ type TabId =
   | "tasks"
   | "chat"
   | "files"
+  | "docs"
   | "members"
   | "activity"
   | "settings";
@@ -65,6 +71,7 @@ const TABS: { id: TabId; label: string; icon: typeof LayoutDashboard }[] = [
   { id: "tasks", label: "Tasks", icon: FileText },
   { id: "chat", label: "Team Chat", icon: MessagesSquare },
   { id: "files", label: "Files", icon: FolderKanban },
+  { id: "docs", label: "Docs", icon: BookOpen },
   { id: "members", label: "Members", icon: Users },
   { id: "activity", label: "Activity", icon: ActivityIcon },
   { id: "settings", label: "Settings", icon: SettingsIcon },
@@ -74,8 +81,25 @@ export default function ProjectWorkspace() {
   const { projectId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [tab, setTab] = useState<TabId>("overview");
   const [inviteOpen, setInviteOpen] = useState(false);
+
+  // The active tab lives in the URL (?tab=members) so a refresh and the
+  // browser back/forward buttons both preserve it. Each tab switch pushes a
+  // history entry, so back steps through tabs without reloading the project.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const urlTab = searchParams.get("tab");
+  const tab: TabId = TABS.some((t) => t.id === urlTab)
+    ? (urlTab as TabId)
+    : "overview";
+  const setTab = (next: TabId) => {
+    const params = new URLSearchParams(searchParams);
+    if (next === "overview") {
+      params.delete("tab");
+    } else {
+      params.set("tab", next);
+    }
+    setSearchParams(params);
+  };
 
   const { data: project, loading, error, refetch } = useApi(
     () => (projectId ? projectService.getProject(projectId) : Promise.reject(new Error("Missing project id"))),
@@ -84,6 +108,7 @@ export default function ProjectWorkspace() {
 
   const isOwner = project?.ownerId === user?.id;
   const canManage = isOwner || project?.currentUserRole === "ADMIN";
+  const isMember = !!project?.currentUserRole;
 
   // ── Project-not-found / unauthorized states ─────────────────
   if (loading) {
@@ -125,6 +150,19 @@ export default function ProjectWorkspace() {
           Back to Projects
         </Button>
       </div>
+    );
+  }
+
+  // Non-members can view PUBLIC projects but must join before using member
+  // features (board, chat, files…). PRIVATE projects never reach this branch —
+  // the backend rejects them and the error state above handles it.
+  if (!isMember) {
+    return (
+      <PublicProjectJoinView
+        project={project}
+        onJoined={() => refetch()}
+        onBack={() => navigate("/projects")}
+      />
     );
   }
 
@@ -235,6 +273,7 @@ export default function ProjectWorkspace() {
         {tab === "tasks" && <TasksTab projectId={project.id} />}
         {tab === "chat" && <ChatTab project={project} />}
         {tab === "files" && <FilesTab projectId={project.id} />}
+        {tab === "docs" && <DocsTab projectId={project.id} />}
         {tab === "members" && (
           <MembersTab
             project={project}
@@ -267,6 +306,122 @@ export default function ProjectWorkspace() {
           refetch();
         }}
       />
+    </div>
+  );
+}
+
+// ── Public project — join prompt for non-members ──────────
+
+function PublicProjectJoinView({
+  project,
+  onJoined,
+  onBack,
+}: {
+  project: ProjectDto;
+  onJoined: () => void;
+  onBack: () => void;
+}) {
+  const [joining, setJoining] = useState(false);
+
+  const handleJoin = async () => {
+    setJoining(true);
+    try {
+      await projectService.joinProject(project.id);
+      toast(`You joined ${project.name}`);
+      onJoined();
+    } catch (err: unknown) {
+      toast(getErrorMessage(err, "Failed to join project"));
+    } finally {
+      setJoining(false);
+    }
+  };
+
+  const owner = project.members.find((m) => m.userId === project.ownerId);
+
+  return (
+    <div className="space-y-5 max-w-3xl mx-auto">
+      <button
+        onClick={onBack}
+        className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+      >
+        <ArrowLeft className="w-3.5 h-3.5" />
+        Back to Projects
+      </button>
+
+      <div className="rounded-2xl border border-border/40 bg-card p-6 relative overflow-hidden">
+        <div className="absolute -top-16 -right-16 w-56 h-56 bg-gradient-to-bl from-indigo-500/[0.07] to-transparent rounded-full blur-3xl pointer-events-none" />
+
+        <div className="flex items-center gap-2.5 flex-wrap relative">
+          <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-md shadow-indigo-500/20 shrink-0">
+            <FolderKanban className="w-5 h-5 text-white" />
+          </div>
+          <h1 className="text-xl font-bold tracking-tight">{project.name}</h1>
+          <StatusPill status={project.status} />
+          <span className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full border border-emerald-500/25 bg-emerald-500/[0.07] text-emerald-600 dark:text-emerald-400">
+            <Globe className="w-2.5 h-2.5" />
+            Public
+          </span>
+        </div>
+
+        {project.description && (
+          <p className="text-sm text-muted-foreground mt-3 max-w-2xl leading-relaxed">
+            {project.description}
+          </p>
+        )}
+
+        <div className="flex items-center gap-4 text-xs text-muted-foreground mt-4 flex-wrap">
+          <span className="inline-flex items-center gap-1.5">
+            <Users className="w-3.5 h-3.5" />
+            {project.memberCount} member{project.memberCount !== 1 ? "s" : ""}
+          </span>
+          {owner && (
+            <span>
+              Owned by{" "}
+              <span className="text-foreground font-medium">{owner.fullName}</span>
+            </span>
+          )}
+          <span className="text-muted-foreground/60">
+            Updated {timeAgo(project.updatedAt) || "recently"}
+          </span>
+        </div>
+
+        <div className="mt-6 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+          <Button
+            onClick={handleJoin}
+            disabled={joining}
+            className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white hover:from-indigo-600 hover:to-purple-700 shadow-lg shadow-indigo-500/20"
+          >
+            {joining ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <UserPlus className="w-4 h-4 mr-1.5" />
+            )}
+            {joining ? "Joining…" : "Join Project"}
+          </Button>
+          <p className="text-[11px] text-muted-foreground/70 sm:max-w-xs">
+            Joining makes you a member — you'll get access to the board, team chat,
+            files and docs.
+          </p>
+        </div>
+      </div>
+
+      <div className="grid sm:grid-cols-3 gap-3">
+        <JoinFeature icon={<ClipboardList className="w-4 h-4" />} label="Kanban Board" />
+        <JoinFeature icon={<MessagesSquare className="w-4 h-4" />} label="Team Chat" />
+        <JoinFeature icon={<FolderKanban className="w-4 h-4" />} label="Files & Docs" />
+      </div>
+    </div>
+  );
+}
+
+function JoinFeature({ icon, label }: { icon: React.ReactNode; label: string }) {
+  return (
+    <div className="flex items-center gap-2 rounded-xl border border-border/40 bg-card px-3.5 py-3 text-sm font-medium text-muted-foreground">
+      <span className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500/15 to-purple-500/10 flex items-center justify-center text-indigo-400 shrink-0">
+        {icon}
+      </span>
+      {label}
+      <Check className="w-3.5 h-3.5 ml-auto text-emerald-500" />
     </div>
   );
 }
@@ -510,7 +665,7 @@ function ChatTab({ project }: { project: ProjectDto }) {
       const room = await teamRoomService.getOrCreateProjectRoom(project.id);
       setRoomId(room.id);
     } catch (err: unknown) {
-      setError(getErrorMessage(err, "Failed to open team chat"));
+      setError(getHttpErrorMessage(err, "Unable to load team chat. Please try again."));
     } finally {
       setLoading(false);
     }
@@ -624,6 +779,15 @@ function FilesTab({ projectId }: { projectId: string }) {
 
 function FileRow({ file }: { file: AttachmentDto }) {
   const [downloading, setDownloading] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const name = (file.fileName || "").toLowerCase();
+  const previewable =
+    (file.contentType ?? "").startsWith("image/") ||
+    (file.contentType ?? "") === "application/pdf" ||
+    name.endsWith(".pdf") ||
+    (file.contentType ?? "").startsWith("video/") ||
+    /\.(mp4|webm|mov|ogg)$/.test(name);
+
   const handleDownload = async () => {
     setDownloading(true);
     try {
@@ -654,9 +818,191 @@ function FileRow({ file }: { file: AttachmentDto }) {
           {file.uploaderName} · {formatBytes(file.size)} · {timeAgo(file.createdAt, "")}
         </p>
       </div>
-      <Button size="sm" variant="outline" disabled={downloading} onClick={handleDownload} className="text-xs shrink-0">
-        {downloading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Download"}
-      </Button>
+      <div className="flex items-center gap-1.5 shrink-0">
+        {previewable && (
+          <Button size="sm" variant="outline" onClick={() => setPreviewOpen(true)} className="text-xs">
+            Preview
+          </Button>
+        )}
+        <Button size="sm" variant="outline" disabled={downloading} onClick={handleDownload} className="text-xs">
+          {downloading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "Download"}
+        </Button>
+      </div>
+      {previewOpen && <FilePreviewDialog attachment={file} onClose={() => setPreviewOpen(false)} />}
+    </div>
+  );
+}
+
+// ── Docs (shared Markdown note) ────────────────────────────
+
+/** UTF-8-safe base64 helpers for the note payload (opaque Yjs state on the server). */
+function encodeNote(text: string): string {
+  return btoa(unescape(encodeURIComponent(text)));
+}
+function decodeNote(base64: string | null): string {
+  if (!base64) return "";
+  try {
+    return decodeURIComponent(escape(atob(base64)));
+  } catch {
+    return "";
+  }
+}
+
+function DocsTab({ projectId }: { projectId: string }) {
+  const [text, setText] = useState("");
+  const [mode, setMode] = useState<"edit" | "preview">("edit");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [dirty, setDirty] = useState(false);
+  const [updatedInfo, setUpdatedInfo] = useState<{ by: string | null; at: string | null }>({ by: null, at: null });
+  const [remoteChanged, setRemoteChanged] = useState(false);
+  const versionRef = useRef(0);
+  const textRef = useRef("");
+  const dirtyRef = useRef(false);
+
+  const load = useCallback(async () => {
+    try {
+      const note = await projectService.getNote(projectId);
+      versionRef.current = note.version;
+      textRef.current = decodeNote(note.yjsState);
+      setText(textRef.current);
+      setUpdatedInfo({ by: note.updatedBy, at: note.updatedAt });
+      setRemoteChanged(false);
+    } catch {
+      // note missing / unauthorized — the project page already gates access
+    } finally {
+      setLoading(false);
+    }
+  }, [projectId]);
+
+  useEffect(() => {
+    load();
+    // Live updates: another member saved — refresh unless we have local edits.
+    const unsub = wsService.subscribeToTopic(`/topic/projects/${projectId}/notes`, () => {
+      if (dirtyRef.current) {
+        setRemoteChanged(true);
+      } else {
+        load();
+      }
+    });
+    return () => {
+      unsub();
+    };
+  }, [projectId, load]);
+
+  const save = async () => {
+    const content = textRef.current;
+    setSaving(true);
+    try {
+      const saved = await projectService.saveNote(projectId, versionRef.current, encodeNote(content));
+      versionRef.current = saved.version;
+      setUpdatedInfo({ by: saved.updatedBy, at: saved.updatedAt });
+      setDirty(false);
+      dirtyRef.current = false;
+      setRemoteChanged(false);
+      toast("Document saved");
+      // Tell other open editors to refresh (server validates membership).
+      wsService.publishNotesUpdate(projectId, encodeNote(content));
+    } catch (err: unknown) {
+      const msg = getErrorMessage(err, "Failed to save document");
+      if (/conflict|409/i.test(msg)) {
+        toast("This document changed elsewhere — reloading the latest version.");
+        await load();
+      } else {
+        toast(msg);
+      }
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const onChange = (value: string) => {
+    textRef.current = value;
+    setText(value);
+    setDirty(true);
+    dirtyRef.current = true;
+  };
+
+  if (loading) {
+    return (
+      <div className="rounded-xl border border-border/40 bg-card h-[420px] flex items-center justify-center">
+        <Loader2 className="w-5 h-5 animate-spin text-indigo-500" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-xl border border-border/40 bg-card overflow-hidden">
+      {/* Toolbar */}
+      <div className="flex items-center gap-2 px-4 py-2.5 border-b border-border/40">
+        <BookOpen className="w-4 h-4 text-indigo-400" />
+        <span className="text-sm font-semibold flex-1">Project Docs</span>
+        <span className="hidden sm:inline text-[11px] text-muted-foreground">
+          {dirty ? "Unsaved changes" : "Saved"}
+          {updatedInfo.at ? ` · ${timeAgo(updatedInfo.at, "")} ago` : ""}
+        </span>
+        {remoteChanged && !dirty && (
+          <button
+            onClick={load}
+            className="text-[11px] font-medium text-indigo-500 hover:underline"
+            title="A teammate saved a newer version"
+          >
+            New version available — refresh
+          </button>
+        )}
+        <div className="flex items-center gap-0.5 bg-muted/40 border border-border/40 rounded-lg p-0.5">
+          <button
+            onClick={() => setMode("edit")}
+            aria-pressed={mode === "edit"}
+            className={cn(
+              "text-xs px-2.5 py-1.5 rounded-md transition-all",
+              mode === "edit"
+                ? "bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            Edit
+          </button>
+          <button
+            onClick={() => setMode("preview")}
+            aria-pressed={mode === "preview"}
+            className={cn(
+              "text-xs px-2.5 py-1.5 rounded-md transition-all",
+              mode === "preview"
+                ? "bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            Preview
+          </button>
+        </div>
+        <Button size="sm" onClick={save} disabled={saving || !dirty} className="text-xs">
+          {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
+          {saving ? "Saving…" : "Save"}
+        </Button>
+      </div>
+
+      {/* Editor / preview */}
+      <div className="min-h-[420px] max-h-[65vh] overflow-y-auto">
+        {mode === "edit" ? (
+          <textarea
+            value={text}
+            onChange={(e) => onChange(e.target.value)}
+            placeholder={"# Project docs\n\nWrite in **Markdown**. Headings, lists, code blocks and links are supported.\n\nSave to share with your team."}
+            aria-label="Project document (Markdown)"
+            className="w-full min-h-[420px] p-4 text-sm leading-relaxed bg-transparent resize-none focus:outline-none font-mono placeholder:text-muted-foreground/40"
+          />
+        ) : text.trim() ? (
+          <div className="p-5 text-sm">
+            <MarkdownPreview content={text} />
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center h-[420px] text-center px-6">
+            <BookOpen className="w-8 h-8 text-muted-foreground/40 mb-3" />
+            <p className="text-sm text-muted-foreground">Nothing written yet — switch to Edit and start typing.</p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

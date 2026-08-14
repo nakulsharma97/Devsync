@@ -5,6 +5,8 @@ import com.devsync.user.entity.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -20,6 +22,8 @@ public interface UserRepository extends JpaRepository<User, String> {
     @Query("SELECT u FROM User u WHERE LOWER(u.email) = LOWER(:value) OR LOWER(u.username) = LOWER(:value)")
     Optional<User> findByEmailOrUsername(@Param("value") String value);
 
+    Optional<User> findByUsername(String username);
+
     long countByEmail(String email);
     long countByUsername(String username);
 
@@ -30,6 +34,8 @@ public interface UserRepository extends JpaRepository<User, String> {
     long countByRole(User.Role role);
 
     long countByBlockedTrue();
+
+    long countByDeletedFalse();
 
     @Query("SELECT COUNT(u) FROM User u WHERE u.lastLoginAt >= :since")
     long countActiveUsers(@Param("since") Instant since);
@@ -43,6 +49,15 @@ public interface UserRepository extends JpaRepository<User, String> {
     @Query("SELECT u FROM User u WHERE u.id != :excludeUserId AND u.deleted = false AND " +
             "(LOWER(u.fullName) LIKE LOWER(CONCAT('%', :query, '%')) OR LOWER(u.email) LIKE LOWER(CONCAT('%', :query, '%')) OR LOWER(u.username) LIKE LOWER(CONCAT('%', :query, '%')))")
     List<User> searchUsers(@Param("query") String query, @Param("excludeUserId") String excludeUserId);
+
+    /**
+     * Locks the user row for the duration of the transaction. Used by limit-
+     * enforcing writes (private-project creation, invitations) so two concurrent
+     * requests for the same user serialize instead of racing past the same cap.
+     */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT u FROM User u WHERE u.id = :id")
+    Optional<User> findByIdForUpdate(@Param("id") String id);
 
     @Query("SELECT u FROM User u WHERE " +
             "(:search IS NULL OR LOWER(u.fullName) LIKE LOWER(CONCAT('%', :search, '%')) " +

@@ -93,6 +93,9 @@ public class SecurityConfig {
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/api/github/callback").permitAll()
                 .requestMatchers("/api/webhooks/github").permitAll()
+                // Payment webhook: publicly reachable over HTTPS, but every request
+                // must carry a verified provider signature (rejected otherwise).
+                .requestMatchers("/api/billing/webhook/**").permitAll()
                 .requestMatchers("/api/public/**").permitAll()
                 .requestMatchers("/ws/**").permitAll()
                 .requestMatchers("/error").permitAll()

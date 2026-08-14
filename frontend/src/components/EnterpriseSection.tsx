@@ -3,8 +3,9 @@ import { Button } from "@/components/ui/button";
 import { ScrollRevealFromLeft, ScrollRevealFromRight } from "@/components/ScrollReveal";
 import { benefits } from "@/data/landing";
 import { Command, ChevronRight } from "lucide-react";
+import type { PublicStats } from "@/services/landingService";
 
-export default function EnterpriseSection() {
+export default function EnterpriseSection({ stats }: { stats: PublicStats | null }) {
   const navigate = useNavigate();
 
   return (
@@ -37,7 +38,11 @@ export default function EnterpriseSection() {
                   <Command className="w-12 h-12 text-indigo-600 dark:text-indigo-400" />
                 </div>
                 <p className="text-xl font-semibold mb-2">Ready to ship faster?</p>
-                <p className="text-sm text-muted-foreground mb-6">Join 50,000+ developers already building on DevSync.</p>
+                <p className="text-sm text-muted-foreground mb-6">
+                  {stats && stats.users > 0
+                    ? `Join ${stats.users.toLocaleString()} developer${stats.users === 1 ? "" : "s"} already building on DevSync.`
+                    : "Start building your next project on DevSync today."}
+                </p>
                 <Button onClick={() => navigate("/auth")} className="shadow-xl hover:shadow-2xl transition-all duration-200 bg-gradient-to-r from-indigo-500 to-purple-600 text-white hover:from-indigo-600 hover:to-purple-700">
                   Get started<ChevronRight className="ml-1 w-4 h-4" />
                 </Button>

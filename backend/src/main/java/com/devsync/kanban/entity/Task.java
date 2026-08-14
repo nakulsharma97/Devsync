@@ -44,6 +44,14 @@ public class Task extends BaseEntity {
     @Column(name = "labels")
     private String labels; // Comma-separated
 
+    /** Optional milestone grouping label (e.g. "v2.0", "Launch"). */
+    @Column(name = "milestone")
+    private String milestone;
+
+    /** Optional sprint grouping label (e.g. "Sprint 12"). */
+    @Column(name = "sprint")
+    private String sprint;
+
     public enum Priority {
         LOW, MEDIUM, HIGH, CRITICAL
     }

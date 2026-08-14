@@ -49,4 +49,15 @@ public class Message extends BaseEntity {
 
     @Column(name = "read_at")
     private Instant readAt;
+
+    /** Reply threads: id of the message this one replies to (null = top-level). */
+    @Column(name = "parent_message_id")
+    private String parentMessageId;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean edited = false;
+
+    @Column(name = "edited_at")
+    private Instant editedAt;
 }

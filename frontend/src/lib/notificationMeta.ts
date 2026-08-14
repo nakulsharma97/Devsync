@@ -12,6 +12,8 @@ import {
   MessageCircle,
   Users,
   FileWarning,
+  CreditCard,
+  AlertCircle,
   type LucideIcon,
 } from "lucide-react";
 import type { NotificationDto } from "@/services/notificationService";
@@ -30,8 +32,11 @@ export interface NotificationMeta {
 const META: Record<string, NotificationMeta> = {
   PROJECT_INVITE: { icon: UserPlus, colorClass: "text-purple-500 bg-purple-500/10", label: "Invitation" },
   PROJECT_INVITE_ACCEPTED: { icon: UserCheck, colorClass: "text-emerald-500 bg-emerald-500/10", label: "Invitation accepted" },
+  PROJECT_INVITE_DECLINED: { icon: UserX, colorClass: "text-amber-500 bg-amber-500/10", label: "Invitation declined" },
   JOIN_REQUEST_APPROVED: { icon: CheckCheck, colorClass: "text-emerald-500 bg-emerald-500/10", label: "Request approved" },
   JOIN_REQUEST_REJECTED: { icon: XCircle, colorClass: "text-red-500 bg-red-500/10", label: "Request declined" },
+  JOIN_REQUEST: { icon: UserPlus, colorClass: "text-blue-500 bg-blue-500/10", label: "Join request" },
+  PROJECT_JOINED: { icon: Users, colorClass: "text-emerald-500 bg-emerald-500/10", label: "New member" },
   MEMBER_ADDED: { icon: UserPlus, colorClass: "text-blue-500 bg-blue-500/10", label: "Added to project" },
   MEMBER_REMOVED: { icon: UserX, colorClass: "text-red-500 bg-red-500/10", label: "Removed from project" },
   MEMBER_ROLE_CHANGED: { icon: Shield, colorClass: "text-amber-500 bg-amber-500/10", label: "Role changed" },
@@ -44,6 +49,13 @@ const META: Record<string, NotificationMeta> = {
   COMMENT: { icon: MessageCircle, colorClass: "text-blue-500 bg-blue-500/10", label: "Comment" },
   CONNECTION: { icon: Users, colorClass: "text-green-500 bg-green-500/10", label: "Connection" },
   REPORT: { icon: FileWarning, colorClass: "text-orange-500 bg-orange-500/10", label: "Report" },
+  // Billing (Razorpay) notifications — see BillingService/PlanService.
+  PAYMENT_SUCCESS: { icon: CreditCard, colorClass: "text-emerald-500 bg-emerald-500/10", label: "Payment" },
+  PAYMENT_FAILED: { icon: CreditCard, colorClass: "text-red-500 bg-red-500/10", label: "Payment failed" },
+  PAYMENT_REFUNDED: { icon: CreditCard, colorClass: "text-amber-500 bg-amber-500/10", label: "Refund" },
+  SUBSCRIPTION_PAST_DUE: { icon: AlertCircle, colorClass: "text-amber-500 bg-amber-500/10", label: "Action needed" },
+  SUBSCRIPTION_CANCELLED: { icon: CreditCard, colorClass: "text-orange-500 bg-orange-500/10", label: "Subscription" },
+  SUBSCRIPTION_EXPIRED: { icon: CreditCard, colorClass: "text-slate-500 bg-slate-500/10", label: "Subscription expired" },
 };
 
 const FALLBACK: NotificationMeta = {
@@ -77,6 +89,7 @@ export function resolveNotificationUrl(
       n.actionUrl.startsWith("/board/") ||
       n.actionUrl.startsWith("/projects/") ||
       n.actionUrl.startsWith("/messages") ||
+      n.actionUrl.startsWith("/settings") ||
       n.actionUrl === "/feed" ||
       n.actionUrl === "/dashboard" ||
       n.actionUrl === "/notifications"

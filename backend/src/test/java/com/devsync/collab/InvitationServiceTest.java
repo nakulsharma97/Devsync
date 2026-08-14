@@ -1,6 +1,7 @@
 package com.devsync.collab;
 
 import com.devsync.activity.ActivityService;
+import com.devsync.billing.EntitlementService;
 import com.devsync.collab.dto.InviteRequest;
 import com.devsync.collab.entity.InvitationStatus;
 import com.devsync.collab.entity.ProjectInvitation;
@@ -35,6 +36,7 @@ class InvitationServiceTest {
     @Mock private UserRepository userRepository;
     @Mock private NotificationService notificationService;
     @Mock private ActivityService activityService;
+    @Mock private EntitlementService entitlementService;
 
     private InvitationService invitationService;
     private Project project;
@@ -44,7 +46,7 @@ class InvitationServiceTest {
     @BeforeEach
     void setUp() {
         invitationService = new InvitationService(invitationRepository, projectRepository,
-                memberRepository, userRepository, notificationService, activityService);
+                memberRepository, userRepository, notificationService, activityService, entitlementService);
         project = Project.builder().name("DevSync").ownerId("owner-1")
                 .visibility(Project.ProjectVisibility.PUBLIC).build();
         project.setId("p1");

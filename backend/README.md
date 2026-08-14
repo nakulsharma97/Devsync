@@ -63,6 +63,10 @@ immediately (fail-fast).
 | `DEVSYNC_TRUST_X_FORWARDED_FOR` | No | `false` | Set `true` ONLY when the app sits behind a reverse proxy you control (nginx/LB). Never trust the header when the app is directly reachable — it is spoofable and would bypass rate limiting. |
 | `DEVSYNC_RATE_LIMIT_INVITE_PER_MINUTE` | No | `10` | Max invitation / join-request / join POSTs per minute per user (or per IP when unauthenticated). |
 | `UPLOAD_DIR` / `UPLOAD_MAX_SIZE` | No | `./uploads` / `10485760` | File upload location and max size in bytes. |
+| `RAZORPAY_KEY_ID` / `RAZORPAY_KEY_SECRET` | **Yes** (prod) | – | Razorpay API keys (test mode: `rzp_test_*`). Checkout returns 503 until set. |
+| `RAZORPAY_WEBHOOK_SECRET` | **Yes** (prod) | – | Secret for verifying `X-Razorpay-Signature` on webhooks (HMAC-SHA256). |
+| `RAZORPAY_BASE_URL` | No | `https://api.razorpay.com` | Razorpay API base (override for sandbox/self-hosted). |
+| `DEVSYNC_BILLING_CURRENCY` | No | `INR` | Plan currency. All amounts are stored in paise (minor units). |
 
 > There are **no default admin credentials**. The old `ADMIN_SEED_EMAIL` / `ADMIN_SEED_PASSWORD`
 > variables (which defaulted to `admin@devsync.com` / `Admin@123`) have been removed.
@@ -191,6 +195,8 @@ Flow: `POST /api/auth/forgot-password` → email link → `POST /api/auth/reset-
 | Password reset / email verify | per email (on top of IP) | 3/15 min | hard-coded in `AccountRecoveryService` |
 | OTP generation | per email | 3/15 min | hard-coded in `OtpService` |
 | Invite / join / join-request POSTs | per user (IP if unauthenticated) | 10/min | `app.rate-limit.invite.per-minute` |
+| Review submissions & edits | per user | 5/hour | hard-coded in `ReviewService` |
+| Private feedback submissions | per user | 10/day | hard-coded in `FeedbackService` |
 | WebSocket messages / subscriptions | per user | 120/min, 30/min | `DEVSYNC_WS_RATE_LIMIT_*` |
 
 All HTTP limiting goes through the `RateLimiter` interface
@@ -218,7 +224,8 @@ report resolved/rejected.
 Security-sensitive events are written to `audit_logs`: register, login success/failure,
 logout, JWT refresh, OTP verified, OAuth login, password/email changes, role changed,
 admin created, user blocked/unblocked/deleted, project archived/restored/deleted,
-visibility changed, and moderation actions. Each entry captures actor, target, action,
+visibility changed, moderation actions, review submitted/approved/rejected/deleted/
+featured, and private feedback received. Each entry captures actor, target, action,
 status, IP address, device, browser, timestamp and a details string (when available).
 
 **Never logged**: passwords, JWT access/refresh tokens, OTP codes, OAuth secrets,
@@ -239,6 +246,87 @@ documented and approved:
 
 Any future cleanup job must: run manually or with an explicit opt-in flag, log what it
 deletes, and be covered by tests. There is intentionally **no** scheduled purge in the codebase.
+
+## Billing & Subscriptions
+
+DevSync uses **Razorpay** (INR) with server-side payment verification. The backend is the
+single source of truth for plan state — a paid plan is activated **only** by a
+signature-verified provider webhook, never by a frontend success callback.
+
+### Flow
+
+```
+User → Pricing → /api/billing/checkout → Razorpay order + PENDING payment row
+     → Razorpay Checkout (hosted, PCI) → payment.captured webhook
+     → HMAC-SHA256 signature verified → amount/currency cross-checked
+     → Payment SUCCESS + Subscription ACTIVE (30-day period) → audit + notification
+```
+
+### Plan catalog (configurable)
+
+| Plan | ₹/month | Private projects | Members/project | Storage | Advanced analytics |
+|------|---------|------------------|-----------------|---------|--------------------|
+| FREE | 0 | 2 | 5 | 1 GB | no |
+| PRO | 299 | 20 | 25 | 50 GB | yes |
+| ENTERPRISE | 999 | unlimited | 100 | 250 GB | yes |
+
+Limits live in the `plans` table (seeded by migration V16) and are editable at runtime:
+`UPDATE plans SET private_project_limit = 5 WHERE code = 'FREE';` — NULL means unlimited.
+The pricing page renders `GET /api/public/plans`; nothing is hardcoded in the frontend.
+
+### Server-side enforcement (`EntitlementService`)
+
+- **Private projects** — capped by the owner's plan; the user row is locked
+  (`SELECT … FOR UPDATE`) so concurrent creations cannot race past the cap.
+- **Members** — capped by the project **owner's** plan at invite/join/approve time
+  (pending invitations do not count as seats).
+- **Storage** — `SUM(file_attachments.size)` per uploader vs plan limit, checked before
+  any file is stored.
+- **Advanced analytics** — `GET /api/projects/{id}/analytics?advanced=true` returns 403
+  (`ADVANCED_ANALYTICS`) unless the requester's plan allows it; the basic member view
+  stays free.
+
+Exceeded limits return `403` with a machine-readable `code` (`PRIVATE_PROJECT_LIMIT`,
+`MEMBER_LIMIT`, `STORAGE_LIMIT`, `ADVANCED_ANALYTICS`) so the UI can show an upgrade CTA.
+A malicious request can never self-declare a plan — entitlements always derive from the
+authenticated user's subscription on the backend.
+
+### Downgrade & expiry safety
+
+Existing data is **never deleted** on downgrade. If a Pro user has 15 private projects and
+drops to FREE (2 allowed), all 15 stay accessible; they simply cannot create the 16th
+until they're within the limit or upgrade. Storage works the same way — existing files
+stay downloadable; new uploads are blocked while usage exceeds the plan. Subscriptions
+expire lazily on the next entitlement lookup (status → `EXPIRED`, audit + notification).
+
+### Webhook security
+
+`POST /api/billing/webhook/razorpay` is publicly reachable (required for Razorpay to
+deliver it) but every request must carry a valid `X-Razorpay-Signature` (HMAC-SHA256 of
+the raw body with `RAZORPAY_WEBHOOK_SECRET`). Processing is **idempotent**: the
+`(provider, provider_event_id)` pair is unique in `webhook_events`, so a duplicate
+delivery is acknowledged and skipped — never re-credited, never double-notified. Amount
+and currency are cross-checked against the stored order; mismatches abort processing.
+
+### Razorpay test mode
+
+1. Create a Razorpay account and enable **test mode**; copy `Key Id` / `Key Secret`
+   (`rzp_test_*`) and generate a webhook secret.
+2. Configure the webhook in the Razorpay dashboard to POST to
+   `https://<your-domain>/api/billing/webhook/razorpay` (HTTPS required in production).
+3. Set `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET` (test values
+   locally; production credentials only via secrets).
+4. Test checkout with Razorpay's test cards (e.g. `4111 1111 1111 1111`); a captured
+   payment activates the plan via webhook. Failed payments exercise `payment.failed`.
+5. Production keys are never committed; `application-prod.yml` requires all three
+   Razorpay variables at startup (fail-fast).
+
+### Audit events (billing)
+
+`CHECKOUT_CREATED`, `PAYMENT_SUCCESS`, `PAYMENT_FAILED`, `REFUND_PROCESSED`,
+`SUBSCRIPTION_ACTIVATED`, `SUBSCRIPTION_RENEWED`, `SUBSCRIPTION_CANCELLED`,
+`SUBSCRIPTION_EXPIRED`, `PLAN_CHANGED`. Card numbers, CVV and raw credentials are never
+stored or logged — the payment ledger keeps only provider references.
 
 ## API Endpoints
 
@@ -288,6 +376,66 @@ notifications, GitHub links, audit) are preserved for history. Deleted projects 
 from every read path (my projects, search, discover, pinned, analytics) and every resource
 service rejects access to them; pending invitations can no longer be accepted. There is
 intentionally no hard-delete cascade — no unrelated user data is ever touched.
+
+### Public Landing Page API (`/api/public`)
+
+Unauthenticated endpoints used by the marketing site. They return **only safe
+aggregates** and admin-approved content — never emails, usernames, private project
+data or internal ids.
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/public/stats` | Aggregate platform statistics: users, projects, public projects, completed projects, tasks, tasks completed, members, messages, GitHub repos, approved reviews, average rating |
+| GET | `/api/public/reviews` | Approved reviews (+ featured), rating summary and star distribution |
+| GET | `/api/public/plans` | Active plan catalog (₹ pricing + entitlements) — drives the pricing page |
+
+Every metric is a single indexed COUNT query computed server-side; nothing is loaded
+into memory and nothing is hardcoded. The frontend shows the real numbers — including
+zero — and never invents statistics.
+
+### Billing (`/api/billing`)
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| POST | `/api/billing/checkout` | User | Create a Razorpay order for a paid plan (plan NOT activated here) |
+| GET | `/api/billing/subscription` | User | Current subscription (FREE when none/expired) |
+| GET | `/api/billing/payments` | User | Own payment history (provider references only) |
+| GET | `/api/billing/usage` | User | Plan usage: private projects, storage, members |
+| POST | `/api/billing/cancel` | User | Cancel at period end (keeps paid access until then) |
+| POST | `/api/billing/webhook/razorpay` | Public* | Razorpay webhook — *signature-verified, never trusted otherwise |
+| GET | `/api/admin/billing/subscriptions` | Admin | Paginated subscription list (search/plan/status filters) |
+| POST | `/api/admin/billing/subscriptions/{id}/cancel` | Admin | Admin cancel at period end (audit-logged) |
+
+### Reviews & Feedback
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| POST | `/api/reviews` | User | Submit a public review (starts `PENDING`) |
+| GET | `/api/reviews/me` | User | Get my review (or 204-style empty) |
+| PUT | `/api/reviews/me` | User | Edit my review (returns to `PENDING`) |
+| POST | `/api/feedback` | User | Submit private feedback (starts `OPEN`) |
+| GET | `/api/feedback/me` | User | List my private feedback with statuses |
+| GET | `/api/admin/reviews` | Admin | Paginated review list (search + status filter) |
+| PUT | `/api/admin/reviews/{id}/approve` | Admin | Approve a review (makes it public) |
+| PUT | `/api/admin/reviews/{id}/reject` | Admin | Reject a review |
+| PUT | `/api/admin/reviews/{id}/feature` | Admin | Feature/unfeature an **approved** review |
+| DELETE | `/api/admin/reviews/{id}` | Admin | Delete a review |
+| GET | `/api/admin/feedback` | Admin | Paginated private feedback list (status/category filters) |
+| PUT | `/api/admin/feedback/{id}/status` | Admin | Move feedback through OPEN → IN_REVIEW → RESOLVED → CLOSED |
+
+**Moderation workflow:** a submitted review is `PENDING` and is never served by
+`/api/public/reviews`. An admin approves it to make it public, or rejects/deletes it.
+Only `APPROVED` reviews can be featured. Edits by the author return the review to
+`PENDING`. One review per user (DB unique constraint on `user_id`); reviewers can edit
+their existing review instead of creating duplicates.
+
+**Security:** the user id always comes from the JWT — never the request body. Ratings are
+validated to 1–5 (both `@Valid` and service-level), comment length is capped, and
+submissions are rate-limited (5 reviews / hour, 10 feedback / day per user) through the
+shared `RateLimiter`. Public review responses expose only `displayName`, `username`,
+avatar, `jobTitle`/`company` (only when the user actually provided them), rating,
+comment, category and date — never email or account metadata. Every moderation action
+(approve/reject/delete/feature/submit) writes an audit record.
 
 ### Team Rooms (`/api/rooms`)
 
