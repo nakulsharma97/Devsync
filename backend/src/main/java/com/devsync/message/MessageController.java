@@ -24,6 +24,17 @@ public class MessageController {
         return ResponseEntity.ok(messageService.getConversations(userDetails.getUsername()));
     }
 
+    /**
+     * Total unread messages across all of the caller's conversations (DMs +
+     * team rooms). Drives the Messages nav/header badge.
+     */
+    @GetMapping("/unread-count")
+    public ResponseEntity<java.util.Map<String, Long>> getUnreadCount(
+            @AuthenticationPrincipal UserDetails userDetails) {
+        return ResponseEntity.ok(java.util.Map.of(
+                "unreadCount", messageService.getTotalUnreadCount(userDetails.getUsername())));
+    }
+
     @GetMapping("/room/{roomId}")
     public ResponseEntity<List<MessageResponse>> getRoomMessages(
             @PathVariable String roomId,

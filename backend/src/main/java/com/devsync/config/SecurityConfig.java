@@ -90,6 +90,9 @@ public class SecurityConfig {
                 response.getWriter().write("{\"status\":401,\"message\":\"Unauthorized\"}");
             }))
             .authorizeHttpRequests(auth -> auth
+                // /api/auth/me reads the authenticated user — an unauthenticated
+                // request must be rejected with a clean 401, never a 500.
+                .requestMatchers("/api/auth/me").authenticated()
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/api/github/callback").permitAll()
                 .requestMatchers("/api/webhooks/github").permitAll()

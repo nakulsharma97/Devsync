@@ -452,6 +452,7 @@ comment, category and date — never email or account metadata. Every moderation
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | GET | `/api/messages/conversations` | Get all conversations (incl. unread counts) |
+| GET | `/api/messages/unread-count` | Total unread messages across all conversations (drives the sidebar/bell badge) |
 | GET | `/api/messages/room/{roomId}` | Get room messages |
 | GET | `/api/messages/dm/{userId}` | Get DM conversation |
 | POST | `/api/messages` | Send a message |
@@ -464,6 +465,8 @@ conversation). DMs track read state on the message row (a DM has one recipient);
 messages use a per-user `message_reads` receipt table. `GET /api/messages/conversations`
 returns per-conversation `unreadCount`; opening a conversation (or receiving a message
 while it is open) marks the relevant messages read via the `POST …/read` endpoints.
+`GET /api/messages/unread-count` returns the sum across every conversation for the
+authenticated user — the frontend polls it for the Messages badge.
 
 **Authorization:** room messages require room participation (and an active, non-archived
 project for project rooms); DMs are only visible to the two participants. A DM must target
@@ -487,7 +490,7 @@ Send: /app/chat.typing
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/api/notifications` | Get notifications |
+| GET | `/api/notifications` | Get notifications, **server-side paginated** — `?page=` (0-based, default 0) and `?size=` (default 50, clamped 1–100). Returns `{content, page, size, totalElements, totalPages, last}` so the UI can render a pager with server-accurate totals. |
 | GET | `/api/notifications/unread-count` | Get unread count |
 | PUT | `/api/notifications/{id}/read` | Mark as read |
 | PUT | `/api/notifications/read-all` | Mark all as read |
