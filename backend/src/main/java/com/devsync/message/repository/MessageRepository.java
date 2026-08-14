@@ -37,6 +37,10 @@ public interface MessageRepository extends JpaRepository<Message, String> {
     long countBySenderIdAndReceiverIdAndStatusNotAndHiddenFalse(
             String senderId, String receiverId, MessageStatus status);
 
+    /** Unread direct messages inbound to the user (excluding their own / hidden). */
+    long countBySenderIdNotAndReceiverIdAndStatusNotAndHiddenFalse(
+            String senderId, String receiverId, MessageStatus status);
+
     @Modifying
     @Query("UPDATE Message m SET m.status = :status, m.readAt = :now " +
             "WHERE m.senderId = :senderId AND m.receiverId = :receiverId AND m.status <> :status")

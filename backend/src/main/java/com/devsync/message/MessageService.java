@@ -196,6 +196,18 @@ public class MessageService {
         return messageReadRepository.countUnreadByRoom(roomId, userId);
     }
 
+    /**
+     * Total unread messages across every conversation the user is part of
+     * (direct messages + team rooms). Backs the header/nav unread badge — a
+     * single aggregate query per side, never a per-conversation loop.
+     */
+    @Transactional(readOnly = true)
+    public long getTotalUnreadCount(String userId) {
+        return messageReadRepository.countUnreadRoomsForUser(userId)
+                + messageRepository.countBySenderIdNotAndReceiverIdAndStatusNotAndHiddenFalse(
+                        userId, userId, MessageStatus.READ);
+    }
+
     private long unreadDirectCount(String partnerId, String userId) {
         return messageRepository.countBySenderIdAndReceiverIdAndStatusNotAndHiddenFalse(
                 partnerId, userId, MessageStatus.READ);
