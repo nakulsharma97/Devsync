@@ -13,11 +13,21 @@ export const prefersReducedMotion =
   typeof window !== "undefined" &&
   window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 
-/** Extract a backend error message from an unknown thrown value. */
+/**
+ * Extract a readable message from an unknown thrown value: prefers the
+ * backend's `response.data.message`, then a plain `Error.message`, else the
+ * caller-provided fallback.
+ */
 export function getErrorMessage(err: unknown, fallback = "Something went wrong"): string {
-  if (typeof err === "object" && err !== null && "response" in err) {
-    const res = (err as { response?: { data?: { message?: string } } }).response;
-    return res?.data?.message ?? fallback;
+  if (typeof err === "object" && err !== null) {
+    if ("response" in err) {
+      const res = (err as { response?: { data?: { message?: string } } }).response;
+      if (res?.data?.message) return res.data.message;
+    }
+    if ("message" in err) {
+      const msg = (err as { message?: unknown }).message;
+      if (typeof msg === "string" && msg) return msg;
+    }
   }
   return fallback;
 }

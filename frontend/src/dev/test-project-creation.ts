@@ -6,7 +6,7 @@
 import { projectService } from "@/services/projectService";
 
 export default function registerTest() {
-  (window as any).testProjectCrud = testProjectCrud;
+  (window as unknown as Record<string, unknown>).testProjectCrud = testProjectCrud;
   console.log("🧪 Dev test loaded. Run: await testProjectCrud()");
 }
 
@@ -69,8 +69,8 @@ async function testProjectCrud(): Promise<void> {
     }
 
     results.push(`\n🎉 All CRUD operations verified end-to-end!`);
-  } catch (err: any) {
-    results.push(`❌ FAIL: ${err?.message || String(err)}`);
+  } catch (err) {
+    results.push(`❌ FAIL: ${err instanceof Error ? err.message : String(err)}`);
   }
 
   printResults(results);

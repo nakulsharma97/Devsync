@@ -19,6 +19,7 @@ import {
   CircleDot,
 } from "lucide-react";
 import { toast } from "sonner";
+import { getErrorMessage } from "@/lib/utils";
 
 type Tab = "commits" | "issues" | "pulls";
 
@@ -57,10 +58,11 @@ export function GitHubSection({ projectId }: { projectId: string }) {
         try {
           const repoList = await githubService.listRepos();
           setRepos(repoList);
-        } catch (e: any) {
-          if (e?.response?.status === 429) {
+        } catch (e) {
+          const status = (e as { response?: { status?: number } }).response?.status;
+          if (status === 429) {
             setError("GitHub rate limit exceeded — try again in a minute");
-          } else if (e?.response?.status === 401) {
+          } else if (status === 401) {
             setError("GitHub connection expired — reconnect your account");
             setConnected(false);
           }
@@ -84,8 +86,8 @@ export function GitHubSection({ projectId }: { projectId: string }) {
     try {
       const url = await githubService.getAuthUrl();
       window.location.href = url; // full navigation to GitHub OAuth
-    } catch (e: any) {
-      toast.error(e?.response?.data?.message || "GitHub integration is not configured");
+    } catch (e) {
+      toast.error(getErrorMessage(e, "GitHub integration is not configured"));
       setConnecting(false);
     }
   };
@@ -112,8 +114,8 @@ export function GitHubSection({ projectId }: { projectId: string }) {
       const newLink = await githubService.linkRepo(projectId, selectedRepo);
       setLink(newLink);
       toast.success(`Linked ${selectedRepo}`);
-    } catch (e: any) {
-      toast.error(e?.response?.data?.message || "Failed to link repository");
+    } catch (e) {
+      toast.error(getErrorMessage(e, "Failed to link repository"));
     } finally {
       setLinking(false);
     }
@@ -141,8 +143,8 @@ export function GitHubSection({ projectId }: { projectId: string }) {
       if (next === "commits") setCommits(await githubService.getCommits(projectId));
       if (next === "issues") setIssues(await githubService.getIssues(projectId, "open"));
       if (next === "pulls") setPulls(await githubService.getPullRequests(projectId, "open"));
-    } catch (e: any) {
-      setError(e?.response?.data?.message || "Failed to load GitHub data");
+    } catch (e) {
+      setError(getErrorMessage(e, "Failed to load GitHub data"));
     } finally {
       setTabLoading(false);
     }

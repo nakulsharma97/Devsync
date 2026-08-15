@@ -6,7 +6,6 @@ import {
   User,
   FolderGit2,
   Rss,
-  Users,
   Bell,
   Bookmark,
   Search,
@@ -106,13 +105,6 @@ export function CommandPalette({
       icon: MessageCircle,
       action: () => navigate("/messages"),
       keywords: ["chat", "dm", "conversation", "inbox"],
-    },
-    {
-      id: "teams",
-      label: "Teams",
-      icon: Users,
-      action: () => navigate("/teams"),
-      keywords: ["group", "collaboration"],
     },
     {
       id: "notifications",

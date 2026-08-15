@@ -9,9 +9,10 @@ spring:
   jpa:
     hibernate:
       ddl-auto: create-drop
-    properties:
-      hibernate:
-        dialect: org.hibernate.dialect.H2Dialect
+    # NOTE: no explicit hibernate.dialect here — Hibernate auto-detects it from
+    # the JDBC connection (H2Dialect for the local H2 URL, MySQLDialect when CI
+    # overrides SPRING_DATASOURCE_URL with MySQL). Pinning H2Dialect made CI's
+    # MySQL runs emit H2-only SQL ("FETCH FIRST n ROWS ONLY") → HTTP 500.
     show-sql: false
   security:
     oauth2:

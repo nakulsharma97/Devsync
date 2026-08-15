@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useApi } from "@/hooks/useApi";
 import { userService } from "@/services/userService";
+import { getErrorMessage } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -29,8 +30,8 @@ export default function Profile() {
       await userService.updateMe(form);
       await refreshUser();
       toast("Profile updated!");
-    } catch (err: any) {
-      toast(err.response?.data?.message || "Failed to update");
+    } catch (err) {
+      toast(getErrorMessage(err, "Failed to update"));
     } finally {
       setSaving(false);
     }

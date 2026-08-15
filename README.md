@@ -5,7 +5,7 @@
   <img src="https://img.shields.io/badge/React-19-61DAFB?style=for-the-badge&logo=react">
   <img src="https://img.shields.io/badge/MySQL-8.0-4479A1?style=for-the-badge&logo=mysql">
   <br>
-  <img src="https://img.shields.io/badge/tests-464%20passed-brightgreen?style=for-the-badge">
+  <img src="https://img.shields.io/badge/tests-829%20passed-brightgreen?style=for-the-badge">
 </div>
 
 <h1 align="center">🚀 DevSync</h1>
@@ -90,7 +90,7 @@ sequenceDiagram
     U->>F: email + password
     F->>B: POST /api/auth/login
     B->>DB: findByEmail + BCrypt verify
-    B-->>F: accessToken (1d) + refreshToken (30d)
+    B-->>F: accessToken (15m) + refreshToken (30d)
     F->>F: store in localStorage
     U->>F: open protected page
     F->>B: GET /api/... (Bearer accessToken)
@@ -270,8 +270,10 @@ analytics, activity/audit, and moderation flows have integration-level tests.
 
 ## 📸 Screenshots
 
-Screenshots to be added — capture: landing → auth → dashboard → project board →
-chat → admin dashboard → audit logs. (Place in `docs/screenshots/`.)
+Place screenshots in `docs/screenshots/` and link them here. Suggested captures:
+landing → auth → dashboard → project board → chat → notifications → admin
+dashboard → audit logs. (Section intentionally left empty — the repo contains
+no placeholder images.)
 
 ---
 

@@ -3,6 +3,7 @@ import { Input } from "@/components/ui/input";
 import { Loader2, MailCheck, ShieldCheck } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router";
+import { getErrorMessage } from "@/lib/utils";
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState("");
@@ -20,8 +21,8 @@ export default function ForgotPassword() {
       // same message so the endpoint cannot be used to enumerate accounts.
       await authService.forgotPassword(email);
       setSent(true);
-    } catch (err: any) {
-      setError(err.response?.data?.message || err.message || "Something went wrong");
+    } catch (err) {
+      setError(getErrorMessage(err, "Something went wrong"));
     } finally {
       setLoading(false);
     }

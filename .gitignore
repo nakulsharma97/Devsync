@@ -24,6 +24,9 @@ sst-env.d.ts
 integrations.md
 src/lib
 
+# Freebuff local dev-tool artifacts (SQLite state, logs, tokens)
+.freebuff/
+
 # Locally generated DB TLS certificates (see scripts/generate-db-certs.sh)
 certs/
 

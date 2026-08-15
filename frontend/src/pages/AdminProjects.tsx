@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router";
+import { getErrorMessage } from "@/lib/utils";
 import {
   Shield,
   ShieldAlert,
@@ -203,8 +204,8 @@ export default function AdminProjects() {
       setArchiveTarget(null);
       fetchProjects();
       fetchStats();
-    } catch (err: any) {
-      toast.error(err?.response?.data?.message || "Failed to archive project");
+    } catch (err) {
+      toast.error(getErrorMessage(err, "Failed to archive project"));
     } finally {
       setBusyId(null);
     }
@@ -217,8 +218,8 @@ export default function AdminProjects() {
       toast.success(`${project.name} has been restored`);
       fetchProjects();
       fetchStats();
-    } catch (err: any) {
-      toast.error(err?.response?.data?.message || "Failed to restore project");
+    } catch (err) {
+      toast.error(getErrorMessage(err, "Failed to restore project"));
     } finally {
       setBusyId(null);
     }
@@ -230,8 +231,8 @@ export default function AdminProjects() {
       await adminService.setProjectVisibility(project.id, next);
       toast.success(`Visibility set to ${next}`);
       fetchProjects();
-    } catch (err: any) {
-      toast.error(err?.response?.data?.message || "Failed to update visibility");
+    } catch (err) {
+      toast.error(getErrorMessage(err, "Failed to update visibility"));
     } finally {
       setBusyId(null);
     }
@@ -250,8 +251,8 @@ export default function AdminProjects() {
       } else {
         fetchProjects();
       }
-    } catch (err: any) {
-      toast.error(err?.response?.data?.message || "Failed to delete project");
+    } catch (err) {
+      toast.error(getErrorMessage(err, "Failed to delete project"));
     } finally {
       setBusyId(null);
     }

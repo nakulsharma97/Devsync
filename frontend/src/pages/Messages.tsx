@@ -180,7 +180,8 @@ export default function Messages() {
   useEffect(() => {
     const unsub = wsService.onPresence((data) => {
       if (!data || !data.userId) return;
-      setPresence((prev) => ({ ...prev, [data.userId]: data.status }));
+      const userId = data.userId;
+      setPresence((prev) => ({ ...prev, [userId]: data.status ?? "" }));
     });
     return () => {
       unsub();
@@ -204,25 +205,26 @@ export default function Messages() {
     const typingTimeouts = typingTimeoutsRef.current;
     const unsub = wsService.onTyping((data) => {
       if (!data || !data.userId) return;
-      if (data.userId === wsService.currentUserId) return;
+      const userId = data.userId;
+      if (userId === wsService.currentUserId) return;
       if (convIsRoom && data.roomId !== convActualId) return;
       if (!convIsRoom && data.roomId) return;
-      if (!convIsRoom && data.userId !== convActualId) return;
+      if (!convIsRoom && userId !== convActualId) return;
 
       if (data.typing) {
         setTypers((prev) => {
           const next = new Set(prev);
-          next.add(data.userId);
+          next.add(userId);
           return next;
         });
-        const existing = typingTimeouts.get(data.userId);
+        const existing = typingTimeouts.get(userId);
         if (existing) clearTimeout(existing);
         typingTimeouts.set(
-          data.userId,
-          setTimeout(() => removeTyper(data.userId), 5000)
+          userId,
+          setTimeout(() => removeTyper(userId), 5000)
         );
       } else {
-        removeTyper(data.userId);
+        removeTyper(userId);
       }
     });
 

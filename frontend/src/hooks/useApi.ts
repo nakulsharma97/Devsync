@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, type DependencyList } from "react";
+import { getErrorMessage } from "@/lib/utils";
 
 interface UseApiResult<T> {
   data: T | null;
@@ -9,7 +10,7 @@ interface UseApiResult<T> {
 
 export function useApi<T>(
   fetcher: () => Promise<T>,
-  deps: any[] = []
+  deps: DependencyList = []
 ): UseApiResult<T> {
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(true);
@@ -24,9 +25,9 @@ export function useApi<T>(
       if (mountedRef.current) {
         setData(result);
       }
-    } catch (err: any) {
+    } catch (err) {
       if (mountedRef.current) {
-        setError(err.response?.data?.message || err.message || "An error occurred");
+        setError(getErrorMessage(err, "An error occurred"));
       }
     } finally {
       if (mountedRef.current) {

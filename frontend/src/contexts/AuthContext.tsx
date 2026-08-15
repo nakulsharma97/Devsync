@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useCallback, useEffect, useMemo, type ReactNode } from "react";
 import { authService, type AuthResponse } from "@/services/authService";
 import { wsService } from "@/services/websocketService";
+import { getErrorMessage } from "@/lib/utils";
 
 interface AuthContextType {
   user: AuthResponse["user"] | null;
@@ -34,8 +35,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsLoading(true);
     try {
       await authService.forgotPassword(email);
-    } catch (err: any) {
-      setError(err.response?.data?.message || err.message || "Failed to send reset link");
+    } catch (err) {
+      setError(getErrorMessage(err, "Failed to send reset link"));
       throw err;
     } finally {
       setIsLoading(false);
@@ -47,8 +48,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsLoading(true);
     try {
       await authService.loginWithOAuth(provider);
-    } catch (err: any) {
-      setError(err.response?.data?.message || err.message || "OAuth login failed");
+    } catch (err) {
+      setError(getErrorMessage(err, "OAuth login failed"));
       throw err;
     } finally {
       setIsLoading(false);
@@ -108,8 +109,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       authService.saveSession(response);
       setUser(response.user);
       window.location.href = "/dashboard";
-    } catch (err: any) {
-      setError(err.response?.data?.message || err.message || "Login failed");
+    } catch (err) {
+      setError(getErrorMessage(err, "Login failed"));
       throw err;
     } finally {
       setIsLoading(false);
@@ -124,8 +125,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       authService.saveSession(response);
       setUser(response.user);
       window.location.href = "/dashboard";
-    } catch (err: any) {
-      setError(err.response?.data?.message || err.message || "Registration failed");
+    } catch (err) {
+      setError(getErrorMessage(err, "Registration failed"));
       throw err;
     } finally {
       setIsLoading(false);

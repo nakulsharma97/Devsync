@@ -33,7 +33,6 @@ const navItems = [
   { to: "/feed", icon: Rss, label: "Feed" },
   { to: "/network", icon: UserPlus, label: "Network" },
   { to: "/analytics", icon: TrendingUp, label: "Analytics" },
-  { to: "/teams", icon: Users, label: "Teams" },
   { to: "/notifications", icon: Bell, label: "Notifications" },
   { to: "/bookmarks", icon: Bookmark, label: "Bookmarks" },
   { to: "/search", icon: Search, label: "Search" },

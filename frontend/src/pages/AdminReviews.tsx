@@ -20,9 +20,11 @@ import {
   adminService,
   type AdminReviewListItem,
   type PageResponse,
+  type ReviewStatus,
 } from "@/services/adminService";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
+import { getErrorMessage } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -92,7 +94,7 @@ export default function AdminReviews() {
   const [page, setPage] = useState(0);
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
-  const [status, setStatus] = useState("ALL");
+  const [status, setStatus] = useState<ReviewStatus | "ALL">("ALL");
 
   const [busyId, setBusyId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<AdminReviewListItem | null>(null);
@@ -105,7 +107,7 @@ export default function AdminReviews() {
         page,
         size: PAGE_SIZE,
         search: search || undefined,
-        status: status === "ALL" ? undefined : (status as any),
+        status: status === "ALL" ? undefined : status,
       });
       setData(res);
     } catch {
@@ -130,8 +132,8 @@ export default function AdminReviews() {
       await adminService.approveReview(review.id);
       toast.success("Review approved — now visible on the landing page");
       fetchReviews();
-    } catch (err: any) {
-      toast.error(err?.response?.data?.message || "Failed to approve review");
+    } catch (err) {
+      toast.error(getErrorMessage(err, "Failed to approve review"));
     } finally {
       setBusyId(null);
     }
@@ -143,8 +145,8 @@ export default function AdminReviews() {
       await adminService.rejectReview(review.id);
       toast.success("Review rejected");
       fetchReviews();
-    } catch (err: any) {
-      toast.error(err?.response?.data?.message || "Failed to reject review");
+    } catch (err) {
+      toast.error(getErrorMessage(err, "Failed to reject review"));
     } finally {
       setBusyId(null);
     }
@@ -156,8 +158,8 @@ export default function AdminReviews() {
       const updated = await adminService.setReviewFeatured(review.id, !review.featured);
       toast.success(updated.featured ? "Review featured" : "Review unfeatured");
       fetchReviews();
-    } catch (err: any) {
-      toast.error(err?.response?.data?.message || "Failed to update featured status");
+    } catch (err) {
+      toast.error(getErrorMessage(err, "Failed to update featured status"));
     } finally {
       setBusyId(null);
     }
@@ -175,8 +177,8 @@ export default function AdminReviews() {
       } else {
         fetchReviews();
       }
-    } catch (err: any) {
-      toast.error(err?.response?.data?.message || "Failed to delete review");
+    } catch (err) {
+      toast.error(getErrorMessage(err, "Failed to delete review"));
     } finally {
       setBusyId(null);
     }
@@ -232,7 +234,7 @@ export default function AdminReviews() {
             className="pl-9"
           />
         </div>
-        <Select value={status} onValueChange={(v) => { setStatus(v); setPage(0); }}>
+        <Select value={status} onValueChange={(v) => { setStatus(v as ReviewStatus | "ALL"); setPage(0); }}>
           <SelectTrigger className="w-full sm:w-40" aria-label="Filter by status">
             <SelectValue placeholder="Status" />
           </SelectTrigger>
