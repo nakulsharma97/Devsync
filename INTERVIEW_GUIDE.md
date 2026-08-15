@@ -29,9 +29,9 @@ infrastructure:
 We needed a **stateless** API: the frontend and backend scale independently, and any
 instance can validate a request without shared session storage.
 
-- Access tokens (1 day) carry only `sub` (user id) + `type` + issuer — **no sensitive
-  data** — and are verified for signature (HMAC-SHA256), expiry, issuer, and **token
-  type** on every request.
+- Access tokens (15 minutes by default) carry only `sub` (user id) + `type` + issuer —
+  **no sensitive data** — and are verified for signature (HMAC-SHA256), expiry, issuer,
+  and **token type** on every request.
 - Refresh tokens (30 days) are exchanged at `/auth/refresh`; we deliberately enforce
   `type=refresh` so a refresh token can **never** be presented as an access token.
 - Every request reloads the user from the DB, so **blocked/deleted accounts are
@@ -58,7 +58,7 @@ MySQL 8 is the pragmatic relational choice: ACID transactions for projects/membe
 tasks, mature tooling, and simple ops. It fits relational data (users, projects,
 boards, tasks, messages) well. We use:
 
-- **Flyway** migrations for versioned schema (`V1..V11`), `ddl-auto: validate` in
+- **Flyway** migrations for versioned schema (`V1..V17`), `ddl-auto: validate` in
   production so drift is caught at startup.
 - Indexes on all FK and hot query paths (`created_at`, `owner_id`, `board_id`, …).
 - GROUP BY aggregation queries for analytics instead of loading rows into memory.
@@ -174,8 +174,8 @@ message with reset time, 404 → repo gone.
 - **Database**: vertical first (larger instance, indexes verified), then read replicas
   + a replica for analytics queries; archive old activity/audit rows with a documented
   retention policy (we intentionally do **not** auto-delete audit data today).
-- **Frontend**: lazy-load the heavy three.js route; paginate every list (already done
-  for admin/search/analytics).
+- **Frontend**: lazy-load the heavy admin/analytics routes; paginate every list (already
+  done for admin, search, analytics, and notifications).
 - **WebSocket**: external broker + horizontal scaling with presence moved to Redis.
 - **Observability**: health endpoints on every node, Sentry for client errors, request
   logging, and alerting on `X-RateLimit-Reset` spikes.
@@ -206,14 +206,19 @@ at the LB, and MySQL gets automated off-box backups.
 
 ## What trade-offs did you make?
 
-- **JWT statelessness vs revocation** — chose stateless; logout is client-side, and a
-  blocklist is the documented follow-up. Mitigated by reloading the user per request.
+- **JWT statelessness vs revocation** — chose stateless. Access tokens are short-lived
+  (15 min) so the exposure window is small, logout revokes the refresh-token family
+  server-side, and every request reloads the user so blocked/deleted accounts are
+  rejected immediately. A token blocklist is the documented follow-up if hard
+  revocation of access tokens is ever needed.
 - **In-memory rate limiting vs Redis** — simpler ops today; per-IP only and resets on
   restart. Documented as the first thing to replace.
 - **Reloading the user on every request** — a DB hit per request buys immediate
   blocked/deleted enforcement; acceptable at this scale.
 - **MySQL as the single store** — simple and correct; analytics-heavy scale would add
   a warehouse.
-- **LocalStorage for tokens** — standard for this architecture but XSS-sensitive; a
-  future option is short-lived access tokens + httpOnly refresh cookie.
+- **Token storage** — access tokens are short-lived (15 min) and kept client-side;
+  refresh tokens live in an **HttpOnly, SameSite=Lax cookie** scoped to `/api/auth`,
+  invisible to JavaScript and rotated on every refresh. This is the current
+  implementation, not a future option.
 - **Simple STOMP broker** — one node today; external broker when we go multi-node.

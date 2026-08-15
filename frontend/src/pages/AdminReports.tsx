@@ -36,6 +36,7 @@ import {
   type ReportReason,
   type ReportStatus,
 } from "@/services/adminService";
+import { getErrorMessage } from "@/lib/utils";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -195,8 +196,8 @@ export default function AdminReports() {
       const fresh = await adminService.getReportDetail(selected.id);
       setSelected(fresh);
       fetchData();
-    } catch (e: any) {
-      toast.error(e?.response?.data?.message || "Moderation action failed");
+    } catch (e) {
+      toast.error(getErrorMessage(e, "Moderation action failed"));
     } finally {
       setActionLoading(false);
       setConfirmAction(null);
@@ -211,8 +212,8 @@ export default function AdminReports() {
       setSelected(fresh);
       toast.success(status === "RESOLVED" ? "Report resolved — reporter notified" : status === "REJECTED" ? "Report rejected — reporter notified" : "Report moved to under review");
       fetchData();
-    } catch (e: any) {
-      toast.error(e?.response?.data?.message || "Failed to update status");
+    } catch (e) {
+      toast.error(getErrorMessage(e, "Failed to update status"));
     } finally {
       setActionLoading(false);
     }

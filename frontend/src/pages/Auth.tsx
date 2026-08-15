@@ -12,8 +12,10 @@ import {
   Zap,
   Globe,
   Users,
+  type LucideIcon,
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
+import { getErrorMessage } from "@/lib/utils";
 import { useNavigate } from "react-router";
 import { landingService, type PublicStats } from "@/services/landingService";
 
@@ -113,7 +115,7 @@ function FeatureCard({
   description,
   gradient,
 }: {
-  icon: any;
+  icon: LucideIcon;
   title: string;
   description: string;
   gradient: string;
@@ -268,8 +270,8 @@ export default function AuthPage() {
       } else {
         await register(email, password, fullName, username);
       }
-    } catch (err: any) {
-      setError(err.response?.data?.message || err.message || "Something went wrong");
+    } catch (err) {
+      setError(getErrorMessage(err, "Something went wrong"));
     } finally {
       setLocalLoading(false);
     }

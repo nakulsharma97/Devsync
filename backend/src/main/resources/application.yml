@@ -24,7 +24,9 @@ spring:
     show-sql: false
     properties:
       hibernate:
-        dialect: org.hibernate.dialect.MySQLDialect
+        # No explicit dialect: Hibernate auto-detects it from the JDBC connection
+        # (MySQLDialect for dev/prod MySQL; the `test` profile uses H2 locally and
+        # MySQL in CI, so a hardcoded dialect would break one of the two).
         format_sql: true
         jdbc:
           time_zone: UTC

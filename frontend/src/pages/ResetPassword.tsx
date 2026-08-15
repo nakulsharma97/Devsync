@@ -3,6 +3,7 @@ import { Input } from "@/components/ui/input";
 import { AlertTriangle, CheckCircle2, Loader2, Lock } from "lucide-react";
 import { useState } from "react";
 import { Link, useSearchParams } from "react-router";
+import { getErrorMessage } from "@/lib/utils";
 
 export default function ResetPassword() {
   const [searchParams] = useSearchParams();
@@ -26,11 +27,9 @@ export default function ResetPassword() {
       const { authService } = await import("@/services/authService");
       await authService.resetPassword(token, password);
       setDone(true);
-    } catch (err: any) {
+    } catch (err) {
       setError(
-        err.response?.data?.message ||
-          err.message ||
-          "This reset link is invalid or has expired. Request a new one."
+        getErrorMessage(err, "This reset link is invalid or has expired. Request a new one.")
       );
     } finally {
       setLoading(false);

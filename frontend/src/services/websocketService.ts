@@ -2,8 +2,16 @@
 // Handles connection lifecycle, pending subscriptions, and auto-resubscribe on reconnect
 
 import { Client, type IMessage, type IFrame } from "@stomp/stompjs";
+import type { MessageDto } from "./messageService";
+import type { NotificationDto } from "./notificationService";
 
-type MessageCallback = (data: any) => void;
+/** Callback for chat messages (room topics + the direct-message queue). */
+type MessageCallback = (data: MessageDto) => void;
+/** Callback for parsed STOMP frames on generic topics (e.g. shared notes). */
+type TopicCallback = (data: unknown) => void;
+type NotificationCallback = (data: NotificationDto) => void;
+type TypingCallback = (data: TypingEvent) => void;
+type PresenceCallback = (data: PresenceEvent) => void;
 type ConnectionCallback = (connected: boolean) => void;
 
 /** Payload of a /chat.typing indicator. */
@@ -35,12 +43,12 @@ class WebSocketService {
   private messageCallbacks: Map<string, Set<MessageCallback>> = new Map();
   /** Direct-message listeners keyed by peer user id — routed precisely on /user/queue/messages. */
   private directCallbacks: Map<string, Set<MessageCallback>> = new Map();
-  private notificationCallbacks: Set<MessageCallback> = new Set();
-  private typingCallbacks: Set<MessageCallback> = new Set();
-  private presenceCallbacks: Set<MessageCallback> = new Set();
+  private notificationCallbacks: Set<NotificationCallback> = new Set();
+  private typingCallbacks: Set<TypingCallback> = new Set();
+  private presenceCallbacks: Set<PresenceCallback> = new Set();
   private connectionCallbacks: Set<ConnectionCallback> = new Set();
   /** Generic topic listeners (e.g. project notes) keyed by topic. */
-  private topicCallbacks: Map<string, Set<MessageCallback>> = new Map();
+  private topicCallbacks: Map<string, Set<TopicCallback>> = new Map();
   /** Active generic STOMP subscriptions (recreated on reconnect). */
   private activeTopicSubs: Map<string, () => void> = new Map();
 
@@ -323,7 +331,7 @@ class WebSocketService {
    * Subscribe to an arbitrary topic (e.g. /topic/projects/{id}/notes).
    * Re-subscribes automatically on reconnect. Returns an unsubscribe function.
    */
-  subscribeToTopic(topic: string, callback: MessageCallback): () => void {
+  subscribeToTopic(topic: string, callback: TopicCallback): () => void {
     if (!this.topicCallbacks.has(topic)) this.topicCallbacks.set(topic, new Set());
     this.topicCallbacks.get(topic)!.add(callback);
 
@@ -377,14 +385,14 @@ class WebSocketService {
 
   // ── Notifications ────────────────────────────────────────────
 
-  onNotification(callback: MessageCallback) {
+  onNotification(callback: NotificationCallback) {
     this.notificationCallbacks.add(callback);
     return () => this.notificationCallbacks.delete(callback);
   }
 
   // ── Typing indicators ────────────────────────────────────────
 
-  onTyping(callback: MessageCallback) {
+  onTyping(callback: TypingCallback) {
     this.typingCallbacks.add(callback);
     return () => this.typingCallbacks.delete(callback);
   }
@@ -400,7 +408,7 @@ class WebSocketService {
   // ── Presence ─────────────────────────────────────────────────
 
   /** Hook into live presence updates ({ userId, status }). */
-  onPresence(callback: MessageCallback) {
+  onPresence(callback: PresenceCallback) {
     this.presenceCallbacks.add(callback);
     return () => this.presenceCallbacks.delete(callback);
   }
@@ -443,7 +451,7 @@ class WebSocketService {
 
   // ── Incoming message routing ─────────────────────────────────
 
-  private handleIncomingMessage(data: any) {
+  private handleIncomingMessage(data: MessageDto) {
     // Route to room subscribers
     if (data.roomId) {
       const topic = `/topic/room/${data.roomId}`;
@@ -461,7 +469,7 @@ class WebSocketService {
     }
   }
 
-  private handleIncomingNotification(data: any) {
+  private handleIncomingNotification(data: NotificationDto) {
     this.notificationCallbacks.forEach((cb) => cb(data));
   }
 }
@@ -470,5 +478,5 @@ export const wsService = new WebSocketService();
 
 // Debug: expose to window for console access
 if (typeof window !== "undefined") {
-  (window as any).wsService = wsService;
+  (window as unknown as Record<string, unknown>).wsService = wsService;
 }

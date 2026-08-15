@@ -22,6 +22,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { getErrorMessage } from "@/lib/utils";
 import {
   Table,
   TableBody,
@@ -63,7 +64,7 @@ export default function AdminFeedback() {
   const [page, setPage] = useState(0);
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
-  const [status, setStatus] = useState("ALL");
+  const [status, setStatus] = useState<FeedbackStatus | "ALL">("ALL");
   const [category, setCategory] = useState("ALL");
   const [busyId, setBusyId] = useState<string | null>(null);
 
@@ -75,7 +76,7 @@ export default function AdminFeedback() {
         page,
         size: PAGE_SIZE,
         search: search || undefined,
-        status: status === "ALL" ? undefined : (status as any),
+        status: status === "ALL" ? undefined : status,
         category: category === "ALL" ? undefined : category,
       });
       setData(res);
@@ -101,8 +102,8 @@ export default function AdminFeedback() {
       await adminService.updateFeedbackStatus(item.id, newStatus);
       toast.success(`Feedback marked as ${newStatus.replace("_", " ")}`);
       fetchFeedback();
-    } catch (err: any) {
-      toast.error(err?.response?.data?.message || "Failed to update status");
+    } catch (err) {
+      toast.error(getErrorMessage(err, "Failed to update status"));
     } finally {
       setBusyId(null);
     }
@@ -158,7 +159,7 @@ export default function AdminFeedback() {
             className="pl-9"
           />
         </div>
-        <Select value={status} onValueChange={(v) => { setStatus(v); setPage(0); }}>
+        <Select value={status} onValueChange={(v) => { setStatus(v as FeedbackStatus | "ALL"); setPage(0); }}>
           <SelectTrigger className="w-full sm:w-40" aria-label="Filter by status">
             <SelectValue placeholder="Status" />
           </SelectTrigger>

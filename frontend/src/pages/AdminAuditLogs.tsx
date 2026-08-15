@@ -17,6 +17,7 @@ import {
   UserCog,
   XCircle,
 } from "lucide-react";
+import { getErrorMessage } from "@/lib/utils";
 import {
   adminService,
   type AuditLogItem,
@@ -149,8 +150,8 @@ export default function AdminAuditLogs() {
         to: to ? new Date(to).toISOString() : undefined,
       });
       setData(res);
-    } catch (e: any) {
-      setError(e?.response?.data?.message || "Failed to load audit logs.");
+    } catch (e) {
+      setError(getErrorMessage(e, "Failed to load audit logs."));
       toast.error("Failed to load audit logs");
     } finally {
       setLoading(false);
@@ -192,8 +193,8 @@ export default function AdminAuditLogs() {
         to: to ? new Date(to).toISOString() : undefined,
       });
       toast.success("Audit logs exported");
-    } catch (e: any) {
-      toast.error(e?.response?.data?.message || "Export failed");
+    } catch (e) {
+      toast.error(getErrorMessage(e, "Export failed"));
     } finally {
       setExporting(false);
     }

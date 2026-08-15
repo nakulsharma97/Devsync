@@ -8,6 +8,7 @@ import { LogOut, Sun, Moon, GitBranch, Loader2, Unplug } from "lucide-react";
 import { useTheme } from "next-themes";
 import { githubService, type GitHubConnection } from "@/services/githubService";
 import { toast } from "sonner";
+import { getErrorMessage } from "@/lib/utils";
 
 export default function Settings() {
   const { user, logout } = useAuth();
@@ -46,8 +47,8 @@ export default function Settings() {
     try {
       const url = await githubService.getAuthUrl();
       window.location.href = url;
-    } catch (e: any) {
-      toast.error(e?.response?.data?.message || "GitHub integration is not configured");
+    } catch (e) {
+      toast.error(getErrorMessage(e, "GitHub integration is not configured"));
       setConnecting(false);
     }
   };

@@ -14,29 +14,15 @@ import {
   Briefcase,
   AtSign,
 } from "lucide-react";
-import { connectionService } from "@/services/connectionService";
+import { connectionService, type ConnectionUserDto } from "@/services/connectionService";
 import { conversationService } from "@/services/conversationService";
 import { useDevSyncAuth } from "@/contexts/AuthContext";
-
-interface NetworkUser {
-  id: string;
-  fullName: string;
-  username: string;
-  bio?: string;
-  avatarUrl?: string;
-  role?: string;
-  isSelf: boolean;
-  isFollowing: boolean;
-  followsYou: boolean;
-  followerCount: number;
-  followingCount: number;
-}
 
 export default function Network() {
   useDevSyncAuth();
   const navigate = useNavigate();
-  const [users, setUsers] = useState<NetworkUser[]>([]);
-  const [filteredUsers, setFilteredUsers] = useState<NetworkUser[]>([]);
+  const [users, setUsers] = useState<ConnectionUserDto[]>([]);
+  const [filteredUsers, setFilteredUsers] = useState<ConnectionUserDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [togglingIds, setTogglingIds] = useState<Set<string>>(new Set());

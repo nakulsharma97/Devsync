@@ -23,6 +23,7 @@ import {
   Building2,
   MapPin,
 } from "lucide-react";
+import { getErrorMessage } from "@/lib/utils";
 import {
   adminService,
   type AdminUserDetail,
@@ -233,8 +234,8 @@ export default function AdminUsers() {
       await adminService.updateUserRole(userId, newRole);
       toast.success(`Role updated to ${newRole}`);
       fetchUsers();
-    } catch (err: any) {
-      toast.error(err?.response?.data?.message || "Failed to update role");
+    } catch (err) {
+      toast.error(getErrorMessage(err, "Failed to update role"));
     } finally {
       setBusyId(null);
     }
@@ -249,8 +250,8 @@ export default function AdminUsers() {
       setBlockTarget(null);
       setBlockReason("");
       fetchUsers();
-    } catch (err: any) {
-      toast.error(err?.response?.data?.message || "Failed to block user");
+    } catch (err) {
+      toast.error(getErrorMessage(err, "Failed to block user"));
     } finally {
       setBusyId(null);
     }
@@ -262,8 +263,8 @@ export default function AdminUsers() {
       await adminService.setUserBlocked(user.id, false);
       toast.success(`${user.fullName} has been unblocked`);
       fetchUsers();
-    } catch (err: any) {
-      toast.error(err?.response?.data?.message || "Failed to unblock user");
+    } catch (err) {
+      toast.error(getErrorMessage(err, "Failed to unblock user"));
     } finally {
       setBusyId(null);
     }
@@ -281,8 +282,8 @@ export default function AdminUsers() {
       } else {
         fetchUsers();
       }
-    } catch (err: any) {
-      toast.error(err?.response?.data?.message || "Failed to delete user");
+    } catch (err) {
+      toast.error(getErrorMessage(err, "Failed to delete user"));
     } finally {
       setBusyId(null);
     }

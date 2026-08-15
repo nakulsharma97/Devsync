@@ -28,8 +28,9 @@ export const conversationService = {
     const res = await api.get("/messages/conversations");
     return res.data;
   },
+  /** Total unread messages (DMs + team rooms) for the caller — GET /messages/unread-count. */
   async getUnreadCount(): Promise<number> {
-    try { const res = await api.get("/messages/conversations/unread-count"); return res.data?.count || 0; }
+    try { const res = await api.get("/messages/unread-count"); return res.data?.unreadCount ?? 0; }
     catch { return 0; }
   },
 };

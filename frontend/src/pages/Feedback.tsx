@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { Star, MessageSquarePlus, Send, Loader2, CheckCircle2, Clock, XCircle } from "lucide-react";
 import { toast } from "sonner";
+import { getErrorMessage } from "@/lib/utils";
 import {
   reviewService,
   type CreateFeedbackInput,
@@ -180,8 +181,8 @@ export default function Feedback() {
       setMyReview(updated);
       setEditing(false);
       toast.success("Review submitted. It will appear on the landing page once approved.");
-    } catch (err: any) {
-      const message = err?.response?.data?.message || "Failed to submit review";
+    } catch (err) {
+      const message = getErrorMessage(err, "Failed to submit review");
       if (message.includes("already submitted")) {
         // The server says we already have a review — load it and switch to edit mode.
         try {
@@ -232,8 +233,8 @@ export default function Feedback() {
       setFeedbackMessage("");
       setFeedbackRating(0);
       toast.success("Thank you — your feedback has been sent to the team.");
-    } catch (err: any) {
-      setFeedbackError(err?.response?.data?.message || "Failed to submit feedback");
+    } catch (err) {
+      setFeedbackError(getErrorMessage(err, "Failed to submit feedback"));
     } finally {
       setSubmittingFeedback(false);
     }

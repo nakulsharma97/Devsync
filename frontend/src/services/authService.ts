@@ -119,7 +119,7 @@ export const authService = {
   },
 
   async loginWithOAuth(provider: string): Promise<void> {
-    const baseUrl = (api.defaults as any).baseURL || "/api";
+    const baseUrl = api.defaults.baseURL || "/api";
     window.location.href = `${baseUrl.replace(/\/+$/, "")}/oauth2/authorization/${provider}`;
   },
 };

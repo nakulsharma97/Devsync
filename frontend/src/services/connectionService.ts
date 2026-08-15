@@ -1,4 +1,14 @@
 import api from "./api";
+import type { UserDto } from "./authService";
+
+/** A user as returned by `GET /users?q=` — profile fields plus network state. */
+export interface ConnectionUserDto extends UserDto {
+  isSelf: boolean;
+  isFollowing: boolean;
+  followsYou: boolean;
+  followerCount: number;
+  followingCount: number;
+}
 
 export const connectionService = {
   async follow(followingId: string): Promise<void> {
@@ -23,7 +33,7 @@ export const connectionService = {
     try { const res = await api.get(`/connections/following/count/${userId}`); return res.data?.count || 0; }
     catch { return 0; }
   },
-  async getAllUsers(searchQuery?: string): Promise<any[]> {
+  async getAllUsers(searchQuery?: string): Promise<ConnectionUserDto[]> {
     try { const res = await api.get(`/users?q=${encodeURIComponent(searchQuery || "")}`); return res.data; }
     catch { return []; }
   },
