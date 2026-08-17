@@ -66,7 +66,7 @@ flowchart LR
     API -->|STOMP broker| WS[WebSocket /topic /queue]
     F -->|Sentry| MON[Error monitoring]
     B -->|/actuator/health| MON
-    CI[GitHub Actions CI/CD] -->|build + test + Docker images| REG[Docker Hub]
+    CI[GitHub Actions CI/CD] -->|build + test + Docker images| REG[GitHub Container Registry]
     REG -->|compose pull| P
 ```
 

@@ -140,9 +140,10 @@ Production compose connects to MySQL over TLS with certificate verification:
   against MySQL with JaCoCo coverage → frontend typecheck, lint (fails on errors),
   build → Docker image builds. All jobs must pass.
 - **CD** (`.github/workflows/cd.yml`): triggered by `workflow_run` on **successful CI**
-  for `main` — builds & pushes `devsync-backend`/`devsync-frontend` images tagged by
-  commit SHA. Tag pushes (`v*`) additionally run the SSH deploy step. Deployment never
-  runs unless CI passed.
+  for `main` — builds & pushes `devsync-backend`/`devsync-frontend` images to **GHCR**
+  (`ghcr.io/<owner>/devsync-backend`, tagged by commit SHA) using `GITHUB_TOKEN`
+  (job permission `packages: write` — no Docker Hub secrets needed). Tag pushes
+  (`v*`) additionally run the SSH deploy step. Deployment never runs unless CI passed.
 
 ## Database
 
