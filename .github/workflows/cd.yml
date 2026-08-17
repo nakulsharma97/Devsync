@@ -17,6 +17,11 @@ jobs:
     if: >
       (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
       || github.event_name == 'push'
+    # GITHUB_TOKEN needs packages: write to push images to GHCR; contents: read
+    # for actions/checkout. No external secrets (DOCKER_USERNAME etc.) required.
+    permissions:
+      contents: read
+      packages: write
     steps:
       - uses: actions/checkout@v7
         with:
@@ -29,15 +34,21 @@ jobs:
           SHA="${{ github.event.workflow_run.head_sha || github.sha }}"
           echo "sha=${SHA}" >> "$GITHUB_OUTPUT"
           echo "sha_short=${SHA:0:12}" >> "$GITHUB_OUTPUT"
+          # GHCR image names must be lowercase. github.repository is always
+          # lowercase (owner/repo); github.actor / repository_owner are not.
+          echo "owner=$(echo '${{ github.repository }}' | cut -d/ -f1)" >> "$GITHUB_OUTPUT"
+          echo "registry=ghcr.io" >> "$GITHUB_OUTPUT"
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
 
-      - name: Log in to Docker Hub
+      - name: Log in to GitHub Container Registry
         uses: docker/login-action@v4
         with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+          logout: true
 
       - name: Build & push backend
         uses: docker/build-push-action@v7
@@ -46,8 +57,8 @@ jobs:
           file: ./backend/Dockerfile
           push: true
           tags: |
-            ${{ secrets.DOCKER_USERNAME }}/devsync-backend:latest
-            ${{ secrets.DOCKER_USERNAME }}/devsync-backend:${{ steps.meta.outputs.sha }}
+            ghcr.io/${{ steps.meta.outputs.owner }}/devsync-backend:latest
+            ghcr.io/${{ steps.meta.outputs.owner }}/devsync-backend:${{ steps.meta.outputs.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -58,8 +69,8 @@ jobs:
           file: ./frontend/Dockerfile
           push: true
           tags: |
-            ${{ secrets.DOCKER_USERNAME }}/devsync-frontend:latest
-            ${{ secrets.DOCKER_USERNAME }}/devsync-frontend:${{ steps.meta.outputs.sha }}
+            ghcr.io/${{ steps.meta.outputs.owner }}/devsync-frontend:latest
+            ghcr.io/${{ steps.meta.outputs.owner }}/devsync-frontend:${{ steps.meta.outputs.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
