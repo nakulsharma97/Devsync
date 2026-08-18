@@ -44,6 +44,9 @@ class BoardServiceFilterTest {
     @Mock private ProjectMemberRepository projectMemberRepository;
     @Mock private ActivityService activityService;
     @Mock private NotificationService notificationService;
+    @Mock private com.devsync.github.GitHubClient githubClient;
+    @Mock private com.devsync.github.GitHubIntegrationService githubIntegrationService;
+    @Mock private com.devsync.github.repository.ProjectGitHubLinkRepository githubLinkRepository;
 
     private BoardService boardService;
 
@@ -52,7 +55,7 @@ class BoardServiceFilterTest {
         boardService = new BoardService(boardRepository, columnRepository, taskRepository,
                 dependencyRepository,
                 userRepository, projectRepository, projectMemberRepository, activityService,
-                notificationService);
+                notificationService, githubClient, githubIntegrationService, githubLinkRepository);
     }
 
     @Test

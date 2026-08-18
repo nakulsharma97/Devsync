@@ -15,10 +15,10 @@ import com.devsync.message.entity.Message;
 import com.devsync.message.repository.MessageRepository;
 import com.devsync.project.dto.CreateProjectRequest;
 import com.devsync.project.entity.Project;
+import com.devsync.project.entity.ProjectMember;
 import com.devsync.project.repository.ProjectMemberRepository;
 import com.devsync.project.repository.ProjectRepository;
 import com.devsync.teamroom.entity.TeamRoom;
-import com.devsync.teamroom.entity.TeamRoomParticipant;
 import com.devsync.teamroom.repository.TeamRoomParticipantRepository;
 import com.devsync.teamroom.repository.TeamRoomRepository;
 import com.devsync.user.entity.User;
@@ -38,6 +38,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -103,13 +104,12 @@ class ProjectLifecycleIntegrationTest {
         Board board = boardRepository.save(Board.builder()
                 .name("Board").projectId(projectId).createdBy(ownerId).build());
 
-        TeamRoom room = teamRoomRepository.save(TeamRoom.builder()
-                .name("Team Chat").projectId(projectId).createdBy(ownerId).build());
+        // Project creation auto-created the team chat and both members are
+        // already participants, so use the auto-created room as the fixture.
+        TeamRoom room = teamRoomRepository
+                .findFirstByProjectIdOrderByCreatedAtAsc(projectId)
+                .orElseThrow();
         roomId = room.getId();
-        participantRepository.save(TeamRoomParticipant.builder()
-                .roomId(roomId).userId(ownerId).build());
-        participantRepository.save(TeamRoomParticipant.builder()
-                .roomId(roomId).userId(memberId).build());
 
         Message msg = messageRepository.save(Message.builder()
                 .senderId(ownerId).roomId(roomId).content("Hello team").build());
@@ -227,11 +227,109 @@ class ProjectLifecycleIntegrationTest {
     void delete_isRejected_ForNonOwner() throws Exception {
         mockMvc.perform(delete("/api/projects/" + projectId)
                         .header("Authorization", bearer(memberId)))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isForbidden());
 
         Project unchanged = projectRepository.findById(projectId).orElseThrow();
         assertThat(unchanged.isDeleted()).isFalse();
         assertThat(memberRepository.countByProjectId(projectId)).isEqualTo(2);
+    }
+
+    @Test
+    void ownerCanRemoveMember_andRemovedMemberLosesTeamChatAccess() throws Exception {
+        mockMvc.perform(delete("/api/projects/" + projectId + "/members/" + memberId)
+                        .header("Authorization", bearer(ownerId)))
+                .andExpect(status().isNoContent());
+
+        // Membership is gone and the removed user is out of the team chat.
+        assertThat(memberRepository.existsByProjectIdAndUserId(projectId, memberId)).isFalse();
+        TeamRoom room = teamRoomRepository.findFirstByProjectIdOrderByCreatedAtAsc(projectId)
+                .orElseThrow();
+        assertThat(participantRepository.existsByRoomIdAndUserId(room.getId(), memberId)).isFalse();
+        // The owner and the other member keep their chat access.
+        assertThat(participantRepository.existsByRoomIdAndUserId(room.getId(), ownerId)).isTrue();
+        assertThat(participantRepository.existsByRoomIdAndUserId(room.getId(), inviteeId)).isFalse();
+
+        // Removing the owner is rejected (business rule → 400).
+        mockMvc.perform(delete("/api/projects/" + projectId + "/members/" + ownerId)
+                        .header("Authorization", bearer(ownerId)))
+                .andExpect(status().isBadRequest());
+        assertThat(memberRepository.existsByProjectIdAndUserId(projectId, ownerId)).isTrue();
+
+        // A regular member cannot remove anyone — owner-only, HTTP 403.
+        mockMvc.perform(delete("/api/projects/" + projectId + "/members/" + memberId)
+                        .header("Authorization", bearer(memberId)))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void ownerCanTransferOwnership_toMember() throws Exception {
+        mockMvc.perform(post("/api/projects/" + projectId + "/transfer-ownership")
+                        .header("Authorization", bearer(ownerId))
+                        .contentType(APPLICATION_JSON)
+                        .content("{\"userId\":\"" + memberId + "\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.ownerId").value(memberId))
+                .andExpect(jsonPath("$.currentUserRole").value("MEMBER"));
+
+        Project updated = projectRepository.findById(projectId).orElseThrow();
+        assertThat(updated.getOwnerId()).isEqualTo(memberId);
+
+        // Exactly one owner in the member table; roles swapped, membership kept.
+        java.util.List<ProjectMember> members = memberRepository.findByProjectId(projectId);
+        assertThat(members.stream()
+                .filter(m -> m.getRole() == ProjectMember.Role.OWNER).count()).isEqualTo(1);
+        assertThat(members.stream()
+                .filter(m -> m.getUserId().equals(memberId))
+                .findFirst().orElseThrow().getRole()).isEqualTo(ProjectMember.Role.OWNER);
+        assertThat(members.stream()
+                .filter(m -> m.getUserId().equals(ownerId))
+                .findFirst().orElseThrow().getRole()).isEqualTo(ProjectMember.Role.MEMBER);
+
+        // Team chat membership is preserved for both parties.
+        TeamRoom room = teamRoomRepository.findFirstByProjectIdOrderByCreatedAtAsc(projectId)
+                .orElseThrow();
+        assertThat(participantRepository.existsByRoomIdAndUserId(room.getId(), ownerId)).isTrue();
+        assertThat(participantRepository.existsByRoomIdAndUserId(room.getId(), memberId)).isTrue();
+
+        // The old owner (now a MEMBER) can no longer transfer ownership — 403.
+        mockMvc.perform(post("/api/projects/" + projectId + "/transfer-ownership")
+                        .header("Authorization", bearer(ownerId))
+                        .contentType(APPLICATION_JSON)
+                        .content("{\"userId\":\"" + memberId + "\"}"))
+                .andExpect(status().isForbidden());
+
+        // The new owner has full control and can transfer back.
+        mockMvc.perform(post("/api/projects/" + projectId + "/transfer-ownership")
+                        .header("Authorization", bearer(memberId))
+                        .contentType(APPLICATION_JSON)
+                        .content("{\"userId\":\"" + ownerId + "\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.ownerId").value(ownerId));
+
+        Project back = projectRepository.findById(projectId).orElseThrow();
+        assertThat(back.getOwnerId()).isEqualTo(ownerId);
+    }
+
+    @Test
+    void transferOwnership_isRejected_ForNonMemberTarget_andNonOwner() throws Exception {
+        // A user from outside the project cannot be made owner (business rule).
+        String outsiderId = createUser("outsider@test.dev", "Outsider").getId();
+        mockMvc.perform(post("/api/projects/" + projectId + "/transfer-ownership")
+                        .header("Authorization", bearer(ownerId))
+                        .contentType(APPLICATION_JSON)
+                        .content("{\"userId\":\"" + outsiderId + "\"}"))
+                .andExpect(status().isBadRequest());
+        assertThat(projectRepository.findById(projectId).orElseThrow().getOwnerId())
+                .isEqualTo(ownerId);
+
+        // A regular member cannot transfer ownership — owner-only, HTTP 403.
+        mockMvc.perform(post("/api/projects/" + projectId + "/transfer-ownership")
+                        .header("Authorization", bearer(memberId))
+                        .contentType(APPLICATION_JSON)
+                        .content("{\"userId\":\"" + memberId + "\"}"))
+                .andExpect(status().isForbidden());
+        assertThat(projectRepository.findById(projectId).orElseThrow().getOwnerId())
+                .isEqualTo(ownerId);
     }
 
     @Test

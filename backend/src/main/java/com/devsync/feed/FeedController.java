@@ -5,6 +5,7 @@ import com.devsync.feed.dto.CommentRequest;
 import com.devsync.feed.dto.CommentResponse;
 import com.devsync.feed.dto.PostRequest;
 import com.devsync.feed.dto.PostResponse;
+import com.devsync.feed.dto.UpdatePostImageRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -47,6 +48,33 @@ public class FeedController {
         return ResponseEntity.ok(ApiResponse.success(post));
     }
 
+    /**
+     * Updates a post's content. Author-only — the authenticated user must own
+     * the post (403 otherwise). Preserves the post id; never duplicates.
+     */
+    @PutMapping("/{id}")
+    public ResponseEntity<ApiResponse<PostResponse>> updatePost(
+            @PathVariable String id,
+            @Valid @RequestBody PostRequest request,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        PostResponse post = feedService.updatePost(id, userDetails.getUsername(), request);
+        return ResponseEntity.ok(ApiResponse.success("Post updated", post));
+    }
+
+    /**
+     * Sets or clears the image on an existing post (author-only). The image is
+     * uploaded first via the attachment system, then this endpoint records the
+     * returned attachment URL on the post.
+     */
+    @PutMapping("/{id}/image")
+    public ResponseEntity<ApiResponse<PostResponse>> updatePostImage(
+            @PathVariable String id,
+            @RequestBody UpdatePostImageRequest request,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        PostResponse post = feedService.updatePostImage(id, request.getImageUrl(), userDetails.getUsername());
+        return ResponseEntity.ok(ApiResponse.success("Post image updated", post));
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse<Void>> deletePost(
             @PathVariable String id,
@@ -77,5 +105,27 @@ public class FeedController {
     public ResponseEntity<ApiResponse<List<CommentResponse>>> getComments(@PathVariable String postId) {
         List<CommentResponse> comments = feedService.getComments(postId);
         return ResponseEntity.ok(ApiResponse.success(comments));
+    }
+
+    /**
+     * Deletes a comment. The authenticated user must be the comment author OR
+     * the owner of the post — otherwise 403.
+     */
+    @DeleteMapping("/comments/{commentId}")
+    public ResponseEntity<ApiResponse<Void>> deleteComment(
+            @PathVariable String commentId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        feedService.deleteComment(commentId, userDetails.getUsername());
+        return ResponseEntity.ok(ApiResponse.success("Comment deleted", null));
+    }
+
+    /** Posts authored by a specific user (My Posts page, profile post lists). */
+    @GetMapping("/user/{userId}")
+    public ResponseEntity<ApiResponse<Page<PostResponse>>> getPostsByUser(
+            @PathVariable String userId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        Page<PostResponse> posts = feedService.getPostsByUser(userId, page, size);
+        return ResponseEntity.ok(ApiResponse.success(posts));
     }
 }

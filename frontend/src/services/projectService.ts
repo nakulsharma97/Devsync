@@ -9,6 +9,8 @@ export interface ProjectMemberDto {
   username?: string | null;
   presenceStatus?: string | null;
   lastActiveAt?: string | null;
+  /** When this user joined the project (member row creation). */
+  joinedAt?: string | null;
 }
 
 export interface ProjectDto {
@@ -19,12 +21,26 @@ export interface ProjectDto {
   status: string;
   visibility: string;
   currentUserRole: string | null;
+  /** The current user's own join-request status (PENDING/APPROVED/REJECTED/CANCELLED), null if none. */
+  currentUserJoinRequestStatus?: string | null;
   repositoryUrl: string | null;
   imageUrl: string | null;
   memberCount: number;
   members: ProjectMemberDto[];
   createdAt: string;
   updatedAt: string;
+}
+
+export interface JoinRequestDto {
+  id: string;
+  projectId: string;
+  projectName: string;
+  userId: string;
+  userName: string;
+  userAvatar: string | null;
+  status: string;
+  message: string | null;
+  createdAt: string;
 }
 
 export interface InvitationDto {
@@ -101,6 +117,48 @@ export const projectService = {
     await api.post(`/projects/${projectId}/join`);
   },
 
+  // ── Join requests ────────────────────────────────────────
+
+  /** Request to join a PUBLIC project — membership is granted only after the owner/admin approves. */
+  async requestJoin(projectId: string, message?: string): Promise<JoinRequestDto> {
+    const res = await api.post(`/projects/${projectId}/join-request`, {
+      message: message || undefined,
+    });
+    return res.data;
+  },
+
+  /** All join requests for a project — managers only. */
+  async getProjectJoinRequests(projectId: string): Promise<JoinRequestDto[]> {
+    const res = await api.get(`/projects/${projectId}/join-requests`);
+    return res.data;
+  },
+
+  /** The caller's own join requests, optionally narrowed to one project. */
+  async getMyJoinRequests(projectId?: string): Promise<JoinRequestDto[]> {
+    const res = await api.get("/join-requests/mine", {
+      params: projectId ? { projectId } : undefined,
+    });
+    return res.data;
+  },
+
+  /** The caller's own join requests for a single project (e.g. to cancel). */
+  async getMyJoinRequestsForProject(projectId: string): Promise<JoinRequestDto[]> {
+    return this.getMyJoinRequests(projectId);
+  },
+
+  async approveJoinRequest(id: string): Promise<void> {
+    await api.put(`/join-requests/${id}/approve`);
+  },
+
+  async rejectJoinRequest(id: string): Promise<void> {
+    await api.put(`/join-requests/${id}/reject`);
+  },
+
+  /** Withdraw a pending join request (requester or manager). */
+  async cancelJoinRequest(id: string): Promise<void> {
+    await api.delete(`/join-requests/${id}`);
+  },
+
   async addMember(projectId: string, userId: string, role?: string): Promise<void> {
     await api.post(`/projects/${projectId}/members?userId=${userId}&role=${role || "MEMBER"}`);
   },
@@ -111,6 +169,12 @@ export const projectService = {
 
   async updateMemberRole(projectId: string, userId: string, role: string): Promise<void> {
     await api.put(`/projects/${projectId}/members/${userId}/role?role=${encodeURIComponent(role)}`);
+  },
+
+  /** Transfers project ownership to an existing member. The caller must be the current owner. */
+  async transferOwnership(projectId: string, userId: string): Promise<ProjectDto> {
+    const res = await api.post(`/projects/${projectId}/transfer-ownership`, { userId });
+    return res.data;
   },
 
   // ── Invitations ───────────────────────────────────────────

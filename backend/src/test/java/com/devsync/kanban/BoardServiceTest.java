@@ -42,6 +42,9 @@ class BoardServiceTest {
     @Mock private ProjectMemberRepository projectMemberRepository;
     @Mock private ActivityService activityService;
     @Mock private NotificationService notificationService;
+    @Mock private com.devsync.github.GitHubClient githubClient;
+    @Mock private com.devsync.github.GitHubIntegrationService githubIntegrationService;
+    @Mock private com.devsync.github.repository.ProjectGitHubLinkRepository githubLinkRepository;
 
     private BoardService boardService;
 
@@ -50,7 +53,7 @@ class BoardServiceTest {
         boardService = new BoardService(boardRepository, columnRepository, taskRepository,
                 dependencyRepository,
                 userRepository, projectRepository, projectMemberRepository, activityService,
-                notificationService);
+                notificationService, githubClient, githubIntegrationService, githubLinkRepository);
     }
 
     @Test
@@ -416,6 +419,28 @@ class BoardServiceTest {
                 .isInstanceOf(org.springframework.security.access.AccessDeniedException.class)
                 .hasMessageContaining("not a member");
         verify(taskRepository, never()).save(any());
+    }
+
+    @Test
+    void updateTask_shouldClearDueDate_WhenExplicitlyRequested() {
+        Task task = Task.builder().boardId("b1").title("Existing")
+                .dueDate(java.time.Instant.parse("2026-08-15T12:00:00Z")).build();
+        task.setId("t1");
+        Board board = boardWithId("b1", "p1");
+        Project project = projectWithId("p1");
+
+        when(taskRepository.findById("t1")).thenReturn(Optional.of(task));
+        when(boardRepository.findById("b1")).thenReturn(Optional.of(board));
+        when(projectRepository.findById("p1")).thenReturn(Optional.of(project));
+        when(taskRepository.save(any(Task.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        CreateTaskRequest request = mock(CreateTaskRequest.class);
+        when(request.getTitle()).thenReturn("Existing");
+        when(request.getClearDueDate()).thenReturn(true);
+
+        boardService.updateTask("t1", request, "owner1");
+
+        assertThat(task.getDueDate()).isNull();
     }
 
     @Test

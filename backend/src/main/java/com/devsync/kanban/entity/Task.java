@@ -52,6 +52,39 @@ public class Task extends BaseEntity {
     @Column(name = "sprint")
     private String sprint;
 
+    // ── GitHub-based development workflow ────────────────────
+
+    /** The feature branch this task is being worked on (e.g. feature/login-api). */
+    @Column(name = "branch_name")
+    private String branchName;
+
+    /** Number of the linked GitHub pull request (null until a PR exists). */
+    @Column(name = "pull_request_number")
+    private Long pullRequestNumber;
+
+    /** GitHub URL of the linked pull request. */
+    @Column(name = "pull_request_url")
+    private String pullRequestUrl;
+
+    /**
+     * Current PR lifecycle state, synced from real GitHub state:
+     * OPEN | CHANGES_REQUESTED | APPROVED | MERGED | CLOSED.
+     */
+    @Column(name = "pull_request_state")
+    private String pullRequestState;
+
+    /** When the assignee started work on this task. */
+    @Column(name = "started_at")
+    private Instant startedAt;
+
+    /** When the linked pull request was created on GitHub. */
+    @Column(name = "pr_created_at")
+    private Instant prCreatedAt;
+
+    /** When the linked pull request was merged on GitHub. */
+    @Column(name = "pr_merged_at")
+    private Instant prMergedAt;
+
     public enum Priority {
         LOW, MEDIUM, HIGH, CRITICAL
     }

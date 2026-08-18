@@ -45,6 +45,8 @@ class FeedServiceTest {
     @Mock private PostLikeRepository postLikeRepository;
     @Mock private UserRepository userRepository;
     @Mock private ActivityService activityService;
+    @Mock private com.devsync.attachment.repository.FileAttachmentRepository fileAttachmentRepository;
+    @Mock private com.devsync.attachment.FileStorageService fileStorageService;
 
     @Captor private ArgumentCaptor<Post> postCaptor;
 
@@ -57,7 +59,7 @@ class FeedServiceTest {
 
     @BeforeEach
     void setUp() {
-        feedService = new FeedService(postRepository, commentRepository, postLikeRepository, userRepository, activityService);
+        feedService = new FeedService(postRepository, commentRepository, postLikeRepository, userRepository, activityService, fileAttachmentRepository, fileStorageService);
 
         testUser = User.builder()
                 .email("user@example.com")
@@ -314,8 +316,8 @@ class FeedServiceTest {
         when(postRepository.findById("post-1")).thenReturn(Optional.of(otherPost));
 
         assertThatThrownBy(() -> feedService.deletePost("post-1", "user-1"))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Cannot delete this post");
+                .isInstanceOf(com.devsync.common.ForbiddenException.class)
+                .hasMessageContaining("author");
 
         verify(postRepository, never()).delete(any());
     }
@@ -468,5 +470,222 @@ class FeedServiceTest {
 
         assertThat(comments).hasSize(1);
         assertThat(comments.get(0).getUser().getFullName()).isEqualTo("Unknown");
+    }
+
+    // ── updatePostImage ───────────────────────────────────────
+
+    @Test
+    void updatePostImage_shouldSetImage_WhenAuthor() {
+        when(postRepository.findById("post-1")).thenReturn(Optional.of(testPost));
+        when(postRepository.save(any(Post.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(userRepository.findById("user-1")).thenReturn(Optional.of(testUser));
+
+        PostResponse response = feedService.updatePostImage(
+                "post-1", "/api/attachments/att-9/download", "user-1");
+
+        assertThat(testPost.getImageUrl()).isEqualTo("/api/attachments/att-9/download");
+        assertThat(response.getImageUrl()).isEqualTo("/api/attachments/att-9/download");
+        verify(postRepository).save(testPost);
+    }
+
+    @Test
+    void updatePostImage_shouldClearImage_WhenBlank() {
+        when(postRepository.findById("post-1")).thenReturn(Optional.of(testPost));
+        when(postRepository.save(any(Post.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(userRepository.findById("user-1")).thenReturn(Optional.of(testUser));
+
+        PostResponse response = feedService.updatePostImage("post-1", "   ", "user-1");
+
+        assertThat(testPost.getImageUrl()).isNull();
+        assertThat(response.getImageUrl()).isNull();
+    }
+
+    @Test
+    void updatePostImage_shouldThrow_WhenNotAuthor() {
+        when(postRepository.findById("post-1")).thenReturn(Optional.of(testPost));
+
+        assertThatThrownBy(() -> feedService.updatePostImage(
+                "post-1", "/api/attachments/att-9/download", "user-2"))
+                .isInstanceOf(com.devsync.common.ForbiddenException.class)
+                .hasMessageContaining("author");
+        verify(postRepository, never()).save(any());
+    }
+
+    @Test
+    void updatePostImage_shouldThrow_WhenPostNotFound() {
+        when(postRepository.findById("ghost")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> feedService.updatePostImage("ghost", null, "user-1"))
+                .isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    // ── updatePost ────────────────────────────────────────────
+
+    @Test
+    void updatePost_shouldUpdateContent_WhenAuthor() {
+        when(postRepository.findById("post-1")).thenReturn(Optional.of(testPost));
+        when(postRepository.save(any(Post.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(userRepository.findById("user-1")).thenReturn(Optional.of(testUser));
+        when(postLikeRepository.countByPostId("post-1")).thenReturn(2L);
+        when(commentRepository.countByPostId("post-1")).thenReturn(3L);
+
+        PostRequest edit = new PostRequest();
+        edit.setContent("Edited content");
+
+        PostResponse response = feedService.updatePost("post-1", "user-1", edit);
+
+        assertThat(testPost.getContent()).isEqualTo("Edited content");
+        assertThat(response.getId()).isEqualTo("post-1"); // id preserved, no duplicate
+        assertThat(response.getContent()).isEqualTo("Edited content");
+        assertThat(response.getLikeCount()).isEqualTo(2L);
+        assertThat(response.getCommentCount()).isEqualTo(3L);
+        verify(postRepository, times(1)).save(testPost);
+    }
+
+    @Test
+    void updatePost_shouldThrow403_WhenNotAuthor() {
+        when(postRepository.findById("post-1")).thenReturn(Optional.of(testPost));
+
+        PostRequest edit = new PostRequest();
+        edit.setContent("Hijacked edit");
+
+        assertThatThrownBy(() -> feedService.updatePost("post-1", "user-2", edit))
+                .isInstanceOf(com.devsync.common.ForbiddenException.class)
+                .hasMessageContaining("author");
+        verify(postRepository, never()).save(any());
+    }
+
+    @Test
+    void updatePost_shouldThrow_WhenPostNotFound() {
+        when(postRepository.findById("ghost")).thenReturn(Optional.empty());
+
+        PostRequest edit = new PostRequest();
+        edit.setContent("x");
+
+        assertThatThrownBy(() -> feedService.updatePost("ghost", "user-1", edit))
+                .isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    // ── deletePost (403 + attachment cleanup) ─────────────────
+
+    @Test
+    void deletePost_shouldRemoveAttachedImage_WhenPostHasImage() throws Exception {
+        when(postRepository.findById("post-1")).thenReturn(Optional.of(testPost));
+        var att = com.devsync.attachment.entity.FileAttachment.builder()
+                .uploaderId("user-1")
+                .contextType(com.devsync.attachment.entity.AttachmentContext.POST)
+                .contextId("post-1")
+                .originalName("photo.png")
+                .storedName("stored-photo.png")
+                .contentType("image/png")
+                .size(100)
+                .url("/api/attachments/att-1/download")
+                .build();
+        att.setId("att-1");
+        when(fileAttachmentRepository.findByContextTypeAndContextId(
+                com.devsync.attachment.entity.AttachmentContext.POST, "post-1"))
+                .thenReturn(java.util.List.of(att));
+        when(fileStorageService.resolve("stored-photo.png")).thenReturn(java.nio.file.Path.of("/tmp/stored-photo.png"));
+
+        feedService.deletePost("post-1", "user-1");
+
+        verify(fileAttachmentRepository).delete(att);
+        verify(commentRepository).deleteByPostId("post-1");
+        verify(postRepository).delete(testPost);
+    }
+
+    @Test
+    void deletePost_shouldReturn403_WhenNotOwner() {
+        Post otherPost = Post.builder().userId("user-2").content("Other").postType("TEXT").build();
+        otherPost.setId("post-1");
+        when(postRepository.findById("post-1")).thenReturn(Optional.of(otherPost));
+
+        assertThatThrownBy(() -> feedService.deletePost("post-1", "user-1"))
+                .isInstanceOf(com.devsync.common.ForbiddenException.class)
+                .hasMessageContaining("author");
+        verify(postRepository, never()).delete(any());
+        verify(fileAttachmentRepository, never()).delete(any());
+    }
+
+    // ── deleteComment ─────────────────────────────────────────
+
+    @Test
+    void deleteComment_shouldSucceed_WhenCommentAuthor() {
+        when(commentRepository.findById("comment-1")).thenReturn(Optional.of(testComment));
+        when(postRepository.findById("post-1")).thenReturn(Optional.of(testPost));
+
+        feedService.deleteComment("comment-1", "user-1");
+
+        verify(commentRepository).delete(testComment);
+    }
+
+    @Test
+    void deleteComment_shouldSucceed_WhenPostOwner() {
+        // Post owner is user-1; comment author is user-2.
+        Comment otherComment = Comment.builder().userId("user-2").postId("post-1").content("Mine").build();
+        otherComment.setId("comment-2");
+        when(commentRepository.findById("comment-2")).thenReturn(Optional.of(otherComment));
+        when(postRepository.findById("post-1")).thenReturn(Optional.of(testPost));
+
+        feedService.deleteComment("comment-2", "user-1");
+
+        verify(commentRepository).delete(otherComment);
+    }
+
+    @Test
+    void deleteComment_shouldThrow403_WhenNeitherAuthorNorPostOwner() {
+        // Comment by user-2 on user-1's post; user-3 tries to delete it.
+        Comment otherComment = Comment.builder().userId("user-2").postId("post-1").content("Mine").build();
+        otherComment.setId("comment-2");
+        when(commentRepository.findById("comment-2")).thenReturn(Optional.of(otherComment));
+        when(postRepository.findById("post-1")).thenReturn(Optional.of(testPost));
+
+        assertThatThrownBy(() -> feedService.deleteComment("comment-2", "user-3"))
+                .isInstanceOf(com.devsync.common.ForbiddenException.class)
+                .hasMessageContaining("comment author");
+        verify(commentRepository, never()).delete(any());
+    }
+
+    @Test
+    void deleteComment_shouldThrow_WhenCommentNotFound() {
+        when(commentRepository.findById("ghost")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> feedService.deleteComment("ghost", "user-1"))
+                .isInstanceOf(ResourceNotFoundException.class);
+        verify(commentRepository, never()).delete(any());
+    }
+
+    // ── getPostsByUser ────────────────────────────────────────
+
+    @Test
+    void getPostsByUser_shouldReturnOnlyThatUsersPosts() {
+        Page<Post> page = new PageImpl<>(List.of(testPost), PageRequest.of(0, 20), 1);
+        when(postRepository.findByUserIdOrderByCreatedAtDesc("user-1", PageRequest.of(0, 20)))
+                .thenReturn(page);
+        when(userRepository.findById("user-1")).thenReturn(Optional.of(testUser));
+        when(postLikeRepository.countLikesByPostIdIn(Set.of("post-1"))).thenReturn(List.of());
+        when(commentRepository.countCommentsByPostIdIn(Set.of("post-1"))).thenReturn(List.of());
+
+        Page<PostResponse> result = feedService.getPostsByUser("user-1", 0, 20);
+
+        assertThat(result.getContent()).hasSize(1);
+        assertThat(result.getContent().get(0).getId()).isEqualTo("post-1");
+        assertThat(result.getContent().get(0).getUser().getUsername()).isEqualTo("testuser");
+        verify(postRepository).findByUserIdOrderByCreatedAtDesc("user-1", PageRequest.of(0, 20));
+    }
+
+    @Test
+    void getPostsByUser_shouldReturnEmptyPage_WhenNoVisiblePosts() {
+        Post hidden = Post.builder().userId("user-1").content("Hidden").postType("TEXT").build();
+        hidden.setId("post-2");
+        hidden.setHidden(true);
+        Page<Post> page = new PageImpl<>(List.of(hidden), PageRequest.of(0, 20), 1);
+        when(postRepository.findByUserIdOrderByCreatedAtDesc("user-1", PageRequest.of(0, 20)))
+                .thenReturn(page);
+
+        Page<PostResponse> result = feedService.getPostsByUser("user-1", 0, 20);
+
+        assertThat(result.getContent()).isEmpty();
+        verify(postRepository, never()).findAllById(any());
     }
 }

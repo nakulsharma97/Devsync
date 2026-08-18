@@ -7,6 +7,7 @@ import java.util.Optional;
 
 public interface GitHubConnectionRepository extends JpaRepository<GitHubConnection, String> {
     Optional<GitHubConnection> findByUserId(String userId);
+    Optional<GitHubConnection> findByGithubUsername(String githubUsername);
     boolean existsByUserId(String userId);
     void deleteByUserId(String userId);
 }

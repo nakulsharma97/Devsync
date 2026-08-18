@@ -78,6 +78,66 @@ public class BoardController {
         return ResponseEntity.noContent().build();
     }
 
+    // ── GitHub-based development workflow ───────────────────
+
+    @PostMapping("/tasks/{taskId}/start")
+    public ResponseEntity<BoardResponse.TaskDto> startTask(
+            @PathVariable String taskId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        return ResponseEntity.ok(boardService.startTask(taskId, userDetails.getUsername()));
+    }
+
+    @PostMapping("/tasks/{taskId}/branch")
+    public ResponseEntity<BoardResponse.TaskDto> createBranch(
+            @PathVariable String taskId,
+            @RequestBody(required = false) java.util.Map<String, String> body,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        String requested = body == null ? null : body.get("branchName");
+        return ResponseEntity.ok(boardService.createBranch(taskId, userDetails.getUsername(), requested));
+    }
+
+    @PostMapping("/tasks/{taskId}/pull-request")
+    public ResponseEntity<BoardResponse.TaskDto> createPullRequest(
+            @PathVariable String taskId,
+            @RequestBody(required = false) java.util.Map<String, String> body,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        String title = body == null ? null : body.get("title");
+        String description = body == null ? null : body.get("description");
+        return ResponseEntity.ok(boardService.createPullRequest(taskId, userDetails.getUsername(), title, description));
+    }
+
+    @GetMapping("/tasks/{taskId}/pull-request/refresh")
+    public ResponseEntity<BoardResponse.TaskDto> refreshPullRequest(
+            @PathVariable String taskId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        return ResponseEntity.ok(boardService.refreshPullRequest(taskId, userDetails.getUsername()));
+    }
+
+    @PostMapping("/tasks/{taskId}/pull-request/approve")
+    public ResponseEntity<BoardResponse.TaskDto> approvePullRequest(
+            @PathVariable String taskId,
+            @RequestBody(required = false) java.util.Map<String, String> body,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        String comment = body == null ? null : body.get("comment");
+        return ResponseEntity.ok(boardService.approvePullRequest(taskId, userDetails.getUsername(), comment));
+    }
+
+    @PostMapping("/tasks/{taskId}/pull-request/request-changes")
+    public ResponseEntity<BoardResponse.TaskDto> requestChanges(
+            @PathVariable String taskId,
+            @RequestBody(required = false) java.util.Map<String, String> body,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        String comment = body == null ? null : body.get("comment");
+        return ResponseEntity.ok(boardService.requestChanges(taskId, userDetails.getUsername(), comment));
+    }
+
+    @PostMapping("/tasks/{taskId}/pull-request/merge")
+    public ResponseEntity<BoardResponse.TaskDto> mergePullRequest(
+            @PathVariable String taskId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        return ResponseEntity.ok(boardService.mergePullRequest(taskId, userDetails.getUsername()));
+    }
+
     @PostMapping("/tasks/{taskId}/dependencies")
     public ResponseEntity<Void> addDependency(
             @PathVariable String taskId,
@@ -100,9 +160,18 @@ public class BoardController {
     public ResponseEntity<List<BoardResponse.TaskDto>> calendarTasks(
             @RequestParam String from,
             @RequestParam String to,
+            @RequestParam(required = false) String projectId,
             @AuthenticationPrincipal UserDetails userDetails) {
+        Instant fromInstant = Instant.parse(from);
+        Instant toInstant = Instant.parse(to);
+        // Project-scoped when a project is given, so one project's calendar can
+        // never show another project's tasks.
+        if (projectId != null && !projectId.isBlank()) {
+            return ResponseEntity.ok(boardService.getProjectCalendarTasks(
+                    projectId, fromInstant, toInstant, userDetails.getUsername()));
+        }
         return ResponseEntity.ok(boardService.getCalendarTasks(
-                Instant.parse(from), Instant.parse(to), userDetails.getUsername()));
+                fromInstant, toInstant, userDetails.getUsername()));
     }
 
     @GetMapping("/project/{projectId}/tasks")

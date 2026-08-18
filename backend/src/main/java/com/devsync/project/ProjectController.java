@@ -3,6 +3,7 @@ package com.devsync.project;
 import com.devsync.admin.dto.UpdateVisibilityRequest;
 import com.devsync.project.dto.CreateProjectRequest;
 import com.devsync.project.dto.ProjectResponse;
+import com.devsync.project.dto.TransferOwnershipRequest;
 import com.devsync.project.dto.UpdateProjectRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -97,6 +98,19 @@ public class ProjectController {
             @AuthenticationPrincipal UserDetails userDetails) {
         projectService.updateMemberRole(projectId, userId, role, userDetails.getUsername());
         return ResponseEntity.ok().build();
+    }
+
+    /**
+     * Transfers project ownership to another existing member. Owner-only; the
+     * old owner becomes a regular member and keeps project access.
+     */
+    @PostMapping("/{projectId}/transfer-ownership")
+    public ResponseEntity<ProjectResponse> transferOwnership(
+            @PathVariable String projectId,
+            @Valid @RequestBody TransferOwnershipRequest request,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        return ResponseEntity.ok(projectService.transferOwnership(
+                projectId, request.getUserId(), userDetails.getUsername()));
     }
 
     @PutMapping("/{projectId}/visibility")

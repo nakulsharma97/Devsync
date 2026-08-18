@@ -18,6 +18,8 @@ public class CreateTaskRequest {
     private String assigneeId;
     private String priority;
     private Instant dueDate;
+    /** When true (update only), explicitly removes the task's due date. */
+    private Boolean clearDueDate;
     private String labels;
     private String milestone;
     private String sprint;

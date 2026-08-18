@@ -376,6 +376,14 @@ public class MessageService {
 
         // Get all team rooms the user is part of
         List<TeamRoom> rooms = roomRepository.findRoomsByUserId(userId);
+        // Batch-load project names so the UI can show the owning project for
+        // each team chat (no N+1 across the room list).
+        Set<String> roomProjectIds = rooms.stream()
+                .map(TeamRoom::getProjectId).filter(Objects::nonNull).collect(Collectors.toSet());
+        Map<String, String> projectNames = roomProjectIds.isEmpty() ? Collections.emptyMap()
+                : projectRepository.findAllById(roomProjectIds).stream()
+                        .collect(Collectors.toMap(Project::getId, Project::getName, (a, b) -> a));
+
         for (TeamRoom room : rooms) {
             List<Message> msgs = messageRepository.findByRoomIdOrderByCreatedAtAsc(room.getId(), PageRequest.of(0, 1));
             Message lastMsg = msgs.isEmpty() ? null : msgs.get(0);
@@ -385,6 +393,7 @@ public class MessageService {
                     .id("room_" + room.getId())
                     .type("room")
                     .name(room.getName())
+                    .projectName(room.getProjectId() != null ? projectNames.get(room.getProjectId()) : null)
                     .roomId(room.getId())
                     .lastMessage(lastMsg != null ? lastMsg.getContent() : null)
                     .lastMessageAt(lastMsg != null ? lastMsg.getCreatedAt() : room.getCreatedAt())

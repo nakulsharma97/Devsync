@@ -197,6 +197,93 @@ class AuthServiceTest {
                 .hasMessageContaining("Invalid email or password");
     }
 
+    // ── Login by username ────────────────────────────────────
+
+    @Test
+    void login_shouldWorkWithUsername() {
+        LoginRequest request = new LoginRequest();
+        request.setEmail("janedoe"); // username, not an email
+        request.setPassword("password123");
+
+        User user = User.builder()
+                .email("jane@example.com")
+                .username("janedoe")
+                .password(passwordEncoder.encode("password123"))
+                .fullName("Jane Doe")
+                .build();
+        user.setId("user-id");
+
+        when(userRepository.findByUsername("janedoe")).thenReturn(Optional.of(user));
+        when(jwtTokenProvider.generateAccessToken("user-id", "jane@example.com")).thenReturn("at");
+        when(refreshTokenService.issue("user-id", null, null)).thenReturn("rt");
+
+        AuthResponse response = authService.login(request);
+
+        assertThat(response.getAccessToken()).isEqualTo("at");
+        assertThat(response.getUser().getEmail()).isEqualTo("jane@example.com");
+        assertThat(response.getUser().getUsername()).isEqualTo("janedoe");
+        verify(userRepository).findByUsername("janedoe");
+        verify(userRepository, never()).findByEmail(anyString());
+    }
+
+    @Test
+    void login_shouldRejectWrongPassword_WhenLoggingInWithUsername() {
+        LoginRequest request = new LoginRequest();
+        request.setEmail("janedoe");
+        request.setPassword("wrong-password");
+
+        User user = User.builder()
+                .email("jane@example.com")
+                .username("janedoe")
+                .password(passwordEncoder.encode("correct-password"))
+                .build();
+        user.setId("user-id");
+
+        when(userRepository.findByUsername("janedoe")).thenReturn(Optional.of(user));
+
+        assertThatThrownBy(() -> authService.login(request))
+                .isInstanceOf(AuthException.class)
+                .hasMessageContaining("Invalid email or password");
+        verify(jwtTokenProvider, never()).generateAccessToken(anyString(), anyString());
+    }
+
+    @Test
+    void login_shouldRejectUnknownUsername_WithSameErrorAsUnknownEmail() {
+        LoginRequest request = new LoginRequest();
+        request.setEmail("ghostuser");
+        request.setPassword("password123");
+
+        when(userRepository.findByUsername("ghostuser")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> authService.login(request))
+                .isInstanceOf(AuthException.class)
+                .hasMessageContaining("Invalid email or password");
+        // Identical failure path to an unknown email — no username enumeration.
+        verify(auditLogService).record(isNull(), isNull(),
+                eq(AuditAction.LOGIN_FAILURE), eq(AuditStatus.FAILURE), anyString());
+    }
+
+    @Test
+    void login_shouldRejectBlockedAccount_WhenLoggingInWithUsername() {
+        LoginRequest request = new LoginRequest();
+        request.setEmail("blockeduser");
+        request.setPassword("password123");
+
+        User user = User.builder()
+                .email("blocked@example.com")
+                .username("blockeduser")
+                .password(passwordEncoder.encode("password123"))
+                .blocked(true)
+                .build();
+        user.setId("user-id");
+
+        when(userRepository.findByUsername("blockeduser")).thenReturn(Optional.of(user));
+
+        assertThatThrownBy(() -> authService.login(request))
+                .isInstanceOf(AuthException.class)
+                .hasMessageContaining("blocked");
+    }
+
     @Test
     void login_shouldUpdateLastLoginAt() {
         LoginRequest request = new LoginRequest();

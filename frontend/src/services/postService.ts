@@ -82,6 +82,22 @@ export const postService = {
     await api.delete(`/posts/${id}`);
   },
 
+  /** Update an existing post's content (author-only). Preserves the post id. */
+  async updatePost(id: string, data: { content: string }): Promise<PostDto> {
+    const res = await api.put<ApiResponse<PostDto>>(`/posts/${id}`, {
+      content: data.content,
+    });
+    return res.data.data;
+  },
+
+  /** Set or clear (imageUrl = null) the image on an existing post. */
+  async updatePostImage(id: string, imageUrl: string | null): Promise<PostDto> {
+    const res = await api.put<ApiResponse<PostDto>>(`/posts/${id}/image`, {
+      imageUrl,
+    });
+    return res.data.data;
+  },
+
   async toggleLike(postId: string): Promise<{ liked: boolean; count: number }> {
     const res = await api.post<ApiResponse<{ liked: boolean; count: number }>>(
       `/posts/${postId}/like`
@@ -104,10 +120,24 @@ export const postService = {
     return res.data.data;
   },
 
-  async getPostsByUser(userId: string): Promise<PostDto[]> {
+  /** Delete a comment. Authorized server-side: comment author OR post owner. */
+  async deleteComment(commentId: string): Promise<void> {
+    await api.delete(`/posts/comments/${commentId}`);
+  },
+
+  /** Posts authored by a specific user (My Posts page / profile lists). */
+  async getPostsByUser(
+    userId: string,
+    page = 0,
+    size = 20
+  ): Promise<{ content: PostDto[]; totalPages: number; last: boolean }> {
     const res = await api.get<ApiResponse<PageDto<PostDto>>>(
-      `/posts/feed?page=0&size=50`
+      `/posts/user/${userId}?page=${page}&size=${size}`
     );
-    return res.data.data.content.filter((p) => p.user.id === userId);
+    return {
+      content: res.data.data.content,
+      totalPages: res.data.data.totalPages,
+      last: res.data.data.last,
+    };
   },
 };

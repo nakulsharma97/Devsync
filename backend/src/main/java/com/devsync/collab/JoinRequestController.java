@@ -25,6 +25,13 @@ public class JoinRequestController {
         return ResponseEntity.ok(joinRequestService.request(projectId, userDetails.getUsername(), request));
     }
 
+    @GetMapping("/join-requests/mine")
+    public ResponseEntity<List<JoinRequestResponse>> mine(
+            @RequestParam(required = false) String projectId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        return ResponseEntity.ok(joinRequestService.listMine(userDetails.getUsername(), projectId));
+    }
+
     @GetMapping("/projects/{projectId}/join-requests")
     public ResponseEntity<List<JoinRequestResponse>> listForProject(
             @PathVariable String projectId,
@@ -45,6 +52,14 @@ public class JoinRequestController {
             @PathVariable String id,
             @AuthenticationPrincipal UserDetails userDetails) {
         joinRequestService.reject(id, userDetails.getUsername());
+        return ResponseEntity.noContent().build();
+    }
+
+    @DeleteMapping("/join-requests/{id}")
+    public ResponseEntity<Void> cancel(
+            @PathVariable String id,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        joinRequestService.cancel(id, userDetails.getUsername());
         return ResponseEntity.noContent().build();
     }
 }

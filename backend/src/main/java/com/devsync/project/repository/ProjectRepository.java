@@ -5,12 +5,23 @@ import java.time.Instant;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 
 public interface ProjectRepository extends JpaRepository<Project, String> {
+    /**
+     * Locks the project row for the duration of the transaction. Used by
+     * ownership transfer so two concurrent transfers serialize instead of
+     * both reading the same owner and racing past each other.
+     */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT p FROM Project p WHERE p.id = :id")
+    java.util.Optional<Project> findByIdForUpdate(@Param("id") String id);
+
     @Query("SELECT p FROM Project p WHERE p.ownerId = :ownerId AND p.deleted = false")
     List<Project> findByOwnerId(@Param("ownerId") String ownerId);
 

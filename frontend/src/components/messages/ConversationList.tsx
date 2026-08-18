@@ -107,6 +107,11 @@ function ConversationRow({
             </span>
           )}
         </span>
+        {isRoom && conv.projectName && conv.projectName !== conv.name && (
+          <span className="block text-[10px] text-muted-foreground/50 truncate mt-0.5">
+            {conv.projectName}
+          </span>
+        )}
         <span className="flex items-center justify-between gap-2 mt-0.5">
           <span
             className={cn(
@@ -114,6 +119,7 @@ function ConversationRow({
               unread > 0 ? "text-foreground/80 font-medium" : "text-muted-foreground"
             )}
           >
+            {isRoom ? `${conv.participantCount} member${conv.participantCount !== 1 ? "s" : ""} · ` : ""}
             {conv.lastMessage || "No messages yet"}
           </span>
           {unread > 0 && (

@@ -16,9 +16,33 @@ import {
   MessageSquare,
   FileText,
   CalendarDays,
+  UserPlus,
+  UserCheck,
+  Pencil,
+  Loader2,
+  X,
 } from "lucide-react";
-import { publicProfileService, type PublicProfileDto } from "@/services/publicProfileService";
+import {
+  publicProfileService,
+  type PublicProfileDto,
+} from "@/services/publicProfileService";
+import {
+  socialService,
+  type SocialProfileDto,
+  type FollowUserDto,
+} from "@/services/socialService";
+import { useAuth } from "@/contexts/AuthContext";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
+import { getErrorMessage } from "@/lib/utils";
 
 const HEATMAP_DAYS = 13 * 7; // 13 weeks
 
@@ -86,13 +110,118 @@ function StatCard({ icon, label, value }: { icon: React.ReactNode; label: string
   );
 }
 
+/** Followers / Following list dialog. */
+function FollowListDialog({
+  open,
+  onOpenChange,
+  title,
+  users,
+  loading,
+  onUserClick,
+  onFollowToggle,
+  togglingIds,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  title: string;
+  users: FollowUserDto[];
+  loading: boolean;
+  onUserClick: (username: string) => void;
+  onFollowToggle: (userId: string, currentlyFollowing: boolean) => void;
+  togglingIds: Set<string>;
+}) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md max-h-[70vh] overflow-hidden flex flex-col">
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>People in this list</DialogDescription>
+        </DialogHeader>
+        <div className="overflow-y-auto pr-1 -mr-1 space-y-1">
+          {loading ? (
+            <div className="flex justify-center py-8">
+              <Loader2 className="h-5 w-5 animate-spin text-indigo-500" />
+            </div>
+          ) : users.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-8">
+              Nobody here yet.
+            </p>
+          ) : (
+            users.map((u) => (
+              <div
+                key={u.id}
+                className="flex items-center gap-3 rounded-xl p-2.5 hover:bg-muted/50 transition-colors"
+              >
+                <button
+                  type="button"
+                  onClick={() => u.username && onUserClick(u.username)}
+                  className="flex items-center gap-3 flex-1 min-w-0 text-left"
+                >
+                  <Avatar className="w-9 h-9 shrink-0 ring-1 ring-indigo-500/10">
+                    <AvatarImage src={u.avatarUrl || undefined} />
+                    <AvatarFallback className="text-[10px] font-bold bg-gradient-to-br from-indigo-500/20 to-purple-500/20 text-indigo-500 dark:text-indigo-400">
+                      {u.fullName?.charAt(0) || "?"}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold truncate">{u.fullName}</p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      @{u.username}
+                      {u.isSelf && <span className="text-indigo-500"> · You</span>}
+                      {u.followsYou && !u.isSelf && (
+                        <span className="text-green-600 dark:text-green-400"> · Follows you</span>
+                      )}
+                    </p>
+                  </div>
+                </button>
+                {!u.isSelf && (
+                  <Button
+                    variant={u.isFollowing ? "outline" : "default"}
+                    size="sm"
+                    disabled={togglingIds.has(u.id)}
+                    onClick={() => onFollowToggle(u.id, u.isFollowing)}
+                    className={cn(
+                      "text-xs shrink-0",
+                      u.isFollowing && "border-accent/30 text-accent hover:bg-accent/5"
+                    )}
+                  >
+                    {togglingIds.has(u.id) ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : u.isFollowing ? (
+                      <UserCheck className="w-3 h-3 mr-1" />
+                    ) : (
+                      <UserPlus className="w-3 h-3 mr-1" />
+                    )}
+                    {u.isFollowing ? "Following" : "Follow"}
+                  </Button>
+                )}
+              </div>
+            ))
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export default function UserProfilePage() {
   const { username } = useParams<{ username: string }>();
   const navigate = useNavigate();
+  const { user: currentUser } = useAuth();
 
   const [profile, setProfile] = useState<PublicProfileDto | null>(null);
+  const [social, setSocial] = useState<SocialProfileDto | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Follow state
+  const [followBusy, setFollowBusy] = useState(false);
+
+  // Followers / Following dialogs
+  const [listMode, setListMode] = useState<"followers" | "following" | null>(null);
+  const [listUsers, setListUsers] = useState<FollowUserDto[]>([]);
+  const [listLoading, setListLoading] = useState(false);
+  const [togglingIds, setTogglingIds] = useState<Set<string>>(new Set());
 
   const counts = useHeatmap(profile);
 
@@ -101,7 +230,12 @@ export default function UserProfilePage() {
     setLoading(true);
     setError(null);
     try {
-      setProfile(await publicProfileService.getProfile(username));
+      const [publicProfile, socialProfile] = await Promise.all([
+        publicProfileService.getProfile(username),
+        socialService.getProfile(username),
+      ]);
+      setProfile(publicProfile);
+      setSocial(socialProfile);
     } catch {
       setError("This profile doesn't exist or is no longer available.");
     } finally {
@@ -112,6 +246,64 @@ export default function UserProfilePage() {
   useEffect(() => {
     fetchProfile();
   }, [fetchProfile]);
+
+  const openList = useCallback(
+    async (mode: "followers" | "following") => {
+      if (!social) return;
+      setListMode(mode);
+      setListLoading(true);
+      setListUsers([]);
+      try {
+        const users =
+          mode === "followers"
+            ? await socialService.getFollowers(social.id)
+            : await socialService.getFollowing(social.id);
+        setListUsers(users);
+      } catch {
+        toast.error("Failed to load list");
+      } finally {
+        setListLoading(false);
+      }
+    },
+    [social]
+  );
+
+  const toggleFollow = async () => {
+    if (!social || followBusy) return;
+    setFollowBusy(true);
+    try {
+      if (social.isFollowing) {
+        await socialService.unfollow(social.id);
+        setSocial((s) => (s ? { ...s, isFollowing: false, followerCount: Math.max(0, s.followerCount - 1) } : s));
+      } else {
+        await socialService.follow(social.id);
+        setSocial((s) => (s ? { ...s, isFollowing: true, followerCount: s.followerCount + 1 } : s));
+      }
+    } catch (err) {
+      toast.error(getErrorMessage(err, "Unable to update follow status."));
+    } finally {
+      setFollowBusy(false);
+    }
+  };
+
+  const toggleFollowInList = async (userId: string, currentlyFollowing: boolean) => {
+    setTogglingIds((prev) => new Set(prev).add(userId));
+    try {
+      if (currentlyFollowing) await socialService.unfollow(userId);
+      else await socialService.follow(userId);
+      setListUsers((prev) =>
+        prev.map((u) => (u.id === userId ? { ...u, isFollowing: !currentlyFollowing } : u))
+      );
+    } catch {
+      toast.error("Unable to update follow status.");
+    } finally {
+      setTogglingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(userId);
+        return next;
+      });
+    }
+  };
 
   if (loading) {
     return (
@@ -124,7 +316,7 @@ export default function UserProfilePage() {
     );
   }
 
-  if (error || !profile) {
+  if (error || !profile || !social) {
     return (
       <div className="flex flex-col items-center justify-center py-20">
         <div className="w-12 h-12 rounded-2xl bg-accent/10 flex items-center justify-center mb-4 ring-1 ring-accent/20">
@@ -150,6 +342,10 @@ export default function UserProfilePage() {
   if (c.projectsCreated >= 5) badges.push("🚀 Builder");
   if (c.tasksCompleted >= 25) badges.push("✅ Task Master");
   if (c.messagesSent >= 100) badges.push("💬 Team Communicator");
+
+  const postsCount = social.posts;
+  const followerCount = social.followerCount;
+  const followingCount = social.followingCount;
 
   return (
     <div className="relative">
@@ -206,6 +402,11 @@ export default function UserProfilePage() {
                   <MapPin className="w-2.5 h-2.5" /> {profile.location}
                 </span>
               )}
+              {social.isSelf && (
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-accent/10 text-accent border border-accent/20 font-medium">
+                  This is you
+                </span>
+              )}
             </div>
 
             {/* Bio */}
@@ -241,6 +442,97 @@ export default function UserProfilePage() {
             </div>
           </div>
 
+          {/* Actions */}
+          <div className="flex flex-col items-end gap-2 shrink-0">
+            {social.isSelf ? (
+              <>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => navigate("/profile")}
+                  className="text-xs gap-1.5"
+                >
+                  <Pencil className="w-3.5 h-3.5" />
+                  Edit Profile
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={() => navigate("/profile/posts")}
+                  className="text-xs gap-1.5 bg-gradient-to-r from-indigo-500 to-purple-600 text-white hover:from-indigo-600 hover:to-purple-700"
+                >
+                  <FileText className="w-3.5 h-3.5" />
+                  My Posts
+                </Button>
+              </>
+            ) : (
+              <Button
+                size="sm"
+                variant={social.isFollowing ? "outline" : "default"}
+                disabled={followBusy}
+                onClick={toggleFollow}
+                className={cn(
+                  "text-xs gap-1.5",
+                  social.isFollowing && "border-accent/30 text-accent hover:bg-accent/5"
+                )}
+              >
+                {followBusy ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : social.isFollowing ? (
+                  <UserCheck className="w-3.5 h-3.5" />
+                ) : (
+                  <UserPlus className="w-3.5 h-3.5" />
+                )}
+                {social.isFollowing ? "Following" : "Follow"}
+              </Button>
+            )}
+            {social.isSelf && (
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => navigate("/feed")}
+                className="text-xs gap-1.5 text-muted-foreground"
+              >
+                <MessageSquare className="w-3.5 h-3.5" />
+                View Feed
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {/* Social stats */}
+        <div className="grid grid-cols-3 gap-3 mt-6 relative">
+          <button
+            type="button"
+            onClick={() => navigate("/profile/posts")}
+            className="rounded-xl border border-border/40 bg-card p-4 text-left hover:border-accent/30 transition-colors"
+          >
+            <p className="text-2xl font-bold">{postsCount.toLocaleString()}</p>
+            <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+              Posts
+            </p>
+          </button>
+          <button
+            type="button"
+            onClick={() => openList("followers")}
+            className="rounded-xl border border-border/40 bg-card p-4 text-left hover:border-accent/30 transition-colors"
+            aria-label={`View followers (${followerCount})`}
+          >
+            <p className="text-2xl font-bold">{followerCount.toLocaleString()}</p>
+            <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+              Followers
+            </p>
+          </button>
+          <button
+            type="button"
+            onClick={() => openList("following")}
+            className="rounded-xl border border-border/40 bg-card p-4 text-left hover:border-accent/30 transition-colors"
+            aria-label={`View following (${followingCount})`}
+          >
+            <p className="text-2xl font-bold">{followingCount.toLocaleString()}</p>
+            <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+              Following
+            </p>
+          </button>
         </div>
       </motion.div>
 
@@ -269,6 +561,22 @@ export default function UserProfilePage() {
           </p>
         )}
       </div>
+
+      {/* Followers / Following dialog */}
+      <FollowListDialog
+        open={listMode !== null}
+        onOpenChange={(open) => !open && setListMode(null)}
+        title={listMode === "followers" ? "Followers" : "Following"}
+        users={listUsers}
+        loading={listLoading}
+        onUserClick={(uname) => {
+          setListMode(null);
+          if (uname === currentUser?.username) navigate("/profile");
+          else navigate(`/profile/${uname}`);
+        }}
+        onFollowToggle={toggleFollowInList}
+        togglingIds={togglingIds}
+      />
     </div>
   );
 }

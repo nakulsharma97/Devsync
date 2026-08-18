@@ -455,4 +455,119 @@ class BoardSecurityIntegrationTest {
         mockMvc.perform(get("/api/boards/project/" + project2Id).header("Authorization", bearer(memberId)))
                 .andExpect(status().isForbidden());
     }
+
+    // ── Calendar feed (due dates) ────────────────────────────
+
+    private static final String CAL_FROM = "2026-08-01T00:00:00Z";
+    private static final String CAL_TO = "2026-08-31T23:59:59Z";
+
+    private String calendarUrl(String projectId) {
+        return "/api/boards/tasks/calendar?projectId=" + projectId
+                + "&from=" + CAL_FROM + "&to=" + CAL_TO;
+    }
+
+    @Test
+    void calendarFeed_shouldReturnCreatedTaskWithDueDate() throws Exception {
+        mockMvc.perform(post("/api/boards/tasks")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"title\":\"Due Task\",\"columnId\":\"" + column1Id
+                                + "\",\"dueDate\":\"2026-08-15T12:00:00Z\"}")
+                        .header("Authorization", bearer(ownerId)))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get(calendarUrl(project1Id)).header("Authorization", bearer(ownerId)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].title").value("Due Task"))
+                .andExpect(jsonPath("$[0].dueDate").value("2026-08-15T12:00:00Z"));
+    }
+
+    @Test
+    void calendarFeed_shouldExcludeTasksWithoutDueDate() throws Exception {
+        // task1Id was seeded with no due date — the calendar must not show it.
+        mockMvc.perform(get(calendarUrl(project1Id)).header("Authorization", bearer(ownerId)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isEmpty());
+    }
+
+    @Test
+    void calendarFeed_shouldNotLeakTasksBetweenProjects() throws Exception {
+        // A due task in project 2 only — project 1's calendar must stay empty.
+        mockMvc.perform(post("/api/boards/tasks")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"title\":\"Other Project Task\",\"columnId\":\"" + column2Id
+                                + "\",\"dueDate\":\"2026-08-10T12:00:00Z\"}")
+                        .header("Authorization", bearer(strangerId)))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get(calendarUrl(project1Id)).header("Authorization", bearer(ownerId)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isEmpty());
+
+        mockMvc.perform(get(calendarUrl(project2Id)).header("Authorization", bearer(strangerId)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].title").value("Other Project Task"));
+    }
+
+    @Test
+    void editingDueDate_shouldMoveTaskOnTheCalendar() throws Exception {
+        mockMvc.perform(post("/api/boards/tasks")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"title\":\"Movable\",\"columnId\":\"" + column1Id
+                                + "\",\"dueDate\":\"2026-08-05T12:00:00Z\"}")
+                        .header("Authorization", bearer(ownerId)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").isNotEmpty())
+                .andExpect(jsonPath("$.dueDate").value("2026-08-05T12:00:00Z"));
+
+        String createdId = taskRepository.findAll().stream()
+                .filter(t -> t.getTitle().equals("Movable")).findFirst().orElseThrow().getId();
+
+        mockMvc.perform(put("/api/boards/tasks/" + createdId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"title\":\"Movable\",\"columnId\":\"" + column1Id
+                                + "\",\"dueDate\":\"2026-08-20T12:00:00Z\"}")
+                        .header("Authorization", bearer(ownerId)))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get(calendarUrl(project1Id)).header("Authorization", bearer(ownerId)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].title").value("Movable"))
+                .andExpect(jsonPath("$[0].dueDate").value("2026-08-20T12:00:00Z"));
+    }
+
+    @Test
+    void clearingDueDate_shouldRemoveTaskFromCalendar() throws Exception {
+        mockMvc.perform(post("/api/boards/tasks")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"title\":\"Gone Soon\",\"columnId\":\"" + column1Id
+                                + "\",\"dueDate\":\"2026-08-18T12:00:00Z\"}")
+                        .header("Authorization", bearer(ownerId)))
+                .andExpect(status().isOk());
+
+        String createdId = taskRepository.findAll().stream()
+                .filter(t -> t.getTitle().equals("Gone Soon")).findFirst().orElseThrow().getId();
+
+        mockMvc.perform(put("/api/boards/tasks/" + createdId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"title\":\"Gone Soon\",\"columnId\":\"" + column1Id
+                                + "\",\"clearDueDate\":true}")
+                        .header("Authorization", bearer(ownerId)))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get(calendarUrl(project1Id)).header("Authorization", bearer(ownerId)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isEmpty());
+    }
+
+    @Test
+    void calendarFeed_shouldReturn403_ForNonMember() throws Exception {
+        mockMvc.perform(get(calendarUrl(project1Id)).header("Authorization", bearer(strangerId)))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void calendarFeed_shouldReturn401_WithoutToken() throws Exception {
+        mockMvc.perform(get(calendarUrl(project1Id)))
+                .andExpect(status().isUnauthorized());
+    }
 }

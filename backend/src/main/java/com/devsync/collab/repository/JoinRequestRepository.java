@@ -4,6 +4,7 @@ import com.devsync.collab.entity.JoinRequest;
 import com.devsync.collab.entity.JoinRequestStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -14,6 +15,10 @@ public interface JoinRequestRepository extends JpaRepository<JoinRequest, String
     List<JoinRequest> findByProjectIdAndStatusOrderByCreatedAtDesc(String projectId, JoinRequestStatus status);
 
     Optional<JoinRequest> findByProjectIdAndUserId(String projectId, String userId);
+
+    List<JoinRequest> findByProjectIdInAndUserId(Collection<String> projectIds, String userId);
+
+    List<JoinRequest> findByUserIdOrderByCreatedAtDesc(String userId);
 
     boolean existsByProjectIdAndUserId(String projectId, String userId);
 

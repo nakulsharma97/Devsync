@@ -2,11 +2,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router";
 import { useApi } from "@/hooks/useApi";
 import { useAuth } from "@/contexts/AuthContext";
-import { projectService, type InvitationDto, type ProjectDto } from "@/services/projectService";
+import { projectService, type InvitationDto, type JoinRequestDto, type ProjectDto } from "@/services/projectService";
 import { boardService } from "@/services/boardService";
 import { activityService, type ActivityDto } from "@/services/activityService";
 import { attachmentService, type AttachmentDto } from "@/services/attachmentService";
 import { teamRoomService } from "@/services/teamRoomService";
+import type { TeamRoomDto } from "@/services/roomService";
 import { wsService } from "@/services/websocketService";
 import { formatBytes, timeAgo } from "@/lib/format";
 import { FilePreviewDialog } from "@/components/FilePreviewDialog";
@@ -27,11 +28,19 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   ArrowLeft,
   ArrowUpRight,
+  MoreVertical,
   Activity as ActivityIcon,
   BookOpen,
   Check,
+  Clock,
   ClipboardList,
   FileText,
   FolderKanban,
@@ -45,10 +54,12 @@ import {
   Settings as SettingsIcon,
   Trash2,
   Upload,
+  UserCog,
   UserPlus,
   Users,
   AlertTriangle,
   Archive,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -153,14 +164,15 @@ export default function ProjectWorkspace() {
     );
   }
 
-  // Non-members can view PUBLIC projects but must join before using member
-  // features (board, chat, files…). PRIVATE projects never reach this branch —
-  // the backend rejects them and the error state above handles it.
+  // Non-members can view PUBLIC projects but must request to join — the owner
+  // approves before they can use member features (board, chat, files…). PRIVATE
+  // projects never reach this branch — the backend rejects them and the error
+  // state above handles it.
   if (!isMember) {
     return (
       <PublicProjectJoinView
         project={project}
-        onJoined={() => refetch()}
+        onChanged={() => refetch()}
         onBack={() => navigate("/projects")}
       />
     );
@@ -314,25 +326,63 @@ export default function ProjectWorkspace() {
 
 function PublicProjectJoinView({
   project,
-  onJoined,
+  onChanged,
   onBack,
 }: {
   project: ProjectDto;
-  onJoined: () => void;
+  onChanged: () => void;
   onBack: () => void;
 }) {
-  const [joining, setJoining] = useState(false);
+  const [busy, setBusy] = useState(false);
+  // The backend routes /join-requests/:id by request id, but we only know the
+  // project id here — when a request is pending, fetch its id so cancellation
+  // works. Kept local so this view does not fire extra API calls on every render.
+  const [pendingRequestId, setPendingRequestId] = useState<string | null>(null);
+  const pending = project.currentUserJoinRequestStatus === "PENDING";
 
-  const handleJoin = async () => {
-    setJoining(true);
+  useEffect(() => {
+    if (!pending) {
+      setPendingRequestId(null);
+      return;
+    }
+    let cancelled = false;
+    projectService
+      .getMyJoinRequestsForProject(project.id)
+      .then((list) => {
+        if (!cancelled) setPendingRequestId(list.find((r) => r.status === "PENDING")?.id ?? null);
+      })
+      .catch(() => {
+        if (!cancelled) setPendingRequestId(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [pending, project.id]);
+
+  const handleRequestJoin = async () => {
+    setBusy(true);
     try {
-      await projectService.joinProject(project.id);
-      toast(`You joined ${project.name}`);
-      onJoined();
+      await projectService.requestJoin(project.id);
+      toast(`Join request sent to the owner of ${project.name}`);
+      onChanged();
     } catch (err: unknown) {
-      toast(getErrorMessage(err, "Failed to join project"));
+      toast(getErrorMessage(err, "Failed to request to join"));
     } finally {
-      setJoining(false);
+      setBusy(false);
+    }
+  };
+
+  const handleCancelRequest = async () => {
+    if (!pendingRequestId) return;
+    setBusy(true);
+    try {
+      await projectService.cancelJoinRequest(pendingRequestId);
+      toast("Join request cancelled");
+      onChanged();
+    } catch (err: unknown) {
+      toast(getErrorMessage(err, "Failed to cancel request"));
+    } finally {
+      setBusy(false);
     }
   };
 
@@ -386,22 +436,49 @@ function PublicProjectJoinView({
         </div>
 
         <div className="mt-6 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-          <Button
-            onClick={handleJoin}
-            disabled={joining}
-            className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white hover:from-indigo-600 hover:to-purple-700 shadow-lg shadow-indigo-500/20"
-          >
-            {joining ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <UserPlus className="w-4 h-4 mr-1.5" />
-            )}
-            {joining ? "Joining…" : "Join Project"}
-          </Button>
-          <p className="text-[11px] text-muted-foreground/70 sm:max-w-xs">
-            Joining makes you a member — you'll get access to the board, team chat,
-            files and docs.
-          </p>
+          {pending ? (
+            <>
+              <Button
+                disabled
+                className="inline-flex items-center gap-2 text-xs border border-amber-500/30 bg-amber-500/[0.08] text-amber-600 dark:text-amber-400 shadow-sm"
+              >
+                <Clock className="w-4 h-4" />
+                Request Pending
+              </Button>
+              <Button
+                variant="outline"
+                disabled={busy || !pendingRequestId}
+                onClick={handleCancelRequest}
+                className="text-xs"
+              >
+                {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <X className="w-4 h-4 mr-1" />}
+                Cancel Request
+              </Button>
+              <p className="text-[11px] text-muted-foreground/70 sm:max-w-xs">
+                The owner hasn&apos;t reviewed your request yet. You&apos;ll get a
+                notification once it&apos;s accepted or declined.
+              </p>
+            </>
+          ) : (
+            <>
+              <Button
+                onClick={handleRequestJoin}
+                disabled={busy}
+                className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white hover:from-indigo-600 hover:to-purple-700 shadow-lg shadow-indigo-500/20"
+              >
+                {busy ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <UserPlus className="w-4 h-4 mr-1.5" />
+                )}
+                {busy ? "Sending…" : "Request to Join"}
+              </Button>
+              <p className="text-[11px] text-muted-foreground/70 sm:max-w-xs">
+                Send a join request — the owner approves it before you get access
+                to the board, team chat, files and docs.
+              </p>
+            </>
+          )}
         </div>
       </div>
 
@@ -654,7 +731,7 @@ function TasksTab({ projectId }: { projectId: string }) {
 // ── Team Chat ──────────────────────────────────────────────
 
 function ChatTab({ project }: { project: ProjectDto }) {
-  const [roomId, setRoomId] = useState<string | null>(null);
+  const [room, setRoom] = useState<TeamRoomDto | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -662,8 +739,8 @@ function ChatTab({ project }: { project: ProjectDto }) {
     setLoading(true);
     setError(null);
     try {
-      const room = await teamRoomService.getOrCreateProjectRoom(project.id);
-      setRoomId(room.id);
+      const next = await teamRoomService.getOrCreateProjectRoom(project.id);
+      setRoom(next);
     } catch (err: unknown) {
       setError(getHttpErrorMessage(err, "Unable to load team chat. Please try again."));
     } finally {
@@ -683,7 +760,7 @@ function ChatTab({ project }: { project: ProjectDto }) {
     );
   }
 
-  if (error || !roomId) {
+  if (error || !room) {
     return (
       <div className="text-center py-12 rounded-xl border border-border/40 bg-card">
         <MessageSquare className="w-8 h-8 text-muted-foreground/40 mx-auto mb-3" />
@@ -695,7 +772,7 @@ function ChatTab({ project }: { project: ProjectDto }) {
     );
   }
 
-  return <ProjectChat roomId={roomId} />;
+  return <ProjectChat room={room} />;
 }
 
 // ── Files ──────────────────────────────────────────────────
@@ -1025,12 +1102,51 @@ function MembersTab({
     () => (canManage ? projectService.getProjectInvitations(project.id) : Promise.resolve([])),
     [project.id, canManage]
   );
+  const { data: joinRequests, loading: requestsLoading, refetch: refetchRequests } = useApi(
+    () => (canManage ? projectService.getProjectJoinRequests(project.id) : Promise.resolve([])),
+    [project.id, canManage]
+  );
   const [removingId, setRemovingId] = useState<string | null>(null);
   const [removingName, setRemovingName] = useState("");
+  const [removingUsername, setRemovingUsername] = useState("");
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [busyRequestId, setBusyRequestId] = useState<string | null>(null);
+  const [transferOpen, setTransferOpen] = useState(false);
+  const [transferTargetId, setTransferTargetId] = useState<string | null>(null);
+  const [transferBusy, setTransferBusy] = useState(false);
+
+  // Removal and ownership transfer are owner-only operations (the backend
+  // enforces this too) — admins can invite and manage requests but not these.
+  const isOwner = project.ownerId === user?.id;
 
   const pendingInvites = (invitations ?? []).filter((i) => i.status === "PENDING");
+  const pendingRequests = (joinRequests ?? []).filter((r) => r.status === "PENDING");
+
+  const handleRequestDecision = async (request: JoinRequestDto, accept: boolean) => {
+    setBusyRequestId(request.id);
+    try {
+      if (accept) {
+        await projectService.approveJoinRequest(request.id);
+        toast(`${request.userName} joined the project`);
+      } else {
+        await projectService.rejectJoinRequest(request.id);
+        toast("Join request declined");
+      }
+      refetchRequests();
+      // Refresh members + project so the accepted user appears immediately.
+      onChange();
+    } catch (err: unknown) {
+      toast(
+        getErrorMessage(
+          err,
+          accept ? "Failed to approve request" : "Failed to decline request"
+        )
+      );
+    } finally {
+      setBusyRequestId(null);
+    }
+  };
 
   const handleRemove = async () => {
     if (!removingId) return;
@@ -1047,18 +1163,25 @@ function MembersTab({
     }
   };
 
-  const handleRoleChange = async (memberUserId: string, role: string) => {
-    setBusyId(memberUserId);
+  const handleTransfer = async () => {
+    if (!transferTargetId) return;
+    setTransferBusy(true);
     try {
-      await projectService.updateMemberRole(project.id, memberUserId, role);
-      toast("Role updated");
+      await projectService.transferOwnership(project.id, transferTargetId);
+      toast("Project ownership transferred");
+      setTransferOpen(false);
+      setTransferTargetId(null);
       onChange();
     } catch (err: unknown) {
-      toast(getErrorMessage(err, "Failed to update role"));
+      toast(getErrorMessage(err, "Failed to transfer ownership"));
     } finally {
-      setBusyId(null);
+      setTransferBusy(false);
     }
   };
+
+  // The transfer modal names the chosen member (@username).
+  const transferTarget = project.members.find((m) => m.userId === transferTargetId);
+  const transferTargetUsername = transferTarget?.username ?? transferTarget?.fullName ?? "this member";
 
   const handleCancelInvite = async (invitation: InvitationDto) => {
     try {
@@ -1071,7 +1194,88 @@ function MembersTab({
   };
 
   return (
-    <div className="grid lg:grid-cols-2 gap-4">
+    <div className="space-y-4">
+      {/* Pending join requests — only owners/admins can see and manage these */}
+      {canManage && (
+        <div className="rounded-xl border border-border/40 bg-card">
+          <div className="p-4 border-b border-border/40">
+            <h3 className="text-sm font-semibold flex items-center gap-2">
+              <UserPlus className="w-4 h-4 text-indigo-400" />
+              Pending Join Requests
+              {!requestsLoading && pendingRequests.length > 0 && (
+                <span className="text-[10px] font-medium text-indigo-500 bg-indigo-500/10 rounded-full px-1.5 py-0.5">
+                  {pendingRequests.length}
+                </span>
+              )}
+            </h3>
+          </div>
+          <div className="p-2">
+            {requestsLoading ? (
+              <div className="space-y-2 p-2">
+                {Array.from({ length: 2 }).map((_, i) => (
+                  <div key={i} className="h-11 bg-muted/40 rounded-lg animate-pulse" />
+                ))}
+              </div>
+            ) : pendingRequests.length === 0 ? (
+              <p className="text-center text-sm text-muted-foreground py-8">
+                No pending join requests
+              </p>
+            ) : (
+              <div className="space-y-1">
+                {pendingRequests.map((req) => (
+                  <div
+                    key={req.id}
+                    className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-accent/5"
+                  >
+                    <div className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-500/20 to-purple-500/20 flex items-center justify-center shrink-0 overflow-hidden">
+                      {req.userAvatar ? (
+                        <img src={req.userAvatar} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="text-xs font-bold text-indigo-400">
+                          {req.userName?.charAt(0) || "?"}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{req.userName}</p>
+                      <p className="text-[11px] text-muted-foreground truncate">
+                        {req.createdAt ? `Requested ${timeAgo(req.createdAt, "")}` : "Requested recently"}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <Button
+                        size="sm"
+                        disabled={busyRequestId === req.id}
+                        onClick={() => handleRequestDecision(req, true)}
+                        className="text-xs"
+                      >
+                        {busyRequestId === req.id ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <Check className="w-3.5 h-3.5 mr-1" />
+                        )}
+                        Accept
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={busyRequestId === req.id}
+                        onClick={() => handleRequestDecision(req, false)}
+                        className="text-xs"
+                      >
+                        <X className="w-3.5 h-3.5 mr-1" />
+                        Reject
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      <div className="grid lg:grid-cols-2 gap-4">
       {/* Members */}
       <div className="rounded-xl border border-border/40 bg-card">
         <div className="flex items-center justify-between p-4 border-b border-border/40">
@@ -1106,46 +1310,64 @@ function MembersTab({
                     {m.fullName} {isSelf && <span className="text-muted-foreground text-xs">(you)</span>}
                   </p>
                   <p className="text-[11px] text-muted-foreground truncate">@{m.username ?? "member"}</p>
+                  {m.joinedAt && (
+                    <p className="text-[10px] text-muted-foreground/60 truncate">
+                      Joined {timeAgo(m.joinedAt, "")}
+                    </p>
+                  )}
                 </div>
 
-                {canManage && !isOwnerRow ? (
-                  <select
-                    value={m.role}
-                    disabled={busyId === m.userId}
-                    onChange={(e) => handleRoleChange(m.userId, e.target.value)}
-                    aria-label={`Change role for ${m.fullName}`}
-                    className="h-8 text-xs bg-muted/30 border border-border/40 rounded-lg px-2 focus:outline-none focus:border-indigo-500/50"
-                  >
-                    <option value="MEMBER">Member</option>
-                    <option value="ADMIN">Admin</option>
-                  </select>
-                ) : (
-                  <span
-                    className={cn(
-                      "text-[9px] font-semibold uppercase tracking-wide px-2 py-1 rounded-full shrink-0",
-                      isOwnerRow
-                        ? "bg-amber-500/10 text-amber-600 dark:text-amber-400"
-                        : m.role === "ADMIN"
-                          ? "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400"
-                          : "bg-muted/60 text-muted-foreground"
-                    )}
-                  >
-                    {m.role}
-                  </span>
-                )}
+                {/* Role badge — always shown */}
+                <span
+                  className={cn(
+                    "text-[9px] font-semibold uppercase tracking-wide px-2 py-1 rounded-full shrink-0",
+                    isOwnerRow
+                      ? "bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                      : m.role === "ADMIN"
+                        ? "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400"
+                        : "bg-muted/60 text-muted-foreground"
+                  )}
+                >
+                  {m.role}
+                </span>
 
-                {canManage && !isOwnerRow && (
-                  <button
-                    onClick={() => {
-                      setRemovingId(m.userId);
-                      setRemovingName(m.fullName);
-                      setConfirmOpen(true);
-                    }}
-                    aria-label={`Remove ${m.fullName}`}
-                    className="p-1.5 rounded-lg text-muted-foreground hover:text-red-500 hover:bg-red-500/10 transition-colors shrink-0"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                {/* Owner-only actions — a 3-dot menu on every non-owner member row.
+                    The owner's own row has no menu (cannot remove / transfer to self). */}
+                {isOwner && !isOwnerRow && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button
+                        aria-label="Member actions"
+                        title="Member actions"
+                        className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent/10 transition-colors shrink-0"
+                      >
+                        <MoreVertical className="w-4 h-4" />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem
+                        variant="destructive"
+                        onClick={() => {
+                          setRemovingId(m.userId);
+                          setRemovingName(m.fullName);
+                          setRemovingUsername(m.username ?? m.fullName);
+                          setConfirmOpen(true);
+                        }}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                        Remove from Project
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => {
+                          setTransferTargetId(m.userId);
+                          setTransferOpen(true);
+                        }}
+                      >
+                        <UserCog className="w-4 h-4" />
+                        Promote to Owner
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 )}
               </div>
             );
@@ -1204,10 +1426,9 @@ function MembersTab({
       <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Remove {removingName}?</AlertDialogTitle>
+            <AlertDialogTitle>Remove member?</AlertDialogTitle>
             <AlertDialogDescription>
-              They will lose access to this project immediately. Their historical
-              activity and messages are preserved.
+              Are you sure you want to remove @{removingUsername} from this project?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -1217,11 +1438,35 @@ function MembersTab({
               disabled={busyId === removingId}
               className="bg-red-600 hover:bg-red-700 text-white"
             >
-              {busyId === removingId ? <Loader2 className="w-4 h-4 animate-spin" /> : "Remove"}
+              {busyId === removingId ? <Loader2 className="w-4 h-4 animate-spin" /> : "Remove Member"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Transfer ownership — the target member was picked from the 3-dot menu */}
+      <AlertDialog open={transferOpen} onOpenChange={setTransferOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Transfer project ownership?</AlertDialogTitle>
+            <AlertDialogDescription>
+              @{transferTargetUsername} will become the new project owner. You
+              will lose owner permissions.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleTransfer}
+              disabled={transferBusy || !transferTargetId}
+              className="bg-amber-600 hover:bg-amber-700 text-white"
+            >
+              {transferBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : "Transfer Ownership"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      </div>
     </div>
   );
 }
@@ -1244,6 +1489,7 @@ const ACTIVITY_LABELS: Record<string, { label: string; tone: string }> = {
   INVITATION_SENT: { label: "Invitation sent", tone: "text-indigo-500" },
   INVITATION_ACCEPTED: { label: "Invitation accepted", tone: "text-emerald-500" },
   MEMBER_ROLE_CHANGED: { label: "Role changed", tone: "text-amber-500" },
+  OWNERSHIP_TRANSFERRED: { label: "Ownership transferred", tone: "text-amber-500" },
   MESSAGE_SENT: { label: "Message sent", tone: "text-blue-500" },
   FILE_UPLOADED: { label: "File uploaded", tone: "text-purple-500" },
   REPORT_RESOLVED: { label: "Report resolved", tone: "text-emerald-500" },

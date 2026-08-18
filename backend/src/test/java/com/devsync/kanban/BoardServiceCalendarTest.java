@@ -4,6 +4,7 @@ import com.devsync.activity.ActivityService;
 import com.devsync.notification.NotificationService;
 import com.devsync.kanban.dto.BoardResponse;
 import com.devsync.kanban.entity.Board;
+import com.devsync.kanban.entity.BoardColumn;
 import com.devsync.kanban.entity.Task;
 import com.devsync.kanban.repository.BoardColumnRepository;
 import com.devsync.kanban.repository.BoardRepository;
@@ -23,6 +24,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -41,6 +43,9 @@ class BoardServiceCalendarTest {
     @Mock private ProjectMemberRepository projectMemberRepository;
     @Mock private ActivityService activityService;
     @Mock private NotificationService notificationService;
+    @Mock private com.devsync.github.GitHubClient githubClient;
+    @Mock private com.devsync.github.GitHubIntegrationService githubIntegrationService;
+    @Mock private com.devsync.github.repository.ProjectGitHubLinkRepository githubLinkRepository;
 
     private BoardService boardService;
 
@@ -52,7 +57,7 @@ class BoardServiceCalendarTest {
         boardService = new BoardService(boardRepository, columnRepository, taskRepository,
                 dependencyRepository,
                 userRepository, projectRepository, projectMemberRepository, activityService,
-                notificationService);
+                notificationService, githubClient, githubIntegrationService, githubLinkRepository);
         from = Instant.parse("2026-06-01T00:00:00Z");
         to = Instant.parse("2026-06-30T23:59:59Z");
     }
@@ -147,6 +152,63 @@ class BoardServiceCalendarTest {
         assertThatThrownBy(() -> boardService.getCalendarTasks(from, farTo, "u1"))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("max 366");
+    }
+
+    // ── Project-scoped calendar ────────────────────────────────────────────
+
+    @Test
+    void getProjectCalendarTasks_shouldReturnTasksOnlyFromThatProject_WithColumnName() {
+        Project project = project("p1"); // owned by u1 → canViewProject
+        Board board = Board.builder().name("B").projectId("p1").createdBy("u1").build();
+        board.setId("b1");
+        when(projectRepository.findById("p1")).thenReturn(Optional.of(project));
+        when(boardRepository.findByProjectId("p1")).thenReturn(List.of(board));
+
+        Task due = task("t1", "b1", Instant.parse("2026-06-15T10:00:00Z"));
+        when(taskRepository.findByDueDateBetweenAndBoardIdInOrderByDueDateAsc(from, to, List.of("b1")))
+                .thenReturn(List.of(due));
+        BoardColumn col = BoardColumn.builder().name("In Progress").build();
+        col.setId("col");
+        when(columnRepository.findAllById(Set.of("col"))).thenReturn(List.of(col));
+
+        List<BoardResponse.TaskDto> result = boardService.getProjectCalendarTasks("p1", from, to, "u1");
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getId()).isEqualTo("t1");
+        assertThat(result.get(0).getColumnName()).isEqualTo("In Progress");
+        // Only p1's board was queried — tasks from other projects cannot leak in.
+        verify(taskRepository).findByDueDateBetweenAndBoardIdInOrderByDueDateAsc(from, to, List.of("b1"));
+    }
+
+    @Test
+    void getProjectCalendarTasks_shouldReject_NonMember() {
+        Project project = project("p2");
+        project.setOwnerId("u2"); // owned by someone else
+        when(projectRepository.findById("p2")).thenReturn(Optional.of(project));
+        when(projectMemberRepository.existsByProjectIdAndUserId("p2", "u1")).thenReturn(false);
+
+        assertThatThrownBy(() -> boardService.getProjectCalendarTasks("p2", from, to, "u1"))
+                .isInstanceOf(org.springframework.security.access.AccessDeniedException.class)
+                .hasMessageContaining("not a member");
+        verify(taskRepository, never()).findByDueDateBetweenAndBoardIdInOrderByDueDateAsc(any(), any(), any());
+    }
+
+    @Test
+    void getProjectCalendarTasks_shouldReturnEmpty_WhenProjectHasNoBoards() {
+        when(projectRepository.findById("p1")).thenReturn(Optional.of(project("p1")));
+        when(boardRepository.findByProjectId("p1")).thenReturn(List.of());
+
+        List<BoardResponse.TaskDto> result = boardService.getProjectCalendarTasks("p1", from, to, "u1");
+
+        assertThat(result).isEmpty();
+        verify(taskRepository, never()).findByDueDateBetweenAndBoardIdInOrderByDueDateAsc(any(), any(), any());
+    }
+
+    @Test
+    void getProjectCalendarTasks_shouldReject_InvalidWindow() {
+        assertThatThrownBy(() -> boardService.getProjectCalendarTasks("p1", to, from, "u1"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("after");
     }
 
     private User user(String id, String role) {

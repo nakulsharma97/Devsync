@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { MemoryRouter } from "react-router";
 import Feed from "./Feed";
 import type { PostDto, CommentDto } from "@/services/postService";
 
@@ -8,10 +9,15 @@ const mocks = vi.hoisted(() => ({
   useAuth: vi.fn(),
   getFeed: vi.fn(),
   create: vi.fn(),
+  updatePost: vi.fn(),
+  updatePostImage: vi.fn(),
+  uploadPostImage: vi.fn(),
+  downloadBlob: vi.fn(),
   toggleLike: vi.fn(),
   getComments: vi.fn(),
   addComment: vi.fn(),
   delete: vi.fn(),
+  deleteComment: vi.fn(),
 }));
 
 vi.mock("@/contexts/AuthContext", () => ({
@@ -22,10 +28,20 @@ vi.mock("@/services/postService", () => ({
   postService: {
     getFeed: mocks.getFeed,
     create: mocks.create,
+    updatePost: mocks.updatePost,
+    updatePostImage: mocks.updatePostImage,
     toggleLike: mocks.toggleLike,
     getComments: mocks.getComments,
     addComment: mocks.addComment,
     delete: mocks.delete,
+    deleteComment: mocks.deleteComment,
+  },
+}));
+
+vi.mock("@/services/attachmentService", () => ({
+  attachmentService: {
+    uploadPostImage: mocks.uploadPostImage,
+    downloadBlob: mocks.downloadBlob,
   },
 }));
 
@@ -92,6 +108,18 @@ function mockUser() {
   });
 }
 
+function imageFile(name = "photo.png", type = "image/png"): File {
+  return new File(["fake-image-bytes"], name, { type });
+}
+
+function renderFeed() {
+  return render(
+    <MemoryRouter>
+      <Feed />
+    </MemoryRouter>
+  );
+}
+
 describe("Feed", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -112,7 +140,7 @@ describe("Feed", () => {
       last: true,
     });
 
-    render(<Feed />);
+    renderFeed();
 
     expect(await screen.findByText("First post")).toBeInTheDocument();
     expect(screen.getByText("Second post")).toBeInTheDocument();
@@ -124,7 +152,7 @@ describe("Feed", () => {
   it("shows the empty state when the feed has no posts", async () => {
     mocks.getFeed.mockResolvedValue({ content: [], totalPages: 0, last: true });
 
-    render(<Feed />);
+    renderFeed();
 
     expect(await screen.findByText("No posts yet")).toBeInTheDocument();
     expect(
@@ -141,7 +169,7 @@ describe("Feed", () => {
     mocks.toggleLike.mockResolvedValue({ liked: true, count: 1 });
     const user = userEvent.setup();
 
-    render(<Feed />);
+    renderFeed();
     await screen.findByText("Hello world");
 
     await user.click(screen.getByRole("button", { name: "Like post" }));
@@ -151,12 +179,12 @@ describe("Feed", () => {
     await waitFor(() => expect(screen.getByText("1")).toBeInTheDocument());
   });
 
-  it("creates a post and prepends it to the feed", async () => {
+  it("creates a text-only post and prepends it to the feed", async () => {
     mocks.getFeed.mockResolvedValue({ content: [], totalPages: 0, last: true });
     mocks.create.mockResolvedValue(postFixture({ id: "p9", content: "New update" }));
     const user = userEvent.setup();
 
-    render(<Feed />);
+    renderFeed();
     await screen.findByText("No posts yet");
 
     await user.type(
@@ -166,45 +194,146 @@ describe("Feed", () => {
     await user.click(screen.getByRole("button", { name: "Post" }));
 
     await waitFor(() =>
-      expect(mocks.create).toHaveBeenCalledWith({
-        content: "New update",
-        imageUrl: undefined,
-      })
+      expect(mocks.create).toHaveBeenCalledWith({ content: "New update" })
     );
     expect(await screen.findByText("New update")).toBeInTheDocument();
   });
 
-  it("submits an image URL with a post", async () => {
+  it("rejects an unsupported image type with a clear error", async () => {
     mocks.getFeed.mockResolvedValue({ content: [], totalPages: 0, last: true });
-    mocks.create.mockResolvedValue(
-      postFixture({ id: "p10", content: "With image", imageUrl: "https://example.com/img.png" })
-    );
     const user = userEvent.setup();
 
-    render(<Feed />);
+    renderFeed();
     await screen.findByText("No posts yet");
 
-    await user.type(screen.getByPlaceholderText(/share something/i), "With image");
-    await user.click(screen.getByRole("button", { name: "Image" }));
+    // The <input> carries an accept="image/..." filter, so userEvent.upload
+    // would silently drop a .txt file — dispatch the change directly.
+    const input = document.getElementById("feed-image-input") as HTMLInputElement;
+    fireEvent.change(input, { target: { files: [imageFile("notes.txt", "text/plain")] } });
+
+    expect(
+      await screen.findByText(/unsupported image type/i)
+    ).toBeInTheDocument();
+  });
+
+  it("rejects an oversized image with a clear error", async () => {
+    mocks.getFeed.mockResolvedValue({ content: [], totalPages: 0, last: true });
+    const user = userEvent.setup();
+
+    renderFeed();
+    await screen.findByText("No posts yet");
+
+    const big = imageFile("big.png", "image/png");
+    Object.defineProperty(big, "size", { value: 11 * 1024 * 1024 });
+
+    const input = document.getElementById("feed-image-input") as HTMLInputElement;
+    fireEvent.change(input, { target: { files: [big] } });
+
+    expect(await screen.findByText(/image is too large/i)).toBeInTheDocument();
+  });
+
+  it("uploads a selected image, attaches it to the post and shows it in the feed", async () => {
+    mocks.getFeed.mockResolvedValue({ content: [], totalPages: 0, last: true });
+    mocks.create.mockResolvedValue(postFixture({ id: "p9", content: "With image" }));
+    mocks.uploadPostImage.mockResolvedValue({
+      id: "att-1",
+      url: "/api/attachments/att-1/download",
+    });
+    mocks.updatePostImage.mockResolvedValue(
+      postFixture({
+        id: "p9",
+        content: "With image",
+        imageUrl: "/api/attachments/att-1/download",
+      })
+    );
+    // Attachment URLs need an authenticated blob fetch; fail it in the test so
+    // the card falls back to the "failed to load" placeholder (still verifies
+    // the image was wired up).
+    mocks.downloadBlob.mockRejectedValue(new Error("no network"));
+    const user = userEvent.setup();
+
+    renderFeed();
+    await screen.findByText("No posts yet");
+
     await user.type(
-      screen.getByPlaceholderText(/paste image url/i),
-      "https://example.com/img.png"
+      screen.getByPlaceholderText(/share something/i),
+      "With image"
+    );
+    const input = document.getElementById("feed-image-input") as HTMLInputElement;
+    await user.upload(input, imageFile());
+
+    // Preview appears
+    expect(
+      await screen.findByAltText(/selected image preview/i)
+    ).toBeInTheDocument();
+
+    // Replace / Remove buttons are offered
+    expect(
+      screen.getByRole("button", { name: /replace selected image/i })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /remove selected image/i })
+    ).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Post" }));
+
+    await waitFor(() => expect(mocks.create).toHaveBeenCalledTimes(1));
+    await waitFor(() =>
+      expect(mocks.uploadPostImage).toHaveBeenCalledWith(
+        expect.any(File),
+        "p9",
+        expect.any(Function)
+      )
+    );
+    await waitFor(() =>
+      expect(mocks.updatePostImage).toHaveBeenCalledWith(
+        "p9",
+        "/api/attachments/att-1/download"
+      )
+    );
+    expect(await screen.findByText("With image")).toBeInTheDocument();
+  });
+
+  it("lets the user remove the selected image before posting", async () => {
+    mocks.getFeed.mockResolvedValue({ content: [], totalPages: 0, last: true });
+    mocks.create.mockResolvedValue(postFixture({ id: "p9", content: "Text only" }));
+    const user = userEvent.setup();
+
+    renderFeed();
+    await screen.findByText("No posts yet");
+
+    const input = document.getElementById("feed-image-input") as HTMLInputElement;
+    await user.upload(input, imageFile());
+
+    expect(
+      await screen.findByAltText(/selected image preview/i)
+    ).toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole("button", { name: /remove selected image/i })
+    );
+
+    expect(
+      screen.queryByAltText(/selected image preview/i)
+    ).not.toBeInTheDocument();
+
+    await user.type(
+      screen.getByPlaceholderText(/share something/i),
+      "Text only"
     );
     await user.click(screen.getByRole("button", { name: "Post" }));
 
     await waitFor(() =>
-      expect(mocks.create).toHaveBeenCalledWith({
-        content: "With image",
-        imageUrl: "https://example.com/img.png",
-      })
+      expect(mocks.create).toHaveBeenCalledWith({ content: "Text only" })
     );
+    expect(mocks.uploadPostImage).not.toHaveBeenCalled();
   });
 
   it("inserts emoji from the picker into the composer", async () => {
     mocks.getFeed.mockResolvedValue({ content: [], totalPages: 0, last: true });
     const user = userEvent.setup();
 
-    render(<Feed />);
+    renderFeed();
     await screen.findByText("No posts yet");
 
     await user.click(screen.getByTitle("Add emoji"));
@@ -232,7 +361,7 @@ describe("Feed", () => {
     );
     const user = userEvent.setup();
 
-    render(<Feed />);
+    renderFeed();
     await screen.findByText("Hello world");
 
     // Open comments
@@ -251,5 +380,198 @@ describe("Feed", () => {
       expect(mocks.addComment).toHaveBeenCalledWith("p1", { content: "Thanks!" })
     );
     expect(await screen.findByText("Thanks!")).toBeInTheDocument();
+  });
+
+  it("shows the Post actions menu only on the user's own posts", async () => {
+    mocks.getFeed.mockResolvedValue({
+      content: [
+        postFixture({ id: "p1", content: "Mine" }),
+        postFixture({
+          id: "p2",
+          content: "Theirs",
+          user: { id: "u2", fullName: "Ada Lovelace", avatarUrl: null, username: "ada" },
+        }),
+      ],
+      totalPages: 1,
+      last: true,
+    });
+    const user = userEvent.setup();
+
+    renderFeed();
+    await screen.findByText("Mine");
+
+    // Own post: menu present. Other user's post: no menu.
+    const menus = screen.getAllByRole("button", { name: "Post actions" });
+    expect(menus).toHaveLength(1);
+    expect(screen.queryByRole("button", { name: /delete/i })).not.toBeInTheDocument();
+
+    await user.click(menus[0]);
+    expect(screen.getByRole("menuitem", { name: /edit/i })).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: /delete/i })).toBeInTheDocument();
+  });
+
+  it("edits the user's own post and updates it in place", async () => {
+    mocks.getFeed.mockResolvedValue({
+      content: [postFixture({ id: "p1", content: "Original text" })],
+      totalPages: 1,
+      last: true,
+    });
+    mocks.updatePost.mockResolvedValue(
+      postFixture({
+        id: "p1",
+        content: "Edited text",
+        updatedAt: "2026-08-01T01:00:00Z",
+      })
+    );
+    const user = userEvent.setup();
+
+    renderFeed();
+    await screen.findByText("Original text");
+
+    await user.click(screen.getByRole("button", { name: "Post actions" }));
+    await user.click(screen.getByRole("menuitem", { name: /edit/i }));
+
+    // Dialog opens with the existing content.
+    const editor = screen.getByRole("textbox", {
+      name: "Edit post content",
+    }) as HTMLTextAreaElement;
+    expect(editor.value).toBe("Original text");
+
+    await user.clear(editor);
+    await user.type(editor, "Edited text");
+    await user.click(screen.getByRole("button", { name: /save changes/i }));
+
+    await waitFor(() =>
+      expect(mocks.updatePost).toHaveBeenCalledWith("p1", { content: "Edited text" })
+    );
+    expect(await screen.findByText("Edited text")).toBeInTheDocument();
+    // Edited indicator shows; post id preserved (no duplicate).
+    expect(screen.getByText("· Edited")).toBeInTheDocument();
+    expect(screen.getAllByText(/edited text/i)).toHaveLength(1);
+  });
+
+  it("cancel closes the edit dialog without saving", async () => {
+    mocks.getFeed.mockResolvedValue({
+      content: [postFixture({ id: "p1", content: "Original text" })],
+      totalPages: 1,
+      last: true,
+    });
+    const user = userEvent.setup();
+
+    renderFeed();
+    await screen.findByText("Original text");
+
+    await user.click(screen.getByRole("button", { name: "Post actions" }));
+    await user.click(screen.getByRole("menuitem", { name: /edit/i }));
+    await user.click(screen.getByRole("button", { name: /cancel/i }));
+
+    expect(mocks.updatePost).not.toHaveBeenCalled();
+    expect(
+      screen.queryByRole("textbox", { name: "Edit post content" })
+    ).not.toBeInTheDocument();
+  });
+
+  it("deletes the user's own post after confirmation", async () => {
+    mocks.getFeed.mockResolvedValue({
+      content: [postFixture({ id: "p1", content: "Doomed post" })],
+      totalPages: 1,
+      last: true,
+    });
+    mocks.delete.mockResolvedValue(undefined);
+    const user = userEvent.setup();
+
+    renderFeed();
+    await screen.findByText("Doomed post");
+
+    await user.click(screen.getByRole("button", { name: "Post actions" }));
+    await user.click(screen.getByRole("menuitem", { name: /delete/i }));
+
+    // Confirmation modal copy.
+    expect(screen.getByText("Delete post?")).toBeInTheDocument();
+    expect(screen.getByText("This action cannot be undone.")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Delete" }));
+
+    await waitFor(() => expect(mocks.delete).toHaveBeenCalledWith("p1"));
+    await waitFor(() =>
+      expect(screen.queryByText("Doomed post")).not.toBeInTheDocument()
+    );
+  });
+
+  it("cancel closes the delete confirmation without deleting", async () => {
+    mocks.getFeed.mockResolvedValue({
+      content: [postFixture({ id: "p1", content: "Safe post" })],
+      totalPages: 1,
+      last: true,
+    });
+    const user = userEvent.setup();
+
+    renderFeed();
+    await screen.findByText("Safe post");
+
+    await user.click(screen.getByRole("button", { name: "Post actions" }));
+    await user.click(screen.getByRole("menuitem", { name: /delete/i }));
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+
+    expect(mocks.delete).not.toHaveBeenCalled();
+    expect(screen.getByText("Safe post")).toBeInTheDocument();
+  });
+
+  it("post owner sees a delete option on other users' comments", async () => {
+    mocks.getFeed.mockResolvedValue({
+      content: [postFixture({ id: "p1", commentCount: 1 })],
+      totalPages: 1,
+      last: true,
+    });
+    mocks.getComments.mockResolvedValue([commentFixture()]); // by u2 (Ada)
+    mocks.deleteComment.mockResolvedValue(undefined);
+    const user = userEvent.setup();
+
+    renderFeed();
+    await screen.findByText("Hello world");
+
+    await user.click(screen.getByRole("button", { name: "Toggle comments" }));
+    expect(await screen.findByText("Nice work!")).toBeInTheDocument();
+
+    // u1 owns the post, so u1 may delete u2's comment.
+    const deleteButtons = screen.getAllByRole("button", { name: "Delete comment" });
+    expect(deleteButtons).toHaveLength(1);
+
+    await user.click(deleteButtons[0]);
+    expect(screen.getByText("Delete comment?")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Delete" }));
+
+    await waitFor(() => expect(mocks.deleteComment).toHaveBeenCalledWith("c1"));
+    await waitFor(() =>
+      expect(screen.queryByText("Nice work!")).not.toBeInTheDocument()
+    );
+  });
+
+  it("does not show a comment delete option to an unrelated user", async () => {
+    mocks.getFeed.mockResolvedValue({
+      content: [
+        postFixture({
+          id: "p2",
+          content: "Someone else's post",
+          user: { id: "u2", fullName: "Ada Lovelace", avatarUrl: null, username: "ada" },
+          commentCount: 1,
+        }),
+      ],
+      totalPages: 1,
+      last: true,
+    });
+    mocks.getComments.mockResolvedValue([commentFixture()]); // by u2 (Ada)
+    const user = userEvent.setup();
+
+    renderFeed();
+    await screen.findByText("Someone else's post");
+
+    await user.click(screen.getByRole("button", { name: "Toggle comments" }));
+    expect(await screen.findByText("Nice work!")).toBeInTheDocument();
+
+    // u1 is neither the comment author (u2) nor the post owner (u2).
+    expect(
+      screen.queryByRole("button", { name: "Delete comment" })
+    ).not.toBeInTheDocument();
   });
 });

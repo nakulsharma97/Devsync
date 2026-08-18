@@ -3,7 +3,13 @@ package com.devsync.github;
 import com.devsync.activity.ActivityService;
 import com.devsync.activity.entity.ActivityType;
 import com.devsync.github.entity.ProjectGitHubLink;
+import com.devsync.github.repository.GitHubConnectionRepository;
 import com.devsync.github.repository.ProjectGitHubLinkRepository;
+import com.devsync.kanban.BoardService;
+import com.devsync.kanban.entity.Board;
+import com.devsync.kanban.entity.Task;
+import com.devsync.kanban.repository.BoardRepository;
+import com.devsync.kanban.repository.TaskRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -34,6 +40,10 @@ public class GitHubWebhookService {
 
     private final ProjectGitHubLinkRepository linkRepository;
     private final ActivityService activityService;
+    private final TaskRepository taskRepository;
+    private final BoardRepository boardRepository;
+    private final GitHubConnectionRepository connectionRepository;
+    private final BoardService boardService;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Value("${app.github.webhook-secret:}")
@@ -68,11 +78,105 @@ public class GitHubWebhookService {
             JsonNode body = objectMapper.readTree(payload);
             if ("push".equals(eventType)) {
                 handlePush(body);
+            } else if ("pull_request".equals(eventType)) {
+                handlePullRequestEvent(body);
+            } else if ("pull_request_review".equals(eventType)) {
+                handlePullRequestReviewEvent(body);
             }
-            // Other events (issues, pull_request, ...) are acknowledged but not
-            // tracked — push is the only event DevSync consumes today.
+            // Other events (issues, ...) are acknowledged but not tracked.
         } catch (Exception e) {
             log.warn("Failed to process GitHub webhook delivery {}: {}", deliveryId, e.getMessage());
+        }
+    }
+
+    /**
+     * pull_request events: opened / synchronize / closed. Keeps the linked
+     * DevSync task in sync with the real GitHub PR state — a merged PR
+     * completes its task (the completion condition). Unknown actions are
+     * ignored; branches that do not map to a task are skipped.
+     */
+    private void handlePullRequestEvent(JsonNode body) {
+        ProjectGitHubLink link = linkForRepo(body);
+        if (link == null) return;
+        JsonNode pr = body.path("pull_request");
+        String action = body.path("action").asText("");
+        if (!"opened".equals(action) && !"synchronize".equals(action) && !"closed".equals(action)) {
+            return;
+        }
+        String branch = pr.path("head").path("ref").asText(null);
+        Task task = taskForBranch(branch, link);
+        if (task == null) return;
+
+        String authorId = userIdForGithubLogin(pr.path("user").path("login").asText(null));
+        boardService.syncPullRequestFromEvent(task.getId(), new BoardService.PullRequestEvent(
+                action, null, authorId,
+                pr.path("number").asLong(),
+                pr.path("html_url").asText(null),
+                parseDate(pr.path("created_at").asText(null)),
+                parseDate(pr.path("merged_at").asText(null))));
+    }
+
+    /**
+     * pull_request_review events: submitted reviews with an APPROVED or
+     * CHANGES_REQUESTED decision update the task's PR state and notify the
+     * assignee.
+     */
+    private void handlePullRequestReviewEvent(JsonNode body) {
+        ProjectGitHubLink link = linkForRepo(body);
+        if (link == null) return;
+        if (!"submitted".equals(body.path("action").asText(""))) return;
+        JsonNode review = body.path("review");
+        String reviewState = review.path("state").asText("");
+        if (!"approved".equalsIgnoreCase(reviewState) && !"changes_requested".equalsIgnoreCase(reviewState)) {
+            return;
+        }
+        JsonNode pr = body.path("pull_request");
+        Task task = taskForBranch(pr.path("head").path("ref").asText(null), link);
+        if (task == null) return;
+
+        String reviewerId = userIdForGithubLogin(review.path("user").path("login").asText(null));
+        boardService.syncPullRequestFromEvent(task.getId(), new BoardService.PullRequestEvent(
+                "review", reviewState.toUpperCase(), reviewerId,
+                pr.path("number").asLong(),
+                pr.path("html_url").asText(null),
+                parseDate(pr.path("created_at").asText(null)),
+                parseDate(pr.path("merged_at").asText(null))));
+    }
+
+    /** The linked project for this repo, or null when the repo is not linked. */
+    private ProjectGitHubLink linkForRepo(JsonNode body) {
+        String repoFullName = body.path("repository").path("full_name").asText(null);
+        if (repoFullName == null || repoFullName.isBlank()) return null;
+        return linkRepository.findByRepoFullName(repoFullName).orElse(null);
+    }
+
+    /**
+     * Maps a GitHub branch to the DevSync task working on it. The task must
+     * belong to the linked project's board — a branch on a different project's
+     * repo never touches that project's tasks.
+     */
+    private Task taskForBranch(String branch, ProjectGitHubLink link) {
+        if (branch == null || branch.isBlank()) return null;
+        Task task = taskRepository.findByBranchName(branch).orElse(null);
+        if (task == null) return null;
+        Board board = boardRepository.findById(task.getBoardId()).orElse(null);
+        if (board == null || !link.getProjectId().equals(board.getProjectId())) return null;
+        return task;
+    }
+
+    /** Maps a GitHub login to the DevSync user who connected that account. */
+    private String userIdForGithubLogin(String githubLogin) {
+        if (githubLogin == null || githubLogin.isBlank()) return null;
+        return connectionRepository.findByGithubUsername(githubLogin)
+                .map(c -> c.getUserId()).orElse(null);
+    }
+
+    private Instant parseDate(String value) {
+        if (value == null || value.isBlank()) return null;
+        try {
+            return Instant.parse(value);
+        } catch (Exception e) {
+            return null;
         }
     }
 
