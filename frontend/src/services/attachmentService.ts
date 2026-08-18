@@ -52,7 +52,38 @@ export const attachmentService = {
     form.append("contextType", "MESSAGE");
     form.append("contextId", contextId);
     if (projectId) form.append("projectId", projectId);
-    const res = await api.post("/attachments", form);
+    // The api instance defaults to Content-Type: application/json; axios would
+    // JSON-serialize the FormData and the backend would reject it as "not a
+    // multipart request". Override it so FormData passes through untouched
+    // (axios then lets the browser generate the multipart boundary).
+    const res = await api.post("/attachments", form, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    return res.data;
+  },
+
+  /**
+   * Upload an image for a feed post (POST context). The post must already
+   * exist so the backend can verify the uploader is the author; the returned
+   * attachment url is then recorded on the post via updatePostImage.
+   */
+  async uploadPostImage(
+    file: File,
+    postId: string,
+    onProgress?: (percent: number) => void
+  ): Promise<AttachmentDto> {
+    const form = new FormData();
+    form.append("file", file);
+    form.append("contextType", "POST");
+    form.append("contextId", postId);
+    const res = await api.post("/attachments", form, {
+      headers: { "Content-Type": "multipart/form-data" },
+      onUploadProgress: (e) => {
+        if (onProgress && e.total) {
+          onProgress(Math.round((e.loaded / e.total) * 100));
+        }
+      },
+    });
     return res.data;
   },
 

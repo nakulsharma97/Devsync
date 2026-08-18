@@ -44,6 +44,7 @@ const Messages = lazy(() => import("./pages/Messages"));
 const BoardPage = lazy(() => import("./pages/BoardPage"));
 const Profile = lazy(() => import("./pages/Profile"));
 const UserProfilePage = lazy(() => import("./pages/UserProfilePage"));
+const MyPosts = lazy(() => import("./pages/MyPosts"));
 const Settings = lazy(() => import("./pages/Settings"));
 const Billing = lazy(() => import("./pages/Billing"));
 const Notifications = lazy(() => import("./pages/Notifications"));
@@ -90,6 +91,7 @@ function App() {
               <Route path="/messages/:conversationId" element={<Messages />} />
               <Route path="/board/:projectId" element={<BoardPage />} />
               <Route path="/profile" element={<Profile />} />
+              <Route path="/profile/posts" element={<MyPosts />} />
               <Route path="/profile/:username" element={<UserProfilePage />} />
               <Route path="/settings" element={<Settings />} />
               <Route path="/settings/billing" element={<Billing />} />

@@ -7,7 +7,6 @@ import com.devsync.message.repository.MessageRepository;
 import com.devsync.project.ProjectService;
 import com.devsync.project.dto.CreateProjectRequest;
 import com.devsync.teamroom.TeamRoomService;
-import com.devsync.teamroom.dto.CreateRoomRequest;
 import com.devsync.teamroom.entity.TeamRoomParticipant;
 import com.devsync.teamroom.repository.TeamRoomParticipantRepository;
 import com.devsync.teamroom.repository.TeamRoomRepository;
@@ -69,10 +68,9 @@ class MessageReadIntegrationTest {
         req.setVisibility("PRIVATE");
         projectId = projectService.createProject(req, aliceId).getId();
 
-        CreateRoomRequest roomReq = new CreateRoomRequest();
-        roomReq.setName("Squad Chat");
-        roomReq.setProjectId(projectId);
-        roomId = teamRoomService.createRoom(roomReq, aliceId).getId();
+        // Project creation auto-creates the team chat; bob is added directly as
+        // a participant (he is not yet a project member in this fixture).
+        roomId = teamRoomService.getOrCreateProjectRoom(projectId, aliceId).getId();
         participantRepository.save(TeamRoomParticipant.builder()
                 .roomId(roomId).userId(bobId).build());
     }

@@ -533,11 +533,13 @@ export default function AuthPage() {
                 <>
                   <div>
                     <label className="block text-xs font-medium text-white/60 mb-1.5">
-                      Email address
+                      {mode === "login" ? "Email or username" : "Email address"}
                     </label>
                     <Input
-                      type="email"
-                      placeholder="you@example.com"
+                      type={mode === "login" ? "text" : "email"}
+                      placeholder={
+                        mode === "login" ? "you@example.com or username" : "you@example.com"
+                      }
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       className="h-11 text-sm bg-white/5 border-white/10 text-white placeholder:text-white/30 focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20 transition-all"

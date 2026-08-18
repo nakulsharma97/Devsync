@@ -41,6 +41,8 @@ public class BoardResponse {
         private String title;
         private String description;
         private String columnId;
+        /** Resolved column name (populated by calendar feeds for status display). */
+        private String columnName;
         private int position;
         private String assigneeId;
         private String assigneeName;
@@ -53,5 +55,14 @@ public class BoardResponse {
         private String sprint;
         /** Task ids this task depends on (blocked-by). */
         private List<String> dependencies;
+
+        // GitHub-based development workflow
+        private String branchName;
+        private Long pullRequestNumber;
+        private String pullRequestUrl;
+        private String pullRequestState;
+        private java.time.Instant startedAt;
+        private java.time.Instant prCreatedAt;
+        private java.time.Instant prMergedAt;
     }
 }

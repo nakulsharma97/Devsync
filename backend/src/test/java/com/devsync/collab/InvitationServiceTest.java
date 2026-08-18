@@ -8,6 +8,7 @@ import com.devsync.collab.entity.ProjectInvitation;
 import com.devsync.collab.repository.ProjectInvitationRepository;
 import com.devsync.notification.NotificationService;
 import com.devsync.project.entity.Project;
+import com.devsync.teamroom.TeamRoomService;
 import com.devsync.project.entity.ProjectMember;
 import com.devsync.project.repository.ProjectMemberRepository;
 import com.devsync.project.repository.ProjectRepository;
@@ -37,6 +38,7 @@ class InvitationServiceTest {
     @Mock private NotificationService notificationService;
     @Mock private ActivityService activityService;
     @Mock private EntitlementService entitlementService;
+    @Mock private TeamRoomService teamRoomService;
 
     private InvitationService invitationService;
     private Project project;
@@ -46,7 +48,8 @@ class InvitationServiceTest {
     @BeforeEach
     void setUp() {
         invitationService = new InvitationService(invitationRepository, projectRepository,
-                memberRepository, userRepository, notificationService, activityService, entitlementService);
+                memberRepository, userRepository, notificationService, activityService,
+                entitlementService, teamRoomService);
         project = Project.builder().name("DevSync").ownerId("owner-1")
                 .visibility(Project.ProjectVisibility.PUBLIC).build();
         project.setId("p1");
@@ -142,6 +145,8 @@ class InvitationServiceTest {
         invitationService.accept("inv-1", "recv-1");
 
         verify(memberRepository).save(any(ProjectMember.class));
+        // Accepted members join the team chat atomically with membership.
+        verify(teamRoomService).addProjectMemberToRoom("p1", "recv-1");
         assertThat(invitation.getStatus()).isEqualTo(InvitationStatus.ACCEPTED);
     }
 
@@ -227,6 +232,28 @@ class InvitationServiceTest {
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("cannot delete");
         verify(invitationRepository, never()).delete(any());
+    }
+
+    @Test
+    void decline_shouldNotCreateMembership_AndRecordActivity() {
+        ProjectInvitation invitation = ProjectInvitation.builder()
+                .projectId("p1").senderId("owner-1").receiverId("recv-1")
+                .status(InvitationStatus.PENDING).expiresAt(Instant.now().plusSeconds(3600)).build();
+        invitation.setId("inv-1");
+        when(invitationRepository.findById("inv-1")).thenReturn(Optional.of(invitation));
+        when(invitationRepository.save(any(ProjectInvitation.class))).thenReturn(invitation);
+        when(userRepository.findById("recv-1")).thenReturn(Optional.of(receiver));
+        when(projectRepository.findById("p1")).thenReturn(Optional.of(project));
+
+        invitationService.decline("inv-1", "recv-1");
+
+        assertThat(invitation.getStatus()).isEqualTo(InvitationStatus.DECLINED);
+        verify(memberRepository, never()).save(any());
+        verify(notificationService).createNotification(eq("owner-1"), eq("PROJECT_INVITE_DECLINED"),
+                eq("Invitation declined"), anyString(), eq("recv-1"), eq("Receiver"), any(),
+                eq("p1"), eq("project"), anyString());
+        verify(activityService).record(eq("recv-1"), eq("p1"),
+                eq(com.devsync.activity.entity.ActivityType.INVITATION_DECLINED), anyString(), anyString(), any());
     }
 
     @Test

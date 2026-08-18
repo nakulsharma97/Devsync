@@ -14,6 +14,7 @@ import com.devsync.project.repository.ProjectMemberRepository;
 import com.devsync.project.repository.ProjectRepository;
 import com.devsync.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -41,7 +42,9 @@ public class TeamRoomService {
     /**
      * Creates a room. When the room is tied to a project, the creator must be a
      * member of that project — otherwise any authenticated user could open a
-     * channel into a private project.
+     * channel into a private project. A project may only ever have ONE team
+     * chat (the V18 unique index enforces this), so creating a second one is
+     * rejected with a clear message instead of surfacing a 500.
      */
     @Transactional
     public TeamRoomResponse createRoom(CreateRoomRequest request, String createdBy) {
@@ -50,6 +53,9 @@ public class TeamRoomService {
                     .orElseThrow(() -> new ResourceNotFoundException("Project", request.getProjectId()));
             if (!projectMemberRepository.existsByProjectIdAndUserId(request.getProjectId(), createdBy)) {
                 throw new IllegalArgumentException("Only project members can create a team chat for this project");
+            }
+            if (roomRepository.findFirstByProjectIdOrderByCreatedAtAsc(request.getProjectId()).isPresent()) {
+                throw new IllegalArgumentException("A team chat already exists for this project");
             }
         }
         TeamRoom room = TeamRoom.builder()
@@ -71,29 +77,85 @@ public class TeamRoomService {
     }
 
     /**
-     * Find-or-create the single team chat for a project (idempotent — the
-     * workspace never creates duplicate rooms). The caller must be a member;
-     * members are auto-added as participants.
+     * Find-or-create the single team chat for a project (idempotent). The
+     * caller must be a project member; members are auto-added as participants
+     * (the workspace relies on this to heal any out-of-sync membership).
+     *
+     * <p>Concurrency-safe: the V18 unique index guarantees only one room per
+     * project, and a {@link DataIntegrityViolationException} from a concurrent
+     * create is caught and resolved by re-fetching the winning row — a racing
+     * request can never produce a duplicate room.
      */
     @Transactional
     public TeamRoomResponse getOrCreateProjectRoom(String projectId, String userId) {
+        return ensureProjectRoom(projectId, userId);
+    }
+
+    /**
+     * Find-or-create the project's team chat and add {@code userId} as a
+     * participant. Membership-sync entry point: called inside the same
+     * transaction as membership creation/acceptance (project create, join
+     * request approve, invitation accept, addMember) so chat membership can
+     * never diverge from project membership. Idempotent.
+     */
+    @Transactional
+    public void addProjectMemberToRoom(String projectId, String userId) {
+        TeamRoom room = findOrCreateProjectRoom(projectId, userId);
+        if (!participantRepository.existsByRoomIdAndUserId(room.getId(), userId)) {
+            participantRepository.save(TeamRoomParticipant.builder()
+                    .roomId(room.getId()).userId(userId).invitedBy(null).build());
+        }
+    }
+
+    /**
+     * Removes {@code userId} from the project's team chat. Called inside the
+     * same transaction as member removal. Idempotent: if the project has no
+     * team chat (legacy project) or the user was never a participant, nothing
+     * happens.
+     */
+    @Transactional
+    public void removeProjectMemberFromRoom(String projectId, String userId) {
+        roomRepository.findFirstByProjectIdOrderByCreatedAtAsc(projectId).ifPresent(room ->
+                participantRepository.findByRoomIdAndUserId(room.getId(), userId)
+                        .ifPresent(participantRepository::delete));
+    }
+
+    /**
+     * Core find-or-create. {@code actorId} is only used to create the room
+     * (as created_by) — it is NOT required to be the target {@code userId}.
+     */
+    private TeamRoom findOrCreateProjectRoom(String projectId, String actorId) {
+        TeamRoom room = roomRepository.findFirstByProjectIdOrderByCreatedAtAsc(projectId).orElse(null);
+        if (room != null) return room;
+        Project project = projectRepository.findById(projectId)
+                .orElseThrow(() -> new ResourceNotFoundException("Project", projectId));
+        TeamRoom created = TeamRoom.builder()
+                .name(project.getName() + " — Team Chat")
+                .projectId(projectId)
+                .description("Team chat for " + project.getName())
+                .createdBy(actorId)
+                .build();
+        try {
+            return roomRepository.save(created);
+        } catch (DataIntegrityViolationException e) {
+            // A concurrent request created the room first — use the winner.
+            return roomRepository.findFirstByProjectIdOrderByCreatedAtAsc(projectId)
+                    .orElseThrow(() -> e);
+        }
+    }
+
+    /**
+     * The workspace entry point: verifies project membership, then finds (or
+     * creates) the project's team chat and ensures the caller is a participant.
+     */
+    private TeamRoomResponse ensureProjectRoom(String projectId, String userId) {
         projectRepository.findById(projectId)
                 .orElseThrow(() -> new ResourceNotFoundException("Project", projectId));
         if (!projectMemberRepository.existsByProjectIdAndUserId(projectId, userId)) {
             throw new IllegalArgumentException("Only project members can access the team chat");
         }
-        TeamRoom room = roomRepository.findFirstByProjectIdOrderByCreatedAtAsc(projectId).orElse(null);
-        if (room == null) {
-            Project project = projectRepository.findById(projectId).orElseThrow();
-            room = roomRepository.save(TeamRoom.builder()
-                    .name(project.getName() + " Chat")
-                    .projectId(projectId)
-                    .description("Team chat for " + project.getName())
-                    .createdBy(userId)
-                    .build());
-            participantRepository.save(TeamRoomParticipant.builder()
-                    .roomId(room.getId()).userId(userId).invitedBy(null).build());
-        } else if (!participantRepository.existsByRoomIdAndUserId(room.getId(), userId)) {
+        TeamRoom room = findOrCreateProjectRoom(projectId, userId);
+        if (!participantRepository.existsByRoomIdAndUserId(room.getId(), userId)) {
             participantRepository.save(TeamRoomParticipant.builder()
                     .roomId(room.getId()).userId(userId).invitedBy(null).build());
         }

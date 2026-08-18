@@ -1,18 +1,24 @@
 import { useState } from "react";
+import { useNavigate } from "react-router";
 import { useAuth } from "@/contexts/AuthContext";
 import { useApi } from "@/hooks/useApi";
 import { userService } from "@/services/userService";
+import { socialService, type SocialProfileDto } from "@/services/socialService";
 import { getErrorMessage } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Save } from "lucide-react";
+import { Loader2, Save, FileText, Users, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 
 export default function Profile() {
   const { user, refreshUser } = useAuth();
+  const navigate = useNavigate();
   const { data: profile, loading } = useApi(() => userService.getMe());
+  const { data: social } = useApi<SocialProfileDto>(() =>
+    user?.username ? socialService.getProfile(user.username) : Promise.reject(new Error("no username"))
+  );
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
     fullName: "",
@@ -51,10 +57,58 @@ export default function Profile() {
 
   return (
     <div className="max-w-2xl space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Profile</h1>
-        <p className="text-sm text-muted-foreground mt-1">Manage your developer profile</p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Profile</h1>
+          <p className="text-sm text-muted-foreground mt-1">Manage your developer profile</p>
+        </div>
+        <Button
+          size="sm"
+          onClick={() => navigate("/profile/posts")}
+          className="shrink-0 bg-gradient-to-r from-indigo-500 to-purple-600 text-white text-xs hover:from-indigo-600 hover:to-purple-700"
+        >
+          <FileText className="w-3.5 h-3.5 mr-1.5" />
+          My Posts
+        </Button>
       </div>
+
+      {/* Social stats */}
+      {social && (
+        <div className="grid grid-cols-3 gap-3">
+          <button
+            type="button"
+            onClick={() => navigate("/profile/posts")}
+            className="rounded-xl border border-border/40 bg-card p-4 text-left hover:border-accent/30 transition-colors"
+          >
+            <p className="text-2xl font-bold">{social.posts.toLocaleString()}</p>
+            <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+              Posts
+            </p>
+          </button>
+          <button
+            type="button"
+            onClick={() => navigate(`/profile/${user?.username}`)}
+            className="rounded-xl border border-border/40 bg-card p-4 text-left hover:border-accent/30 transition-colors"
+            aria-label={`View followers (${social.followerCount})`}
+          >
+            <p className="text-2xl font-bold">{social.followerCount.toLocaleString()}</p>
+            <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+              Followers
+            </p>
+          </button>
+          <button
+            type="button"
+            onClick={() => navigate(`/profile/${user?.username}`)}
+            className="rounded-xl border border-border/40 bg-card p-4 text-left hover:border-accent/30 transition-colors"
+            aria-label={`View following (${social.followingCount})`}
+          >
+            <p className="text-2xl font-bold">{social.followingCount.toLocaleString()}</p>
+            <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+              Following
+            </p>
+          </button>
+        </div>
+      )}
 
       <Card className="border-border/40">
         <CardHeader>

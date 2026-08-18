@@ -16,4 +16,8 @@ public class GitHubPullRequestDto {
     private String authorLogin;
     private Instant createdAt;
     private Instant mergedAt;
+    /** The PR's source branch (head). */
+    private String headRef;
+    /** The PR's target branch (base). */
+    private String baseRef;
 }

@@ -81,8 +81,13 @@ public class AuthService {
     }
 
     public AuthResponse login(LoginRequest request, String ipAddress, String userAgent) {
+        String identifier = request.getEmail();
         try {
-            User user = userRepository.findByEmail(request.getEmail())
+            // The identifier field accepts either the email address or the
+            // username. The exact same failure message is returned for a missing
+            // user and a wrong password, so neither path reveals which one it
+            // was (no username/email enumeration).
+            User user = findUserByIdentifier(identifier)
                     .orElseThrow(() -> new AuthException("Invalid email or password"));
 
             if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
@@ -102,9 +107,21 @@ public class AuthService {
             return buildAuthResponse(user, accessToken, refreshToken);
         } catch (AuthException ex) {
             auditLogService.record(null, null, AuditAction.LOGIN_FAILURE, AuditStatus.FAILURE,
-                    "Failed login attempt for " + request.getEmail() + ": " + ex.getMessage());
+                    "Failed login attempt for " + identifier + ": " + ex.getMessage());
             throw ex;
         }
+    }
+
+    /**
+     * Detects whether the supplied identifier is an email address or a username
+     * and looks the account up accordingly. An "@" makes it an email; otherwise
+     * it is treated as a username.
+     */
+    private java.util.Optional<User> findUserByIdentifier(String identifier) {
+        if (identifier != null && identifier.contains("@")) {
+            return userRepository.findByEmail(identifier);
+        }
+        return userRepository.findByUsername(identifier);
     }
 
     public AuthResponse refreshToken(RefreshTokenRequest request) {

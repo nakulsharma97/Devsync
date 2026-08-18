@@ -16,6 +16,9 @@ import java.util.Optional;
 public interface TaskRepository extends JpaRepository<Task, String> {
     List<Task> findByColumnIdOrderByPositionAsc(String columnId);
 
+    /** The task working on a given feature branch (webhook → task mapping). */
+    Optional<Task> findByBranchName(String branchName);
+
     @Query("SELECT MAX(t.position) FROM Task t WHERE t.columnId = :columnId")
     Optional<Integer> findMaxPositionByColumnId(@Param("columnId") String columnId);
 

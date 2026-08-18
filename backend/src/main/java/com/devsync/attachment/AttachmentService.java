@@ -312,6 +312,11 @@ public class AttachmentService {
             if (participant) {
                 return;
             }
+        } else if (attachment.getContextType() == AttachmentContext.POST
+                && attachment.getProjectId() == null) {
+            // Feed post image: the feed is a global, authenticated social feed, so
+            // any signed-in user may view a post's image — not just its uploader.
+            return;
         }
         throw new AccessDeniedException("You don't have permission to access this attachment");
     }
@@ -337,7 +342,7 @@ public class AttachmentService {
     public List<AttachmentResponse> listByContext(String contextType, String contextId, String userId, boolean isAdmin) {
         AttachmentContext context = parseContext(contextType);
         List<FileAttachment> attachments =
-                attachmentRepository.findByContextTypeAndContextId(context.name(), contextId);
+                attachmentRepository.findByContextTypeAndContextId(context, contextId);
         if (attachments.isEmpty()) return List.of();
         // Authorization: only return attachments the caller may download.
         attachments = attachments.stream()

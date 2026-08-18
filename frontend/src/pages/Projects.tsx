@@ -161,7 +161,8 @@ export default function Projects() {
             </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-md">
-            <DialogHeader>
+            {/* sticky header: stays visible while the form scrolls inside the dialog */}
+            <DialogHeader className="sticky top-0 z-10 bg-background -mb-4 pb-4">
               <div className="mx-auto w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/20 mb-3">
                 <FolderKanban className="w-6 h-6 text-white" />
               </div>
@@ -211,7 +212,7 @@ export default function Projects() {
                     onClick={() => setVisibility("PUBLIC")}
                     icon={<Globe className="w-4 h-4" />}
                     title="Public"
-                    hint="Anyone can discover and join"
+                    hint="Anyone can discover and request to join"
                   />
                 </div>
               </div>

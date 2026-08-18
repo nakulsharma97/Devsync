@@ -5,7 +5,7 @@ import { userService } from "@/services/userService";
 import { projectService, type ProjectDto } from "@/services/projectService";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, Loader2, User, FolderKanban, Globe, UserPlus, Users, Check } from "lucide-react";
+import { Search, Loader2, User, FolderKanban, Globe, UserPlus, Users, Check, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -22,39 +22,36 @@ export default function SearchPage() {
     [query]
   );
 
-  const { data: discovered, loading: projectsLoading } = useApi(
+  const { data: discovered, loading: projectsLoading, refetch: refetchDiscovered } = useApi(
     () => (query.trim() ? projectService.discoverProjects(query) : projectService.discoverProjects()),
     [query]
   );
 
-  // My project ids — used to hide the Join button for projects I'm already in.
-  const { data: myProjects, refetch: refetchMine } = useApi(
-    () => projectService.getMyProjects(),
-    []
-  );
+  // My project ids — used to show "Open" instead of "Request to Join" for
+  // projects I'm already a member of.
+  const { data: myProjects } = useApi(() => projectService.getMyProjects(), []);
   const myProjectIds = useMemo(
     () => new Set((myProjects ?? []).map((p) => p.id)),
     [myProjects]
   );
 
-  const handleJoin = useCallback(
+  // Request to join a PUBLIC project. Membership is granted only after the
+  // owner approves; until then the card flips to a "Request Pending" state.
+  const handleRequestJoin = useCallback(
     async (project: ProjectDto) => {
       setJoiningId(project.id);
       try {
-        await projectService.joinProject(project.id);
-        toast(`You joined ${project.name}`);
-        refetchMine();
-        // Short delay so the member-count badge can reflect the new member.
-        await new Promise((r) => setTimeout(r, 400));
-        // Let the user open the workspace straight away.
-        navigate(`/projects/${project.id}`);
+        await projectService.requestJoin(project.id);
+        toast(`Join request sent to the owner of ${project.name}`);
+        // Re-fetch discovery so this card renders "Request Pending".
+        refetchDiscovered();
       } catch (err: unknown) {
-        toast(err instanceof Error ? err.message : "Failed to join project");
+        toast(err instanceof Error ? err.message : "Failed to request to join");
       } finally {
         setJoiningId(null);
       }
     },
-    [navigate, refetchMine]
+    [refetchDiscovered]
   );
 
   useEffect(() => {
@@ -146,6 +143,7 @@ export default function SearchPage() {
           <div className="space-y-2">
             {discovered.map((p) => {
               const joined = myProjectIds.has(p.id);
+              const pending = p.currentUserJoinRequestStatus === "PENDING";
               return (
                 <div key={p.id} className="flex items-start gap-3 p-4 rounded-lg border border-border/40 hover:border-indigo-500/25 hover:bg-indigo-500/[0.02] transition-colors">
                   <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500/15 to-purple-500/10 flex items-center justify-center shrink-0">
@@ -182,11 +180,16 @@ export default function SearchPage() {
                         <Check className="w-3.5 h-3.5 mr-1 text-emerald-500" />
                         Open
                       </Button>
+                    ) : pending ? (
+                      <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground border border-amber-500/30 bg-amber-500/[0.07] text-amber-600 dark:text-amber-400 rounded-lg px-3 py-1.5">
+                        <Clock className="w-3.5 h-3.5" />
+                        Request Pending
+                      </span>
                     ) : (
                       <Button
                         size="sm"
                         disabled={joiningId === p.id}
-                        onClick={() => handleJoin(p)}
+                        onClick={() => handleRequestJoin(p)}
                         className="text-xs"
                       >
                         {joiningId === p.id ? (
@@ -194,7 +197,7 @@ export default function SearchPage() {
                         ) : (
                           <UserPlus className="w-3.5 h-3.5 mr-1" />
                         )}
-                        Join
+                        Request to Join
                       </Button>
                     )}
                   </div>

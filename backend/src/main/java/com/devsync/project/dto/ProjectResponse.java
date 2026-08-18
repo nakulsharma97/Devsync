@@ -24,6 +24,8 @@ public class ProjectResponse {
     private List<MemberDto> members;
     private String visibility;
     private String currentUserRole;
+    /** The caller's own join-request status (PENDING/APPROVED/REJECTED/CANCELLED), null if none. */
+    private String currentUserJoinRequestStatus;
     private Instant createdAt;
     private Instant updatedAt;
 
@@ -40,5 +42,7 @@ public class ProjectResponse {
         private String username;
         private String presenceStatus;
         private java.time.Instant lastActiveAt;
+        /** When this user joined the project (member row creation). */
+        private java.time.Instant joinedAt;
     }
 }

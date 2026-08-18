@@ -47,6 +47,7 @@ public class NotesService {
     public NoteResponse saveNote(String projectId, String userId, long clientVersion, String yjsStateBase64) {
         Project project = findActiveProject(projectId);
         requireMember(project, userId);
+        requireEditableRole(project, userId);
         if (yjsStateBase64 == null) {
             throw new IllegalArgumentException("yjsState is required");
         }
@@ -82,6 +83,14 @@ public class NotesService {
         if (!memberRepository.existsByProjectIdAndUserId(project.getId(), userId)) {
             throw new AccessDeniedException("You are not a member of this project");
         }
+    }
+
+    /** VIEWERs may read the shared doc but cannot modify it. */
+    private void requireEditableRole(Project project, String userId) {
+        if (project.getOwnerId().equals(userId)) return;
+        memberRepository.findByProjectIdAndUserId(project.getId(), userId)
+                .filter(m -> m.getRole() != com.devsync.project.entity.ProjectMember.Role.VIEWER)
+                .orElseThrow(() -> new AccessDeniedException("Viewers cannot edit docs in this project"));
     }
 
     private NoteResponse toResponse(ProjectNote note) {

@@ -11,6 +11,7 @@ import com.devsync.collab.repository.ProjectInvitationRepository;
 import com.devsync.common.ResourceNotFoundException;
 import com.devsync.notification.NotificationService;
 import com.devsync.project.entity.Project;
+import com.devsync.teamroom.TeamRoomService;
 import com.devsync.project.entity.ProjectMember;
 import com.devsync.project.repository.ProjectMemberRepository;
 import com.devsync.project.repository.ProjectRepository;
@@ -41,6 +42,7 @@ public class InvitationService {
     private final NotificationService notificationService;
     private final ActivityService activityService;
     private final EntitlementService entitlementService;
+    private final TeamRoomService teamRoomService;
 
     @Transactional
     public InvitationResponse invite(String projectId, InviteRequest request, String senderId) {
@@ -104,6 +106,9 @@ public class InvitationService {
             memberRepository.save(ProjectMember.builder()
                     .projectId(project.getId()).userId(userId)
                     .role(ProjectMember.Role.MEMBER).build());
+            // Accepted members join the team chat in the same transaction — a
+            // member can never exist without access to the project's chat.
+            teamRoomService.addProjectMemberToRoom(project.getId(), userId);
         }
         invitation.setStatus(InvitationStatus.ACCEPTED);
         invitationRepository.save(invitation);
@@ -148,6 +153,9 @@ public class InvitationService {
                     receiver != null ? receiver.getAvatarUrl() : null,
                     project.getId(), "project", "/projects/" + project.getId());
         }
+        activityService.record(userId, invitation.getProjectId(), ActivityType.INVITATION_DECLINED,
+                "Invitation declined",
+                project != null ? project.getName() : invitation.getProjectId(), null);
     }
 
     @Transactional

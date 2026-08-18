@@ -9,12 +9,21 @@ import {
   GripVertical,
   Loader2,
   GitBranch,
+  GitPullRequest,
+  GitMerge,
   CalendarDays,
   KanbanSquare,
   Flag,
   Link2,
   Link2Off,
   CalendarClock,
+  PlayCircle,
+  CheckCircle2,
+  RefreshCw,
+  ExternalLink,
+  MessageSquarePlus,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -32,9 +41,29 @@ const PRIORITY_STYLES: Record<string, { label: string; cls: string }> = {
 
 const PRIORITIES = ["LOW", "MEDIUM", "HIGH", "CRITICAL"];
 
+/** Solid dot colors for calendar chips (background, not text). */
+const PRIORITY_DOTS: Record<string, string> = {
+  CRITICAL: "bg-red-500",
+  HIGH: "bg-amber-500",
+  MEDIUM: "bg-blue-500",
+  LOW: "bg-muted-foreground/50",
+};
+
 function isOverdue(task: TaskDto): boolean {
   if (!task.dueDate) return false;
   return new Date(task.dueDate).getTime() < Date.now();
+}
+
+const PR_STATE_STYLES: Record<string, string> = {
+  OPEN: "text-blue-600 dark:text-blue-400 bg-blue-500/10 border-blue-500/25",
+  CHANGES_REQUESTED: "text-amber-600 dark:text-amber-400 bg-amber-500/10 border-amber-500/25",
+  APPROVED: "text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/25",
+  MERGED: "text-purple-600 dark:text-purple-400 bg-purple-500/10 border-purple-500/25",
+  CLOSED: "text-muted-foreground bg-muted/50 border-border/30",
+};
+
+function prStateStyle(state: string): string {
+  return PR_STATE_STYLES[state] ?? PR_STATE_STYLES.OPEN;
 }
 
 function TaskCard({
@@ -119,6 +148,31 @@ function TaskCard({
             </div>
           )}
 
+          {/* GitHub workflow: branch + PR state */}
+          {(task.branchName || task.pullRequestState) && (
+            <div className="flex items-center gap-1 mt-1 flex-wrap">
+              {task.branchName && (
+                <span className="inline-flex items-center gap-1 text-[9px] px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-mono">
+                  <GitBranch className="w-2 h-2" />
+                  {task.branchName.split("/").pop()}
+                </span>
+              )}
+              {task.pullRequestState && (
+                <span
+                  className={cn(
+                    "inline-flex items-center gap-1 text-[9px] px-1.5 py-0.5 rounded-full border font-medium",
+                    prStateStyle(task.pullRequestState)
+                  )}
+                >
+                  <GitPullRequest className="w-2 h-2" />
+                  {task.pullRequestState === "MERGED"
+                    ? `#${task.pullRequestNumber} merged`
+                    : `${task.pullRequestState.replace("_", " ")}${task.pullRequestNumber ? ` #${task.pullRequestNumber}` : ""}`}
+                </span>
+              )}
+            </div>
+          )}
+
           <div className="flex items-center justify-between mt-1.5">
             {task.assigneeName ? (
               <p className="text-xs text-muted-foreground">Assigned to {task.assigneeName}</p>
@@ -171,14 +225,18 @@ function TaskDetailDialog({
   task,
   allTasks,
   members,
+  currentUserRole,
   onClose,
   onSaved,
+  onTaskUpdated,
 }: {
   task: TaskDto;
   allTasks: TaskDto[];
   members: { id: string; fullName: string }[];
+  currentUserRole: string | null;
   onClose: () => void;
   onSaved: () => void;
+  onTaskUpdated: (task: TaskDto) => void;
 }) {
   const [title, setTitle] = useState(task.title);
   const [description, setDescription] = useState(task.description ?? "");
@@ -191,6 +249,29 @@ function TaskDetailDialog({
   const [saving, setSaving] = useState(false);
   const [depsBusy, setDepsBusy] = useState<string | null>(null);
   const [newDepId, setNewDepId] = useState("");
+  const [wfBusy, setWfBusy] = useState<string | null>(null);
+
+  // GitHub workflow permissions — the backend enforces the same rules.
+  const canWork = currentUserRole === "OWNER" || currentUserRole === "ADMIN" || currentUserRole === "MEMBER";
+  const canManage = currentUserRole === "OWNER" || currentUserRole === "ADMIN";
+  const prLive = task.pullRequestNumber != null && task.pullRequestState !== "MERGED" && task.pullRequestState !== "CLOSED";
+
+  const runWorkflow = async (op: string, call: () => Promise<TaskDto>, success: string) => {
+    if (wfBusy) return;
+    setWfBusy(op);
+    try {
+      const updated = await call();
+      toast(success);
+      onTaskUpdated(updated);
+      onSaved();
+    } catch (err) {
+      toast(err instanceof Error && err.message ? err.message : "Operation failed");
+    } finally {
+      setWfBusy(null);
+    }
+  };
+
+  const wfBtn = (op: string) => (wfBusy === op ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null);
 
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -202,7 +283,9 @@ function TaskDetailDialog({
         description: description.trim() || undefined,
         columnId: task.columnId,
         priority,
-        dueDate: dueDate ? new Date(dueDate + "T12:00:00").toISOString() : undefined,
+        dueDate: dueDate ? new Date(dueDate + "T12:00:00").toISOString() : null,
+        // Tell the backend to actually remove a cleared due date.
+        clearDueDate: !dueDate,
         assigneeId: assigneeId || undefined,
         labels: labels
           .split(",")
@@ -379,6 +462,166 @@ function TaskDetailDialog({
             </div>
           )}
         </div>
+
+        {/* GitHub development workflow */}
+        <div className="border-t border-border/40 pt-4 space-y-3">
+          <h4 className="text-sm font-semibold flex items-center gap-2">
+            <GitBranch className="w-4 h-4 text-emerald-500" />
+            GitHub Workflow
+          </h4>
+
+          {!task.branchName && !task.pullRequestNumber ? (
+            <p className="text-xs text-muted-foreground">
+              Work on this task on a feature branch and ship it through a pull request. Start to get a branch
+              suggestion.
+            </p>
+          ) : (
+            <div className="space-y-2 text-sm">
+              {task.branchName && (
+                <div className="flex items-center gap-2 bg-emerald-500/5 border border-emerald-500/20 rounded-lg px-3 py-2">
+                  <GitBranch className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                  <span className="font-mono text-xs truncate">{task.branchName}</span>
+                </div>
+              )}
+              {task.pullRequestState && (
+                <div className="flex items-center gap-2 bg-muted/40 border border-border/40 rounded-lg px-3 py-2">
+                  <GitPullRequest className="w-3.5 h-3.5 shrink-0" />
+                  <span
+                    className={cn(
+                      "inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded-full border",
+                      prStateStyle(task.pullRequestState)
+                    )}
+                  >
+                    {task.pullRequestState.replace("_", " ")}
+                  </span>
+                  <span className="text-xs text-muted-foreground truncate">
+                    {task.pullRequestNumber ? `PR #${task.pullRequestNumber}` : "PR"}
+                    {task.prMergedAt
+                      ? ` · merged ${new Date(task.prMergedAt).toLocaleDateString()}`
+                      : task.prCreatedAt
+                        ? ` · opened ${new Date(task.prCreatedAt).toLocaleDateString()}`
+                        : ""}
+                  </span>
+                  {task.pullRequestUrl && (
+                    <a
+                      href={task.pullRequestUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="ml-auto inline-flex items-center gap-1 text-xs text-indigo-500 hover:underline"
+                    >
+                      View PR <ExternalLink className="w-3 h-3" />
+                    </a>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {canWork && (
+            <div className="flex flex-wrap items-center gap-2">
+              {!task.startedAt && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={wfBusy !== null}
+                  onClick={() =>
+                    runWorkflow("start", () => boardService.startTask(task.id), "Task started — branch suggested")
+                  }
+                >
+                  {wfBtn("start")}
+                  <PlayCircle className="w-3.5 h-3.5 mr-1" />
+                  Start Task
+                </Button>
+              )}
+              {task.startedAt && !task.branchName && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={wfBusy !== null}
+                  onClick={() => runWorkflow("branch", () => boardService.createBranch(task.id), "Branch created on GitHub")}
+                >
+                  {wfBtn("branch")}
+                  <GitBranch className="w-3.5 h-3.5 mr-1" />
+                  Create Branch
+                </Button>
+              )}
+              {task.branchName && !task.pullRequestNumber && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={wfBusy !== null}
+                  onClick={() =>
+                    runWorkflow("pr", () => boardService.createPullRequest(task.id), "Pull request opened on GitHub")
+                  }
+                >
+                  {wfBtn("pr")}
+                  <GitPullRequest className="w-3.5 h-3.5 mr-1" />
+                  Create Pull Request
+                </Button>
+              )}
+              {task.pullRequestNumber && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={wfBusy !== null}
+                  onClick={() =>
+                    runWorkflow("refresh", () => boardService.refreshPullRequest(task.id), "Pull request status refreshed")
+                  }
+                >
+                  {wfBtn("refresh")}
+                  <RefreshCw className="w-3.5 h-3.5 mr-1" />
+                  Refresh
+                </Button>
+              )}
+            </div>
+          )}
+
+          {canManage && prLive && (
+            <div className="flex flex-wrap items-center gap-2 border-t border-border/40 pt-3">
+              <Button
+                size="sm"
+                className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                disabled={wfBusy !== null}
+                onClick={() =>
+                  runWorkflow("approve", () => boardService.approvePullRequest(task.id), "Pull request approved")
+                }
+              >
+                {wfBtn("approve")}
+                <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
+                Approve
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="text-amber-600 dark:text-amber-400"
+                disabled={wfBusy !== null}
+                onClick={() =>
+                  runWorkflow(
+                    "changes",
+                    () => boardService.requestChanges(task.id, "Please address the requested changes."),
+                    "Changes requested on the pull request"
+                  )
+                }
+              >
+                {wfBtn("changes")}
+                <MessageSquarePlus className="w-3.5 h-3.5 mr-1" />
+                Request Changes
+              </Button>
+              <Button
+                size="sm"
+                className="bg-purple-600 hover:bg-purple-700 text-white"
+                disabled={wfBusy !== null}
+                onClick={() =>
+                  runWorkflow("merge", () => boardService.mergePullRequest(task.id), "Pull request merged — task completed")
+                }
+              >
+                {wfBtn("merge")}
+                <GitMerge className="w-3.5 h-3.5 mr-1" />
+                Merge PR
+              </Button>
+            </div>
+          )}
+        </div>
       </DialogContent>
     </Dialog>
   );
@@ -386,72 +629,208 @@ function TaskDetailDialog({
 
 // ── Calendar view ──────────────────────────────────────────
 
-function CalendarView() {
-  const now = new Date();
-  const from = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString();
-  const to = new Date(now.getFullYear(), now.getMonth() + 2, 0, 23, 59, 59).toISOString();
-  const { data: tasks, loading } = useApi(() => boardService.calendarTasks(from, to), []);
+const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-  const byDate = useMemo(() => {
+/** Local (not UTC) YYYY-MM-DD key, so a task never shifts to the wrong day. */
+function toLocalDayKey(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+function CalendarView({
+  projectId,
+  refreshKey,
+  onOpenTask,
+}: {
+  projectId: string;
+  refreshKey: number;
+  onOpenTask: (task: TaskDto) => void;
+}) {
+  const today = new Date();
+  const [cursor, setCursor] = useState(() => new Date(today.getFullYear(), today.getMonth(), 1));
+
+  // Full visible grid: first Sunday on/before the 1st → last Saturday on/after month end.
+  const gridStart = useMemo(() => {
+    const first = new Date(cursor.getFullYear(), cursor.getMonth(), 1);
+    return new Date(first.getFullYear(), first.getMonth(), first.getDate() - first.getDay());
+  }, [cursor]);
+  const gridEnd = useMemo(() => {
+    const last = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 0);
+    return new Date(last.getFullYear(), last.getMonth(), last.getDate() + (6 - last.getDay()));
+  }, [cursor]);
+
+  const fromIso = useMemo(
+    () => new Date(gridStart.getFullYear(), gridStart.getMonth(), gridStart.getDate()).toISOString(),
+    [gridStart]
+  );
+  const toIso = useMemo(
+    () =>
+      new Date(gridEnd.getFullYear(), gridEnd.getMonth(), gridEnd.getDate(), 23, 59, 59).toISOString(),
+    [gridEnd]
+  );
+
+  const { data: tasks, loading, error, refetch } = useApi(
+    () => boardService.calendarTasks(projectId, fromIso, toIso),
+    [projectId, fromIso, toIso, refreshKey]
+  );
+
+  const byDay = useMemo(() => {
     const map = new Map<string, TaskDto[]>();
     for (const t of tasks ?? []) {
       if (!t.dueDate) continue;
-      const day = t.dueDate.slice(0, 10);
-      map.set(day, [...(map.get(day) ?? []), t]);
+      const key = toLocalDayKey(new Date(t.dueDate));
+      map.set(key, [...(map.get(key) ?? []), t]);
     }
-    return new Map([...map.entries()].sort((a, b) => a[0].localeCompare(b[0])));
+    return map;
   }, [tasks]);
+
+  const cells = useMemo(() => {
+    const out: Date[] = [];
+    const cur = new Date(gridStart);
+    while (cur <= gridEnd) {
+      out.push(new Date(cur));
+      cur.setDate(cur.getDate() + 1);
+    }
+    return out;
+  }, [gridStart, gridEnd]);
+
+  const monthLabel = cursor.toLocaleDateString(undefined, { month: "long", year: "numeric" });
+  const inCursorMonth = (d: Date) => d.getMonth() === cursor.getMonth() && d.getFullYear() === cursor.getFullYear();
+  const todayKey = toLocalDayKey(today);
+  const nav = (offset: number) => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() + offset, 1));
+  const goToday = () => setCursor(new Date(today.getFullYear(), today.getMonth(), 1));
 
   if (loading) {
     return (
-      <div className="space-y-3">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="h-12 bg-muted/40 rounded-xl animate-pulse" />
-        ))}
+      <div className="rounded-xl border border-border/40 bg-card p-3">
+        <div className="grid grid-cols-7 gap-1.5">
+          {Array.from({ length: 42 }).map((_, i) => (
+            <div key={i} className="h-20 bg-muted/40 rounded-lg animate-pulse" />
+          ))}
+        </div>
       </div>
     );
   }
 
-  if (byDate.size === 0) {
+  if (error) {
     return (
       <div className="text-center py-12 rounded-xl border border-border/40 bg-card">
         <CalendarDays className="w-8 h-8 text-muted-foreground/40 mx-auto mb-3" />
-        <p className="text-sm text-muted-foreground">
-          No tasks with due dates in the next two months. Set a due date on a task to see it here.
-        </p>
+        <p className="text-sm text-muted-foreground">Failed to load the calendar. {error}</p>
+        <Button variant="outline" size="sm" className="mt-4" onClick={refetch}>
+          <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
+          Retry
+        </Button>
       </div>
     );
   }
 
   return (
-    <div className="rounded-xl border border-border/40 bg-card divide-y divide-border/30">
-      {[...byDate.entries()].map(([day, dayTasks]) => (
-        <div key={day} className="p-3.5">
-          <p className="text-xs font-semibold text-muted-foreground mb-2">
-            {new Date(day + "T12:00:00").toLocaleDateString(undefined, {
-              weekday: "short",
-              month: "short",
-              day: "numeric",
-            })}
+    <div className="space-y-3">
+      {/* Toolbar */}
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <h2 className="text-sm font-semibold">{monthLabel}</h2>
+        <div className="flex items-center gap-1.5">
+          <Button variant="outline" size="sm" onClick={() => nav(-1)} aria-label="Previous month">
+            <ChevronLeft className="w-4 h-4" />
+          </Button>
+          <Button variant="outline" size="sm" onClick={goToday}>
+            Today
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => nav(1)} aria-label="Next month">
+            <ChevronRight className="w-4 h-4" />
+          </Button>
+        </div>
+      </div>
+
+      {(tasks ?? []).length === 0 ? (
+        <div className="text-center py-12 rounded-xl border border-border/40 bg-card">
+          <CalendarDays className="w-8 h-8 text-muted-foreground/40 mx-auto mb-3" />
+          <p className="text-sm text-muted-foreground">
+            No tasks scheduled for this period. Set a due date on a task to see it here.
           </p>
-          <div className="space-y-1.5">
-            {dayTasks.map((t) => (
-              <div key={t.id} className="flex items-center gap-2.5 text-sm bg-muted/30 rounded-lg px-3 py-2">
-                <span
-                  className={cn(
-                    "w-1.5 h-1.5 rounded-full shrink-0",
-                    new Date(t.dueDate!).getTime() < Date.now() ? "bg-red-500" : "bg-indigo-400"
-                  )}
-                />
-                <span className="flex-1 min-w-0 truncate">{t.title}</span>
-                {t.assigneeName && (
-                  <span className="text-[11px] text-muted-foreground shrink-0">→ {t.assigneeName}</span>
-                )}
-              </div>
+        </div>
+      ) : (
+        <div className="rounded-xl border border-border/40 bg-card p-3">
+          <div className="grid grid-cols-7 gap-1.5 mb-1.5">
+            {WEEKDAYS.map((w) => (
+              <p
+                key={w}
+                className="text-center text-[10px] font-semibold uppercase tracking-wide text-muted-foreground"
+              >
+                {w}
+              </p>
             ))}
           </div>
+          <div className="grid grid-cols-7 gap-1.5">
+            {cells.map((day) => {
+              const key = toLocalDayKey(day);
+              const dayTasks = byDay.get(key) ?? [];
+              const isToday = key === todayKey;
+              const inMonth = inCursorMonth(day);
+              return (
+                <div
+                  key={key}
+                  className={cn(
+                    "min-h-[5.5rem] rounded-lg border border-border/30 p-1.5 flex flex-col gap-1",
+                    inMonth ? "bg-card" : "bg-muted/20 opacity-50",
+                    isToday && "ring-1 ring-indigo-500/50 border-indigo-500/40"
+                  )}
+                >
+                  <p
+                    className={cn(
+                      "text-[10px] font-medium",
+                      isToday ? "text-indigo-500" : "text-muted-foreground"
+                    )}
+                  >
+                    {day.getDate()}
+                  </p>
+                  <div className="space-y-1 min-w-0">
+                    {dayTasks.slice(0, 3).map((t) => {
+                      const overdue = isOverdue(t);
+                      const status = t.columnName ?? "";
+                      return (
+                        <button
+                          key={t.id}
+                          onClick={() => onOpenTask(t)}
+                          className={cn(
+                            "w-full text-left rounded px-1 py-0.5 border transition-colors",
+                            overdue
+                              ? "bg-red-500/10 border-red-500/25 text-red-600 dark:text-red-400 hover:bg-red-500/20"
+                              : "bg-indigo-500/10 border-indigo-500/25 text-indigo-600 dark:text-indigo-300 hover:bg-indigo-500/20"
+                          )}
+                          title={`${t.title}${status ? ` · ${status}` : ""}${t.assigneeName ? ` · ${t.assigneeName}` : ""}`}
+                        >
+                          <span className="flex items-center gap-1 min-w-0">
+                            <span
+                              className={cn(
+                                "w-1 h-1 rounded-full shrink-0",
+                                PRIORITY_DOTS[t.priority] ?? PRIORITY_DOTS.MEDIUM
+                              )}
+                            />
+                            <span className="text-[10px] leading-tight truncate">{t.title}</span>
+                          </span>
+                          <span className="flex items-center gap-1 text-[8px] leading-none mt-0.5 text-muted-foreground truncate">
+                            {status && <span className="uppercase truncate">{status}</span>}
+                            {t.assigneeName && (
+                              <span className="truncate">· {t.assigneeName.split(" ")[0]}</span>
+                            )}
+                          </span>
+                        </button>
+                      );
+                    })}
+                    {dayTasks.length > 3 && (
+                      <p className="text-[10px] text-muted-foreground text-center">+{dayTasks.length - 3} more</p>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
-      ))}
+      )}
     </div>
   );
 }
@@ -470,11 +849,14 @@ export default function BoardPage() {
   );
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
+  const [dueDate, setDueDate] = useState("");
   const [creating, setCreating] = useState(false);
   const [selectedColumn, setSelectedColumn] = useState("");
   const [showGitHub, setShowGitHub] = useState(false);
   const [view, setView] = useState<"board" | "calendar">("board");
   const [detailTask, setDetailTask] = useState<TaskDto | null>(null);
+  /** Bumped after any task mutation so the open calendar refetches. */
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const members = (project?.members ?? []).map((m) => ({ id: m.userId, fullName: m.fullName }));
   const allTasks = (board?.columns ?? []).flatMap((col) => col.tasks);
@@ -484,11 +866,18 @@ export default function BoardPage() {
     if (!title.trim() || !selectedColumn) return;
     setCreating(true);
     try {
-      await boardService.createTask({ title: title.trim(), columnId: selectedColumn });
+      await boardService.createTask({
+        title: title.trim(),
+        columnId: selectedColumn,
+        // Noon local time keeps the calendar day stable across timezones.
+        dueDate: dueDate ? new Date(dueDate + "T12:00:00").toISOString() : undefined,
+      });
       toast("Task created!");
       setTitle("");
+      setDueDate("");
       setOpen(false);
       refetch();
+      setRefreshKey((k) => k + 1);
     } catch {
       toast("Failed to create task");
     } finally {
@@ -586,7 +975,7 @@ export default function BoardPage() {
       )}
 
       {view === "calendar" ? (
-        <CalendarView />
+        <CalendarView projectId={projectId!} refreshKey={refreshKey} onOpenTask={(t) => setDetailTask(t)} />
       ) : (
         <div className="flex gap-4 overflow-x-auto pb-4">
           {board.columns.map((col) => (
@@ -638,6 +1027,17 @@ export default function BoardPage() {
           </DialogHeader>
           <form onSubmit={handleCreate} className="space-y-4">
             <Input placeholder="Task title" value={title} onChange={(e) => setTitle(e.target.value)} required />
+            <div className="space-y-1.5">
+              <label htmlFor="new-task-due" className="text-xs text-muted-foreground">
+                Due date (optional)
+              </label>
+              <Input
+                id="new-task-due"
+                type="date"
+                value={dueDate}
+                onChange={(e) => setDueDate(e.target.value)}
+              />
+            </div>
             <Button
               type="submit"
               disabled={creating || !title.trim()}
@@ -655,13 +1055,16 @@ export default function BoardPage() {
           task={detailTask}
           allTasks={allTasks}
           members={members}
+          currentUserRole={project?.currentUserRole ?? null}
           onClose={() => setDetailTask(null)}
           onSaved={() => {
             refetch();
+            setRefreshKey((k) => k + 1);
             // Keep the dialog showing the freshest task data.
             const fresh = allTasks.find((t) => t.id === detailTask.id);
             if (fresh) setDetailTask(fresh);
           }}
+          onTaskUpdated={(t) => setDetailTask(t)}
         />
       )}
     </div>

@@ -93,7 +93,24 @@ export const authService = {
 
   getStoredUser(): AuthResponse["user"] | null {
     const stored = localStorage.getItem("user");
-    return stored ? JSON.parse(stored) : null;
+    if (!stored) return null;
+    try {
+      const parsed = JSON.parse(stored);
+      if (
+        parsed &&
+        typeof parsed === "object" &&
+        typeof parsed.id === "string" &&
+        typeof parsed.email === "string"
+      ) {
+        return parsed;
+      }
+    } catch {
+      // Corrupt value (e.g. written by an older app version) — fall through and
+      // clear it so the app boots into a clean, logged-out state instead of
+      // crashing the whole tree at AuthProvider mount.
+    }
+    localStorage.removeItem("user");
+    return null;
   },
 
   isAuthenticated(): boolean {

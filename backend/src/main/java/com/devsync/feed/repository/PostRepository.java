@@ -17,6 +17,7 @@ public interface PostRepository extends JpaRepository<Post, String> {
     Page<Post> findAllByOrderByCreatedAtDesc(Pageable pageable);
     List<Post> findAllByOrderByCreatedAtDesc();
     List<Post> findByUserIdOrderByCreatedAtDesc(String userId);
+    Page<Post> findByUserIdOrderByCreatedAtDesc(String userId, Pageable pageable);
     long countByUserId(String userId);
 
     @Query("SELECT p.userId, COUNT(p) FROM Post p WHERE p.userId IN :userIds GROUP BY p.userId")

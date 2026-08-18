@@ -3,7 +3,19 @@ package com.devsync.project;
 import com.devsync.activity.ActivityService;
 import com.devsync.activity.entity.ActivityType;
 import com.devsync.billing.EntitlementService;
+import com.devsync.collab.JoinRequestService;
+import com.devsync.collab.entity.InvitationStatus;
+import com.devsync.collab.entity.JoinRequest;
+import com.devsync.collab.entity.JoinRequestStatus;
+import com.devsync.collab.repository.JoinRequestRepository;
+import com.devsync.collab.repository.ProjectInvitationRepository;
+import com.devsync.teamroom.TeamRoomService;
+import com.devsync.common.ForbiddenException;
 import com.devsync.common.ResourceNotFoundException;
+import com.devsync.kanban.entity.Board;
+import com.devsync.kanban.entity.Task;
+import com.devsync.kanban.repository.BoardRepository;
+import com.devsync.kanban.repository.TaskRepository;
 import com.devsync.notification.NotificationService;
 import com.devsync.presence.PresenceService;
 import com.devsync.project.dto.CreateProjectRequest;
@@ -41,6 +53,12 @@ public class ProjectService {
     private final PresenceService presenceService;
     private final EntitlementService entitlementService;
     private final ProjectTemplateService templateService;
+    private final JoinRequestRepository joinRequestRepository;
+    private final JoinRequestService joinRequestService;
+    private final TeamRoomService teamRoomService;
+    private final ProjectInvitationRepository invitationRepository;
+    private final BoardRepository boardRepository;
+    private final TaskRepository taskRepository;
 
     public List<ProjectResponse> getUserProjects(String userId) {
         List<Project> owned = projectRepository.findByOwnerId(userId);
@@ -77,8 +95,16 @@ public class ProjectService {
                 : userRepository.findAllById(userIds).stream()
                         .collect(Collectors.toMap(User::getId, u -> u));
 
+        // Batch-load the caller's own join-request status across the result set
+        // so the discovery UI can render a pending state without N+1 lookups.
+        Map<String, String> joinStatusByProject = joinRequestRepository
+                .findByProjectIdInAndUserId(projectIds, userId).stream()
+                .collect(Collectors.toMap(JoinRequest::getProjectId,
+                        jr -> jr.getStatus().name(), (a, b) -> a));
+
         return projects.stream()
-                .map(p -> toResponse(p, membersByProject.getOrDefault(p.getId(), List.of()), userMap, null))
+                .map(p -> toResponse(p, membersByProject.getOrDefault(p.getId(), List.of()),
+                        userMap, null, joinStatusByProject.get(p.getId())))
                 .toList();
     }
 
@@ -107,6 +133,10 @@ public class ProjectService {
                 .role(ProjectMember.Role.OWNER)
                 .build();
         memberRepository.save(ownerMember);
+
+        // The project's team chat is created automatically and the owner joins
+        // it — same transaction, so a project can never exist without its chat.
+        teamRoomService.addProjectMemberToRoom(project.getId(), ownerId);
 
         if (request.getTemplate() != null && templateService.supports(request.getTemplate())) {
             templateService.seed(project.getId(), ownerId, request.getTemplate());
@@ -139,7 +169,7 @@ public class ProjectService {
         if (!project.getOwnerId().equals(userId)) {
             boolean isAdmin = memberRepository.findByProjectIdAndUserId(projectId, userId)
                     .filter(m -> m.getRole() == ProjectMember.Role.ADMIN).isPresent();
-            if (!isAdmin) throw new IllegalArgumentException("No permission to update this project");
+            if (!isAdmin) throw new ForbiddenException("No permission to update this project");
         }
         if (request.getName() != null) project.setName(request.getName());
         if (request.getDescription() != null) project.setDescription(request.getDescription());
@@ -164,7 +194,7 @@ public class ProjectService {
     public void deleteProject(String projectId, String currentUserId) {
         Project project = findActive(projectId);
         if (!project.getOwnerId().equals(currentUserId))
-            throw new IllegalArgumentException("Only the project owner can delete this project");
+            throw new ForbiddenException("Only the project owner can delete this project");
         project.setDeleted(true);
         project.setDeletedAt(Instant.now());
         projectRepository.save(project);
@@ -178,7 +208,7 @@ public class ProjectService {
         if (!project.getOwnerId().equals(currentUserId)) {
             boolean isAdmin = memberRepository.findByProjectIdAndUserId(projectId, currentUserId)
                     .filter(m -> m.getRole() == ProjectMember.Role.ADMIN).isPresent();
-            if (!isAdmin) throw new IllegalArgumentException("No permission to add members");
+            if (!isAdmin) throw new ForbiddenException("No permission to add members");
         }
         entitlementService.assertCanAddMember(projectId);
         if (memberRepository.existsByProjectIdAndUserId(projectId, userId))
@@ -186,52 +216,156 @@ public class ProjectService {
         memberRepository.save(ProjectMember.builder()
                 .projectId(projectId).userId(userId)
                 .role(ProjectMember.Role.valueOf(role != null ? role : "MEMBER")).build());
+        teamRoomService.addProjectMemberToRoom(projectId, userId);
         activityService.record(currentUserId, projectId, ActivityType.USER_JOINED_PROJECT,
                 "User joined project", userId, null);
         notifyMemberAdded(project, userId, currentUserId);
     }
 
+    /**
+     * Owner-only member removal. Access is revoked atomically: the membership is
+     * deleted, the user is removed from the project's team chat, pending join
+     * requests / invitations are invalidated so they cannot re-enter through a
+     * stale approval, and tasks they were assigned are unassigned for
+     * reassignment. Tasks, files, docs and activity are preserved — only access
+     * is removed. Direct messages are untouched.
+     */
     @Transactional
     public void removeMember(String projectId, String userId, String currentUserId) {
         Project project = findActive(projectId);
         if (!project.getOwnerId().equals(currentUserId))
-            throw new IllegalArgumentException("Only the project owner can remove members");
+            throw new ForbiddenException("Only the project owner can remove members");
         if (project.getOwnerId().equals(userId))
             throw new IllegalArgumentException("Cannot remove the project owner");
         ProjectMember member = memberRepository.findByProjectIdAndUserId(projectId, userId)
                 .orElseThrow(() -> new ResourceNotFoundException("ProjectMember", projectId + ":" + userId));
         memberRepository.delete(member);
+        teamRoomService.removeProjectMemberFromRoom(projectId, userId);
+
+        // Cancel a pending join request / invitation so a stale approval can
+        // never restore access after removal.
+        joinRequestRepository.findByProjectIdAndUserId(projectId, userId)
+                .filter(jr -> jr.getStatus() == JoinRequestStatus.PENDING)
+                .ifPresent(jr -> {
+                    jr.setStatus(JoinRequestStatus.CANCELLED);
+                    joinRequestRepository.save(jr);
+                });
+        invitationRepository.findFirstByProjectIdAndReceiverIdAndStatus(
+                        projectId, userId, InvitationStatus.PENDING)
+                .ifPresent(inv -> {
+                    inv.setStatus(InvitationStatus.EXPIRED);
+                    invitationRepository.save(inv);
+                });
+
+        // Unassign the removed user's tasks so they surface for reassignment.
+        // The tasks themselves are kept — no project work is lost.
+        List<Board> boards = boardRepository.findByProjectId(projectId);
+        if (boards != null && !boards.isEmpty()) {
+            List<Task> tasks = taskRepository.findByBoardIdIn(
+                    boards.stream().map(Board::getId).toList());
+            for (Task task : tasks) {
+                if (userId.equals(task.getAssigneeId())) {
+                    task.setAssigneeId(null);
+                    taskRepository.save(task);
+                }
+            }
+        }
+
+        User removed = userRepository.findById(userId).orElse(null);
         activityService.record(currentUserId, projectId, ActivityType.USER_LEFT_PROJECT,
-                "User left project", userId, null);
+                "User removed from project",
+                (removed != null ? removed.getFullName() : "A user") + " was removed from the project", null);
         notifyMemberRemoved(project, userId, currentUserId);
     }
 
     /**
-     * PUBLIC projects: an authenticated user joins immediately (used by the Join button).
-     * PRIVATE projects should go through JoinRequestService instead.
+     * Transfers project ownership to another existing member. Runs in one
+     * transaction under a pessimistic lock on the project row: two concurrent
+     * transfers serialize, and the loser re-reads the committed row after the
+     * winner commits, so it is rejected instead of racing. Exactly one OWNER is
+     * guaranteed — the previous owner becomes a MEMBER and keeps their
+     * membership, team-chat access and project data.
+     */
+    @Transactional
+    public ProjectResponse transferOwnership(String projectId, String targetUserId, String currentUserId) {
+        Project project = projectRepository.findByIdForUpdate(projectId)
+                .orElseThrow(() -> new ResourceNotFoundException("Project", projectId));
+        if (project.isDeleted()) {
+            throw new ResourceNotFoundException("Project", projectId);
+        }
+        if (project.getStatus() == Project.ProjectStatus.ARCHIVED) {
+            throw new IllegalArgumentException("This project is archived");
+        }
+        if (!project.getOwnerId().equals(currentUserId)) {
+            throw new ForbiddenException("Only the project owner can transfer ownership");
+        }
+        if (targetUserId == null || targetUserId.isBlank()) {
+            throw new IllegalArgumentException("A target member is required");
+        }
+        if (project.getOwnerId().equals(targetUserId)) {
+            throw new IllegalArgumentException("This user is already the project owner");
+        }
+        User targetUser = userRepository.findById(targetUserId)
+                .orElseThrow(() -> new IllegalArgumentException("Target user not found"));
+        if (targetUser.isDeleted()) {
+            throw new IllegalArgumentException("Target user not found");
+        }
+        // The target must currently be a project member — ownership cannot be
+        // transferred to an arbitrary (non-member) user.
+        ProjectMember newOwner = memberRepository.findByProjectIdAndUserId(projectId, targetUserId)
+                .orElseThrow(() -> new IllegalArgumentException("Target user is not a member of this project"));
+        ProjectMember oldOwner = memberRepository.findByProjectIdAndUserId(projectId, currentUserId)
+                .orElseThrow(() -> new IllegalArgumentException("Current owner membership not found"));
+
+        newOwner.setRole(ProjectMember.Role.OWNER);
+        oldOwner.setRole(ProjectMember.Role.MEMBER);
+        memberRepository.save(newOwner);
+        memberRepository.save(oldOwner);
+        project.setOwnerId(targetUserId);
+        projectRepository.save(project);
+
+        String targetName = targetUser.getFullName() != null ? targetUser.getFullName() : targetUserId;
+        User actor = userRepository.findById(currentUserId).orElse(null);
+        String actorName = actor != null ? actor.getFullName() : currentUserId;
+
+        notificationService.createNotification(
+                targetUserId, "OWNERSHIP_TRANSFERRED", "You are now the owner",
+                "You are now the owner of " + project.getName(),
+                currentUserId, actorName, actor != null ? actor.getAvatarUrl() : null,
+                projectId, "project", "/projects/" + projectId);
+        notificationService.createNotification(
+                currentUserId, "OWNERSHIP_TRANSFERRED", "Ownership transferred",
+                "Project ownership of " + project.getName() + " was transferred to " + targetName,
+                targetUserId, targetName, targetUser.getAvatarUrl(),
+                projectId, "project", "/projects/" + projectId);
+
+        activityService.record(currentUserId, projectId, ActivityType.OWNERSHIP_TRANSFERRED,
+                "Ownership transferred", project.getName() + " → " + targetName, targetUserId);
+        activityService.record(targetUserId, projectId, ActivityType.OWNERSHIP_TRANSFERRED,
+                "Became project owner", project.getName(), null);
+
+        // currentUserId is now a MEMBER, so the response reflects the new state
+        // immediately (the frontend refreshes anyway).
+        return toResponse(project, currentUserId);
+    }
+
+    /**
+     * PUBLIC projects: an authenticated user requests to join and becomes a
+     * member only after the owner/admin approves. Delegates to the join-request
+     * flow so the backend can never bypass owner approval (this endpoint exists
+     * for legacy clients; the frontend uses /join-request directly).
+     * PRIVATE projects reject direct join attempts with a clear message.
      */
     @Transactional
     public void joinPublicProject(String projectId, String userId) {
-        Project project = findActive(projectId);
-        if (project.getVisibility() != Project.ProjectVisibility.PUBLIC) {
-            throw new IllegalArgumentException("This project is private - request to join instead");
-        }
-        entitlementService.assertCanAddMember(projectId);
-        if (memberRepository.existsByProjectIdAndUserId(projectId, userId)) {
-            throw new IllegalArgumentException("You are already a member of this project");
-        }
-        memberRepository.save(ProjectMember.builder()
-                .projectId(projectId).userId(userId).role(ProjectMember.Role.MEMBER).build());
-        activityService.record(userId, projectId, ActivityType.USER_JOINED_PROJECT,
-                "User joined project", project.getName(), null);
-        notifyMemberAdded(project, userId, userId);
+        joinRequestService.request(projectId, userId, null);
     }
 
     @Transactional
     public void updateMemberRole(String projectId, String memberUserId, String role, String currentUserId) {
         Project project = findActive(projectId);
         if (!project.getOwnerId().equals(currentUserId)) {
-            throw new IllegalArgumentException("Only the project owner can change member roles");
+            throw new ForbiddenException("Only the project owner can change member roles");
         }
         if (project.getOwnerId().equals(memberUserId)) {
             throw new IllegalArgumentException("Cannot change the role of the project owner");
@@ -258,7 +392,7 @@ public class ProjectService {
         if (!project.getOwnerId().equals(currentUserId)) {
             boolean isAdmin = memberRepository.findByProjectIdAndUserId(projectId, currentUserId)
                     .filter(m -> m.getRole() == ProjectMember.Role.ADMIN).isPresent();
-            if (!isAdmin) throw new IllegalArgumentException("Only the project owner or an admin can change visibility");
+            if (!isAdmin) throw new ForbiddenException("Only the project owner or an admin can change visibility");
         }
         Project.ProjectVisibility newVisibility = Project.ProjectVisibility.valueOf(visibility);
         project.setVisibility(newVisibility);
@@ -351,11 +485,16 @@ public class ProjectService {
                 .map(m -> m.getRole().name())
                 .findFirst()
                 .orElse(null);
-        return toResponse(project, members, userMap, currentUserRole);
+        String currentUserJoinRequestStatus = joinRequestRepository
+                .findByProjectIdAndUserId(project.getId(), userId)
+                .map(jr -> jr.getStatus().name())
+                .orElse(null);
+        return toResponse(project, members, userMap, currentUserRole, currentUserJoinRequestStatus);
     }
 
     private ProjectResponse toResponse(Project project, List<ProjectMember> members,
-                                       Map<String, User> userMap, String currentUserRole) {
+                                       Map<String, User> userMap, String currentUserRole,
+                                       String currentUserJoinRequestStatus) {
         List<ProjectResponse.MemberDto> memberDtos = members.stream()
                 .map(m -> {
                     User user = userMap.get(m.getUserId());
@@ -366,6 +505,7 @@ public class ProjectService {
                             .username(user != null ? user.getUsername() : null)
                             .presenceStatus(user != null ? presenceService.effectiveStatus(user) : "OFFLINE")
                             .lastActiveAt(user != null ? user.getLastActiveAt() : null)
+                            .joinedAt(m.getCreatedAt())
                             .build();
                 })
                 .toList();
@@ -375,6 +515,7 @@ public class ProjectService {
                 .ownerId(project.getOwnerId()).status(project.getStatus().name())
                 .visibility(project.getVisibility() != null ? project.getVisibility().name() : "PUBLIC")
                 .currentUserRole(currentUserRole)
+                .currentUserJoinRequestStatus(currentUserJoinRequestStatus)
                 .repositoryUrl(project.getRepositoryUrl()).imageUrl(project.getImageUrl())
                 .memberCount(members.size()).members(memberDtos)
                 .createdAt(project.getCreatedAt()).updatedAt(project.getUpdatedAt())
