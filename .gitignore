@@ -1,5 +1,44 @@
-# Logs
-logs
+# ── OS / IDE ──────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+*.sw?
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+.idea
+.vscode/*
+!.vscode/extensions.json
+
+# ── Dependencies ──────────────────────────────────────────────
+node_modules/
+**/package-lock.json
+
+# ── Build output ──────────────────────────────────────────────
+dist/
+dist-ssr/
+**/target/
+coverage/
+
+# ── Environment files — never commit secrets ─────────────────
+.env
+.env.*
+!.env.example
+!.env.development
+
+# ── Local uploads (user-generated, per-environment) ──────────
+backend/uploads/
+
+# ── Database backups (never in source control) ───────────────
+*.sql
+!backend/src/main/resources/db/migration/*.sql
+
+# ── Local DB TLS certificates (see scripts/generate-db-certs.sh) ──
+certs/
+
+# ── Logs ──────────────────────────────────────────────────────
+logs/
 *.log
 npm-debug.log*
 yarn-debug.log*
@@ -7,333 +46,11 @@ yarn-error.log*
 bun-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
-*.local
-
-# Build output & coverage
-**/target/
-coverage/
-
-# Environment files — never commit secrets. Keep the example template tracked.
-.env
-.env.*
-!.env.example
-
-# Stale local build/output copies (SST/Hono experiment artifacts)
-isolate
-main.ts
-sst-env.d.ts
-integrations.md
-src/lib
-
-# Freebuff local dev-tool artifacts (SQLite state, lImplement proper project member management and ownership controls in DevSync.
-
-First inspect the existing project membership, invitation, notification, team chat and authorization implementation. Do not create a separate permission system. Reuse the existing backend entities, APIs, services and project membership logic.
-
-CURRENT ISSUE:
-The Project → Members page shows all members and their roles, but there is no action available for the project owner to manage members.
-
-IMPLEMENT THIS FLOW:
-
-1. PROJECT OWNER MEMBER ACTIONS
-
-On:
-Project → Members
-
-For every member except the current owner, show a 3-dot action menu.
-
-Menu options:
-
-- Remove from Project
-- Promote to Owner
-
-Only the current project owner can see and use these actions.
-
-Normal members must NOT see these owner-only controls.
-
-2. REMOVE MEMBER
-
-When owner selects:
-
-Remove from Project
-
-show a confirmation modal:
-
-"Remove member?"
-
-"Are you sure you want to remove @username from this project?"
-
-Buttons:
-Cancel
-Remove Member
-
-After confirmation:
-
-- Remove the user from project membership.
-- Remove their access to the project.
-- They must no longer be able to access:
-  - Overview
-  - Board
-  - Tasks
-  - Team Chat
-  - Files
-  - Docs
-  - Members
-  - Activity
-  - Project Settings
-- Remove them from the project's team chat/group.
-- Remove their pending project-related permissions if applicable.
-- Create an activity entry such as:
-  "Owner removed @username from the project."
-- Send a notification to the removed user explaining that they were removed from the project.
-
-Do NOT delete the user's DevSync account.
-Do NOT delete their personal messages.
-Do NOT delete unrelated projects or data.
-
-3. TEAM CHAT REMOVAL
-
-When a member is removed from a project:
-
-They must automatically lose access to that project's team chat.
-
-They must no longer appear in the project team chat member list.
-
-They must not be able to send new messages to that project chat.
-
-Existing project messages should remain intact for the remaining members.
-
-Do NOT delete the entire chat history.
-
-4. PROMOTE MEMBER TO OWNER
-
-Owner should have:
-
-"Transfer Ownership"
-
-instead of directly changing ownership without confirmation.
-
-When selected, show:
-
-"Transfer project ownership?"
-
-"@username will become the new project owner. You will lose owner permissions."
-
-Buttons:
-Cancel
-Transfer Ownership
-
-After confirmation:
-
-- Change project owner to the selected member.
-- Previous owner becomes a normal member.
-- New owner receives owner permissions.
-- Previous owner loses owner-only permissions.
-- Update the Members page immediately.
-- Create an activity entry:
-  "Project ownership transferred from @oldOwner to @newOwner."
-- Send notifications to both users.
-
-IMPORTANT:
-There must always be exactly ONE project owner.
-
-Do not allow:
-- Owner removing themselves.
-- Owner transferring ownership to a non-member.
-- Multiple owners.
-- Normal members transferring ownership.
-- Removed users becoming owner.
-
-5. BACKEND AUTHORIZATION
-
-Do NOT rely only on frontend hiding buttons.
-
-Every owner-only backend endpoint must verify:
-
-Authenticated user
-↓
-Project membership
-↓
-Authenticated user is CURRENT project owner
-↓
-Perform action
-
-A normal member must receive an appropriate 403 response when attempting owner-only actions through the API.
-
-Also verify that a removed member cannot access the project by directly calling project APIs or manually entering project URLs.
-
-6. MEMBERS PAGE UI
-
-Improve the existing Members page without redesigning the whole application.
-
-Keep the existing DevSync design system.
-
-For each member show:
-
-Avatar
-Name
-Username
-Join date
-Role badge
-3-dot actions menu where authorized
-
-Example:
-
-Tushar Dhiman
-@tushar97
-Joined about 4 hours ago
-OWNER
-
-Chat Fix
-@chatfix
-Joined about 2 hours ago
-MEMBER
-                                      ⋮
-
-Nakul Sharma
-@nakul97
-Joined about 4 hours ago
-MEMBER
-                                      ⋮
-
-The 3-dot menu should be keyboard accessible.
-
-Add proper aria-label:
-"Member actions"
-
-7. OWNER PROTECTION
-
-The owner should not have a Remove option for themselves.
-
-The owner can only transfer ownership to another existing project member.
-
-If ownership is transferred, update all UI and authorization checks immediately.
-
-8. NOTIFICATIONS
-
-Use the existing notification system.
-
-Create notifications for:
-
-- Member removed from project
-- Ownership transferred
-- Optional: ownership transfer received
-
-Do not create a new notification architecture.
-
-9. ACTIVITY LOG
-
-Use the existing Activity system.
-
-Record:
-
-- Member removed
-- Ownership transferred
-
-Activity should contain:
-Actor
-Target user
-Project
-Action
-Timestamp
-
-10. TEAM CHAT
-
-Reuse the existing project team-chat implementation.
-
-When removing a member, update chat membership using the existing chat/group architecture.
-
-Do not create a separate chat system.
-
-11. SECURITY TESTS
-
-Add/update backend integration tests for:
-
-- Owner can remove member
-- Owner cannot remove themselves
-- Normal member cannot remove another member
-- Normal member cannot call remove-member API
-- Owner can transfer ownership
-- Normal member cannot transfer ownership
-- Ownership transfer creates exactly one owner
-- Previous owner becomes MEMBER
-- New owner becomes OWNER
-- Removed member cannot access project
-- Removed member cannot access project team chat
-- Removed member cannot send messages to project team chat
-- Existing members retain access
-- Existing chat messages remain intact
-
-12. FRONTEND TESTS
-
-Verify:
-
-- Owner sees member action menu.
-- Normal member does not see owner controls.
-- Remove confirmation modal works.
-- Cancel works.
-- Successful removal updates member list.
-- Transfer ownership confirmation works.
-- Successful ownership transfer updates roles.
-- Loading states work.
-- API errors show user-friendly messages.
-- No duplicate requests occur.
-
-13. IMPORTANT DATA SAFETY
-
-Do NOT delete:
-
-- User accounts
-- User profiles
-- Other projects
-- Personal messages
-- Existing project messages
-- Existing tasks
-- Existing files
-- Existing docs
-- Existing activity history
-
-Only modify project membership/authorization and related project-chat membership.
-
-Finally run:
-
-- Backend unit tests
-- Backend integration tests
-- Frontend tests
-- TypeScript check
-- Production build
-
-Fix any errors introduced by this implementation.
-
-At the end report:
-1. Files modified
-2. APIs added/modified
-3. Database changes
-4. Authorization changes
-5. Member removal flow
-6. Ownership transfer flow
-7. Team chat changes
-8. Notification changes
-9. Tests passed
-10. Build resultogs, tokens)
+# ── Freebuff local dev-tool artifacts ────────────────────────
 .freebuff/
 
-# Locally generated DB TLS certificates (see scripts/generate-db-certs.sh)
-certs/
+# ── TypeScript build info files ──────────────────────────────
+*.tsbuildinfo
 
-# Editor directories and files
-.vscode/*
-!.vscode/extensions.json
-.idea
-.DS_Store
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
-
-# OS-generated files
-Thumbs.db
-desktop.ini
+# ── Misc ──────────────────────────────────────────────────────
+*.local
