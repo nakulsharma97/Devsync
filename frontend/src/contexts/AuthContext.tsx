@@ -108,7 +108,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const response = await authService.login(email, password);
       authService.saveSession(response);
       setUser(response.user);
-      window.location.href = "/dashboard";
+      // Role-aware redirect is handled by Auth.tsx useEffect — do NOT
+      // hardcode window.location.href here, as that forces a full page
+      // reload before React can evaluate the user's role.
     } catch (err) {
       setError(getErrorMessage(err, "Login failed"));
       throw err;
@@ -124,7 +126,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const response = await authService.register({ email, password, fullName, username });
       authService.saveSession(response);
       setUser(response.user);
-      window.location.href = "/dashboard";
+      // Role-aware redirect is handled by Auth.tsx useEffect — do NOT
+      // hardcode window.location.href here.
     } catch (err) {
       setError(getErrorMessage(err, "Registration failed"));
       throw err;

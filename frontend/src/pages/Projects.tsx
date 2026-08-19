@@ -21,6 +21,8 @@ import {
 import { SkeletonProjectCard } from "@/components/Skeletons";
 import { StatusPill } from "@/components/StatusPill";
 import { MemberStack } from "@/components/MemberStack";
+import { PinButton } from "@/components/PinButton";
+import { pinnedProjectService } from "@/services/pinnedProjectService";
 import { timeAgo } from "@/lib/format";
 import { getErrorMessage } from "@/lib/utils";
 import {
@@ -68,6 +70,9 @@ export default function Projects() {
     loading: invitesLoading,
     refetch: refetchInvitations,
   } = useApi(() => projectService.getMyInvitations());
+  const { data: pinnedProjects, refetch: refetchPinned } = useApi(() =>
+    pinnedProjectService.getPinned()
+  );
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -123,6 +128,14 @@ export default function Projects() {
   };
 
   const pendingInvitations = (invitations ?? []).filter((i) => i.status === "PENDING");
+
+  // projectId → pinned state
+  const pinnedIds = new Set((pinnedProjects ?? []).map((p) => p.projectId));
+  const togglePin = (projectId: string, pinned: boolean) => {
+    refetchPinned();
+    // No-op: list re-renders from server truth on next refetch.
+    void pinned;
+  };
 
   return (
     <div className="relative w-full min-w-0 max-w-6xl space-y-6 overflow-hidden">
@@ -340,6 +353,8 @@ export default function Projects() {
               key={project.id}
               project={project}
               index={index}
+              pinned={pinnedIds.has(project.id)}
+              onTogglePin={(pinned) => togglePin(project.id, pinned)}
               onOpen={() => navigate(`/projects/${project.id}`)}
               onBoard={() => navigate(`/board/${project.id}`)}
               onChat={() => navigate("/messages")}
@@ -411,12 +426,16 @@ function VisibilityOption({
 function ProjectCard({
   project,
   index,
+  pinned,
+  onTogglePin,
   onOpen,
   onBoard,
   onChat,
 }: {
   project: ProjectDto;
   index: number;
+  pinned: boolean;
+  onTogglePin: (pinned: boolean) => void;
   onOpen: () => void;
   onBoard: () => void;
   onChat: () => void;
@@ -454,7 +473,10 @@ function ProjectCard({
             </div>
           </div>
           <div className="flex flex-col items-end gap-1.5 shrink-0">
-            <StatusPill status={project.status} />
+            <div className="flex items-center gap-1">
+              <StatusPill status={project.status} />
+              <PinButton projectId={project.id} pinned={pinned} onChanged={onTogglePin} />
+            </div>
             <span
               className={cn(
                 "inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-full border",

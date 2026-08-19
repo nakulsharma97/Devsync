@@ -16,6 +16,11 @@ public interface MessageRepository extends JpaRepository<Message, String> {
 
     List<Message> findByRoomIdOrderByCreatedAtAsc(String roomId, Pageable pageable);
 
+    List<Message> findByRoomIdOrderByCreatedAtDesc(String roomId, Pageable pageable);
+
+    /** Load messages older than the given cursor (for scroll-up pagination). */
+    List<Message> findByRoomIdAndIdLessThanOrderByCreatedAtDesc(String roomId, String cursorId, Pageable pageable);
+
     List<Message> findByAttachmentId(String attachmentId);
 
     List<Message> findByRoomIdAndCreatedAtAfter(String roomId, java.time.Instant after);

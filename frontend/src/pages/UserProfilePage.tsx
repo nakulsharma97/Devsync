@@ -21,6 +21,7 @@ import {
   Pencil,
   Loader2,
   X,
+  Flag,
 } from "lucide-react";
 import {
   publicProfileService,
@@ -43,6 +44,7 @@ import {
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { getErrorMessage } from "@/lib/utils";
+import { ReportDialog } from "@/components/ReportDialog";
 
 const HEATMAP_DAYS = 13 * 7; // 13 weeks
 
@@ -222,6 +224,9 @@ export default function UserProfilePage() {
   const [listUsers, setListUsers] = useState<FollowUserDto[]>([]);
   const [listLoading, setListLoading] = useState(false);
   const [togglingIds, setTogglingIds] = useState<Set<string>>(new Set());
+
+  // Report dialog
+  const [reportOpen, setReportOpen] = useState(false);
 
   const counts = useHeatmap(profile);
 
@@ -496,6 +501,18 @@ export default function UserProfilePage() {
                 View Feed
               </Button>
             )}
+            {!social.isSelf && (
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setReportOpen(true)}
+                aria-label="Report user"
+                className="text-xs gap-1.5 text-muted-foreground hover:text-red-500 hover:bg-red-500/5"
+              >
+                <Flag className="w-3.5 h-3.5" />
+                Report
+              </Button>
+            )}
           </div>
         </div>
 
@@ -576,6 +593,15 @@ export default function UserProfilePage() {
         }}
         onFollowToggle={toggleFollowInList}
         togglingIds={togglingIds}
+      />
+
+      {/* Report user dialog */}
+      <ReportDialog
+        open={reportOpen}
+        onOpenChange={setReportOpen}
+        entityType="USER"
+        entityId={social.id}
+        entityLabel={`user @${profile.username}`}
       />
     </div>
   );

@@ -73,6 +73,12 @@ const ACTION_META: Record<string, { label: string; badge: string }> = {
   PROJECT_RESTORED: { label: "Project Restored", badge: "bg-emerald-500/10 text-emerald-600" },
   VISIBILITY_CHANGED: { label: "Visibility Changed", badge: "bg-blue-500/10 text-blue-600" },
   MODERATION_ACTION: { label: "Moderation Action", badge: "bg-orange-500/10 text-orange-600" },
+  SUPPORT_TICKET_CREATED: { label: "Support Ticket Created", badge: "bg-teal-500/10 text-teal-600" },
+  SUPPORT_TICKET_REPLIED: { label: "Support Reply", badge: "bg-teal-500/10 text-teal-600" },
+  SUPPORT_TICKET_STATUS_CHANGED: { label: "Support Status Changed", badge: "bg-teal-500/10 text-teal-600" },
+  SUPPORT_TICKET_ASSIGNED: { label: "Support Assigned", badge: "bg-teal-500/10 text-teal-600" },
+  SUPPORT_TICKET_RESOLVED: { label: "Support Resolved", badge: "bg-emerald-500/10 text-emerald-600" },
+  SUPPORT_TICKET_CLOSED: { label: "Support Closed", badge: "bg-slate-500/10 text-slate-600" },
 };
 
 const STATUS_META: Record<string, { label: string; badge: string }> = {

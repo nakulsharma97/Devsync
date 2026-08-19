@@ -3,6 +3,7 @@ package com.devsync.project;
 import com.devsync.admin.dto.UpdateVisibilityRequest;
 import com.devsync.project.dto.CreateProjectRequest;
 import com.devsync.project.dto.ProjectResponse;
+import com.devsync.project.dto.PublicProjectSummaryResponse;
 import com.devsync.project.dto.TransferOwnershipRequest;
 import com.devsync.project.dto.UpdateProjectRequest;
 import jakarta.validation.Valid;
@@ -27,7 +28,7 @@ public class ProjectController {
     }
 
     @GetMapping("/discover")
-    public ResponseEntity<List<ProjectResponse>> discover(
+    public ResponseEntity<List<PublicProjectSummaryResponse>> discover(
             @RequestParam(required = false) String search,
             @AuthenticationPrincipal UserDetails userDetails) {
         return ResponseEntity.ok(projectService.discoverPublicProjects(search, userDetails.getUsername()));

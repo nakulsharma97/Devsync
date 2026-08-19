@@ -190,7 +190,7 @@ const keyframesStyle = `
 // ─── Main Auth Page ─────────────────────────────────────────
 
 export default function AuthPage() {
-  const { isAuthenticated, isLoading, login, register } = useAuth();
+  const { isAuthenticated, isLoading, isAdmin, login, register } = useAuth();
   const navigate = useNavigate();
   const [stats, setStats] = useState<PublicStats | null>(null);
 
@@ -233,14 +233,19 @@ export default function AuthPage() {
         localStorage.setItem("accessToken", accessToken);
         // Clear the hash so the token isn't visible in the URL bar
         window.location.hash = "";
+        // Note: OAuth callback doesn't have role info yet, redirect to user dashboard
+        // The ProtectedRoute will handle role-based redirect if needed
         window.location.href = "/dashboard";
       }
     }
   }, [isLoading]);
 
   useEffect(() => {
-    if (!isLoading && isAuthenticated) navigate("/dashboard", { replace: true });
-  }, [isLoading, isAuthenticated, navigate]);
+    if (!isLoading && isAuthenticated) {
+      // Admin users go to admin dashboard, normal users go to user dashboard
+      navigate(isAdmin ? "/admin/dashboard" : "/dashboard", { replace: true });
+    }
+  }, [isLoading, isAuthenticated, isAdmin, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -259,7 +264,8 @@ export default function AuthPage() {
           const { authService } = await import("@/services/authService");
           const response = await authService.verifyOtp(email, otpCode);
           authService.saveSession(response);
-          window.location.href = "/dashboard";
+          // Redirect based on role after OTP verification
+          window.location.href = response.user?.role === "ADMIN" ? "/admin/dashboard" : "/dashboard";
         } else {
           // No code yet — send OTP
           const { authService } = await import("@/services/authService");

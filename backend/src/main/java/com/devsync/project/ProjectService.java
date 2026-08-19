@@ -20,6 +20,7 @@ import com.devsync.notification.NotificationService;
 import com.devsync.presence.PresenceService;
 import com.devsync.project.dto.CreateProjectRequest;
 import com.devsync.project.dto.ProjectResponse;
+import com.devsync.project.dto.PublicProjectSummaryResponse;
 import com.devsync.project.dto.UpdateProjectRequest;
 import com.devsync.project.entity.Project;
 import com.devsync.project.entity.ProjectMember;
@@ -78,7 +79,7 @@ public class ProjectService {
      * Discover PUBLIC projects for the network/discover page. Batch-loads members
      * and users so there are no N+1 queries across the result set.
      */
-    public List<ProjectResponse> discoverPublicProjects(String search, String userId) {
+    public List<PublicProjectSummaryResponse> discoverPublicProjects(String search, String userId) {
         List<Project> projects = projectRepository.discoverPublicProjects(
                 Project.ProjectStatus.ACTIVE,
                 Project.ProjectVisibility.PUBLIC,
@@ -87,12 +88,15 @@ public class ProjectService {
         if (projects.isEmpty()) return List.of();
 
         Set<String> projectIds = projects.stream().map(Project::getId).collect(Collectors.toSet());
+        // Only load members to get counts and owner info — no presence, no lastActiveAt.
         List<ProjectMember> allMembers = memberRepository.findByProjectIdIn(projectIds);
         Map<String, List<ProjectMember>> membersByProject = allMembers.stream()
                 .collect(Collectors.groupingBy(ProjectMember::getProjectId));
-        Set<String> userIds = allMembers.stream().map(ProjectMember::getUserId).collect(Collectors.toSet());
-        Map<String, User> userMap = userIds.isEmpty() ? java.util.Collections.emptyMap()
-                : userRepository.findAllById(userIds).stream()
+        Map<String, Long> memberCounts = membersByProject.entrySet().stream()
+                .collect(Collectors.toMap(Map.Entry::getKey, e -> (long) e.getValue().size()));
+        Set<String> ownerIds = projects.stream().map(Project::getOwnerId).collect(Collectors.toSet());
+        Map<String, User> ownerMap = ownerIds.isEmpty() ? java.util.Collections.emptyMap()
+                : userRepository.findAllById(ownerIds).stream()
                         .collect(Collectors.toMap(User::getId, u -> u));
 
         // Batch-load the caller's own join-request status across the result set
@@ -103,8 +107,25 @@ public class ProjectService {
                         jr -> jr.getStatus().name(), (a, b) -> a));
 
         return projects.stream()
-                .map(p -> toResponse(p, membersByProject.getOrDefault(p.getId(), List.of()),
-                        userMap, null, joinStatusByProject.get(p.getId())))
+                .map(p -> {
+                    User owner = ownerMap.get(p.getOwnerId());
+                    return PublicProjectSummaryResponse.builder()
+                            .id(p.getId())
+                            .name(p.getName())
+                            .description(p.getDescription())
+                            .ownerId(p.getOwnerId())
+                            .ownerName(owner != null ? owner.getFullName() : null)
+                            .ownerAvatarUrl(owner != null ? owner.getAvatarUrl() : null)
+                            .status(p.getStatus() != null ? p.getStatus().name() : "ACTIVE")
+                            .repositoryUrl(p.getRepositoryUrl())
+                            .imageUrl(p.getImageUrl())
+                            .memberCount(memberCounts.getOrDefault(p.getId(), 0L).intValue())
+                            .visibility(p.getVisibility() != null ? p.getVisibility().name() : "PUBLIC")
+                            .currentUserJoinRequestStatus(joinStatusByProject.get(p.getId()))
+                            .createdAt(p.getCreatedAt())
+                            .updatedAt(p.getUpdatedAt())
+                            .build();
+                })
                 .toList();
     }
 
@@ -213,9 +234,10 @@ public class ProjectService {
         entitlementService.assertCanAddMember(projectId);
         if (memberRepository.existsByProjectIdAndUserId(projectId, userId))
             throw new IllegalArgumentException("User is already a member");
+        ProjectMember.Role memberRole = parseMemberRole(role);
         memberRepository.save(ProjectMember.builder()
                 .projectId(projectId).userId(userId)
-                .role(ProjectMember.Role.valueOf(role != null ? role : "MEMBER")).build());
+                .role(memberRole).build());
         teamRoomService.addProjectMemberToRoom(projectId, userId);
         activityService.record(currentUserId, projectId, ActivityType.USER_JOINED_PROJECT,
                 "User joined project", userId, null);
@@ -457,12 +479,19 @@ public class ProjectService {
     }
 
     private ProjectMember.Role parseMemberRole(String role) {
-        if (role == null) throw new IllegalArgumentException("Role is required");
-        ProjectMember.Role parsed = ProjectMember.Role.valueOf(role);
-        if (parsed == ProjectMember.Role.OWNER) {
-            throw new IllegalArgumentException("Cannot assign the OWNER role");
+        if (role == null || role.isBlank()) {
+            return ProjectMember.Role.MEMBER;
         }
-        return parsed;
+        try {
+            ProjectMember.Role parsed = ProjectMember.Role.valueOf(role.trim().toUpperCase());
+            if (parsed == ProjectMember.Role.OWNER) {
+                throw new IllegalArgumentException("Cannot assign the OWNER role");
+            }
+            return parsed;
+        } catch (IllegalArgumentException e) {
+            if (e.getMessage().contains("Cannot assign the OWNER role")) throw e;
+            throw new IllegalArgumentException("Invalid role: " + role + " (expected ADMIN, MEMBER, or VIEWER)");
+        }
     }
 
     private Project findActive(String projectId) {

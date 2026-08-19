@@ -73,6 +73,7 @@ class AdminServiceTest {
     @Mock private ActivityService activityService;
     @Mock private AuditLogService auditLogService;
     @Mock private com.devsync.auth.RefreshTokenService refreshTokenService;
+    @Mock private com.devsync.social.repository.FollowRepository followRepository;
 
     private AdminService adminService;
 
@@ -81,7 +82,7 @@ class AdminServiceTest {
         adminService = new AdminService(userRepository, projectRepository, teamRoomRepository,
                 taskRepository, postRepository, messageRepository, commentRepository, postLikeRepository,
                 projectMemberRepository, boardRepository, boardColumnRepository,
-                activityService, auditLogService, refreshTokenService);
+                activityService, auditLogService, refreshTokenService, followRepository);
     }
 
     @Test
@@ -116,12 +117,16 @@ class AdminServiceTest {
         when(userRepository.findAll()).thenReturn(List.of(u1, u2));
         when(postRepository.countPostsByUserIdIn(anySet()))
                 .thenReturn(Collections.singletonList(new Object[]{"u1", 3L}));
+        when(followRepository.countByFollowingIdInGrouped(anySet()))
+                .thenReturn(Collections.singletonList(new Object[]{"u1", 2L}));
 
         List<AdminUserResponse> users = adminService.getAllUsers();
 
         assertThat(users).hasSize(2);
         assertThat(users.get(0).getPostCount()).isEqualTo(3);
+        assertThat(users.get(0).getFollowerCount()).isEqualTo(2);
         assertThat(users.get(1).getPostCount()).isEqualTo(0);
+        assertThat(users.get(1).getFollowerCount()).isEqualTo(0);
     }
 
     @Test
@@ -318,6 +323,7 @@ class AdminServiceTest {
         when(userRepository.findById("u1")).thenReturn(Optional.of(user));
         when(userRepository.save(any(User.class))).thenReturn(user);
         when(postRepository.countByUserId("u1")).thenReturn(1L);
+        when(followRepository.countByFollowingId("u1")).thenReturn(5L);
 
         AdminUserResponse response = adminService.updateUserRole("u1", "DEVELOPER", "admin-1");
 
@@ -372,6 +378,7 @@ class AdminServiceTest {
         when(userRepository.countByRoleAndDeletedFalseAndBlockedFalse(User.Role.ADMIN)).thenReturn(2L);
         when(userRepository.save(any(User.class))).thenReturn(admin);
         when(postRepository.countByUserId("admin-1")).thenReturn(0L);
+        when(followRepository.countByFollowingId("admin-1")).thenReturn(0L);
 
         AdminUserResponse response = adminService.updateUserRole("admin-1", "USER", "other-admin");
 
@@ -386,6 +393,7 @@ class AdminServiceTest {
         when(userRepository.findById("u1")).thenReturn(Optional.of(user));
         when(userRepository.save(any(User.class))).thenReturn(user);
         when(postRepository.countByUserId("u1")).thenReturn(0L);
+        when(followRepository.countByFollowingId("u1")).thenReturn(0L);
 
         AdminUserResponse response = adminService.updateUserRole("u1", "ADMIN", "admin-1");
 
@@ -411,6 +419,7 @@ class AdminServiceTest {
         when(userRepository.findById("u1")).thenReturn(Optional.of(user));
         when(userRepository.save(any(User.class))).thenReturn(user);
         when(postRepository.countByUserId("u1")).thenReturn(0L);
+        when(followRepository.countByFollowingId("u1")).thenReturn(0L);
 
         AdminUserResponse response = adminService.setUserBlocked("u1", true, "admin-1", null);
 
@@ -424,6 +433,7 @@ class AdminServiceTest {
         when(userRepository.findById("u1")).thenReturn(Optional.of(user));
         when(userRepository.save(any(User.class))).thenReturn(user);
         when(postRepository.countByUserId("u1")).thenReturn(0L);
+        when(followRepository.countByFollowingId("u1")).thenReturn(0L);
 
         adminService.setUserBlocked("u1", true, "admin-1", "  Spam account  ");
 
@@ -437,6 +447,7 @@ class AdminServiceTest {
         when(userRepository.findById("u1")).thenReturn(Optional.of(user));
         when(userRepository.save(any(User.class))).thenReturn(user);
         when(postRepository.countByUserId("u1")).thenReturn(0L);
+        when(followRepository.countByFollowingId("u1")).thenReturn(0L);
 
         adminService.setUserBlocked("u1", true, "admin-1", null);
 

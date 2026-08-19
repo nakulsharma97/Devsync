@@ -116,4 +116,77 @@ class SpamProtectionFilterTest {
             assertThat(resp.getStatus()).isEqualTo(200);
         }
     }
+
+    @Test
+    void follows_areLimited_to30PerMinutePerUser() throws Exception {
+        // The legacy 4-arg constructor keeps the follow default of 30/min.
+        SpamProtectionFilter filter = new SpamProtectionFilter(limiter, true, 10, false);
+        authenticateAs("user-42");
+
+        for (int i = 0; i < 30; i++) {
+            MockHttpServletResponse resp = new MockHttpServletResponse();
+            filter.doFilter(post("/api/connections/follow"), resp, chain);
+            assertThat(resp.getStatus()).isEqualTo(200);
+        }
+
+        MockHttpServletResponse resp = new MockHttpServletResponse();
+        filter.doFilter(post("/api/connections/follow"), resp, chain);
+        assertThat(resp.getStatus()).isEqualTo(429);
+        assertThat(resp.getHeader("Retry-After")).isEqualTo("60");
+    }
+
+    @Test
+    void follow_and_invite_buckets_are_independent() throws Exception {
+        SpamProtectionFilter filter = new SpamProtectionFilter(limiter, true, 1, false);
+        authenticateAs("user-42");
+
+        // Invite quota exhausted (1/min) — follow still allowed.
+        MockHttpServletResponse invite = new MockHttpServletResponse();
+        filter.doFilter(post("/api/projects/p1/invite"), invite, chain);
+        assertThat(invite.getStatus()).isEqualTo(200);
+
+        for (int i = 0; i < 30; i++) {
+            MockHttpServletResponse resp = new MockHttpServletResponse();
+            filter.doFilter(post("/api/connections/follow"), resp, chain);
+            assertThat(resp.getStatus()).isEqualTo(200);
+        }
+
+        MockHttpServletResponse resp = new MockHttpServletResponse();
+        filter.doFilter(post("/api/connections/follow"), resp, chain);
+        assertThat(resp.getStatus()).isEqualTo(429);
+    }
+
+    @Test
+    void reports_areLimited_to5PerMinutePerUser() throws Exception {
+        SpamProtectionFilter filter = new SpamProtectionFilter(
+                limiter, true, false,
+                java.util.Map.of("projects", 10, "connections", 30, "reports", 5));
+        authenticateAs("user-42");
+
+        for (int i = 0; i < 5; i++) {
+            MockHttpServletResponse resp = new MockHttpServletResponse();
+            filter.doFilter(post("/api/reports"), resp, chain);
+            assertThat(resp.getStatus()).isEqualTo(200);
+        }
+
+        MockHttpServletResponse resp = new MockHttpServletResponse();
+        filter.doFilter(post("/api/reports"), resp, chain);
+        assertThat(resp.getStatus()).isEqualTo(429);
+    }
+
+    @Test
+    void unfollow_isLimited_alongsideFollow() throws Exception {
+        SpamProtectionFilter filter = new SpamProtectionFilter(limiter, true, 1, false);
+        authenticateAs("user-42");
+
+        for (int i = 0; i < 30; i++) {
+            MockHttpServletResponse resp = new MockHttpServletResponse();
+            filter.doFilter(post("/api/connections/unfollow"), resp, chain);
+            assertThat(resp.getStatus()).isEqualTo(200);
+        }
+
+        MockHttpServletResponse resp = new MockHttpServletResponse();
+        filter.doFilter(post("/api/connections/unfollow"), resp, chain);
+        assertThat(resp.getStatus()).isEqualTo(429);
+    }
 }

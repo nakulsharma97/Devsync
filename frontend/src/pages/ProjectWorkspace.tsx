@@ -60,10 +60,12 @@ import {
   AlertTriangle,
   Archive,
   X,
+  Flag,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import BoardPage from "./BoardPage";
+import { ReportDialog } from "@/components/ReportDialog";
 
 type TabId =
   | "overview"
@@ -93,6 +95,7 @@ export default function ProjectWorkspace() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
 
   // The active tab lives in the URL (?tab=members) so a refresh and the
   // browser back/forward buttons both preserve it. Each tab switch pushes a
@@ -236,23 +239,35 @@ export default function ProjectWorkspace() {
             </div>
           </div>
 
-          {canManage && (
-            <div className="flex items-center gap-2 shrink-0">
-              <Button size="sm" onClick={() => setInviteOpen(true)}>
-                <UserPlus className="w-3.5 h-3.5 mr-1.5" />
-                Invite Member
-              </Button>
-              <Button
-                size="sm"
-                variant={tab === "settings" ? "default" : "outline"}
-                onClick={() => setTab("settings")}
-                aria-label="Project Settings"
-              >
-                <SettingsIcon className="w-3.5 h-3.5 mr-1.5" />
-                Settings
-              </Button>
-            </div>
-          )}
+          <div className="flex items-center gap-2 shrink-0">
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => setReportOpen(true)}
+              aria-label="Report project"
+              className="text-xs gap-1.5 text-muted-foreground hover:text-red-500 hover:bg-red-500/5"
+            >
+              <Flag className="w-3.5 h-3.5" />
+              Report
+            </Button>
+            {canManage && (
+              <>
+                <Button size="sm" onClick={() => setInviteOpen(true)}>
+                  <UserPlus className="w-3.5 h-3.5 mr-1.5" />
+                  Invite Member
+                </Button>
+                <Button
+                  size="sm"
+                  variant={tab === "settings" ? "default" : "outline"}
+                  onClick={() => setTab("settings")}
+                  aria-label="Project Settings"
+                >
+                  <SettingsIcon className="w-3.5 h-3.5 mr-1.5" />
+                  Settings
+                </Button>
+              </>
+            )}
+          </div>
         </div>
       </div>
 
@@ -317,6 +332,14 @@ export default function ProjectWorkspace() {
           // Refresh so the members tab shows up-to-date pending invitations.
           refetch();
         }}
+      />
+
+      <ReportDialog
+        open={reportOpen}
+        onOpenChange={setReportOpen}
+        entityType="PROJECT"
+        entityId={project.id}
+        entityLabel={`project "${project.name}"`}
       />
     </div>
   );

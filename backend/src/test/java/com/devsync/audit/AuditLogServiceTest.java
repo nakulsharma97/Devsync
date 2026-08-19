@@ -85,7 +85,7 @@ class AuditLogServiceTest {
     void getLogs_shouldReturnPagedResponses_WithBatchLoadedNames() {
         AuditLog l1 = log("l1", "admin1", "u1", AuditAction.ROLE_CHANGED);
         when(auditLogRepository.searchAdminLogs(
-                isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), any(Pageable.class)))
+                isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of(l1), PageRequest.of(0, 20), 1));
         when(userRepository.findAllById(anySet()))
                 .thenReturn(List.of(user("admin1", "Admin One"), user("u1", "Target User")));
@@ -144,7 +144,7 @@ class AuditLogServiceTest {
     void exportLogs_shouldReturnRows_AndToCsv_ShouldEscape() {
         AuditLog l1 = log("l1", "admin1", "u1", AuditAction.USER_DELETED);
         when(auditLogRepository.searchAdminLogs(
-                isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), any(Pageable.class)))
+                isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of(l1), PageRequest.of(0, 5000), 1));
         when(userRepository.findAllById(anySet()))
                 .thenReturn(List.of(user("admin1", "Admin One"), user("u1", "Target User")));

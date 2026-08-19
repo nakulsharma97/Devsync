@@ -19,6 +19,7 @@ import {
   MoreVertical,
   Pencil,
   Trash2,
+  Flag,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -47,6 +48,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { getErrorMessage } from "@/lib/utils";
+import { ReportDialog } from "@/components/ReportDialog";
 
 const MAX_CONTENT_LENGTH = 1000;
 const IMAGE_EXTENSIONS = new Set(["png", "jpg", "jpeg", "gif", "webp", "svg", "bmp"]);
@@ -176,6 +178,9 @@ export default function FeedPostCard({
   // Comment deletion confirmation
   const [commentToDelete, setCommentToDelete] = useState<CommentDto | null>(null);
   const [commentDeleting, setCommentDeleting] = useState(false);
+
+  // Report dialog (any user can report a post)
+  const [reportOpen, setReportOpen] = useState(false);
 
   // When the parent hands us a refreshed post (e.g. edit), sync counts.
   useEffect(() => {
@@ -460,6 +465,15 @@ export default function FeedPostCard({
               {commentCount > 0 ? commentCount : "Comment"}
             </span>
           </button>
+
+          <button
+            onClick={() => setReportOpen(true)}
+            aria-label="Report post"
+            className="flex items-center gap-1.5 text-xs rounded-full px-3 py-1.5 ml-auto text-muted-foreground/60 hover:text-amber-500 hover:bg-amber-500/5 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/40"
+          >
+            <Flag className="w-4 h-4" />
+            <span className="hidden sm:inline">Report</span>
+          </button>
         </div>
 
         {/* Comments Section */}
@@ -716,6 +730,15 @@ export default function FeedPostCard({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Report dialog (any user) */}
+      <ReportDialog
+        open={reportOpen}
+        onOpenChange={setReportOpen}
+        entityType="POST"
+        entityId={post.id}
+        entityLabel={`post by ${post.user.fullName}`}
+      />
 
       {/* Comment deletion confirmation */}
       <AlertDialog

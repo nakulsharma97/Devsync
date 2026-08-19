@@ -5,6 +5,7 @@ import com.devsync.auth.JwtTokenProvider;
 import com.devsync.auth.RateLimitingFilter;
 import com.devsync.ratelimit.RateLimiter;
 import com.devsync.ratelimit.SpamProtectionFilter;
+import java.util.Map;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.ObjectProvider;
@@ -45,6 +46,12 @@ public class SecurityConfig {
 
     @org.springframework.beans.factory.annotation.Value("${app.rate-limit.invite.per-minute:10}")
     private int invitePerMinute;
+
+    @org.springframework.beans.factory.annotation.Value("${app.rate-limit.follow.per-minute:30}")
+    private int followPerMinute;
+
+    @org.springframework.beans.factory.annotation.Value("${app.rate-limit.reports.per-minute:5}")
+    private int reportsPerMinute;
 
     @org.springframework.beans.factory.annotation.Value("${app.rate-limit.trust-x-forwarded-for:false}")
     private boolean trustXForwardedFor;
@@ -141,13 +148,23 @@ public class SecurityConfig {
     }
 
     /**
-     * Invitation / join-request spam protection. Defaults: 10 POSTs per minute
-     * per user (or per IP when unauthenticated). Toggle with app.rate-limit.enabled
-     * and tune with app.rate-limit.invite.per-minute.
+     * Spam protection for abuse-prone POST endpoints. Defaults per user (or per
+     * IP when unauthenticated): 10/min invitations/join-requests, 30/min
+     * follow/unfollow, 5/min moderation reports. Toggle with app.rate-limit.enabled
+     * and tune with app.rate-limit.{invite,follow,reports}.per-minute.
      */
     @Bean
     public SpamProtectionFilter spamProtectionFilter() {
-        return new SpamProtectionFilter(rateLimiter, rateLimitEnabled, invitePerMinute, trustXForwardedFor);
+        return new SpamProtectionFilter(
+                rateLimiter,
+                rateLimitEnabled,
+                trustXForwardedFor,
+                Map.of(
+                        "projects", invitePerMinute,
+                        "connections", followPerMinute,
+                        "reports", reportsPerMinute
+                )
+        );
     }
 
     @Bean

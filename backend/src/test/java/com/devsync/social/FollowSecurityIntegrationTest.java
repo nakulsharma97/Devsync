@@ -90,7 +90,7 @@ class FollowSecurityIntegrationTest {
         Notification notification = notificationRepository.findAll().stream()
                 .filter(n -> n.getUserId().equals(bobId))
                 .findFirst().orElseThrow();
-        assertThat(notification.getType()).isEqualTo("FOLLOW");
+        assertThat(notification.getType()).isEqualTo("NEW_FOLLOWER");
         assertThat(notification.getMessage()).contains("started following you");
         assertThat(notification.getActorId()).isEqualTo(aliceId);
     }

@@ -71,40 +71,22 @@ describe("DashboardLayout admin navigation", () => {
     mocks.getMsgUnreadCount.mockResolvedValue(0);
   });
 
-  it("shows a separated Administration section with all admin links for ADMIN users", () => {
-    mockAuth("ADMIN");
-
-    renderLayout();
-
-    expect(screen.getByText("Administration")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Admin Dashboard" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Admin Users" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Admin Projects" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Admin Reports" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Admin Activity" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Admin Audit Logs" })).toBeInTheDocument();
-    // Regular nav still present
-    expect(screen.getByRole("link", { name: "Dashboard" })).toBeInTheDocument();
-  });
-
-  it("never shows admin links for normal USERs", () => {
+  it("shows normal user navigation for USERs", () => {
     mockAuth("USER");
 
     renderLayout();
 
-    expect(screen.queryByText("Administration")).not.toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: "Admin Dashboard" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: "Admin Users" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: "Admin Projects" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: "Admin Reports" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: "Admin Activity" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: "Admin Audit Logs" })).not.toBeInTheDocument();
-    // Regular nav still present
+    // Regular nav present
     expect(screen.getByRole("link", { name: "Dashboard" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Projects" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Feed" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Messages" })).toBeInTheDocument();
+    // No admin section
+    expect(screen.queryByText("Admin")).not.toBeInTheDocument();
   });
 
-  it("opens the mobile sidebar with admin links for ADMIN users", async () => {
-    mockAuth("ADMIN");
+  it("opens the mobile sidebar with normal user links", async () => {
+    mockAuth("USER");
     const user = userEvent.setup();
 
     renderLayout();
@@ -114,21 +96,8 @@ describe("DashboardLayout admin navigation", () => {
 
     await user.click(screen.getByRole("button", { name: "Open menu" }));
 
-    // Overlay appears and admin links are reachable in the open drawer
+    // Overlay appears and normal user links are reachable
     expect(screen.getByRole("presentation")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Admin Dashboard" })).toBeInTheDocument();
-  });
-
-  it("opens the mobile sidebar without admin links for normal USERs", async () => {
-    mockAuth("USER");
-    const user = userEvent.setup();
-
-    renderLayout();
-
-    await user.click(screen.getByRole("button", { name: "Open menu" }));
-
-    expect(screen.getByRole("presentation")).toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: "Admin Dashboard" })).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Dashboard" })).toBeInTheDocument();
   });
 

@@ -112,6 +112,7 @@ describe("Dashboard", () => {
     mockUser({ role: "ADMIN" });
     mocks.useApi
       .mockReturnValueOnce({ data: sampleProjects, loading: false, error: null, refetch: vi.fn() })
+      .mockReturnValueOnce({ data: [], loading: false, error: null, refetch: vi.fn() })
       .mockReturnValueOnce({ data: 3, loading: false, error: null, refetch: vi.fn() });
 
     renderPage();
@@ -124,6 +125,7 @@ describe("Dashboard", () => {
   it("renders stat cards with counted values", async () => {
     mocks.useApi
       .mockReturnValueOnce({ data: sampleProjects, loading: false, error: null, refetch: vi.fn() })
+      .mockReturnValueOnce({ data: [], loading: false, error: null, refetch: vi.fn() })
       .mockReturnValueOnce({ data: 3, loading: false, error: null, refetch: vi.fn() });
 
     renderPage();
@@ -137,9 +139,28 @@ describe("Dashboard", () => {
     expect(screen.getByRole("button", { name: /New Project/i })).toBeInTheDocument();
   });
 
+  it("renders a pinned section with pinned projects", async () => {
+    mocks.useApi
+      .mockReturnValueOnce({ data: sampleProjects, loading: false, error: null, refetch: vi.fn() })
+      .mockReturnValueOnce({
+        data: [{ id: "pin-1", projectId: "p1", name: "Newer Project", status: "ACTIVE", memberCount: 3 }],
+        loading: false,
+        error: null,
+        refetch: vi.fn(),
+      })
+      .mockReturnValueOnce({ data: 0, loading: false, error: null, refetch: vi.fn() });
+
+    renderPage();
+
+    expect(await screen.findByText("Pinned")).toBeInTheDocument();
+    expect(screen.getAllByText("Newer Project").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByRole("button", { name: /Unpin project/i }).length).toBeGreaterThan(0);
+  });
+
   it("sorts recent projects by updatedAt and renders status pills, members and update time", async () => {
     mocks.useApi
       .mockReturnValueOnce({ data: sampleProjects, loading: false, error: null, refetch: vi.fn() })
+      .mockReturnValueOnce({ data: [], loading: false, error: null, refetch: vi.fn() })
       .mockReturnValueOnce({ data: 0, loading: false, error: null, refetch: vi.fn() });
 
     renderPage();
@@ -166,6 +187,7 @@ describe("Dashboard", () => {
 
   it("shows the empty state when there are no projects", async () => {
     mocks.useApi
+      .mockReturnValueOnce({ data: [], loading: false, error: null, refetch: vi.fn() })
       .mockReturnValueOnce({ data: [], loading: false, error: null, refetch: vi.fn() })
       .mockReturnValueOnce({ data: 0, loading: false, error: null, refetch: vi.fn() });
 

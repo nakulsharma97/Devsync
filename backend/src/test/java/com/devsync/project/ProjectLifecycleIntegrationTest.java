@@ -333,6 +333,43 @@ class ProjectLifecycleIntegrationTest {
     }
 
     @Test
+    void addMember_rejects_OWNER_role_toPrevent_twoOwnerExploit() throws Exception {
+        // The owner should NOT be able to add a member with OWNER role,
+        // which would break the single-owner invariant.
+        String newUserId = createUser("newuser@test.dev", "New User").getId();
+
+        mockMvc.perform(post("/api/projects/" + projectId + "/members")
+                        .header("Authorization", bearer(ownerId))
+                        .param("userId", newUserId)
+                        .param("role", "OWNER"))
+                .andExpect(status().isBadRequest());
+
+        // Verify no OWNER-role member was created
+        java.util.Optional<ProjectMember> newMember =
+                memberRepository.findByProjectIdAndUserId(projectId, newUserId);
+        assertThat(newMember).isEmpty();
+
+        // Exactly one owner remains
+        long ownerCount = memberRepository.findByProjectId(projectId).stream()
+                .filter(m -> m.getRole() == ProjectMember.Role.OWNER)
+                .count();
+        assertThat(ownerCount).isEqualTo(1);
+    }
+
+    @Test
+    void addMember_rejects_invalidRole() throws Exception {
+        String newUserId = createUser("invalidrole@test.dev", "Invalid Role").getId();
+
+        mockMvc.perform(post("/api/projects/" + projectId + "/members")
+                        .header("Authorization", bearer(ownerId))
+                        .param("userId", newUserId)
+                        .param("role", "SUPERADMIN"))
+                .andExpect(status().isBadRequest());
+
+        assertThat(memberRepository.findByProjectIdAndUserId(projectId, newUserId)).isEmpty();
+    }
+
+    @Test
     void unauthenticatedAccess_toProjectResources_isRejected() throws Exception {
         mockMvc.perform(get("/api/projects/" + projectId))
                 .andExpect(status().isUnauthorized());

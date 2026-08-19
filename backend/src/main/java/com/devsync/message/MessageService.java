@@ -52,6 +52,13 @@ public class MessageService {
 
     @Transactional
     public MessageResponse sendMessage(SendMessageRequest request, String senderId) {
+        // Content must be non-null and non-blank — defend at the service level
+        // even though the controller's @NotBlank catches most cases, so tests
+        // and internal callers also get a clear error instead of an NPE or DB
+        // constraint violation.
+        if (request.getContent() == null || request.getContent().isBlank()) {
+            throw new IllegalArgumentException("Message content is required");
+        }
         // A message must target exactly one conversation — a room or a direct
         // recipient. Messages addressed to nobody (or to both) are rejected.
         boolean hasRoom = request.getRoomId() != null;
@@ -213,13 +220,36 @@ public class MessageService {
                 partnerId, userId, MessageStatus.READ);
     }
 
-    public List<MessageResponse> getRoomMessages(String roomId, String userId) {
+    /**
+     * Returns the most recent messages in a room (newest-first from the DB,
+     * reversed so the caller receives oldest-to-newest for rendering).
+     * Pass {@code null} as {@code cursorId} for the initial load; subsequent
+     * scroll-up calls pass the oldest message id from the current batch.
+     */
+    public List<MessageResponse> getRoomMessages(String roomId, String userId, String cursorId, int limit) {
         if (roomId != null && !participantRepository.existsByRoomIdAndUserId(roomId, userId)) {
             throw new IllegalArgumentException("You are not a participant in this room");
         }
-        List<Message> messages = messageRepository.findByRoomIdOrderByCreatedAtAsc(roomId, PageRequest.of(0, 100))
-                .stream().filter(m -> !m.isHidden()).toList();
-        return toResponsesWithBatchUsers(messages, userId);
+        int safeLimit = Math.min(Math.max(limit, 1), 200);
+        List<Message> messages;
+        if (cursorId != null && !cursorId.isBlank()) {
+            // Paginate backward: fetch messages older than cursorId.
+            messages = messageRepository
+                    .findByRoomIdAndIdLessThanOrderByCreatedAtDesc(roomId, cursorId, PageRequest.of(0, safeLimit));
+        } else {
+            // Initial load: fetch the most recent N messages.
+            messages = messageRepository
+                    .findByRoomIdOrderByCreatedAtDesc(roomId, PageRequest.of(0, safeLimit));
+        }
+        // Reverse so results are oldest-to-newest for the UI.
+        List<Message> reversed = new java.util.ArrayList<>(messages);
+        java.util.Collections.reverse(reversed);
+        return toResponsesWithBatchUsers(reversed.stream().filter(m -> !m.isHidden()).toList(), userId);
+    }
+
+    /** Backward-compatible overload: initial load only, no cursor. */
+    public List<MessageResponse> getRoomMessages(String roomId, String userId) {
+        return getRoomMessages(roomId, userId, null, 100);
     }
 
     public List<MessageResponse> getConversation(String userId, String otherId, int limit) {
@@ -385,8 +415,10 @@ public class MessageService {
                         .collect(Collectors.toMap(Project::getId, Project::getName, (a, b) -> a));
 
         for (TeamRoom room : rooms) {
-            List<Message> msgs = messageRepository.findByRoomIdOrderByCreatedAtAsc(room.getId(), PageRequest.of(0, 1));
-            Message lastMsg = msgs.isEmpty() ? null : msgs.get(0);
+            // DESC + limit 1 gives the MOST recent message (preview).
+            List<Message> roomMsgs = messageRepository.findByRoomIdOrderByCreatedAtDesc(
+                    room.getId(), PageRequest.of(0, 1));
+            Message lastMsg = roomMsgs.isEmpty() ? null : roomMsgs.get(0);
             long count = participantRepository.countByRoomId(room.getId());
 
             conversationSet.add(ConversationResponse.builder()
@@ -405,14 +437,22 @@ public class MessageService {
         // Find DM partners via direct query
         List<String> dmPartnerIds = messageRepository.findDmPartnerIds(userId);
 
-        for (String partnerId : dmPartnerIds) {
-            if (partnerId == null || partnerId.equals(userId)) continue;
-            Optional<User> partnerOpt = userRepository.findById(partnerId);
-            if (partnerOpt.isEmpty()) continue;
-            User partner = partnerOpt.get();
+        // Batch-load all partner users in a single query (no N+1).
+        Set<String> validPartnerIds = dmPartnerIds.stream()
+                .filter(pid -> pid != null && !pid.equals(userId))
+                .collect(Collectors.toSet());
+        Map<String, User> partnerMap = validPartnerIds.isEmpty() ? Collections.emptyMap()
+                : userRepository.findAllById(validPartnerIds).stream()
+                        .collect(Collectors.toMap(User::getId, u -> u));
 
-            List<Message> dmMsgs = messageRepository.findConversation(userId, partnerId, PageRequest.of(0, 1));
-            Message lastMsg = dmMsgs.isEmpty() ? null : dmMsgs.get(0);
+        for (String partnerId : validPartnerIds) {
+            User partner = partnerMap.get(partnerId);
+            if (partner == null) continue;
+
+            // Fetch the most recent DM message for the preview.
+            // findConversation orders ASC; fetch limit+1 then pop the last element.
+            List<Message> dmMsgs = messageRepository.findConversation(userId, partnerId, PageRequest.of(0, 2));
+            Message lastDmMsg = dmMsgs.isEmpty() ? null : dmMsgs.get(dmMsgs.size() - 1);
 
             conversationSet.add(ConversationResponse.builder()
                     .id("dm_" + partnerId)
@@ -423,8 +463,8 @@ public class MessageService {
                     .otherUserPresence(presenceService.effectiveStatus(partner))
                     .otherUserLastActiveAt(partner.getLastActiveAt())
                     .avatarUrl(partner.getAvatarUrl())
-                    .lastMessage(lastMsg != null ? lastMsg.getContent() : null)
-                    .lastMessageAt(lastMsg != null ? lastMsg.getCreatedAt() : partner.getCreatedAt())
+                    .lastMessage(lastDmMsg != null ? lastDmMsg.getContent() : null)
+                    .lastMessageAt(lastDmMsg != null ? lastDmMsg.getCreatedAt() : partner.getCreatedAt())
                     .unreadCount((int) unreadDirectCount(partnerId, userId))
                     .participantCount(2)
                     .build());

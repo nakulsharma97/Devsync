@@ -200,4 +200,25 @@ class ReviewServiceTest {
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Invalid review category");
     }
+
+    @Test
+    void toResponse_shouldHandleNullCategory_andStatus() {
+        Review review = savedReview();
+        review.setCategory(null);
+        review.setStatus(null);
+        when(reviewRepository.findByUserId("u1")).thenReturn(Optional.of(review));
+
+        ReviewResponse response = reviewService.getMyReview("u1");
+
+        assertThat(response).isNotNull();
+        assertThat(response.getCategory()).isEqualTo("OVERALL_EXPERIENCE");
+        assertThat(response.getStatus()).isEqualTo("PENDING");
+    }
+
+    @Test
+    void createReview_shouldReject_nullRequest() {
+        assertThatThrownBy(() -> reviewService.createReview("u1", null))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Review is required");
+    }
 }

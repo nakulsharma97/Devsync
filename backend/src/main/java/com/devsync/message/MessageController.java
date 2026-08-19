@@ -38,8 +38,11 @@ public class MessageController {
     @GetMapping("/room/{roomId}")
     public ResponseEntity<List<MessageResponse>> getRoomMessages(
             @PathVariable String roomId,
+            @RequestParam(required = false) String cursor,
+            @RequestParam(defaultValue = "100") int limit,
             @AuthenticationPrincipal UserDetails userDetails) {
-        return ResponseEntity.ok(messageService.getRoomMessages(roomId, userDetails.getUsername()));
+        return ResponseEntity.ok(messageService.getRoomMessages(
+                roomId, userDetails.getUsername(), cursor, limit));
     }
 
     @GetMapping("/dm/{otherUserId}")

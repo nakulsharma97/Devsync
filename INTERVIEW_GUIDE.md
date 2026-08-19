@@ -127,6 +127,37 @@ Three layers:
 - Every moderation action creates an audit record; resolving a report creates exactly
   one audit + one activity entry.
 
+## How does project ownership transfer work?
+
+- Only the **current owner** can transfer ownership — enforced in `ProjectService.transferOwnership`
+  with the same owner-gated check style as `removeMember`/`updateMemberRole` (authenticated user
+  → project membership → current owner → act). A normal member calling the API gets 403.
+- The target must be an **existing accepted member** and must not already be the owner.
+- The whole operation is one `@Transactional` method: `project.ownerId` is updated and the two
+  members' roles are flipped (outgoing owner → `MEMBER`, incoming member → `OWNER`) in the same
+  transaction — there is never a moment with zero or two owners.
+- An activity entry (`OWNERSHIP_TRANSFERRED`) records the actor, both users, and the project, and
+  both the old and new owner receive notifications.
+- Frontend: a "Transfer Ownership" action in project settings (owner-only) with a member picker
+  and an explicit confirmation step, since the action is irreversible for the current owner.
+
+## How does the social follow system work?
+
+- `user_follows` is a dedicated table (`follower_id`, `following_id`, `created_at`) with a unique
+  constraint on `(follower_id, following_id)` and indexes on both columns; self-follow is rejected
+  and duplicate follows are idempotent (a repeat follow is simply a no-op / 409, never a duplicate
+  row).
+- `FollowService` derives the actor **from the JWT principal only** — a client-supplied userId is
+  never trusted, matching the rest of the service-layer authorization.
+- Endpoints live under `/api/connections/*` (follow, unfollow, is-following, following list,
+  followers list, counts) so the pre-existing `connectionService`/Network UI contract works
+  unchanged.
+- Following another user creates a `NEW_FOLLOWER` notification ("X started following you") via the
+  existing notification system; unfollowing deliberately does not notify.
+- Profiles show Posts/Followers/Following stats with a Follow/Following button, and followers/
+  following open as lists with per-user follow toggles; the owner's own profile links to a
+  dedicated My Posts page.
+
 ## How are audit logs generated?
 
 A dedicated `AuditLogService` records security-sensitive events (login success/failure,

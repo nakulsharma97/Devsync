@@ -21,6 +21,7 @@ import {
   CheckCircle2,
   MessageSquarePlus,
   UserCog,
+  Headphones,
   type LucideIcon,
 } from "lucide-react";
 import type { NotificationDto } from "@/services/notificationService";
@@ -72,6 +73,10 @@ const META: Record<string, NotificationMeta> = {
   SUBSCRIPTION_PAST_DUE: { icon: AlertCircle, colorClass: "text-amber-500 bg-amber-500/10", label: "Action needed" },
   SUBSCRIPTION_CANCELLED: { icon: CreditCard, colorClass: "text-orange-500 bg-orange-500/10", label: "Subscription" },
   SUBSCRIPTION_EXPIRED: { icon: CreditCard, colorClass: "text-slate-500 bg-slate-500/10", label: "Subscription expired" },
+  // Support ticket notifications
+  SUPPORT_TICKET: { icon: Headphones, colorClass: "text-teal-500 bg-teal-500/10", label: "Support request" },
+  SUPPORT_REPLY: { icon: MessageSquare, colorClass: "text-blue-500 bg-blue-500/10", label: "Support reply" },
+  SUPPORT_STATUS_CHANGED: { icon: Bell, colorClass: "text-amber-500 bg-amber-500/10", label: "Support update" },
 };
 
 const FALLBACK: NotificationMeta = {
@@ -106,6 +111,8 @@ export function resolveNotificationUrl(
       n.actionUrl.startsWith("/projects/") ||
       n.actionUrl.startsWith("/messages") ||
       n.actionUrl.startsWith("/settings") ||
+      n.actionUrl.startsWith("/support") ||
+      n.actionUrl.startsWith("/admin/support") ||
       n.actionUrl === "/feed" ||
       n.actionUrl === "/dashboard" ||
       n.actionUrl === "/notifications"
@@ -115,5 +122,6 @@ export function resolveNotificationUrl(
   }
   // Fall back to reference-based navigation.
   if (n.referenceType === "project" && n.referenceId) return `/projects/${n.referenceId}`;
+  if (n.referenceType === "support_ticket") return "/support";
   return "/notifications";
 }
