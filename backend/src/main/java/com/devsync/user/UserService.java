@@ -3,6 +3,7 @@ package com.devsync.user;
 import com.devsync.common.ResourceNotFoundException;
 import com.devsync.presence.PresenceService;
 import com.devsync.project.repository.ProjectMemberRepository;
+import com.devsync.social.repository.FollowRepository;
 import com.devsync.user.dto.PublicUserResponse;
 import com.devsync.user.dto.UpdateUserRequest;
 import com.devsync.user.dto.UserResponse;
@@ -13,6 +14,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -22,6 +24,7 @@ public class UserService {
     private final UserRepository userRepository;
     private final ProjectMemberRepository projectMemberRepository;
     private final PresenceService presenceService;
+    private final FollowRepository followRepository;
 
     public UserResponse getUserById(String id) {
         User user = userRepository.findById(id)
@@ -87,16 +90,54 @@ public class UserService {
      * email, account metadata or login timestamps.
      */
     public List<PublicUserResponse> searchUsers(String query, String excludeUserId) {
+        List<User> users;
         if (query == null || query.isBlank()) {
             // Deleted accounts are hidden from normal user searches; the query
             // runs in the database rather than loading the whole users table.
-            return userRepository.findActiveUsers().stream()
+            users = userRepository.findActiveUsers().stream()
                     .filter(u -> !u.getId().equals(excludeUserId))
-                    .map(this::toPublicResponse)
                     .toList();
+        } else {
+            users = userRepository.searchUsers(query, excludeUserId);
         }
-        return userRepository.searchUsers(query, excludeUserId).stream()
-                .map(this::toPublicResponse)
+        return toPublicResponsesWithSocial(users, excludeUserId);
+    }
+
+    /**
+     * Batch-enriches a list of users with social fields (follow state, counts).
+     * This eliminates N+1 queries when displaying the Network page.
+     */
+    private List<PublicUserResponse> toPublicResponsesWithSocial(List<User> users, String requestingUserId) {
+        if (users.isEmpty()) return List.of();
+
+        Set<String> userIds = users.stream().map(User::getId).collect(Collectors.toSet());
+
+        // Batch: which users does the requesting user follow?
+        Set<String> followingIds = followRepository.findFollowingIds(requestingUserId).stream()
+                .collect(Collectors.toSet());
+        // Batch: which users follow the requesting user?
+        Set<String> followerIds = followRepository.findFollowerIds(requestingUserId).stream()
+                .collect(Collectors.toSet());
+
+        // Batch follower/following counts for all listed users
+        java.util.Map<String, Long> followerCounts = followRepository.countByFollowingIdInGrouped(userIds).stream()
+                .collect(java.util.stream.Collectors.toMap(
+                        row -> (String) row[0], row -> (Long) row[1], (a, b) -> a));
+        java.util.Map<String, Long> followingCounts = followRepository.countByFollowerIdInGrouped(userIds).stream()
+                .collect(java.util.stream.Collectors.toMap(
+                        row -> (String) row[0], row -> (Long) row[1], (a, b) -> a));
+
+        return users.stream()
+                .map(user -> {
+                    boolean isSelf = user.getId().equals(requestingUserId);
+                    PublicUserResponse resp = toPublicResponse(user);
+                    resp.setSelf(isSelf);
+                    resp.setFollowing(!isSelf && followingIds.contains(user.getId()));
+                    resp.setFollowsYou(!isSelf && followerIds.contains(user.getId()));
+                    resp.setFollowerCount(followerCounts.getOrDefault(user.getId(), 0L));
+                    resp.setFollowingCount(followingCounts.getOrDefault(user.getId(), 0L));
+                    return resp;
+                })
                 .toList();
     }
 

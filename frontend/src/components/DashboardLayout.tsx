@@ -6,6 +6,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { UserMenu } from "@/components/UserMenu";
 import { notificationService } from "@/services/notificationService";
 import { conversationService } from "@/services/conversationService";
+import { wsService } from "@/services/websocketService";
 import { cn } from "@/lib/utils";
 import {
   LayoutDashboard,
@@ -29,7 +30,8 @@ import {
 import { useState, useEffect, useCallback } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
-import { WifiOff, RefreshCw, Check } from "lucide-react";
+import { WifiOff, Check } from "lucide-react";
+import logo from "@/assets/logo.svg";
 
 // ── Navigation config ─────────────────────────────────────
 
@@ -129,8 +131,8 @@ function SidebarLink({ to, icon: Icon, label, badge, onNavigate }: SidebarLinkPr
           >
             <Icon className="w-4 h-4" />
             {badge !== undefined && badge > 0 && (
-              <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full bg-red-500 text-[9px] font-bold text-white flex items-center justify-center shadow-sm">
-                {badge > 9 ? "9+" : badge}
+              <span className="absolute -top-1.5 -right-1.5 min-w-[16px] h-4 px-1 rounded-full bg-red-500 text-[9px] font-bold text-white flex items-center justify-center shadow-sm ring-2 ring-background animate-badge-pop">
+                {badge > 99 ? "99+" : badge}
               </span>
             )}
           </div>
@@ -202,15 +204,31 @@ export default function DashboardLayout() {
     };
     // The Notifications page broadcasts read-state mutations so the bell badge
     // updates immediately instead of waiting for the 30s poll.
-    const handleChanged = () => fetchUnreadCounts();
+    const handleNotifChanged = () => fetchUnreadCounts();
+    // Messages page broadcasts read-state mutations for the message badge.
+    const handleMsgChanged = () => fetchUnreadCounts();
     document.addEventListener("visibilitychange", handleVisibility);
-    window.addEventListener("devsync:notifications-changed", handleChanged);
+    window.addEventListener("devsync:notifications-changed", handleNotifChanged);
+    window.addEventListener("devsync:messages-changed", handleMsgChanged);
     return () => {
       clearInterval(id);
       document.removeEventListener("visibilitychange", handleVisibility);
-      window.removeEventListener("devsync:notifications-changed", handleChanged);
+      window.removeEventListener("devsync:notifications-changed", handleNotifChanged);
+      window.removeEventListener("devsync:messages-changed", handleMsgChanged);
     };
   }, [fetchUnreadCounts]);
+
+  // Real-time: when a message arrives from another user, re-fetch the unread
+  // message count so the sidebar badge updates immediately.
+  useEffect(() => {
+    const unsub = wsService.onAnyMessage((msg) => {
+      // Only refresh for messages sent by someone else (not our own echo)
+      if (msg.senderId !== user?.id) {
+        fetchUnreadCounts();
+      }
+    });
+    return unsub;
+  }, [fetchUnreadCounts, user?.id]);
 
   const page = getPageMeta(location.pathname);
   const PageIcon = page.icon;
@@ -361,19 +379,33 @@ export default function DashboardLayout() {
 
       {/* Main content */}
       <div className="md:ml-64">
-        <header className="sticky top-0 z-30 border-b border-border/40 bg-background/80 backdrop-blur-xl">
-          <div className="flex items-center justify-between px-4 py-3">
-            <div className="flex items-center gap-2">
+        <header className="sticky top-0 z-30 h-16 border-b border-border/40 bg-background/80 backdrop-blur-xl">
+          <div className="flex items-center justify-between h-full px-4 lg:px-6">
+            <div className="flex items-center gap-3">
               <button
                 onClick={() => setSidebarOpen(true)}
                 aria-label="Open menu"
-                className="md:hidden p-2 rounded-md hover:bg-accent/10"
+                className="md:hidden p-2 rounded-lg hover:bg-accent/10 transition-colors"
               >
-                <Menu className="w-5 h-5" />
+                <Menu className="w-5 h-5 text-foreground/80" />
               </button>
-              <div className="flex items-center gap-2" data-testid="page-title">
-                <PageIcon className="w-4 h-4 text-indigo-400" />
-                <h1 className="text-sm font-semibold">{page.title}</h1>
+              {/* DevSync logo — subtle in the navbar */}
+              <button
+                onClick={() => navigate("/")}
+                className="hidden md:flex items-center gap-2.5 group shrink-0"
+                aria-label="Go to landing page"
+              >
+                <img src={logo} alt="DevSync" className="w-6 h-6 shrink-0" />
+                <span className="text-[13px] font-bold tracking-tight text-foreground/70 group-hover:text-foreground transition-colors">
+                  DevSync
+                </span>
+              </button>
+              <div className="hidden md:block w-px h-6 bg-border/50" />
+              <div className="flex items-center gap-2.5" data-testid="page-title">
+                <div className="w-7 h-7 rounded-lg bg-indigo-500/10 flex items-center justify-center">
+                  <PageIcon className="w-4 h-4 text-indigo-500" />
+                </div>
+                <h1 className="text-sm font-semibold text-foreground">{page.title}</h1>
               </div>
             </div>
             <div className="flex items-center gap-1.5 sm:gap-2">
@@ -381,19 +413,43 @@ export default function DashboardLayout() {
                 variant="outline"
                 size="sm"
                 onClick={() => setPaletteOpen(true)}
-                aria-label="Open command menu"
-                className="gap-2 text-muted-foreground hover:text-foreground"
+                aria-label="Open search"
+                className="hidden sm:flex items-center gap-2.5 h-9 w-[200px] lg:w-[240px] px-3 text-muted-foreground hover:text-foreground hover:border-indigo-500/30 hover:bg-indigo-500/5 transition-all"
               >
-                <Search className="w-4 h-4" />
-                <span className="hidden md:inline text-xs">Search</span>
-                <kbd className="hidden md:inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-mono text-muted-foreground bg-muted rounded border border-border/50">
+                <Search className="w-4 h-4 shrink-0 text-indigo-400" />
+                <span className="text-sm flex-1 text-left">Search...</span>
+                <kbd className="hidden lg:inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-mono text-muted-foreground bg-muted/60 rounded border border-border/40">
                   <Command className="w-2.5 h-2.5" />K
                 </kbd>
               </Button>
+              {/* Mobile search trigger */}
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setPaletteOpen(true)}
+                aria-label="Search"
+                className="sm:hidden h-9 w-9 rounded-lg hover:bg-accent/10 transition-colors"
+              >
+                <Search className="w-[18px] h-[18px] text-muted-foreground" />
+              </Button>
+              {/* Messages badge */}
+              <button
+                onClick={() => navigate("/messages")}
+                aria-label={`Messages${msgUnreadCount > 0 ? ` — ${msgUnreadCount} unread` : ""}`}
+                className="relative inline-flex items-center justify-center w-9 h-9 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent/10 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 outline-none transition-colors"
+              >
+                <MessageSquare className="w-4 h-4" />
+                {msgUnreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full bg-red-500 text-[9px] font-bold text-white flex items-center justify-center shadow-sm ring-2 ring-background animate-badge-pop">
+                    {msgUnreadCount > 99 ? "99+" : msgUnreadCount}
+                  </span>
+                )}
+              </button>
               <NotificationBell
                 unreadCount={unreadCount}
                 onUnreadCountChange={setUnreadCount}
               />
+              <div className="w-px h-6 bg-border/50 hidden sm:block" />
               <ThemeToggle />
               <UserMenu />
             </div>

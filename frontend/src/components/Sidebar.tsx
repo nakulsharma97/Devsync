@@ -92,6 +92,18 @@ export function Sidebar() {
     fetchCount();
   }, [location.pathname, fetchCount]);
 
+  // Listen for real-time read-state mutations from Messages/Notifications pages
+  useEffect(() => {
+    const handleNotif = () => fetchCount();
+    const handleMsg = () => fetchCount();
+    window.addEventListener("devsync:notifications-changed", handleNotif);
+    window.addEventListener("devsync:messages-changed", handleMsg);
+    return () => {
+      window.removeEventListener("devsync:notifications-changed", handleNotif);
+      window.removeEventListener("devsync:messages-changed", handleMsg);
+    };
+  }, [fetchCount]);
+
   const visibleItems = navItems.filter(
     (item) => !item.label.startsWith("Admin") || user?.role === "ADMIN"
   );
@@ -127,13 +139,13 @@ export function Sidebar() {
                 }`}>
                   <item.icon className="w-4 h-4" />
                   {item.label === "Notifications" && unreadCount > 0 && (
-                    <span className="absolute -top-1 -right-1.5 w-3.5 h-3.5 rounded-full bg-red-500 text-[8px] font-bold text-white flex items-center justify-center shadow-sm">
-                      {unreadCount > 9 ? "9+" : unreadCount}
+                    <span className="absolute -top-1.5 -right-1.5 min-w-[16px] h-4 px-1 rounded-full bg-red-500 text-[9px] font-bold text-white flex items-center justify-center shadow-sm ring-2 ring-sidebar animate-badge-pop">
+                      {unreadCount > 99 ? "99+" : unreadCount}
                     </span>
                   )}
                   {item.label === "Messages" && msgUnreadCount > 0 && (
-                    <span className="absolute -top-1 -right-1.5 w-3.5 h-3.5 rounded-full bg-accent text-[8px] font-bold text-white flex items-center justify-center shadow-sm">
-                      {msgUnreadCount > 9 ? "9+" : msgUnreadCount}
+                    <span className="absolute -top-1.5 -right-1.5 min-w-[16px] h-4 px-1 rounded-full bg-red-500 text-[9px] font-bold text-white flex items-center justify-center shadow-sm ring-2 ring-sidebar animate-badge-pop">
+                      {msgUnreadCount > 99 ? "99+" : msgUnreadCount}
                     </span>
                   )}
                 </div>

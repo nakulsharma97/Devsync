@@ -18,6 +18,7 @@ public class PostResponse {
     private String postType;
     private long likeCount;
     private long commentCount;
+    private boolean isBookmarked;
     private Instant createdAt;
     private Instant updatedAt;
     private UserInfo user;

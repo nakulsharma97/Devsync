@@ -269,7 +269,7 @@ export default function HeroSection({ stats }: { stats: PublicStats | null }) {
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.6, ease: "easeOut" }}
-              className="w-full max-w-[480px]"
+              className="w-full max-w-[560px]"
             >
               <GlassCodeEditor />
             </motion.div>

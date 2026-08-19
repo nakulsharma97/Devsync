@@ -65,6 +65,7 @@ const AdminFeedback = lazy(() => import("./pages/AdminFeedback"));
 const AdminBilling = lazy(() => import("./pages/AdminBilling"));
 const AdminSupport = lazy(() => import("./pages/AdminSupport"));
 const Support = lazy(() => import("./pages/Support"));
+const Bookmarks = lazy(() => import("./pages/Bookmarks"));
 
 function App() {
   return (
@@ -105,6 +106,7 @@ function App() {
               <Route path="/network" element={<NetworkPage />} />
               <Route path="/feedback" element={<Feedback />} />
               <Route path="/support" element={<Support />} />
+              <Route path="/bookmarks" element={<Bookmarks />} />
             </Route>
             {/* Admin routes with dedicated AdminLayout */}
             <Route

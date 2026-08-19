@@ -51,8 +51,9 @@ describe("RouteSkeleton", () => {
         <RouteSkeleton />
       </MemoryRouter>
     );
-    // Admin shape: 4 stat cards + 1 bordered table wrapper
-    expect(cardCount(container)).toBe(5);
+    // Admin shape: title, search/filter bar, 1 bordered table wrapper with header + 6 rows
+    expect(cardCount(container)).toBe(1);
+    expect(shimmerCount(container)).toBeGreaterThan(5);
   });
 
   it("SkeletonCardList renders the requested number of cards", () => {

@@ -155,9 +155,9 @@ describe("Feed", () => {
     renderFeed();
 
     expect(await screen.findByText("No posts yet")).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: /write the first post/i })
-    ).toBeInTheDocument();
+    // There are Create Post buttons in both the header and the empty state
+    const createButtons = screen.getAllByRole("button", { name: /create post/i });
+    expect(createButtons.length).toBeGreaterThanOrEqual(1);
   });
 
   it("likes a post optimistically and syncs with the server response", async () => {
@@ -187,6 +187,11 @@ describe("Feed", () => {
     renderFeed();
     await screen.findByText("No posts yet");
 
+    // Open composer — click the first Create Post button (header)
+    const createBtns = screen.getAllByRole("button", { name: /create post/i });
+    await user.click(createBtns[0]);
+    await screen.findByPlaceholderText(/share something/i);
+
     await user.type(
       screen.getByPlaceholderText(/share something/i),
       "New update"
@@ -206,8 +211,11 @@ describe("Feed", () => {
     renderFeed();
     await screen.findByText("No posts yet");
 
-    // The <input> carries an accept="image/..." filter, so userEvent.upload
-    // would silently drop a .txt file — dispatch the change directly.
+    // Open composer
+    const createBtns = screen.getAllByRole("button", { name: /create post/i });
+    await user.click(createBtns[0]);
+    await screen.findByPlaceholderText(/share something/i);
+
     const input = document.getElementById("feed-image-input") as HTMLInputElement;
     fireEvent.change(input, { target: { files: [imageFile("notes.txt", "text/plain")] } });
 
@@ -222,6 +230,11 @@ describe("Feed", () => {
 
     renderFeed();
     await screen.findByText("No posts yet");
+
+    // Open composer
+    const createBtns = screen.getAllByRole("button", { name: /create post/i });
+    await user.click(createBtns[0]);
+    await screen.findByPlaceholderText(/share something/i);
 
     const big = imageFile("big.png", "image/png");
     Object.defineProperty(big, "size", { value: 11 * 1024 * 1024 });
@@ -246,14 +259,16 @@ describe("Feed", () => {
         imageUrl: "/api/attachments/att-1/download",
       })
     );
-    // Attachment URLs need an authenticated blob fetch; fail it in the test so
-    // the card falls back to the "failed to load" placeholder (still verifies
-    // the image was wired up).
     mocks.downloadBlob.mockRejectedValue(new Error("no network"));
     const user = userEvent.setup();
 
     renderFeed();
     await screen.findByText("No posts yet");
+
+    // Open composer
+    const createBtns = screen.getAllByRole("button", { name: /create post/i });
+    await user.click(createBtns[0]);
+    await screen.findByPlaceholderText(/share something/i);
 
     await user.type(
       screen.getByPlaceholderText(/share something/i),
@@ -262,17 +277,15 @@ describe("Feed", () => {
     const input = document.getElementById("feed-image-input") as HTMLInputElement;
     await user.upload(input, imageFile());
 
-    // Preview appears
     expect(
       await screen.findByAltText(/selected image preview/i)
     ).toBeInTheDocument();
 
-    // Replace / Remove buttons are offered
     expect(
-      screen.getByRole("button", { name: /replace selected image/i })
+      screen.getByRole("button", { name: "Replace" })
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: /remove selected image/i })
+      screen.getByRole("button", { name: /remove/i })
     ).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Post" }));
@@ -302,6 +315,11 @@ describe("Feed", () => {
     renderFeed();
     await screen.findByText("No posts yet");
 
+    // Open composer
+    const createBtns = screen.getAllByRole("button", { name: /create post/i });
+    await user.click(createBtns[0]);
+    await screen.findByPlaceholderText(/share something/i);
+
     const input = document.getElementById("feed-image-input") as HTMLInputElement;
     await user.upload(input, imageFile());
 
@@ -310,7 +328,7 @@ describe("Feed", () => {
     ).toBeInTheDocument();
 
     await user.click(
-      screen.getByRole("button", { name: /remove selected image/i })
+      screen.getByRole("button", { name: /remove/i })
     );
 
     expect(
@@ -335,6 +353,11 @@ describe("Feed", () => {
 
     renderFeed();
     await screen.findByText("No posts yet");
+
+    // Open composer
+    const createBtns = screen.getAllByRole("button", { name: /create post/i });
+    await user.click(createBtns[0]);
+    await screen.findByPlaceholderText(/share something/i);
 
     await user.click(screen.getByTitle("Add emoji"));
     await user.click(screen.getByTitle("😀"));

@@ -169,17 +169,8 @@ function OtpInput({ value, onChange }: { value: string; onChange: (v: string) =>
 
 // ─── CSS Keyframes ──────────────────────────────────────────
 
+// Animation delay utilities (keyframes & animation classes live in index.css)
 const keyframesStyle = `
-@keyframes fade-in-up {
-  from { opacity: 0; transform: translateY(16px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-@keyframes fade-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-.animate-fade-in-up { animation: fade-in-up 0.6s ease-out both; }
-.animate-fade-in { animation: fade-in 0.6s ease-out both; }
 .delay-1 { animation-delay: 0.1s; }
 .delay-2 { animation-delay: 0.2s; }
 .delay-3 { animation-delay: 0.3s; }

@@ -67,7 +67,7 @@ export default function MyPosts() {
   };
 
   return (
-    <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6 md:py-8 space-y-8">
+    <div className="max-w-[1060px] mx-auto px-4 sm:px-6 py-5 md:py-6 space-y-5">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -93,16 +93,16 @@ export default function MyPosts() {
       {loading ? (
         <SkeletonCardList count={3} />
       ) : posts.length === 0 ? (
-        <div className="text-center py-20 animate-fade-in-up">
-          <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-indigo-500/15 to-purple-500/10 flex items-center justify-center ring-1 ring-indigo-500/20">
+        <div className="bg-card border border-border/50 rounded-2xl text-center py-16 px-6 animate-fade-in-up">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-indigo-500/15 to-purple-500/10 flex items-center justify-center ring-1 ring-indigo-500/20 shadow-md shadow-indigo-500/10">
             <FileText className="w-7 h-7 text-indigo-400" />
           </div>
-          <h3 className="text-lg font-semibold mb-2">No posts yet</h3>
+          <h3 className="text-base font-semibold text-foreground mb-1.5">No posts yet</h3>
           <p className="text-sm text-muted-foreground max-w-xs mx-auto mb-5">
             Share your first update with the DevSync community.
           </p>
-          <Button variant="outline" size="sm" onClick={() => navigate("/feed")}>
-            <PenLine className="w-3.5 h-3.5 mr-1.5" />
+          <Button variant="outline" size="sm" onClick={() => navigate("/feed")} className="gap-1.5">
+            <PenLine className="w-3.5 h-3.5" />
             Create Post
           </Button>
         </div>

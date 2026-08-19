@@ -11,6 +11,7 @@ import com.devsync.feed.dto.CommentRequest;
 import com.devsync.feed.dto.CommentResponse;
 import com.devsync.feed.dto.PostRequest;
 import com.devsync.feed.dto.PostResponse;
+import com.devsync.bookmark.repository.BookmarkRepository;
 import com.devsync.feed.entity.Comment;
 import com.devsync.feed.entity.Post;
 import com.devsync.feed.entity.PostLike;
@@ -45,6 +46,7 @@ public class FeedService {
     private final CommentRepository commentRepository;
     private final PostLikeRepository postLikeRepository;
     private final UserRepository userRepository;
+    private final BookmarkRepository bookmarkRepository;
     private final ActivityService activityService;
     private final FileAttachmentRepository fileAttachmentRepository;
     private final FileStorageService fileStorageService;
@@ -68,6 +70,11 @@ public class FeedService {
 
     @Transactional(readOnly = true)
     public Page<PostResponse> getFeed(int page, int size) {
+        return getFeed(page, size, null);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<PostResponse> getFeed(int page, int size, String currentUserId) {
         Page<Post> posts = postRepository.findAllByOrderByCreatedAtDesc(PageRequest.of(page, size));
         List<Post> visible = posts.getContent().stream()
                 .filter(p -> !p.isHidden())
@@ -89,12 +96,20 @@ public class FeedService {
         Map<String, Long> commentCounts = commentRepository.countCommentsByPostIdIn(postIds).stream()
                 .collect(Collectors.toMap(row -> (String) row[0], row -> (Long) row[1]));
 
+        // Batch-load bookmark status for the authenticated user
+        Set<String> bookmarkedPostIds = (currentUserId != null && !postIds.isEmpty())
+                ? bookmarkRepository.findByUserIdAndEntityTypeInAndEntityIdIn(
+                        currentUserId, java.util.List.of("POST"), postIds).stream()
+                        .map(b -> b.getEntityId()).collect(Collectors.toSet())
+                : Collections.emptySet();
+
         return new org.springframework.data.domain.PageImpl<>(visible.stream()
                 .map(post -> toPostResponseWithCounts(
                         post,
                         userMap.get(post.getUserId()),
                         likeCounts.getOrDefault(post.getId(), 0L),
-                        commentCounts.getOrDefault(post.getId(), 0L)))
+                        commentCounts.getOrDefault(post.getId(), 0L),
+                        bookmarkedPostIds.contains(post.getId())))
                 .toList(), posts.getPageable(), visible.size());
     }
 
@@ -219,6 +234,11 @@ public class FeedService {
      */
     @Transactional(readOnly = true)
     public Page<PostResponse> getPostsByUser(String userId, int page, int size) {
+        return getPostsByUser(userId, page, size, null);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<PostResponse> getPostsByUser(String userId, int page, int size, String currentUserId) {
         Page<Post> posts = postRepository.findByUserIdOrderByCreatedAtDesc(userId, PageRequest.of(page, size));
         List<Post> visible = posts.getContent().stream()
                 .filter(p -> !p.isHidden())
@@ -233,12 +253,19 @@ public class FeedService {
         Map<String, Long> commentCounts = commentRepository.countCommentsByPostIdIn(postIds).stream()
                 .collect(Collectors.toMap(row -> (String) row[0], row -> (Long) row[1]));
 
+        Set<String> bookmarkedPostIds = (currentUserId != null && !postIds.isEmpty())
+                ? bookmarkRepository.findByUserIdAndEntityTypeInAndEntityIdIn(
+                        currentUserId, java.util.List.of("POST"), postIds).stream()
+                        .map(b -> b.getEntityId()).collect(Collectors.toSet())
+                : Collections.emptySet();
+
         return new org.springframework.data.domain.PageImpl<>(visible.stream()
                 .map(post -> toPostResponseWithCounts(
                         post,
                         userMap.get(post.getUserId()),
                         likeCounts.getOrDefault(post.getId(), 0L),
-                        commentCounts.getOrDefault(post.getId(), 0L)))
+                        commentCounts.getOrDefault(post.getId(), 0L),
+                        bookmarkedPostIds.contains(post.getId())))
                 .toList(), posts.getPageable(), visible.size());
     }
 
@@ -260,12 +287,16 @@ public class FeedService {
     }
 
     private PostResponse toPostResponseWithCounts(Post post, User user, long likeCount, long commentCount) {
+        return toPostResponseWithCounts(post, user, likeCount, commentCount, false);
+    }
+
+    private PostResponse toPostResponseWithCounts(Post post, User user, long likeCount, long commentCount, boolean bookmarked) {
         PostResponse.UserInfo userInfo = user != null
                 ? PostResponse.UserInfo.builder().id(user.getId()).fullName(user.getFullName()).username(user.getUsername()).avatarUrl(user.getAvatarUrl()).build()
                 : PostResponse.UserInfo.builder().id(post.getUserId()).fullName("Unknown").build();
         return PostResponse.builder()
                 .id(post.getId()).content(post.getContent()).imageUrl(post.getImageUrl()).postType(post.getPostType())
-                .likeCount(likeCount).commentCount(commentCount)
+                .likeCount(likeCount).commentCount(commentCount).isBookmarked(bookmarked)
                 .createdAt(post.getCreatedAt()).updatedAt(post.getUpdatedAt()).user(userInfo)
                 .build();
     }

@@ -16,6 +16,7 @@ export interface PostDto {
   postType: string;
   likeCount?: number;
   commentCount?: number;
+  isBookmarked?: boolean;
   createdAt: string;
   updatedAt: string;
   user: PostUserDto;

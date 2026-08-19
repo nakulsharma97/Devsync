@@ -13,70 +13,11 @@ import {
   Shield,
 } from "lucide-react";
 
-// ─── CSS keyframes — injected via <style> in Landing ────────────
-// NOTE: keyframes referenced by landing sections live here so the
-// Landing page is self-contained (Auth.tsx defines its own copies).
-
-export const keyframesStyle = `
-html {
-  scroll-behavior: smooth;
-  /* Keep anchored sections clear of the fixed navbar */
-  scroll-padding-top: 5.5rem;
-}
-
-@keyframes fade-in-up {
-  from { opacity: 0; transform: translateY(16px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-@keyframes fade-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-@keyframes slide-in-left {
-  from { opacity: 0; transform: translateX(-40px); }
-  to { opacity: 1; transform: translateX(0); }
-}
-@keyframes slide-in-right {
-  from { opacity: 0; transform: translateX(40px); }
-  to { opacity: 1; transform: translateX(0); }
-}
-@keyframes marquee {
-  from { transform: translateX(0); }
-  to { transform: translateX(-50%); }
-}
-@keyframes gradient-pan {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
-}
-@keyframes shine-sweep {
-  0% { transform: translateX(-160%) skewX(-20deg); }
-  60%, 100% { transform: translateX(260%) skewX(-20deg); }
-}
-
-.animate-fade-in-up { animation: fade-in-up 0.6s ease-out both; }
-.animate-fade-in { animation: fade-in 0.6s ease-out both; }
-.animate-slide-in-left { animation: slide-in-left 0.6s ease-out both; }
-.animate-slide-in-right { animation: slide-in-right 0.6s ease-out both; }
-.animate-marquee { animation: marquee 34s linear infinite; }
-.animate-gradient-pan {
-  background-size: 200% auto;
-  animation: gradient-pan 6s ease-in-out infinite;
-}
-.animate-shine-sweep { animation: shine-sweep 3.2s ease-in-out infinite; }
-
-@media (prefers-reduced-motion: reduce) {
-  .animate-fade-in-up,
-  .animate-fade-in,
-  .animate-slide-in-left,
-  .animate-slide-in-right,
-  .animate-marquee,
-  .animate-gradient-pan,
-  .animate-shine-sweep {
-    animation: none !important;
-  }
-}
-`;
+// ─── CSS keyframes — now defined in index.css ─────────────
+// All keyframes and animation utilities have been moved to the global
+// stylesheet so they are compiled by Vite/Tailwind at build time.
+// This eliminates the inline <style> injection that caused stray @
+// characters to appear in the rendered DOM.
 
 // ─── Feature Cards ──────────────────────────────────────────────
 // Every feature below is an actual, implemented DevSync capability.

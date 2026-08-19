@@ -15,4 +15,6 @@ public interface BookmarkRepository extends JpaRepository<Bookmark, String> {
     boolean existsByUserIdAndEntityTypeAndEntityId(String userId, String entityType, String entityId);
 
     void deleteByUserIdAndEntityTypeAndEntityId(String userId, String entityType, String entityId);
+
+    List<Bookmark> findByUserIdAndEntityTypeInAndEntityIdIn(String userId, java.util.List<String> entityTypes, java.util.Collection<String> entityIds);
 }

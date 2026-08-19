@@ -11,7 +11,6 @@ import {
   Trash2,
   Loader2,
   Mail,
-  Calendar,
   FolderGit2,
   Rss,
   MessagesSquare,
@@ -74,9 +73,6 @@ import {
 import {
   Sheet,
   SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
 } from "@/components/ui/sheet";
 import { toast } from "sonner";
 
@@ -153,6 +149,7 @@ export default function AdminUsers() {
   const [detail, setDetail] = useState<AdminUserDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [detailUserId, setDetailUserId] = useState<string | null>(null);
 
   const [busyId, setBusyId] = useState<string | null>(null);
   const [blockTarget, setBlockTarget] = useState<AdminUserListItem | null>(null);
@@ -217,6 +214,7 @@ export default function AdminUsers() {
   const openDetail = async (userId: string) => {
     setSheetOpen(true);
     setDetail(null);
+    setDetailUserId(userId);
     setDetailLoading(true);
     try {
       const d = await adminService.getUserDetail(userId);
@@ -662,164 +660,181 @@ export default function AdminUsers() {
 
       {/* User detail drawer */}
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-        <SheetContent className="w-full sm:max-w-md overflow-y-auto">
-          <SheetHeader className="border-b border-border/40 pb-4">
-            <SheetTitle className="flex items-center gap-3">
-              <Avatar className="w-12 h-12 ring-1 ring-accent/20">
+        <SheetContent className="w-full sm:w-[460px] sm:max-w-[460px] flex flex-col p-0" aria-label="User details">
+          {/* Header */}
+          <div className="px-6 pt-6 pb-5 border-b border-border/40">
+            <div className="flex items-start gap-4">
+              <Avatar className="w-14 h-14 ring-2 ring-accent/15 shrink-0">
                 {detail?.avatarUrl ? <AvatarImage src={detail.avatarUrl} alt="" /> : null}
-                <AvatarFallback className="bg-gradient-to-br from-accent/20 to-accent/5 text-sm font-medium text-accent">
+                <AvatarFallback className="bg-gradient-to-br from-accent/20 to-accent/5 text-base font-semibold text-accent">
                   {(detail?.fullName || "U").charAt(0).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
-              <div className="min-w-0">
-                <p className="text-base font-semibold truncate">{detail?.fullName}</p>
-                <p className="text-xs text-muted-foreground truncate">@{detail?.username || "—"}</p>
-              </div>
-            </SheetTitle>
-            <SheetDescription className="sr-only">User details</SheetDescription>
-          </SheetHeader>
-
-          {detailLoading ? (
-            <div className="space-y-4 p-1">
-              <Skeleton className="h-4 w-40" />
-              <Skeleton className="h-4 w-56" />
-              <Skeleton className="h-4 w-32" />
-              <div className="grid grid-cols-2 gap-3">
-                <Skeleton className="h-16 rounded-lg" />
-                <Skeleton className="h-16 rounded-lg" />
-                <Skeleton className="h-16 rounded-lg" />
-                <Skeleton className="h-16 rounded-lg" />
+              <div className="min-w-0 flex-1 pt-0.5">
+                <h2 className="text-lg font-bold text-foreground truncate">{detail?.fullName}</h2>
+                <p className="text-sm text-muted-foreground truncate">@{detail?.username || "—"}</p>
               </div>
             </div>
-          ) : detail ? (
-            <div className="space-y-6 p-1">
-              {/* Badges */}
-              <div className="flex flex-wrap items-center gap-2">
-                <Badge variant="outline" className={roleStyles[detail.role] || ""}>
-                  {detail.role}
-                </Badge>
-                <Badge variant="outline" className={statusStyles[detail.status] || ""}>
-                  {detail.status}
-                </Badge>
-                {detail.emailVerified ? (
-                  <Badge variant="outline" className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20">
-                    Verified
-                  </Badge>
-                ) : (
-                  <Badge variant="outline" className="bg-muted text-muted-foreground border-border/50">
-                    Unverified
-                  </Badge>
-                )}
-              </div>
+          </div>
 
-              {/* Contact info */}
-              <div className="space-y-2.5">
-                <div className="flex items-center gap-2.5 text-sm">
-                  <Mail className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                  <span className="text-foreground break-all">{detail.email}</span>
+          {/* Scrollable content */}
+          <div className="flex-1 overflow-y-auto">
+            {detailLoading ? (
+              <div className="px-6 py-5 space-y-5">
+                <div className="flex gap-2">
+                  <Skeleton className="h-6 w-16 rounded-full" />
+                  <Skeleton className="h-6 w-20 rounded-full" />
+                  <Skeleton className="h-6 w-20 rounded-full" />
                 </div>
-                {detail.company && (
-                  <div className="flex items-center gap-2.5 text-sm">
-                    <Building2 className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                    <span>{detail.company}</span>
-                  </div>
-                )}
-                {detail.location && (
-                  <div className="flex items-center gap-2.5 text-sm">
-                    <MapPin className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                    <span>{detail.location}</span>
-                  </div>
-                )}
-                {detail.bio && <p className="text-sm text-muted-foreground leading-relaxed">{detail.bio}</p>}
+                <Skeleton className="h-4 w-56" />
+                <div className="grid grid-cols-2 gap-3">
+                  <Skeleton className="h-[72px] rounded-lg" />
+                  <Skeleton className="h-[72px] rounded-lg" />
+                  <Skeleton className="h-[72px] rounded-lg" />
+                  <Skeleton className="h-[72px] rounded-lg" />
+                </div>
+                <Skeleton className="h-px w-full" />
+                <Skeleton className="h-4 w-40" />
+                <Skeleton className="h-4 w-48" />
+                <Skeleton className="h-4 w-32" />
               </div>
+            ) : detail ? (
+              <div className="px-6 py-5 space-y-6">
+                {/* Badges */}
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge variant="outline" className={roleStyles[detail.role] || ""}>
+                    {detail.role}
+                  </Badge>
+                  <Badge variant="outline" className={statusStyles[detail.status] || ""}>
+                    {detail.status}
+                  </Badge>
+                  {detail.emailVerified ? (
+                    <Badge variant="outline" className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20">
+                      Verified
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline" className="bg-muted text-muted-foreground border-border/50">
+                      Unverified
+                    </Badge>
+                  )}
+                </div>
 
-              {/* Stats grid */}
-              <div className="grid grid-cols-2 gap-3">
-                {[
-                  { icon: FolderGit2, label: "Projects Owned", value: detail.projectsOwned.length, color: "text-indigo-400" },
-                  { icon: UserCog, label: "Projects Joined", value: detail.projectsJoined.length, color: "text-blue-400" },
-                  { icon: Users, label: "Teams", value: detail.teams.length, color: "text-amber-400" },
-                  { icon: Rss, label: "Posts", value: detail.postsCount, color: "text-purple-400" },
-                  { icon: MessagesSquare, label: "Messages", value: detail.messagesCount, color: "text-cyan-400" },
-                ].map((s) => (
-                  <div key={s.label} className="border border-border/50 rounded-lg p-3">
-                    <div className="flex items-center gap-2 mb-1">
-                      <s.icon className={`w-3.5 h-3.5 ${s.color}`} />
-                      <p className="text-[11px] text-muted-foreground">{s.label}</p>
+                {/* Contact info */}
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3 text-sm">
+                    <Mail className="w-4 h-4 text-muted-foreground shrink-0" />
+                    <span className="text-foreground break-all">{detail.email}</span>
+                  </div>
+                  {detail.company && (
+                    <div className="flex items-center gap-3 text-sm">
+                      <Building2 className="w-4 h-4 text-muted-foreground shrink-0" />
+                      <span className="text-foreground">{detail.company}</span>
                     </div>
-                    <p className="text-lg font-bold">{s.value.toLocaleString()}</p>
+                  )}
+                  {detail.location && (
+                    <div className="flex items-center gap-3 text-sm">
+                      <MapPin className="w-4 h-4 text-muted-foreground shrink-0" />
+                      <span className="text-foreground">{detail.location}</span>
+                    </div>
+                  )}
+                  {detail.bio && <p className="text-sm text-muted-foreground leading-relaxed pl-7">{detail.bio}</p>}
+                </div>
+
+                {/* Stats grid */}
+                <div className="grid grid-cols-2 gap-3">
+                  {[
+                    { icon: FolderGit2, label: "Projects Owned", value: detail.projectsOwned.length, color: "text-indigo-400" },
+                    { icon: UserCog, label: "Projects Joined", value: detail.projectsJoined.length, color: "text-blue-400" },
+                    { icon: Users, label: "Teams", value: detail.teams.length, color: "text-amber-400" },
+                    { icon: Rss, label: "Posts", value: detail.postsCount, color: "text-purple-400" },
+                    { icon: MessagesSquare, label: "Messages", value: detail.messagesCount, color: "text-cyan-400" },
+                  ].map((s) => (
+                    <div key={s.label} className="border border-border/50 rounded-xl p-4 bg-card/50">
+                      <div className="flex items-center gap-2.5 mb-2">
+                        <div className={`w-7 h-7 rounded-lg bg-muted/50 flex items-center justify-center`}
+                          >
+                          <s.icon className={`w-3.5 h-3.5 ${s.color}`} />
+                        </div>
+                        <p className="text-xs text-muted-foreground font-medium">{s.label}</p>
+                      </div>
+                      <p className="text-xl font-bold text-foreground">{s.value.toLocaleString()}</p>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Account information */}
+                <div className="border-t border-border/40 pt-5">
+                  <p className="text-xs font-semibold text-foreground uppercase tracking-wider mb-3">Account Information</p>
+                  <div className="space-y-0 divide-y divide-border/30">
+                    <div className="flex items-center justify-between py-2.5 text-sm">
+                      <span className="text-muted-foreground">Created</span>
+                      <span className="text-foreground font-medium text-right">{fmtDateTime(detail.createdAt)}</span>
+                    </div>
+                    <div className="flex items-center justify-between py-2.5 text-sm">
+                      <span className="text-muted-foreground">Last Login</span>
+                      <span className="text-foreground font-medium text-right">{fmtDateTime(detail.lastLoginAt)}</span>
+                    </div>
+                    <div className="flex items-center justify-between py-2.5 text-sm">
+                      <span className="text-muted-foreground">Auth Provider</span>
+                      <span className="text-foreground font-medium capitalize">{detail.authProvider}</span>
+                    </div>
                   </div>
-                ))}
+                </div>
+
+                {/* Owned projects */}
+                {detail.projectsOwned.length > 0 && (
+                  <div className="border-t border-border/40 pt-5">
+                    <p className="text-xs font-semibold text-foreground uppercase tracking-wider mb-3">Owned Projects</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {detail.projectsOwned.map((p) => (
+                        <Badge key={p.id} variant="secondary" className="text-xs">
+                          {p.name}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Joined projects */}
+                {detail.projectsJoined.length > 0 && (
+                  <div className="border-t border-border/40 pt-5">
+                    <p className="text-xs font-semibold text-foreground uppercase tracking-wider mb-3">Joined Projects</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {detail.projectsJoined.map((p) => (
+                        <Badge key={p.id} variant="secondary" className="text-xs">
+                          {p.name}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Teams */}
+                {detail.teams.length > 0 && (
+                  <div className="border-t border-border/40 pt-5">
+                    <p className="text-xs font-semibold text-foreground uppercase tracking-wider mb-3">Teams</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {detail.teams.map((t) => (
+                        <Badge key={t.id} variant="secondary" className="text-xs">
+                          {t.name}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
-
-              {/* Dates */}
-              <div className="space-y-2.5 border-t border-border/40 pt-4 text-sm">
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground flex items-center gap-2">
-                    <Calendar className="w-3.5 h-3.5" /> Created
-                  </span>
-                  <span>{fmtDateTime(detail.createdAt)}</span>
+            ) : (
+              <div className="flex flex-col items-center gap-3 py-14 text-center px-6">
+                <div className="w-12 h-12 rounded-2xl bg-destructive/10 flex items-center justify-center ring-1 ring-destructive/20">
+                  <AlertTriangle className="w-6 h-6 text-destructive" />
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground flex items-center gap-2">
-                    <UserCog className="w-3.5 h-3.5" /> Last Login
-                  </span>
-                  <span>{fmtDateTime(detail.lastLoginAt)}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Auth Provider</span>
-                  <span className="capitalize">{detail.authProvider}</span>
-                </div>
+                <p className="text-sm text-muted-foreground">Failed to load user details</p>
+                <Button size="sm" variant="outline" onClick={() => detailUserId && openDetail(detailUserId)}>
+                  Retry
+                </Button>
               </div>
-
-              {/* Owned projects */}
-              {detail.projectsOwned.length > 0 && (
-                <div className="border-t border-border/40 pt-4">
-                  <p className="text-xs font-semibold text-foreground mb-2">Owned Projects</p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {detail.projectsOwned.map((p) => (
-                      <Badge key={p.id} variant="secondary" className="text-xs">
-                        {p.name}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Joined projects */}
-              {detail.projectsJoined.length > 0 && (
-                <div className="border-t border-border/40 pt-4">
-                  <p className="text-xs font-semibold text-foreground mb-2">Joined Projects</p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {detail.projectsJoined.map((p) => (
-                      <Badge key={p.id} variant="secondary" className="text-xs">
-                        {p.name}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Teams */}
-              {detail.teams.length > 0 && (
-                <div className="border-t border-border/40 pt-4">
-                  <p className="text-xs font-semibold text-foreground mb-2">Teams</p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {detail.teams.map((t) => (
-                      <Badge key={t.id} variant="secondary" className="text-xs">
-                        {t.name}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="flex flex-col items-center gap-3 py-14 text-center">
-              <AlertTriangle className="w-6 h-6 text-destructive" />
-              <p className="text-sm text-muted-foreground">Failed to load user details</p>
-            </div>
-          )}
+            )}
+          </div>
         </SheetContent>
       </Sheet>
     </div>

@@ -44,6 +44,7 @@ class FeedServiceTest {
     @Mock private CommentRepository commentRepository;
     @Mock private PostLikeRepository postLikeRepository;
     @Mock private UserRepository userRepository;
+    @Mock private com.devsync.bookmark.repository.BookmarkRepository bookmarkRepository;
     @Mock private ActivityService activityService;
     @Mock private com.devsync.attachment.repository.FileAttachmentRepository fileAttachmentRepository;
     @Mock private com.devsync.attachment.FileStorageService fileStorageService;
@@ -59,7 +60,7 @@ class FeedServiceTest {
 
     @BeforeEach
     void setUp() {
-        feedService = new FeedService(postRepository, commentRepository, postLikeRepository, userRepository, activityService, fileAttachmentRepository, fileStorageService);
+        feedService = new FeedService(postRepository, commentRepository, postLikeRepository, userRepository, bookmarkRepository, activityService, fileAttachmentRepository, fileStorageService);
 
         testUser = User.builder()
                 .email("user@example.com")

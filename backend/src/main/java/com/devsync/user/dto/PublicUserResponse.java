@@ -1,5 +1,6 @@
 package com.devsync.user.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -33,4 +34,16 @@ public class PublicUserResponse {
     private Instant createdAt;
     private String presenceStatus;
     private Instant lastActiveAt;
+    // Social fields for Network page
+    // NOTE: @JsonProperty is required on boolean fields starting with "is"
+    // because Jackson strips the "is" prefix from boolean getters — e.g.
+    // isFollowing() → serialized as "following" instead of "isFollowing".
+    @JsonProperty("isSelf")
+    private boolean isSelf;
+    @JsonProperty("isFollowing")
+    private boolean isFollowing;
+    @JsonProperty("followsYou")
+    private boolean followsYou;
+    private long followerCount;
+    private long followingCount;
 }

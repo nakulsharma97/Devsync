@@ -24,6 +24,13 @@ import {
   MessageSquarePlus,
   ChevronLeft,
   ChevronRight,
+  BarChart3,
+  Clock,
+  CircleDot,
+  FolderKanban,
+  MoreHorizontal,
+  Trash2,
+  Pencil,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -41,13 +48,26 @@ const PRIORITY_STYLES: Record<string, { label: string; cls: string }> = {
 
 const PRIORITIES = ["LOW", "MEDIUM", "HIGH", "CRITICAL"];
 
-/** Solid dot colors for calendar chips (background, not text). */
 const PRIORITY_DOTS: Record<string, string> = {
   CRITICAL: "bg-red-500",
   HIGH: "bg-amber-500",
   MEDIUM: "bg-blue-500",
   LOW: "bg-muted-foreground/50",
 };
+
+const COLUMN_COLORS: Record<string, string> = {
+  "To Do": "bg-purple-500",
+  "In Progress": "bg-blue-500",
+  "Done": "bg-emerald-500",
+};
+
+function getColumnColor(name: string): string {
+  const lower = name.toLowerCase();
+  if (lower.includes("todo") || lower.includes("to do") || lower.includes("backlog")) return "bg-purple-500";
+  if (lower.includes("progress") || lower.includes("doing")) return "bg-blue-500";
+  if (lower.includes("done") || lower.includes("complete")) return "bg-emerald-500";
+  return "bg-slate-400";
+}
 
 function isOverdue(task: TaskDto): boolean {
   if (!task.dueDate) return false;
@@ -65,6 +85,8 @@ const PR_STATE_STYLES: Record<string, string> = {
 function prStateStyle(state: string): string {
   return PR_STATE_STYLES[state] ?? PR_STATE_STYLES.OPEN;
 }
+
+// ── Task Card ──────────────────────────────────────────────
 
 function TaskCard({
   task,
@@ -88,126 +110,135 @@ function TaskCard({
         setDragging(true);
       }}
       onDragEnd={() => setDragging(false)}
-      className={`bg-card border border-border/40 rounded-lg p-3 cursor-grab active:cursor-grabbing transition-all ${
-        dragging ? "opacity-50 scale-95 shadow-lg" : "hover:border-indigo-500/30 hover:shadow-sm"
-      }`}
+      className={cn(
+        "bg-card border border-border/40 rounded-xl p-3.5 cursor-grab active:cursor-grabbing transition-all",
+        dragging
+          ? "opacity-50 scale-[0.97] shadow-xl"
+          : "hover:border-indigo-500/30 hover:shadow-md hover:shadow-indigo-500/5"
+      )}
     >
-      <div className="flex items-start gap-2">
-        <GripVertical className="w-3 h-3 text-muted-foreground/40 mt-0.5 shrink-0" />
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium">{task.title}</p>
+      <div className="flex items-start justify-between gap-2">
+        <p className="text-sm font-semibold text-foreground leading-snug line-clamp-2">{task.title}</p>
+        <GripVertical className="w-3.5 h-3.5 text-muted-foreground/30 mt-0.5 shrink-0" />
+      </div>
 
-          {/* Priority + due date */}
-          <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+      {/* Priority + due date */}
+      <div className="flex items-center gap-1.5 mt-2.5 flex-wrap">
+        <span
+          className={cn(
+            "inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-md border",
+            priority.cls
+          )}
+        >
+          <Flag className="w-2.5 h-2.5" />
+          {priority.label}
+        </span>
+        {task.dueDate && (
+          <span
+            className={cn(
+              "inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-md",
+              isOverdue(task)
+                ? "text-red-600 dark:text-red-400 bg-red-500/10"
+                : "text-muted-foreground bg-muted/50"
+            )}
+            title={`Due ${new Date(task.dueDate).toLocaleDateString()}`}
+          >
+            <CalendarClock className="w-2.5 h-2.5" />
+            {new Date(task.dueDate).toLocaleDateString([], { month: "short", day: "numeric" })}
+          </span>
+        )}
+      </div>
+
+      {/* Sprint / milestone */}
+      {(task.sprint || task.milestone) && (
+        <p className="text-[10px] text-muted-foreground mt-1.5 truncate">
+          {[task.sprint, task.milestone].filter(Boolean).join(" · ")}
+        </p>
+      )}
+
+      {/* Labels */}
+      {task.labels && task.labels.length > 0 && (
+        <div className="flex items-center gap-1 mt-1.5 flex-wrap">
+          {task.labels.slice(0, 3).map((label) => (
+            <span
+              key={label}
+              className="text-[9px] px-1.5 py-0.5 rounded-md bg-indigo-500/10 text-indigo-500 dark:text-indigo-300"
+            >
+              {label}
+            </span>
+          ))}
+          {task.labels.length > 3 && (
+            <span className="text-[9px] text-muted-foreground">+{task.labels.length - 3}</span>
+          )}
+        </div>
+      )}
+
+      {/* GitHub workflow: branch + PR state */}
+      {(task.branchName || task.pullRequestState) && (
+        <div className="flex items-center gap-1 mt-1.5 flex-wrap">
+          {task.branchName && (
+            <span className="inline-flex items-center gap-1 text-[9px] px-1.5 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-mono">
+              <GitBranch className="w-2 h-2" />
+              {task.branchName.split("/").pop()}
+            </span>
+          )}
+          {task.pullRequestState && (
             <span
               className={cn(
-                "inline-flex items-center gap-1 text-[9px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded-full border",
-                priority.cls
+                "inline-flex items-center gap-1 text-[9px] px-1.5 py-0.5 rounded-md border font-medium",
+                prStateStyle(task.pullRequestState)
               )}
             >
-              <Flag className="w-2 h-2" />
-              {priority.label}
+              <GitPullRequest className="w-2 h-2" />
+              {task.pullRequestState === "MERGED"
+                ? `#${task.pullRequestNumber} merged`
+                : `${task.pullRequestState.replace("_", " ")}${task.pullRequestNumber ? ` #${task.pullRequestNumber}` : ""}`}
             </span>
-            {task.dueDate && (
-              <span
-                className={cn(
-                  "inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full",
-                  isOverdue(task)
-                    ? "text-red-600 dark:text-red-400 bg-red-500/10"
-                    : "text-muted-foreground bg-muted/50"
-                )}
-                title={`Due ${new Date(task.dueDate).toLocaleDateString()}`}
-              >
-                <CalendarClock className="w-2.5 h-2.5" />
-                {new Date(task.dueDate).toLocaleDateString([], { month: "short", day: "numeric" })}
-              </span>
-            )}
-          </div>
-
-          {/* Sprint / milestone */}
-          {(task.sprint || task.milestone) && (
-            <p className="text-[10px] text-muted-foreground mt-1 truncate">
-              {[task.sprint, task.milestone].filter(Boolean).join(" · ")}
-            </p>
           )}
-
-          {/* Labels */}
-          {task.labels && task.labels.length > 0 && (
-            <div className="flex items-center gap-1 mt-1 flex-wrap">
-              {task.labels.slice(0, 3).map((label) => (
-                <span
-                  key={label}
-                  className="text-[9px] px-1.5 py-0.5 rounded-full bg-indigo-500/10 text-indigo-500 dark:text-indigo-300"
-                >
-                  {label}
-                </span>
-              ))}
-              {task.labels.length > 3 && (
-                <span className="text-[9px] text-muted-foreground">+{task.labels.length - 3}</span>
-              )}
-            </div>
-          )}
-
-          {/* GitHub workflow: branch + PR state */}
-          {(task.branchName || task.pullRequestState) && (
-            <div className="flex items-center gap-1 mt-1 flex-wrap">
-              {task.branchName && (
-                <span className="inline-flex items-center gap-1 text-[9px] px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-mono">
-                  <GitBranch className="w-2 h-2" />
-                  {task.branchName.split("/").pop()}
-                </span>
-              )}
-              {task.pullRequestState && (
-                <span
-                  className={cn(
-                    "inline-flex items-center gap-1 text-[9px] px-1.5 py-0.5 rounded-full border font-medium",
-                    prStateStyle(task.pullRequestState)
-                  )}
-                >
-                  <GitPullRequest className="w-2 h-2" />
-                  {task.pullRequestState === "MERGED"
-                    ? `#${task.pullRequestNumber} merged`
-                    : `${task.pullRequestState.replace("_", " ")}${task.pullRequestNumber ? ` #${task.pullRequestNumber}` : ""}`}
-                </span>
-              )}
-            </div>
-          )}
-
-          <div className="flex items-center justify-between mt-1.5">
-            {task.assigneeName ? (
-              <p className="text-xs text-muted-foreground">Assigned to {task.assigneeName}</p>
-            ) : (
-              <span />
-            )}
-            {blocked && (
-              <span
-                className="inline-flex items-center gap-1 text-[9px] font-medium text-amber-600 dark:text-amber-400"
-                title={`Blocked by ${task.dependencies!.length} task${task.dependencies!.length !== 1 ? "s" : ""}`}
-              >
-                <Link2 className="w-2.5 h-2.5" />
-                {task.dependencies!.length}
-              </span>
-            )}
-          </div>
         </div>
+      )}
+
+      {/* Bottom row: assignee */}
+      <div className="flex items-center justify-between mt-2 pt-2 border-t border-border/30">
+        {task.assigneeName ? (
+          <div className="flex items-center gap-1.5">
+            <div className="w-5 h-5 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-[8px] font-bold text-white">
+              {task.assigneeName.charAt(0)}
+            </div>
+            <span className="text-[10px] text-muted-foreground truncate max-w-[80px]">{task.assigneeName}</span>
+          </div>
+        ) : (
+          <span />
+        )}
+        {blocked && (
+          <span
+            className="inline-flex items-center gap-1 text-[9px] font-medium text-amber-600 dark:text-amber-400"
+            title={`Blocked by ${task.dependencies!.length} task${task.dependencies!.length !== 1 ? "s" : ""}`}
+          >
+            <Link2 className="w-2.5 h-2.5" />
+            {task.dependencies!.length}
+          </span>
+        )}
       </div>
     </div>
   );
 }
 
+// ── Board Skeleton ──────────────────────────────────────────
+
 function BoardSkeleton() {
   return (
-    <div className="flex gap-4 overflow-x-auto pb-4">
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
       {Array.from({ length: 3 }).map((_, colIdx) => (
-        <div key={colIdx} className="flex-1 min-w-[250px] bg-muted/30 rounded-xl border border-border/40 p-3">
-          <div className="flex items-center gap-2 mb-3">
-            <Skeleton className="w-2 h-2 rounded-full" />
+        <div key={colIdx} className="bg-muted/20 rounded-2xl border border-border/40 p-4">
+          <div className="flex items-center gap-2 mb-4">
+            <Skeleton className="w-2.5 h-2.5 rounded-full" />
             <Skeleton className="h-4 w-20" />
-            <Skeleton className="h-4 w-6 rounded-full" />
+            <Skeleton className="h-5 w-6 rounded-full" />
           </div>
-          <div className="space-y-2">
+          <div className="space-y-2.5">
             {Array.from({ length: 3 }).map((_, taskIdx) => (
-              <div key={taskIdx} className="bg-card border border-border/40 rounded-lg p-3">
+              <div key={taskIdx} className="bg-card border border-border/40 rounded-xl p-3.5">
                 <Skeleton className="h-4 w-full mb-1" />
                 <Skeleton className="h-3 w-24 mt-2" />
               </div>
@@ -219,7 +250,7 @@ function BoardSkeleton() {
   );
 }
 
-// ── Task detail dialog: edit fields + dependencies ─────────
+// ── Task detail dialog ──────────────────────────────────────
 
 function TaskDetailDialog({
   task,
@@ -251,7 +282,6 @@ function TaskDetailDialog({
   const [newDepId, setNewDepId] = useState("");
   const [wfBusy, setWfBusy] = useState<string | null>(null);
 
-  // GitHub workflow permissions — the backend enforces the same rules.
   const canWork = currentUserRole === "OWNER" || currentUserRole === "ADMIN" || currentUserRole === "MEMBER";
   const canManage = currentUserRole === "OWNER" || currentUserRole === "ADMIN";
   const prLive = task.pullRequestNumber != null && task.pullRequestState !== "MERGED" && task.pullRequestState !== "CLOSED";
@@ -284,7 +314,6 @@ function TaskDetailDialog({
         columnId: task.columnId,
         priority,
         dueDate: dueDate ? new Date(dueDate + "T12:00:00").toISOString() : null,
-        // Tell the backend to actually remove a cleared due date.
         clearDueDate: !dueDate,
         assigneeId: assigneeId || undefined,
         labels: labels
@@ -472,8 +501,7 @@ function TaskDetailDialog({
 
           {!task.branchName && !task.pullRequestNumber ? (
             <p className="text-xs text-muted-foreground">
-              Work on this task on a feature branch and ship it through a pull request. Start to get a branch
-              suggestion.
+              Work on this task on a feature branch and ship it through a pull request. Start to get a branch suggestion.
             </p>
           ) : (
             <div className="space-y-2 text-sm">
@@ -524,9 +552,7 @@ function TaskDetailDialog({
                   size="sm"
                   variant="outline"
                   disabled={wfBusy !== null}
-                  onClick={() =>
-                    runWorkflow("start", () => boardService.startTask(task.id), "Task started — branch suggested")
-                  }
+                  onClick={() => runWorkflow("start", () => boardService.startTask(task.id), "Task started — branch suggested")}
                 >
                   {wfBtn("start")}
                   <PlayCircle className="w-3.5 h-3.5 mr-1" />
@@ -550,9 +576,7 @@ function TaskDetailDialog({
                   size="sm"
                   variant="outline"
                   disabled={wfBusy !== null}
-                  onClick={() =>
-                    runWorkflow("pr", () => boardService.createPullRequest(task.id), "Pull request opened on GitHub")
-                  }
+                  onClick={() => runWorkflow("pr", () => boardService.createPullRequest(task.id), "Pull request opened on GitHub")}
                 >
                   {wfBtn("pr")}
                   <GitPullRequest className="w-3.5 h-3.5 mr-1" />
@@ -564,9 +588,7 @@ function TaskDetailDialog({
                   size="sm"
                   variant="outline"
                   disabled={wfBusy !== null}
-                  onClick={() =>
-                    runWorkflow("refresh", () => boardService.refreshPullRequest(task.id), "Pull request status refreshed")
-                  }
+                  onClick={() => runWorkflow("refresh", () => boardService.refreshPullRequest(task.id), "Pull request status refreshed")}
                 >
                   {wfBtn("refresh")}
                   <RefreshCw className="w-3.5 h-3.5 mr-1" />
@@ -582,9 +604,7 @@ function TaskDetailDialog({
                 size="sm"
                 className="bg-emerald-600 hover:bg-emerald-700 text-white"
                 disabled={wfBusy !== null}
-                onClick={() =>
-                  runWorkflow("approve", () => boardService.approvePullRequest(task.id), "Pull request approved")
-                }
+                onClick={() => runWorkflow("approve", () => boardService.approvePullRequest(task.id), "Pull request approved")}
               >
                 {wfBtn("approve")}
                 <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
@@ -596,11 +616,7 @@ function TaskDetailDialog({
                 className="text-amber-600 dark:text-amber-400"
                 disabled={wfBusy !== null}
                 onClick={() =>
-                  runWorkflow(
-                    "changes",
-                    () => boardService.requestChanges(task.id, "Please address the requested changes."),
-                    "Changes requested on the pull request"
-                  )
+                  runWorkflow("changes", () => boardService.requestChanges(task.id, "Please address the requested changes."), "Changes requested on the pull request")
                 }
               >
                 {wfBtn("changes")}
@@ -611,9 +627,7 @@ function TaskDetailDialog({
                 size="sm"
                 className="bg-purple-600 hover:bg-purple-700 text-white"
                 disabled={wfBusy !== null}
-                onClick={() =>
-                  runWorkflow("merge", () => boardService.mergePullRequest(task.id), "Pull request merged — task completed")
-                }
+                onClick={() => runWorkflow("merge", () => boardService.mergePullRequest(task.id), "Pull request merged — task completed")}
               >
                 {wfBtn("merge")}
                 <GitMerge className="w-3.5 h-3.5 mr-1" />
@@ -631,7 +645,6 @@ function TaskDetailDialog({
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-/** Local (not UTC) YYYY-MM-DD key, so a task never shifts to the wrong day. */
 function toLocalDayKey(date: Date): string {
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, "0");
@@ -651,7 +664,6 @@ function CalendarView({
   const today = new Date();
   const [cursor, setCursor] = useState(() => new Date(today.getFullYear(), today.getMonth(), 1));
 
-  // Full visible grid: first Sunday on/before the 1st → last Saturday on/after month end.
   const gridStart = useMemo(() => {
     const first = new Date(cursor.getFullYear(), cursor.getMonth(), 1);
     return new Date(first.getFullYear(), first.getMonth(), first.getDate() - first.getDay());
@@ -666,8 +678,7 @@ function CalendarView({
     [gridStart]
   );
   const toIso = useMemo(
-    () =>
-      new Date(gridEnd.getFullYear(), gridEnd.getMonth(), gridEnd.getDate(), 23, 59, 59).toISOString(),
+    () => new Date(gridEnd.getFullYear(), gridEnd.getMonth(), gridEnd.getDate(), 23, 59, 59).toISOString(),
     [gridEnd]
   );
 
@@ -704,10 +715,10 @@ function CalendarView({
 
   if (loading) {
     return (
-      <div className="rounded-xl border border-border/40 bg-card p-3">
+      <div className="rounded-2xl border border-border/40 bg-card p-4">
         <div className="grid grid-cols-7 gap-1.5">
           {Array.from({ length: 42 }).map((_, i) => (
-            <div key={i} className="h-20 bg-muted/40 rounded-lg animate-pulse" />
+            <div key={i} className="h-20 bg-muted/40 rounded-xl animate-pulse" />
           ))}
         </div>
       </div>
@@ -716,7 +727,7 @@ function CalendarView({
 
   if (error) {
     return (
-      <div className="text-center py-12 rounded-xl border border-border/40 bg-card">
+      <div className="text-center py-12 rounded-2xl border border-border/40 bg-card">
         <CalendarDays className="w-8 h-8 text-muted-foreground/40 mx-auto mb-3" />
         <p className="text-sm text-muted-foreground">Failed to load the calendar. {error}</p>
         <Button variant="outline" size="sm" className="mt-4" onClick={refetch}>
@@ -729,7 +740,6 @@ function CalendarView({
 
   return (
     <div className="space-y-3">
-      {/* Toolbar */}
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <h2 className="text-sm font-semibold">{monthLabel}</h2>
         <div className="flex items-center gap-1.5">
@@ -746,20 +756,17 @@ function CalendarView({
       </div>
 
       {(tasks ?? []).length === 0 ? (
-        <div className="text-center py-12 rounded-xl border border-border/40 bg-card">
+        <div className="text-center py-12 rounded-2xl border border-border/40 bg-card">
           <CalendarDays className="w-8 h-8 text-muted-foreground/40 mx-auto mb-3" />
           <p className="text-sm text-muted-foreground">
             No tasks scheduled for this period. Set a due date on a task to see it here.
           </p>
         </div>
       ) : (
-        <div className="rounded-xl border border-border/40 bg-card p-3">
-          <div className="grid grid-cols-7 gap-1.5 mb-1.5">
+        <div className="rounded-2xl border border-border/40 bg-card p-4">
+          <div className="grid grid-cols-7 gap-1.5 mb-2">
             {WEEKDAYS.map((w) => (
-              <p
-                key={w}
-                className="text-center text-[10px] font-semibold uppercase tracking-wide text-muted-foreground"
-              >
+              <p key={w} className="text-center text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
                 {w}
               </p>
             ))}
@@ -774,17 +781,12 @@ function CalendarView({
                 <div
                   key={key}
                   className={cn(
-                    "min-h-[5.5rem] rounded-lg border border-border/30 p-1.5 flex flex-col gap-1",
+                    "min-h-[5.5rem] rounded-xl border border-border/30 p-1.5 flex flex-col gap-1",
                     inMonth ? "bg-card" : "bg-muted/20 opacity-50",
                     isToday && "ring-1 ring-indigo-500/50 border-indigo-500/40"
                   )}
                 >
-                  <p
-                    className={cn(
-                      "text-[10px] font-medium",
-                      isToday ? "text-indigo-500" : "text-muted-foreground"
-                    )}
-                  >
+                  <p className={cn("text-[10px] font-medium", isToday ? "text-indigo-500" : "text-muted-foreground")}>
                     {day.getDate()}
                   </p>
                   <div className="space-y-1 min-w-0">
@@ -804,26 +806,17 @@ function CalendarView({
                           title={`${t.title}${status ? ` · ${status}` : ""}${t.assigneeName ? ` · ${t.assigneeName}` : ""}`}
                         >
                           <span className="flex items-center gap-1 min-w-0">
-                            <span
-                              className={cn(
-                                "w-1 h-1 rounded-full shrink-0",
-                                PRIORITY_DOTS[t.priority] ?? PRIORITY_DOTS.MEDIUM
-                              )}
-                            />
+                            <span className={cn("w-1 h-1 rounded-full shrink-0", PRIORITY_DOTS[t.priority] ?? PRIORITY_DOTS.MEDIUM)} />
                             <span className="text-[10px] leading-tight truncate">{t.title}</span>
                           </span>
                           <span className="flex items-center gap-1 text-[8px] leading-none mt-0.5 text-muted-foreground truncate">
                             {status && <span className="uppercase truncate">{status}</span>}
-                            {t.assigneeName && (
-                              <span className="truncate">· {t.assigneeName.split(" ")[0]}</span>
-                            )}
+                            {t.assigneeName && <span className="truncate">· {t.assigneeName.split(" ")[0]}</span>}
                           </span>
                         </button>
                       );
                     })}
-                    {dayTasks.length > 3 && (
-                      <p className="text-[10px] text-muted-foreground text-center">+{dayTasks.length - 3} more</p>
-                    )}
+                    {dayTasks.length > 3 && <p className="text-[10px] text-muted-foreground text-center">+{dayTasks.length - 3} more</p>}
                   </div>
                 </div>
               );
@@ -835,7 +828,7 @@ function CalendarView({
   );
 }
 
-// ── Page ───────────────────────────────────────────────────
+// ── Main Page ───────────────────────────────────────────────
 
 export default function BoardPage() {
   const { projectId } = useParams();
@@ -855,11 +848,21 @@ export default function BoardPage() {
   const [showGitHub, setShowGitHub] = useState(false);
   const [view, setView] = useState<"board" | "calendar">("board");
   const [detailTask, setDetailTask] = useState<TaskDto | null>(null);
-  /** Bumped after any task mutation so the open calendar refetches. */
   const [refreshKey, setRefreshKey] = useState(0);
 
   const members = (project?.members ?? []).map((m) => ({ id: m.userId, fullName: m.fullName }));
   const allTasks = (board?.columns ?? []).flatMap((col) => col.tasks);
+
+  // Compute summary statistics from real data
+  const totalTasks = allTasks.length;
+  const inProgressTasks = allTasks.filter((t) => {
+    const colName = (board?.columns ?? []).find((c) => c.id === t.columnId)?.name ?? "";
+    return colName.toLowerCase().includes("progress") || colName.toLowerCase().includes("doing");
+  }).length;
+  const doneTasks = allTasks.filter((t) => {
+    const colName = (board?.columns ?? []).find((c) => c.id === t.columnId)?.name ?? "";
+    return colName.toLowerCase().includes("done") || colName.toLowerCase().includes("complete");
+  }).length;
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -869,7 +872,6 @@ export default function BoardPage() {
       await boardService.createTask({
         title: title.trim(),
         columnId: selectedColumn,
-        // Noon local time keeps the calendar day stable across timezones.
         dueDate: dueDate ? new Date(dueDate + "T12:00:00").toISOString() : undefined,
       });
       toast("Task created!");
@@ -899,7 +901,7 @@ export default function BoardPage() {
 
   if (loading) {
     return (
-      <div className="space-y-4">
+      <div className="space-y-5">
         <Skeleton className="h-7 w-40" />
         <BoardSkeleton />
       </div>
@@ -909,6 +911,9 @@ export default function BoardPage() {
   if (!board) {
     return (
       <div className="text-center py-16">
+        <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-indigo-500/15 to-purple-500/10 flex items-center justify-center ring-1 ring-indigo-500/20">
+          <KanbanSquare className="w-6 h-6 text-indigo-400" />
+        </div>
         <p className="text-muted-foreground mb-4">No board found for this project</p>
         <Button
           onClick={async () => {
@@ -920,7 +925,9 @@ export default function BoardPage() {
               toast("Failed to create board");
             }
           }}
+          className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white"
         >
+          <Plus className="w-4 h-4 mr-1.5" />
           Create Board
         </Button>
       </div>
@@ -928,19 +935,24 @@ export default function BoardPage() {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between gap-2 flex-wrap">
-        <h1 className="text-xl font-bold tracking-tight">{board.name}</h1>
+    <div className="space-y-5">
+      {/* Header */}
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">{board.name}</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Track and manage tasks across your projects
+          </p>
+        </div>
         <div className="flex items-center gap-1.5">
-          {/* View toggle */}
-          <div className="flex items-center gap-0.5 bg-muted/40 border border-border/40 rounded-lg p-0.5">
+          <div className="flex items-center gap-0.5 bg-muted/40 border border-border/40 rounded-xl p-0.5">
             <button
               onClick={() => setView("board")}
               aria-pressed={view === "board"}
               className={cn(
-                "inline-flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-md transition-all",
+                "inline-flex items-center gap-1.5 text-xs font-medium px-3 py-2 rounded-lg transition-all",
                 view === "board"
-                  ? "bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-sm"
+                  ? "bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-md"
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
@@ -951,9 +963,9 @@ export default function BoardPage() {
               onClick={() => setView("calendar")}
               aria-pressed={view === "calendar"}
               className={cn(
-                "inline-flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-md transition-all",
+                "inline-flex items-center gap-1.5 text-xs font-medium px-3 py-2 rounded-lg transition-all",
                 view === "calendar"
-                  ? "bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-sm"
+                  ? "bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-md"
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
@@ -961,65 +973,134 @@ export default function BoardPage() {
               Calendar
             </button>
           </div>
-          <Button variant="outline" size="sm" onClick={() => setShowGitHub((v) => !v)}>
-            <GitBranch className="w-3.5 h-3.5 mr-1.5" />
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowGitHub((v) => !v)}
+            className="gap-1.5 h-9"
+          >
+            <GitBranch className="w-3.5 h-3.5" />
             {showGitHub ? "Hide GitHub" : "GitHub"}
           </Button>
         </div>
       </div>
 
       {showGitHub && projectId && (
-        <div className="border border-border/40 rounded-xl p-4 bg-card">
+        <div className="border border-border/40 rounded-2xl p-4 bg-card">
           <GitHubSection projectId={projectId} />
         </div>
       )}
 
-      {view === "calendar" ? (
-        <CalendarView projectId={projectId!} refreshKey={refreshKey} onOpenTask={(t) => setDetailTask(t)} />
-      ) : (
-        <div className="flex gap-4 overflow-x-auto pb-4">
-          {board.columns.map((col) => (
-            <div
-              key={col.id}
-              onDragOver={(e) => e.preventDefault()}
-              onDrop={(e) => handleDrop(e, col.id)}
-              className="flex-1 min-w-[250px] bg-muted/30 rounded-xl border border-border/40 p-3"
-            >
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-indigo-400" />
-                  <h3 className="text-sm font-semibold">{col.name}</h3>
-                  <span className="text-xs text-muted-foreground bg-muted/50 px-1.5 py-0.5 rounded-full">
-                    {col.tasks.length}
-                  </span>
-                </div>
-                <button
-                  onClick={() => {
-                    setSelectedColumn(col.id);
-                    setOpen(true);
-                  }}
-                  className="p-1 rounded hover:bg-accent/10 transition-colors"
-                  aria-label={`Add task to ${col.name}`}
-                >
-                  <Plus className="w-3.5 h-3.5 text-muted-foreground" />
-                </button>
-              </div>
-              <div className="space-y-2 min-h-[100px]">
-                {col.tasks.map((task) => (
-                  <TaskCard
-                    key={task.id}
-                    task={task}
-                    columnId={col.id}
-                    onClick={() => setDetailTask(task)}
-                  />
-                ))}
-              </div>
+      {/* Summary Statistics */}
+      {view === "board" && (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="bg-card border border-border/50 rounded-2xl p-5 flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-indigo-500/10 flex items-center justify-center shrink-0">
+              <BarChart3 className="w-5 h-5 text-indigo-500" />
             </div>
-          ))}
+            <div>
+              <p className="text-2xl font-bold text-foreground">{totalTasks}</p>
+              <p className="text-xs text-muted-foreground">Total Tasks</p>
+            </div>
+          </div>
+          <div className="bg-card border border-border/50 rounded-2xl p-5 flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-amber-500/10 flex items-center justify-center shrink-0">
+              <Clock className="w-5 h-5 text-amber-500" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-foreground">{inProgressTasks}</p>
+              <p className="text-xs text-muted-foreground">In Progress</p>
+            </div>
+          </div>
+          <div className="bg-card border border-border/50 rounded-2xl p-5 flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center shrink-0">
+              <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-foreground">{doneTasks}</p>
+              <p className="text-xs text-muted-foreground">Completed</p>
+            </div>
+          </div>
         </div>
       )}
 
-      {/* Create task */}
+      {/* Board / Calendar Content */}
+      {view === "calendar" ? (
+        <CalendarView projectId={projectId!} refreshKey={refreshKey} onOpenTask={(t) => setDetailTask(t)} />
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          {board.columns.map((col) => {
+            const dotColor = getColumnColor(col.name);
+            return (
+              <div
+                key={col.id}
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={(e) => handleDrop(e, col.id)}
+                className="bg-muted/20 rounded-2xl border border-border/40 flex flex-col min-h-[380px]"
+              >
+                {/* Column header */}
+                <div className="flex items-center justify-between px-4 py-3.5 border-b border-border/30">
+                  <div className="flex items-center gap-2.5">
+                    <div className={cn("w-2.5 h-2.5 rounded-full", dotColor)} />
+                    <h3 className="text-sm font-semibold text-foreground">{col.name}</h3>
+                    <span className="text-[10px] font-medium text-muted-foreground bg-muted/60 px-2 py-0.5 rounded-full">
+                      {col.tasks.length}
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setSelectedColumn(col.id);
+                      setOpen(true);
+                    }}
+                    className="p-1.5 rounded-lg hover:bg-accent/10 transition-colors"
+                    aria-label={`Add task to ${col.name}`}
+                  >
+                    <Plus className="w-4 h-4 text-muted-foreground" />
+                  </button>
+                </div>
+
+                {/* Task list */}
+                <div className="flex-1 p-3 space-y-2.5 overflow-y-auto">
+                  {col.tasks.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-8 text-center">
+                      <div className="w-8 h-8 rounded-lg bg-muted/50 flex items-center justify-center mb-2">
+                        <KanbanSquare className="w-4 h-4 text-muted-foreground/40" />
+                      </div>
+                      <p className="text-xs text-muted-foreground font-medium">No tasks</p>
+                      <p className="text-[10px] text-muted-foreground/60 mt-0.5">Add a task to get started</p>
+                    </div>
+                  ) : (
+                    col.tasks.map((task) => (
+                      <TaskCard
+                        key={task.id}
+                        task={task}
+                        columnId={col.id}
+                        onClick={() => setDetailTask(task)}
+                      />
+                    ))
+                  )}
+                </div>
+
+                {/* Add task button */}
+                <div className="px-4 py-3 border-t border-border/30">
+                  <button
+                    onClick={() => {
+                      setSelectedColumn(col.id);
+                      setOpen(true);
+                    }}
+                    className="flex items-center gap-1.5 text-xs font-medium text-indigo-500 hover:text-indigo-600 dark:text-indigo-400 dark:hover:text-indigo-300 transition-colors w-full justify-center py-1.5 rounded-lg hover:bg-indigo-500/5"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    Add Task
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Create task dialog */}
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
           <DialogHeader>
@@ -1060,7 +1141,6 @@ export default function BoardPage() {
           onSaved={() => {
             refetch();
             setRefreshKey((k) => k + 1);
-            // Keep the dialog showing the freshest task data.
             const fresh = allTasks.find((t) => t.id === detailTask.id);
             if (fresh) setDetailTask(fresh);
           }}

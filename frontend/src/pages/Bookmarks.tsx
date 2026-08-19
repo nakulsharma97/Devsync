@@ -1,159 +1,182 @@
-import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router";
+import { useAuth } from "@/contexts/AuthContext";
+import FeedPostCard from "@/components/feed/FeedPostCard";
+import { postService, type PostDto } from "@/services/postService";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent as AlertContent,
-  AlertDialogDescription as AlertDesc,
-  AlertDialogFooter as AlertFoot,
-  AlertDialogHeader as AlertHead,
-  AlertDialogTitle as AlertTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import { Bookmark, ExternalLink, Github, Plus, Search, Trash2 } from "lucide-react";
-import { bookmarkService, type Bookmark as BookmarkType, type BookmarkRequest } from "@/services/bookmarkService";
+  bookmarkService,
+  type BookmarkResponse,
+} from "@/services/bookmarkService";
+import { Bookmark, Rss, Loader2, AlertTriangle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 export default function Bookmarks() {
-  const [bookmarks, setBookmarks] = useState<BookmarkType[]>([]);
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const currentUserId = user?.id || null;
+
+  const [bookmarks, setBookmarks] = useState<BookmarkResponse[]>([]);
+  const [posts, setPosts] = useState<PostDto[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [showAdd, setShowAdd] = useState(false);
-  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
-  const [form, setForm] = useState<BookmarkRequest>({ repoName: "", repoUrl: "", description: "", language: "", owner: "", stars: 0 });
+  const [error, setError] = useState(false);
 
-  const fetchBookmarks = async () => {
-    try { setBookmarks(await bookmarkService.getAll()); }
-    catch { /* API not available */ }
-    finally { setLoading(false); }
-  };
-
-  useEffect(() => { fetchBookmarks(); }, []);
-
-  const handleAdd = async () => {
-    if (!form.repoName.trim() || !form.repoUrl.trim()) return;
+  const fetchBookmarks = useCallback(async () => {
+    setLoading(true);
+    setError(false);
     try {
-      await bookmarkService.create(form);
-      setShowAdd(false);
-      setForm({ repoName: "", repoUrl: "", description: "", language: "", owner: "", stars: 0 });
-      await fetchBookmarks();
-    } catch (err) { console.error("Failed to add bookmark:", err); }
+      const allBookmarks = await bookmarkService.getAll();
+      const postBookmarks = allBookmarks.filter(
+        (b) => b.entityType === "POST",
+      );
+      setBookmarks(postBookmarks);
+
+      if (postBookmarks.length === 0) {
+        setPosts([]);
+        setLoading(false);
+        return;
+      }
+
+      // Fetch full post data for each bookmarked post
+      const postPromises = postBookmarks.map((b) =>
+        postService.getPost(b.entityId),
+      );
+      const results = await Promise.allSettled(postPromises);
+      const successfulPosts = results
+        .filter(
+          (r): r is PromiseFulfilledResult<PostDto> =>
+            r.status === "fulfilled",
+        )
+        .map((r) => r.value);
+      setPosts(successfulPosts);
+    } catch {
+      setError(true);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchBookmarks();
+  }, [fetchBookmarks]);
+
+  const handlePostUpdated = (updated: PostDto) => {
+    setPosts((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
   };
 
-  const handleDelete = async (id: string) => {
-    try { await bookmarkService.delete(id); setBookmarks((prev) => prev.filter((b) => b.id !== id)); }
-    catch (err) { console.error("Failed to delete bookmark:", err); }
+  const handlePostDeleted = (postId: string) => {
+    setPosts((prev) => prev.filter((p) => p.id !== postId));
+    setBookmarks((prev) => prev.filter((b) => b.entityId !== postId));
   };
-
-  const filtered = bookmarks.filter((b) =>
-    b.repoName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (b.language && b.language.toLowerCase().includes(searchQuery.toLowerCase())));
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">Bookmarks</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Saved GitHub repositories</p>
+    <div className="max-w-[1060px] mx-auto space-y-5 px-4 sm:px-6 lg:px-8 py-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-md shadow-indigo-500/20">
+            <Bookmark className="w-5 h-5 text-white" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight text-foreground">
+              Bookmarks
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              Posts you&apos;ve saved for later
+            </p>
+          </div>
         </div>
-        <Button size="sm" onClick={() => setShowAdd(true)} className="text-sm shadow-sm"><Plus className="w-4 h-4 mr-1.5" /> Add Repo</Button>
       </div>
 
-      <div className="relative mb-6">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-        <Input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search bookmarks by name or language..." className="text-sm pl-9 h-10 bg-background" />
-      </div>
-
+      {/* Loading state */}
       {loading && (
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="space-y-4">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="border border-border/50 rounded-xl p-5 animate-pulse bg-card">
-              <div className="h-4 bg-muted rounded w-2/3 mb-3" /><div className="h-3 bg-muted rounded w-full mb-2" /><div className="h-3 bg-muted rounded w-1/2" />
+            <div
+              key={i}
+              className="border border-border/50 rounded-xl p-5 animate-pulse bg-card"
+            >
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-full bg-muted" />
+                <div className="space-y-2">
+                  <div className="h-3 bg-muted rounded w-24" />
+                  <div className="h-2 bg-muted rounded w-16" />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <div className="h-3 bg-muted rounded w-full" />
+                <div className="h-3 bg-muted rounded w-3/4" />
+              </div>
             </div>
           ))}
         </div>
       )}
 
-      {!loading && filtered.length === 0 && (
+      {/* Error state */}
+      {!loading && error && (
         <div className="border border-border/50 rounded-xl p-12 flex flex-col items-center text-center gap-4 bg-card">
-          <div className="w-12 h-12 rounded-2xl bg-accent/10 flex items-center justify-center ring-1 ring-accent/20"><Bookmark className="w-6 h-6 text-accent" /></div>
-          <div>
-            <h3 className="text-sm font-semibold text-foreground">{searchQuery ? "No matching bookmarks" : "No bookmarks yet"}</h3>
-            <p className="text-sm text-muted-foreground mt-1">{searchQuery ? "Try a different search term." : "Save interesting GitHub repos to come back to them later."}</p>
+          <div className="w-12 h-12 rounded-2xl bg-red-500/10 flex items-center justify-center ring-1 ring-red-500/20">
+            <AlertTriangle className="w-6 h-6 text-red-500" />
           </div>
+          <div>
+            <h3 className="text-sm font-semibold text-foreground">
+              Unable to load bookmarks
+            </h3>
+            <p className="text-sm text-muted-foreground mt-1">
+              Something went wrong. Please try again.
+            </p>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={fetchBookmarks}
+            className="text-sm"
+          >
+            Try Again
+          </Button>
         </div>
       )}
 
-      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filtered.map((b) => (
-          <div key={b.id} className="border border-border/50 rounded-xl p-5 bg-card hover:border-accent/30 transition-all duration-200 hover:shadow-sm group">
-            <div className="flex items-start justify-between mb-2">
-              <h3 className="text-sm font-semibold text-foreground">{b.repoName}</h3>
-              <AlertDialog open={deleteTarget === b.id} onOpenChange={(open) => setDeleteTarget(open ? b.id : null)}>
-                <AlertDialogTrigger asChild>
-                  <button className="opacity-0 group-hover:opacity-100 transition-all text-muted-foreground hover:text-destructive p-1 -mr-1 -mt-1"><Trash2 className="w-3.5 h-3.5" /></button>
-                </AlertDialogTrigger>
-                <AlertContent>
-                  <AlertHead>
-                    <AlertTitle>Delete bookmark?</AlertTitle>
-                    <AlertDesc>This will remove <strong>{b.repoName}</strong> from your bookmarks.</AlertDesc>
-                  </AlertHead>
-                  <AlertFoot>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={() => handleDelete(b.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete</AlertDialogAction>
-                  </AlertFoot>
-                </AlertContent>
-              </AlertDialog>
-            </div>
-            {b.owner && <p className="text-xs text-muted-foreground mb-1">{b.owner}</p>}
-            {b.description && <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed mb-3">{b.description}</p>}
-            <div className="flex items-center gap-3 text-xs text-muted-foreground">
-              {b.language && <span className="px-2 py-0.5 rounded-md bg-accent/10 text-accent">{b.language}</span>}
-              {b.stars > 0 && <span>★ {b.stars}</span>}
-              <a href={b.repoUrl} target="_blank" rel="noopener noreferrer" className="ml-auto hover:text-foreground transition-colors"><ExternalLink className="w-3.5 h-3.5" /></a>
-            </div>
+      {/* Empty state */}
+      {!loading && !error && posts.length === 0 && (
+        <div className="border border-border/50 rounded-xl p-12 flex flex-col items-center text-center gap-4 bg-card">
+          <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 flex items-center justify-center ring-1 ring-indigo-500/20">
+            <Bookmark className="w-6 h-6 text-indigo-500" />
           </div>
-        ))}
-      </div>
+          <div>
+            <h3 className="text-sm font-semibold text-foreground">
+              No bookmarks yet
+            </h3>
+            <p className="text-sm text-muted-foreground mt-1">
+              Save posts you want to come back to later.
+            </p>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate("/feed")}
+            className="text-sm gap-1.5"
+          >
+            <Rss className="w-3.5 h-3.5" />
+            Explore Feed
+          </Button>
+        </div>
+      )}
 
-      <Dialog open={showAdd} onOpenChange={setShowAdd}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-lg font-semibold tracking-tight">Add Repository</DialogTitle>
-            <DialogDescription className="text-sm">Save a GitHub repo to your bookmarks.</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 pt-2">
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground">Repository Name</label>
-              <Input value={form.repoName} onChange={(e) => setForm({ ...form, repoName: e.target.value })} className="text-sm bg-background" placeholder="my-awesome-repo" />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground">URL</label>
-              <div className="relative"><Github className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" /><Input value={form.repoUrl} onChange={(e) => setForm({ ...form, repoUrl: e.target.value })} className="text-sm pl-9 bg-background" placeholder="https://github.com/user/repo" /></div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium text-muted-foreground">Language</label>
-                <Input value={form.language || ""} onChange={(e) => setForm({ ...form, language: e.target.value })} className="text-sm bg-background" placeholder="TypeScript" />
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium text-muted-foreground">Stars</label>
-                <Input type="number" value={form.stars || 0} onChange={(e) => setForm({ ...form, stars: parseInt(e.target.value) || 0 })} className="text-sm bg-background" />
-              </div>
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground">Description</label>
-              <Input value={form.description || ""} onChange={(e) => setForm({ ...form, description: e.target.value })} className="text-sm bg-background" placeholder="A brief description..." />
-            </div>
-            <div className="flex justify-end gap-2 pt-2">
-              <Button variant="outline" size="sm" onClick={() => setShowAdd(false)} className="text-sm">Cancel</Button>
-              <Button size="sm" onClick={handleAdd} className="text-sm shadow-sm">Save Bookmark</Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+      {/* Bookmarked posts */}
+      {!loading && !error && posts.length > 0 && (
+        <div className="space-y-5">
+          {posts.map((post) => (
+            <FeedPostCard
+              key={post.id}
+              post={post}
+              currentUserId={currentUserId}
+              onUpdated={handlePostUpdated}
+              onDeleted={handlePostDeleted}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

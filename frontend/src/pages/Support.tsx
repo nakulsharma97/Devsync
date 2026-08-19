@@ -3,17 +3,21 @@ import {
   ChevronLeft,
   ChevronRight,
   Headphones,
-  Inbox,
   Loader2,
   MessageSquare,
   Plus,
   Search,
   Send,
   Ticket,
+  HelpCircle,
+  FileText,
+  MessageCircle,
+  GitBranch,
+  AlertCircle,
+  User,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { EmptyState } from "@/components/EmptyState";
 import { Input } from "@/components/ui/input";
 import {
@@ -24,6 +28,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Label } from "@/components/ui/label";
 import {
   Sheet,
   SheetContent,
@@ -41,19 +46,52 @@ import { getErrorMessage } from "@/lib/utils";
 import { toast } from "sonner";
 
 const STATUS_META: Record<string, { label: string; badge: string }> = {
-  OPEN: { label: "Open", badge: "bg-blue-500/10 text-blue-600" },
-  IN_PROGRESS: { label: "In Progress", badge: "bg-amber-500/10 text-amber-600" },
-  WAITING_USER: { label: "Waiting for You", badge: "bg-orange-500/10 text-orange-600" },
-  RESOLVED: { label: "Resolved", badge: "bg-emerald-500/10 text-emerald-600" },
-  CLOSED: { label: "Closed", badge: "bg-slate-500/10 text-slate-600" },
+  OPEN: { label: "Open", badge: "bg-blue-500/10 text-blue-600 dark:text-blue-400" },
+  IN_PROGRESS: { label: "In Progress", badge: "bg-amber-500/10 text-amber-600 dark:text-amber-400" },
+  WAITING_USER: { label: "Waiting for You", badge: "bg-orange-500/10 text-orange-600 dark:text-orange-400" },
+  RESOLVED: { label: "Resolved", badge: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" },
+  CLOSED: { label: "Closed", badge: "bg-slate-500/10 text-slate-600 dark:text-slate-400" },
 };
 
 const PRIORITY_META: Record<string, { label: string; badge: string }> = {
-  LOW: { label: "Low", badge: "bg-slate-500/10 text-slate-600" },
-  MEDIUM: { label: "Medium", badge: "bg-blue-500/10 text-blue-600" },
-  HIGH: { label: "High", badge: "bg-orange-500/10 text-orange-600" },
-  URGENT: { label: "Urgent", badge: "bg-red-500/10 text-red-600" },
+  LOW: { label: "Low", badge: "bg-slate-500/10 text-slate-600 dark:text-slate-400" },
+  MEDIUM: { label: "Medium", badge: "bg-blue-500/10 text-blue-600 dark:text-blue-400" },
+  HIGH: { label: "High", badge: "bg-orange-500/10 text-orange-600 dark:text-orange-400" },
+  URGENT: { label: "Urgent", badge: "bg-red-500/10 text-red-600 dark:text-red-400" },
 };
+
+const FAQ_ITEMS = [
+  {
+    icon: AlertCircle,
+    category: "Authentication",
+    question: "Can't log in or forgot password?",
+    answer: "Use the 'Forgot Password' link on the login page to reset your password via email.",
+  },
+  {
+    icon: FileText,
+    category: "Projects",
+    question: "How do I create a project?",
+    answer: "Go to Projects and click 'New Project'. Fill in the details and invite team members.",
+  },
+  {
+    icon: MessageCircle,
+    category: "Messaging",
+    question: "How do I message another developer?",
+    answer: "Visit the Network page, find a developer, and click the message icon to start a conversation.",
+  },
+  {
+    icon: GitBranch,
+    category: "GitHub",
+    question: "How do I connect GitHub?",
+    answer: "Go to Settings > GitHub Integration and click 'Connect GitHub' to authorize access.",
+  },
+  {
+    icon: User,
+    category: "Account",
+    question: "How do I edit my profile?",
+    answer: "Go to Profile and click 'Edit' to update your name, bio, job title, and other details.",
+  },
+];
 
 function timeAgo(iso?: string | null): string {
   if (!iso) return "—";
@@ -84,6 +122,10 @@ export default function Support() {
   const [createCategory, setCreateCategory] = useState("");
   const [createPriority, setCreatePriority] = useState("MEDIUM");
   const [creating, setCreating] = useState(false);
+  const [createErrors, setCreateErrors] = useState<{
+    subject?: string;
+    description?: string;
+  }>({});
 
   // Ticket detail
   const [selected, setSelected] = useState<SupportTicket | null>(null);
@@ -114,25 +156,35 @@ export default function Support() {
     fetchTickets();
   }, [fetchTickets]);
 
-  const handleCreate = async () => {
-    if (!createSubject.trim() || !createDescription.trim()) {
-      toast.error("Subject and description are required");
-      return;
+  const validateCreate = (): boolean => {
+    const errors: { subject?: string; description?: string } = {};
+    if (!createSubject.trim()) {
+      errors.subject = "Subject is required";
     }
+    if (!createDescription.trim()) {
+      errors.description = "Description is required";
+    }
+    setCreateErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleCreate = async () => {
+    if (!validateCreate()) return;
     setCreating(true);
     try {
       await supportService.createTicket({
-        subject: createSubject,
-        description: createDescription,
+        subject: createSubject.trim(),
+        description: createDescription.trim(),
         category: createCategory || undefined,
         priority: createPriority,
       });
-      toast.success("Support ticket created");
+      toast.success("Support ticket created successfully");
       setCreateOpen(false);
       setCreateSubject("");
       setCreateDescription("");
       setCreateCategory("");
       setCreatePriority("MEDIUM");
+      setCreateErrors({});
       fetchTickets();
     } catch (e) {
       toast.error(getErrorMessage(e, "Failed to create ticket"));
@@ -173,193 +225,365 @@ export default function Support() {
       <div className="absolute -top-20 -right-20 w-72 h-72 bg-gradient-to-bl from-accent/[0.03] to-transparent rounded-full blur-3xl pointer-events-none" />
 
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-start justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <div className="w-8 h-8 rounded-xl bg-accent/10 border border-accent/20 flex items-center justify-center">
-              <Headphones className="w-4 h-4 text-accent" />
+          <div className="flex items-center gap-2.5 mb-1">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500/15 to-purple-500/10 flex items-center justify-center ring-1 ring-indigo-500/20">
+              <Headphones className="w-4.5 h-4.5 text-indigo-500" />
             </div>
-            <h1 className="text-2xl font-semibold tracking-tight">Support</h1>
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight">Support</h1>
+            </div>
           </div>
-          <p className="text-sm text-muted-foreground">
-            Get help from the DevSync team. Create a ticket and we'll respond as soon as possible.
+          <p className="text-sm text-muted-foreground mt-1 ml-[46px]">
+            Get help from the DevSync team. We typically respond within 24 hours.
           </p>
         </div>
-        <Button onClick={() => setCreateOpen(true)}>
+        <Button
+          onClick={() => setCreateOpen(true)}
+          className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white hover:from-indigo-600 hover:to-purple-700 shrink-0"
+        >
           <Plus className="w-4 h-4 mr-2" /> New Ticket
         </Button>
       </div>
 
-      {/* Search */}
-      <Card>
-        <CardContent className="pt-5">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              className="pl-9"
-              placeholder="Search tickets..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  setSearchInput(search);
-                  setPage(0);
-                }
-              }}
-            />
+      {/* Quick Help */}
+      <div className="bg-card border border-border/50 rounded-2xl overflow-hidden">
+        <div className="px-6 py-4 border-b border-border/40">
+          <div className="flex items-center gap-2">
+            <HelpCircle className="w-4 h-4 text-indigo-500" />
+            <h3 className="text-sm font-semibold text-foreground">Quick Help</h3>
           </div>
-        </CardContent>
-      </Card>
-
-      {/* Ticket list */}
-      <Card>
-        <CardContent className="pt-5">
-          <p className="text-sm text-muted-foreground mb-4">
-            {loading ? "Loading..." : `${totalElements} ticket${totalElements !== 1 ? "s" : ""}`}
-          </p>
-
-          <div className="rounded-lg border overflow-x-auto">
-            <div className="min-w-[600px]">
-              {loading ? (
-                <div className="divide-y">
-                  {Array.from({ length: 5 }).map((_, i) => (
-                    <div key={i} className="p-4 space-y-2">
-                      <Skeleton className="h-4 w-1/3" />
-                      <Skeleton className="h-3 w-2/3" />
-                    </div>
-                  ))}
+        </div>
+        <div className="p-4 grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {FAQ_ITEMS.map((item, i) => {
+            const Icon = item.icon;
+            return (
+              <div
+                key={i}
+                className="p-3 rounded-xl bg-muted/20 border border-border/30 hover:border-indigo-500/20 hover:bg-indigo-500/5 transition-all cursor-default"
+              >
+                <div className="flex items-start gap-2.5">
+                  <div className="w-7 h-7 rounded-lg bg-indigo-500/10 flex items-center justify-center shrink-0 mt-0.5">
+                    <Icon className="w-3.5 h-3.5 text-indigo-500" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs font-medium text-foreground leading-snug">
+                      {item.question}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">
+                      {item.answer}
+                    </p>
+                  </div>
                 </div>
-              ) : tickets.length === 0 ? (
-                <EmptyState
-                  icon={Ticket}
-                  title="No support tickets"
-                  description="Need help with DevSync? Create a support request and our team will get back to you."
-                  actionLabel="Create Ticket"
-                  onAction={() => setCreateOpen(true)}
-                />
-              ) : (
-                <div className="divide-y">
-                  {tickets.map((ticket) => {
-                    const sm = STATUS_META[ticket.status] ?? { label: ticket.status, badge: "" };
-                    const pm = PRIORITY_META[ticket.priority] ?? { label: ticket.priority, badge: "" };
-                    return (
-                      <div
-                        key={ticket.id}
-                        className="p-4 hover:bg-muted/40 cursor-pointer transition-colors"
-                        onClick={() => openTicket(ticket)}
-                      >
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className="text-xs font-mono text-muted-foreground">{ticket.ticketNumber}</span>
-                              <h3 className="font-medium text-sm truncate">{ticket.subject}</h3>
-                              <Badge variant="secondary" className={`text-xs ${sm.badge}`}>{sm.label}</Badge>
-                              <Badge variant="secondary" className={`text-xs ${pm.badge}`}>{pm.label}</Badge>
-                            </div>
-                            <p className="text-xs text-muted-foreground line-clamp-1">
-                              {ticket.description}
-                            </p>
-                          </div>
-                          <div className="flex items-center gap-2 shrink-0">
-                            {ticket.replyCount > 0 && (
-                              <Badge variant="secondary" className="text-xs gap-1">
-                                <MessageSquare className="w-3 h-3" />
-                                {ticket.replyCount}
-                              </Badge>
-                            )}
-                            <span className="text-xs text-muted-foreground whitespace-nowrap">
-                              {timeAgo(ticket.createdAt)}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Search + Ticket List */}
+      <div className="bg-card border border-border/50 rounded-2xl overflow-hidden">
+        <div className="px-6 py-4 border-b border-border/40">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <Ticket className="w-4 h-4 text-indigo-500" />
+              <h3 className="text-sm font-semibold text-foreground">
+                My Tickets
+              </h3>
+              <span className="text-xs text-muted-foreground">
+                ({totalElements})
+              </span>
+            </div>
+            <div className="relative w-64">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                className="pl-9 h-8 text-sm"
+                placeholder="Search tickets..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    setSearchInput(search);
+                    setPage(0);
+                  }
+                }}
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="min-h-[200px]">
+          {loading ? (
+            <div className="divide-y">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="p-4 space-y-2">
+                  <Skeleton className="h-4 w-1/3" />
+                  <Skeleton className="h-3 w-2/3" />
+                </div>
+              ))}
+            </div>
+          ) : tickets.length === 0 ? (
+            <div className="p-8">
+              <EmptyState
+                icon={Ticket}
+                title="No support tickets yet"
+                description="Create a ticket if you need help from the DevSync team."
+                actionLabel="Create Ticket"
+                onAction={() => setCreateOpen(true)}
+              />
+            </div>
+          ) : (
+            <div className="divide-y divide-border/40">
+              {tickets.map((ticket) => {
+                const sm =
+                  STATUS_META[ticket.status] ?? {
+                    label: ticket.status,
+                    badge: "",
+                  };
+                const pm =
+                  PRIORITY_META[ticket.priority] ?? {
+                    label: ticket.priority,
+                    badge: "",
+                  };
+                return (
+                  <div
+                    key={ticket.id}
+                    className="p-4 hover:bg-muted/30 cursor-pointer transition-colors group"
+                    onClick={() => openTicket(ticket)}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                          <span className="text-xs font-mono text-indigo-500 dark:text-indigo-400 font-medium">
+                            {ticket.ticketNumber}
+                          </span>
+                          <h3 className="font-medium text-sm text-foreground group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors truncate">
+                            {ticket.subject}
+                          </h3>
+                        </div>
+                        <p className="text-xs text-muted-foreground line-clamp-1 mb-2">
+                          {ticket.description}
+                        </p>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <Badge
+                            variant="secondary"
+                            className={`text-[10px] ${sm.badge}`}
+                          >
+                            {sm.label}
+                          </Badge>
+                          <Badge
+                            variant="secondary"
+                            className={`text-[10px] ${pm.badge}`}
+                          >
+                            {pm.label}
+                          </Badge>
+                          {ticket.replyCount > 0 && (
+                            <span className="text-[11px] text-muted-foreground flex items-center gap-1">
+                              <MessageSquare className="w-3 h-3" />
+                              {ticket.replyCount}{" "}
+                              {ticket.replyCount === 1 ? "reply" : "replies"}
                             </span>
-                          </div>
+                          )}
                         </div>
                       </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {totalPages > 1 && (
-            <div className="flex items-center justify-between mt-4">
-              <p className="text-xs text-muted-foreground">
-                Page {page + 1} of {totalPages}
-              </p>
-              <div className="flex items-center gap-2">
-                <Button size="sm" variant="outline" disabled={page === 0} onClick={() => setPage((p) => Math.max(0, p - 1))}>
-                  <ChevronLeft className="w-4 h-4" /> Prev
-                </Button>
-                <Button size="sm" variant="outline" disabled={page >= totalPages - 1} onClick={() => setPage((p) => p + 1)}>
-                  Next <ChevronRight className="w-4 h-4" />
-                </Button>
-              </div>
+                      <div className="flex flex-col items-end gap-1 shrink-0">
+                        <span className="text-[11px] text-muted-foreground">
+                          {timeAgo(ticket.createdAt)}
+                        </span>
+                        <ChevronRight className="w-4 h-4 text-muted-foreground/50 group-hover:text-indigo-500 transition-colors" />
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between px-6 py-3 border-t border-border/40">
+            <p className="text-xs text-muted-foreground">
+              Page {page + 1} of {totalPages}
+            </p>
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={page === 0}
+                onClick={() => setPage((p) => Math.max(0, p - 1))}
+                className="h-8"
+              >
+                <ChevronLeft className="w-3.5 h-3.5" /> Prev
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={page >= totalPages - 1}
+                onClick={() => setPage((p) => p + 1)}
+                className="h-8"
+              >
+                Next <ChevronRight className="w-3.5 h-3.5" />
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Create ticket sheet */}
-      <Sheet open={createOpen} onOpenChange={setCreateOpen}>
-        <SheetContent className="w-full sm:max-w-md overflow-y-auto">
-          <SheetHeader>
-            <SheetTitle>Create Support Ticket</SheetTitle>
+      <Sheet
+        open={createOpen}
+        onOpenChange={(open) => {
+          setCreateOpen(open);
+          if (!open) setCreateErrors({});
+        }}
+      >
+        <SheetContent className="w-full sm:w-[440px] sm:max-w-[440px] flex flex-col p-0">
+          <SheetHeader className="px-6 pt-6 pb-0">
+            <SheetTitle className="text-lg">Create Support Ticket</SheetTitle>
             <SheetDescription>
-              Describe your issue and our team will get back to you.
+              Describe your issue and our team will respond as soon as possible.
             </SheetDescription>
           </SheetHeader>
-          <div className="space-y-4 mt-4">
-            <div>
-              <label className="text-sm font-medium">Subject *</label>
-              <Input
-                placeholder="Brief summary of your issue"
-                value={createSubject}
-                onChange={(e) => setCreateSubject(e.target.value)}
-                className="mt-1"
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium">Description *</label>
-              <Textarea
-                placeholder="Describe your issue in detail..."
-                value={createDescription}
-                onChange={(e) => setCreateDescription(e.target.value)}
-                className="mt-1 min-h-[120px]"
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-sm font-medium">Category</label>
-                <Select value={createCategory} onValueChange={setCreateCategory}>
-                  <SelectTrigger className="mt-1">
-                    <SelectValue placeholder="Select category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="BUG">Bug Report</SelectItem>
-                    <SelectItem value="FEATURE_REQUEST">Feature Request</SelectItem>
-                    <SelectItem value="ACCOUNT">Account Issue</SelectItem>
-                    <SelectItem value="BILLING">Billing</SelectItem>
-                    <SelectItem value="GENERAL">General</SelectItem>
-                  </SelectContent>
-                </Select>
+          <div className="flex-1 overflow-y-auto px-6 py-5">
+            <div className="space-y-5">
+              <div className="space-y-1.5">
+                <Label htmlFor="support-subject" className="text-sm">
+                  Subject <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="support-subject"
+                  placeholder="Brief summary of your issue"
+                  value={createSubject}
+                  onChange={(e) => {
+                    setCreateSubject(e.target.value);
+                    if (createErrors.subject)
+                      setCreateErrors((prev) => ({
+                        ...prev,
+                        subject: undefined,
+                      }));
+                  }}
+                  aria-invalid={!!createErrors.subject}
+                  aria-describedby={
+                    createErrors.subject ? "support-subject-error" : undefined
+                  }
+                  disabled={creating}
+                />
+                {createErrors.subject && (
+                  <p
+                    id="support-subject-error"
+                    className="text-xs text-destructive"
+                    role="alert"
+                  >
+                    {createErrors.subject}
+                  </p>
+                )}
               </div>
-              <div>
-                <label className="text-sm font-medium">Priority</label>
-                <Select value={createPriority} onValueChange={setCreatePriority}>
-                  <SelectTrigger className="mt-1">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="LOW">Low</SelectItem>
-                    <SelectItem value="MEDIUM">Medium</SelectItem>
-                    <SelectItem value="HIGH">High</SelectItem>
-                    <SelectItem value="URGENT">Urgent</SelectItem>
-                  </SelectContent>
-                </Select>
+              <div className="space-y-1.5">
+                <Label htmlFor="support-description" className="text-sm">
+                  Description <span className="text-destructive">*</span>
+                </Label>
+                <Textarea
+                  id="support-description"
+                  placeholder="Describe your issue in detail..."
+                  value={createDescription}
+                  onChange={(e) => {
+                    setCreateDescription(e.target.value);
+                    if (createErrors.description)
+                      setCreateErrors((prev) => ({
+                        ...prev,
+                        description: undefined,
+                      }));
+                  }}
+                  className="min-h-[120px] resize-y"
+                  aria-invalid={!!createErrors.description}
+                  aria-describedby={
+                    createErrors.description
+                      ? "support-description-error"
+                      : undefined
+                  }
+                  disabled={creating}
+                />
+                {createErrors.description && (
+                  <p
+                    id="support-description-error"
+                    className="text-xs text-destructive"
+                    role="alert"
+                  >
+                    {createErrors.description}
+                  </p>
+                )}
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-[2fr_1fr] gap-4">
+                <div className="space-y-1.5">
+                  <Label htmlFor="support-category" className="text-sm">
+                    Category
+                  </Label>
+                  <Select
+                    value={createCategory}
+                    onValueChange={setCreateCategory}
+                    disabled={creating}
+                  >
+                    <SelectTrigger
+                      id="support-category"
+                      className="w-full"
+                    >
+                      <SelectValue placeholder="Select category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="BUG">Bug Report</SelectItem>
+                      <SelectItem value="FEATURE_REQUEST">
+                        Feature Request
+                      </SelectItem>
+                      <SelectItem value="ACCOUNT">Account Issue</SelectItem>
+                      <SelectItem value="BILLING">Billing</SelectItem>
+                      <SelectItem value="GENERAL">General</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="support-priority" className="text-sm">
+                    Priority
+                  </Label>
+                  <Select
+                    value={createPriority}
+                    onValueChange={setCreatePriority}
+                    disabled={creating}
+                  >
+                    <SelectTrigger
+                      id="support-priority"
+                      className="w-full"
+                    >
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="LOW">Low</SelectItem>
+                      <SelectItem value="MEDIUM">Medium</SelectItem>
+                      <SelectItem value="HIGH">High</SelectItem>
+                      <SelectItem value="URGENT">Urgent</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </div>
-            <Button className="w-full" onClick={handleCreate} disabled={creating}>
-              {creating ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
-              Create Ticket
+          </div>
+          <div className="border-t px-6 py-4">
+            <Button
+              className="w-full h-10 bg-gradient-to-r from-indigo-500 to-purple-600 text-white hover:from-indigo-600 hover:to-purple-700"
+              onClick={handleCreate}
+              disabled={creating}
+            >
+              {creating ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Creating...
+                </>
+              ) : (
+                <>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Create Ticket
+                </>
+              )}
             </Button>
           </div>
         </SheetContent>
@@ -367,69 +591,128 @@ export default function Support() {
 
       {/* Ticket detail sheet */}
       <Sheet open={!!selected} onOpenChange={(open) => !open && setSelected(null)}>
-        <SheetContent className="w-full sm:max-w-lg overflow-y-auto flex flex-col">
-          <SheetHeader>
-            <SheetTitle className="flex items-center gap-2">
-              <Ticket className="w-4 h-4 text-accent" />
-              <span className="text-xs font-mono text-muted-foreground">{selected?.ticketNumber}</span>
-              {selected?.subject}
-            </SheetTitle>
-            <SheetDescription>
-              {selected && (
+        <SheetContent className="w-full sm:w-[500px] sm:max-w-[500px] flex flex-col p-0">
+          {/* Header */}
+          <div className="px-6 pt-6 pb-4 border-b border-border/40">
+            <SheetHeader className="text-left">
+              <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Badge variant="secondary" className={STATUS_META[selected.status]?.badge ?? ""}>
-                    {STATUS_META[selected.status]?.label ?? selected.status}
-                  </Badge>
-                  <Badge variant="secondary" className={PRIORITY_META[selected.priority]?.badge ?? ""}>
-                    {PRIORITY_META[selected.priority]?.label ?? selected.priority}
-                  </Badge>
+                  <Ticket className="w-4 h-4 text-indigo-500 shrink-0" />
+                  <span className="text-xs font-mono text-indigo-500 dark:text-indigo-400 font-medium">
+                    {selected?.ticketNumber}
+                  </span>
                 </div>
+                <div className="flex items-center gap-2">
+                  {selected && (
+                    <>
+                      <Badge
+                        variant="secondary"
+                        className={`text-xs ${STATUS_META[selected.status]?.badge ?? ""}`}
+                      >
+                        {STATUS_META[selected.status]?.label ?? selected.status}
+                      </Badge>
+                      <Badge
+                        variant="secondary"
+                        className={`text-xs ${PRIORITY_META[selected.priority]?.badge ?? ""}`}
+                      >
+                        {PRIORITY_META[selected.priority]?.label ?? selected.priority}
+                      </Badge>
+                    </>
+                  )}
+                </div>
+              </div>
+              <SheetTitle className="text-base font-semibold mt-2 leading-snug">
+                {selected?.subject}
+              </SheetTitle>
+              {selected && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  Created {timeAgo(selected.createdAt)}
+                </p>
               )}
-            </SheetDescription>
-          </SheetHeader>
+            </SheetHeader>
+          </div>
 
-          {/* Description */}
+          {/* Description summary */}
           {selected && (
-            <div className="p-3 rounded-lg border bg-muted/30 mt-4">
-              <p className="text-sm whitespace-pre-wrap">{selected.description}</p>
-              <p className="text-xs text-muted-foreground mt-2">Created {timeAgo(selected.createdAt)}</p>
+            <div className="px-6 py-3 border-b border-border/40 bg-muted/20">
+              <p className="text-sm text-foreground/80 whitespace-pre-wrap leading-relaxed">
+                {selected.description}
+              </p>
             </div>
           )}
 
-          {/* Replies */}
-          <div className="flex-1 overflow-y-auto mt-4 space-y-3">
+          {/* Replies area */}
+          <div className="flex-1 overflow-y-auto px-6 py-4">
             {loadingReplies ? (
-              <div className="space-y-3">
+              <div className="space-y-4">
                 {Array.from({ length: 3 }).map((_, i) => (
-                  <Skeleton key={i} className="h-16 w-full" />
+                  <div key={i} className="space-y-2">
+                    <Skeleton className="h-3 w-24" />
+                    <Skeleton className="h-16 w-full rounded-lg" />
+                  </div>
                 ))}
               </div>
             ) : replies.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-4">No replies yet</p>
-            ) : (
-              replies.map((reply) => (
-                <div
-                  key={reply.id}
-                  className={`p-3 rounded-lg border ${reply.adminReply ? "bg-accent/5 border-accent/20" : "bg-muted/30"}`}
-                >
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-sm font-medium">{reply.userName ?? "Unknown"}</span>
-                    {reply.adminReply && (
-                      <Badge variant="secondary" className="text-xs bg-accent/10 text-accent">
-                        Support
-                      </Badge>
-                    )}
-                    <span className="text-xs text-muted-foreground">{timeAgo(reply.createdAt)}</span>
-                  </div>
-                  <p className="text-sm whitespace-pre-wrap">{reply.message}</p>
+              <div className="flex flex-col items-center justify-center h-full min-h-[180px] text-center">
+                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500/15 to-purple-500/10 flex items-center justify-center ring-1 ring-indigo-500/20 mb-4">
+                  <MessageSquare className="w-5 h-5 text-indigo-400" />
                 </div>
-              ))
+                <p className="text-sm font-medium text-foreground mb-1">
+                  No replies yet
+                </p>
+                <p className="text-xs text-muted-foreground max-w-[220px]">
+                  Our support team hasn&apos;t replied yet. You&apos;ll see
+                  responses here when available.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {replies.map((reply) => (
+                  <div
+                    key={reply.id}
+                    className={`rounded-xl border p-4 transition-colors ${
+                      reply.adminReply
+                        ? "bg-gradient-to-br from-indigo-500/5 to-purple-500/5 border-indigo-500/15"
+                        : "bg-muted/30 border-border/40"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 mb-2">
+                      <div
+                        className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold ${
+                          reply.adminReply
+                            ? "bg-gradient-to-br from-indigo-500 to-purple-600 text-white"
+                            : "bg-muted text-muted-foreground"
+                        }`}
+                      >
+                        {(reply.userName ?? "U").charAt(0).toUpperCase()}
+                      </div>
+                      <span className="text-sm font-medium">
+                        {reply.userName ?? "Unknown"}
+                      </span>
+                      {reply.adminReply && (
+                        <Badge
+                          variant="secondary"
+                          className="text-[10px] bg-indigo-500/10 text-indigo-600 dark:text-indigo-400"
+                        >
+                          Support
+                        </Badge>
+                      )}
+                      <span className="text-xs text-muted-foreground ml-auto">
+                        {timeAgo(reply.createdAt)}
+                      </span>
+                    </div>
+                    <p className="text-sm whitespace-pre-wrap leading-relaxed pl-8">
+                      {reply.message}
+                    </p>
+                  </div>
+                ))}
+              </div>
             )}
           </div>
 
-          {/* Reply input */}
+          {/* Reply composer — fixed at bottom */}
           {selected && selected.status !== "CLOSED" && (
-            <div className="border-t pt-3 mt-3">
+            <div className="border-t border-border/40 bg-background px-6 py-4">
               <div className="flex gap-2">
                 <Input
                   placeholder="Type your reply..."
@@ -442,11 +725,28 @@ export default function Support() {
                     }
                   }}
                   disabled={sendingReply}
+                  className="flex-1 h-10"
                 />
-                <Button size="icon" onClick={handleReply} disabled={!replyText.trim() || sendingReply}>
-                  {sendingReply ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                <Button
+                  size="icon"
+                  onClick={handleReply}
+                  disabled={!replyText.trim() || sendingReply}
+                  className="h-10 w-10 shrink-0 bg-gradient-to-r from-indigo-500 to-purple-600 text-white hover:from-indigo-600 hover:to-purple-700"
+                >
+                  {sendingReply ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Send className="w-4 h-4" />
+                  )}
                 </Button>
               </div>
+            </div>
+          )}
+          {selected && selected.status === "CLOSED" && (
+            <div className="border-t border-border/40 bg-muted/20 px-6 py-4 text-center">
+              <p className="text-sm text-muted-foreground">
+                This support request is closed.
+              </p>
             </div>
           )}
         </SheetContent>

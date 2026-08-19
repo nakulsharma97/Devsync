@@ -13,6 +13,8 @@ type NotificationCallback = (data: NotificationDto) => void;
 type TypingCallback = (data: TypingEvent) => void;
 type PresenceCallback = (data: PresenceEvent) => void;
 type ConnectionCallback = (connected: boolean) => void;
+/** Global callback fired for every incoming message (for unread badge updates). */
+type GlobalMessageCallback = (data: MessageDto) => void;
 
 /** Payload of a /chat.typing indicator. */
 interface TypingEvent {
@@ -44,6 +46,8 @@ class WebSocketService {
   /** Direct-message listeners keyed by peer user id — routed precisely on /user/queue/messages. */
   private directCallbacks: Map<string, Set<MessageCallback>> = new Map();
   private notificationCallbacks: Set<NotificationCallback> = new Set();
+  /** Global listeners for any incoming message (used for unread badge updates). */
+  private globalMessageCallbacks: Set<GlobalMessageCallback> = new Set();
   private typingCallbacks: Set<TypingCallback> = new Set();
   private presenceCallbacks: Set<PresenceCallback> = new Set();
   private connectionCallbacks: Set<ConnectionCallback> = new Set();
@@ -174,6 +178,7 @@ class WebSocketService {
     this.messageCallbacks.clear();
     this.directCallbacks.clear();
     this.notificationCallbacks.clear();
+    this.globalMessageCallbacks.clear();
     this.typingCallbacks.clear();
     this.presenceCallbacks.clear();
     this.topicCallbacks.clear();
@@ -390,6 +395,16 @@ class WebSocketService {
     return () => this.notificationCallbacks.delete(callback);
   }
 
+  /**
+   * Subscribe to every incoming message for global state (unread badge).
+   * Fires for ALL messages, including echoes of the user's own sends.
+   * The caller must filter by senderId !== currentUserId if needed.
+   */
+  onAnyMessage(callback: GlobalMessageCallback) {
+    this.globalMessageCallbacks.add(callback);
+    return () => this.globalMessageCallbacks.delete(callback);
+  }
+
   // ── Typing indicators ────────────────────────────────────────
 
   onTyping(callback: TypingCallback) {
@@ -467,6 +482,9 @@ class WebSocketService {
         }
       });
     }
+
+    // Notify global listeners (unread badge updates, etc.)
+    this.globalMessageCallbacks.forEach((cb) => cb(data));
   }
 
   private handleIncomingNotification(data: NotificationDto) {

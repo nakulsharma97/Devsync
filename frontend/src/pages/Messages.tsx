@@ -284,6 +284,8 @@ export default function Messages() {
     action
       .then(({ unreadCount }) => {
         setConversations((prev) => (prev ? prev.map((c) => (c.id === convId ? { ...c, unreadCount } : c)) : prev));
+        // Notify DashboardLayout/Sidebar so the unread badge updates immediately.
+        window.dispatchEvent(new Event("devsync:messages-changed"));
       })
       .catch(() => {
         // Non-fatal — the badge corrects itself on the next list refresh.

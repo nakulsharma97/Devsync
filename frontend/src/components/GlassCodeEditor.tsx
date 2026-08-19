@@ -73,7 +73,7 @@ export default function GlassCodeEditor() {
   const textColor = dark ? "rgba(214, 222, 255, 0.92)" : "rgba(15, 23, 42, 0.95)";
   const textDim = dark ? "rgba(200, 210, 250, 0.62)" : "rgba(71, 85, 105, 0.75)";
   const textMuted = dark ? "rgba(200, 210, 250, 0.18)" : "rgba(148, 163, 184, 0.45)";
-  const lineNumColor = dark ? "rgba(129, 140, 248, 0.4)" : "rgba(99, 102, 241, 0.3)";
+  const lineNumColor = dark ? "rgba(129, 140, 248, 0.6)" : "rgba(99, 102, 241, 0.45)";
   const activeBg = dark ? "rgba(99, 102, 241, 0.08)" : "rgba(99, 102, 241, 0.05)";
   const statusColor = dark ? "rgba(165, 180, 252, 0.65)" : "rgba(71, 85, 105, 0.75)";
   const statusBorder = dark ? "rgba(99, 102, 241, 0.1)" : "rgba(99, 102, 241, 0.08)";
@@ -121,7 +121,7 @@ export default function GlassCodeEditor() {
 
         {/* Title bar */}
         <div
-          className="flex items-center gap-2 px-4 py-3 border-b transition-colors duration-300"
+          className="flex items-center gap-2 px-4 py-3.5 border-b transition-colors duration-300"
           style={{ borderColor: dark ? "rgba(99, 102, 241, 0.12)" : "rgba(99, 102, 241, 0.1)" }}
         >
           <div className="flex items-center gap-1.5">
@@ -158,7 +158,7 @@ export default function GlassCodeEditor() {
         {/* Code area */}
         <div
           ref={containerRef}
-          className="p-4 md:p-5 font-mono text-[11px] md:text-xs leading-relaxed max-h-[320px] overflow-y-auto scrollbar-thin transition-colors duration-300"
+          className="p-6 md:p-8 font-mono text-[13px] md:text-[14px] leading-[1.8] overflow-y-auto scrollbar-thin transition-colors duration-300"
           style={{
             scrollbarWidth: "thin",
             scrollbarColor: dark ? "rgba(99,102,241,0.2) transparent" : "rgba(99,102,241,0.15) transparent",
@@ -166,15 +166,15 @@ export default function GlassCodeEditor() {
         >
           <div className="flex">
             <div
-              className="text-right pr-3 select-none space-y-[2px] font-mono"
-              style={{ color: lineNumColor, minWidth: "28px" }}
+              className="text-right pr-5 select-none space-y-[5px] font-mono text-[13px] md:text-[15px]"
+              style={{ color: lineNumColor, minWidth: "36px" }}
             >
               {codeLines.map((_, i) => (
                 <div key={i}>{i + 1}</div>
               ))}
             </div>
 
-            <div className="space-y-[2px] flex-1">
+            <div className="space-y-[5px] flex-1">
               {codeLines.map((_, i) => {
                 const content = getLineContent(i);
                 const isActive = i === currentLine;
@@ -212,7 +212,7 @@ export default function GlassCodeEditor() {
                       <motion.span
                         animate={{ opacity: [1, 0] }}
                         transition={{ duration: 0.6, repeat: Infinity, repeatType: "reverse" }}
-                        className="inline-block w-[2px] h-[14px]"
+                        className="inline-block w-[2px] h-[18px]"
                         style={{ background: dark ? "rgba(129, 140, 248, 0.9)" : "rgba(99, 102, 241, 0.8)" }}
                       />
                     )}
@@ -225,7 +225,7 @@ export default function GlassCodeEditor() {
 
         {/* Status bar */}
         <div
-          className="flex items-center justify-between px-4 py-1.5 border-t text-[9px] font-mono transition-colors duration-300"
+          className="flex items-center justify-between px-4 py-2 border-t text-[10px] font-mono transition-colors duration-300"
           style={{
             borderColor: statusBorder,
             background: dark ? "rgba(99, 102, 241, 0.03)" : "rgba(99, 102, 241, 0.02)",

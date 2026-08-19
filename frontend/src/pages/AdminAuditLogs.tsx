@@ -38,9 +38,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   Sheet,
   SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
 } from "@/components/ui/sheet";
 import {
   Table,
@@ -392,69 +389,103 @@ export default function AdminAuditLogs() {
 
       {/* Detail drawer */}
       <Sheet open={!!selected} onOpenChange={(open) => !open && setSelected(null)}>
-        <SheetContent className="w-full sm:max-w-md overflow-y-auto">
-          <SheetHeader>
-            <SheetTitle className="flex items-center gap-2">
-              <ShieldCheck className="w-4 h-4 text-accent" />
-              Audit Log Details
-            </SheetTitle>
-            <SheetDescription>
+        <SheetContent className="w-full sm:w-[460px] sm:max-w-[460px] flex flex-col p-0" aria-label="Audit log details">
+          {/* Header */}
+          <div className="px-6 pt-6 pb-5 border-b border-border/40">
+            <h2 className="text-lg font-bold text-foreground">Audit Log Details</h2>
+            <p className="text-sm text-muted-foreground mt-1">
               {selected ? formatDate(selected.createdAt) : ""}
-            </SheetDescription>
-          </SheetHeader>
-          {selected && (
-            <div className="space-y-4 mt-2">
-              <div className="flex items-center gap-3 p-4 rounded-xl border bg-muted/30">
-                <div className="w-10 h-10 rounded-full bg-accent/10 border border-accent/20 flex items-center justify-center shrink-0">
-                  <ActionIcon action={selected.action} />
-                </div>
-                <div>
-                  <p className="font-medium text-sm">{ACTION_META[selected.action]?.label ?? selected.action}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {STATUS_META[selected.status]?.label ?? selected.status}
-                  </p>
-                </div>
-              </div>
+            </p>
+          </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="p-3 rounded-lg border">
-                  <p className="text-xs text-muted-foreground">Performed By</p>
-                  <p className="text-sm font-medium mt-1">{selected.performedByName ?? "—"}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">{selected.performedBy ? `ID: ${selected.performedBy}` : ""}</p>
+          {/* Scrollable content */}
+          <div className="flex-1 overflow-y-auto">
+            {selected && (
+              <div className="px-6 py-5 space-y-6">
+                {/* Event summary */}
+                <div className="flex items-center gap-4 p-4 rounded-xl border border-border/50 bg-card/50">
+                  <div className="w-11 h-11 rounded-xl bg-accent/10 border border-accent/20 flex items-center justify-center shrink-0">
+                    <ActionIcon action={selected.action} />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="font-semibold text-sm text-foreground">
+                      {ACTION_META[selected.action]?.label ?? selected.action}
+                    </p>
+                    <Badge
+                      variant="secondary"
+                      className={`mt-1 text-[10px] ${STATUS_META[selected.status]?.badge ?? ""}`}
+                    >
+                      {STATUS_META[selected.status]?.label ?? selected.status}
+                    </Badge>
+                  </div>
                 </div>
-                <div className="p-3 rounded-lg border">
-                  <p className="text-xs text-muted-foreground">Target User</p>
-                  <p className="text-sm font-medium mt-1">{selected.targetUserName ?? "—"}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">{selected.targetUserId ? `ID: ${selected.targetUserId}` : ""}</p>
-                </div>
-                <div className="p-3 rounded-lg border">
-                  <p className="text-xs text-muted-foreground">IP Address</p>
-                  <p className="text-sm font-medium font-mono mt-1">{selected.ipAddress ?? "—"}</p>
-                </div>
-                <div className="p-3 rounded-lg border">
-                  <p className="text-xs text-muted-foreground">Device</p>
-                  <p className="text-sm font-medium mt-1">{selected.device ?? "—"}</p>
-                </div>
-                <div className="p-3 rounded-lg border">
-                  <p className="text-xs text-muted-foreground">Browser</p>
-                  <p className="text-sm font-medium mt-1">{selected.browser ?? "—"}</p>
-                </div>
-                <div className="p-3 rounded-lg border">
-                  <p className="text-xs text-muted-foreground">Created</p>
-                  <p className="text-sm font-medium mt-1">{formatDate(selected.createdAt)}</p>
-                </div>
-              </div>
 
-              {selected.details && (
-                <div className="p-3 rounded-lg border">
-                  <p className="text-xs text-muted-foreground mb-1">Details</p>
-                  <pre className="text-xs font-mono whitespace-pre-wrap break-words bg-muted/40 rounded p-2">
-                    {selected.details}
-                  </pre>
+                {/* Information grid */}
+                <div className="grid grid-cols-2 gap-3">
+                  {[
+                    {
+                      label: "Performed By",
+                      name: selected.performedByName,
+                      id: selected.performedBy,
+                    },
+                    {
+                      label: "Target User",
+                      name: selected.targetUserName,
+                      id: selected.targetUserId,
+                    },
+                  ].map((item) => (
+                    <div key={item.label} className="p-3.5 rounded-xl border border-border/50 bg-card/50">
+                      <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">{item.label}</p>
+                      <p className="text-sm font-semibold text-foreground mt-1.5 truncate">{item.name ?? "—"}</p>
+                      {item.id && (
+                        <p className="text-[11px] text-muted-foreground/70 font-mono mt-1 break-all leading-relaxed">
+                          {item.id}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                  {[
+                    {
+                      label: "IP Address",
+                      value: selected.ipAddress,
+                      mono: true,
+                    },
+                    {
+                      label: "Device",
+                      value: selected.device,
+                    },
+                    {
+                      label: "Browser",
+                      value: selected.browser,
+                    },
+                    {
+                      label: "Created",
+                      value: formatDate(selected.createdAt),
+                    },
+                  ].map((item) => (
+                    <div key={item.label} className="p-3.5 rounded-xl border border-border/50 bg-card/50">
+                      <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">{item.label}</p>
+                      <p className={`text-sm font-semibold text-foreground mt-1.5 break-words ${item.mono ? "font-mono" : ""}`}>
+                        {item.value ?? "—"}
+                      </p>
+                    </div>
+                  ))}
                 </div>
-              )}
-            </div>
-          )}
+
+                {/* Details section */}
+                {selected.details && (
+                  <div className="border-t border-border/40 pt-5">
+                    <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-3">Details</p>
+                    <div className="p-3.5 rounded-xl border border-border/50 bg-muted/30">
+                      <p className="text-sm text-foreground whitespace-pre-wrap break-words leading-relaxed">
+                        {selected.details}
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </SheetContent>
       </Sheet>
     </div>

@@ -11,6 +11,7 @@ const mocks = vi.hoisted(() => ({
   getFollowing: vi.fn(),
   follow: vi.fn(),
   unfollow: vi.fn(),
+  getPostsByUser: vi.fn(),
 }));
 
 vi.mock("@/contexts/AuthContext", () => ({
@@ -24,6 +25,12 @@ vi.mock("@/services/socialService", () => ({
     getFollowing: mocks.getFollowing,
     follow: mocks.follow,
     unfollow: mocks.unfollow,
+  },
+}));
+
+vi.mock("@/services/postService", () => ({
+  postService: {
+    getPostsByUser: mocks.getPostsByUser,
   },
 }));
 
@@ -116,6 +123,7 @@ describe("UserProfilePage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockUser();
+    mocks.getPostsByUser.mockResolvedValue({ content: [], totalPages: 0, last: true });
   });
 
   it("shows social stats and a Follow button for another user", async () => {
@@ -141,20 +149,28 @@ describe("UserProfilePage", () => {
   });
 
   it("follows and then unfollows a user", async () => {
-    mocks.getProfile.mockResolvedValue(baseSocial());
+    // Initial load: not following
+    mocks.getProfile.mockResolvedValueOnce(baseSocial());
     mocks.follow.mockResolvedValue(undefined);
+    mocks.unfollow.mockResolvedValue(undefined);
     const user = userEvent.setup();
 
     renderPage();
     await screen.findByText("Ada Lovelace");
 
+    // Click Follow → re-fetch returns isFollowing: true
+    mocks.getProfile.mockResolvedValueOnce(baseSocial({ isFollowing: true, followerCount: 13 }));
     await user.click(screen.getByRole("button", { name: "Follow" }));
     await waitFor(() => expect(mocks.follow).toHaveBeenCalledWith("u2"));
     // The button becomes "Following"
-    expect(await screen.findByRole("button", { name: "Following" })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: /Following/ })).toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "Following" }));
+    // Click Following → re-fetch returns isFollowing: false
+    mocks.getProfile.mockResolvedValueOnce(baseSocial({ isFollowing: false, followerCount: 12 }));
+    await user.click(screen.getByRole("button", { name: /Following/ }));
     await waitFor(() => expect(mocks.unfollow).toHaveBeenCalledWith("u2"));
+    // Button reverts to "Follow"
+    expect(await screen.findByRole("button", { name: "Follow" })).toBeInTheDocument();
   });
 
   it("shows Edit Profile and My Posts for the user's own profile", async () => {

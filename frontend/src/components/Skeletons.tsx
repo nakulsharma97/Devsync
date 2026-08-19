@@ -180,15 +180,38 @@ export function RouteSkeleton() {
 
     case "admin":
       return (
-        <div className="space-y-4">
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {[0, 1, 2, 3].map((i) => (
-              <SkeletonStatCard key={i} />
-            ))}
+        <div className="space-y-5 animate-in fade-in duration-200">
+          {/* Page title + description */}
+          <div className="space-y-2">
+            <Skeleton className="h-6 w-48" />
+            <Skeleton className="h-3.5 w-72" />
           </div>
+          {/* Search + filter bar */}
+          <div className="flex items-center gap-3">
+            <Skeleton className="h-10 flex-1 max-w-sm rounded-xl" />
+            <Skeleton className="h-10 w-32 rounded-xl" />
+          </div>
+          {/* Table header */}
           <div className="border border-border/40 rounded-xl overflow-hidden">
+            <div className="flex items-center gap-3 px-4 py-3 border-b border-border/30 bg-muted/30">
+              <Skeleton className="h-3 w-24" />
+              <Skeleton className="h-3 w-20 ml-auto" />
+              <Skeleton className="h-3 w-16 ml-4" />
+            </div>
+            {/* Table rows */}
             {[0, 1, 2, 3, 4, 5].map((i) => (
-              <SkeletonTableRow key={i} />
+              <div
+                key={i}
+                className="flex items-center gap-3 px-4 py-3 border-b border-border/20 last:border-b-0"
+              >
+                <Skeleton className="h-8 w-8 rounded-lg shrink-0" />
+                <div className="space-y-1.5 flex-1 min-w-0">
+                  <Skeleton className="h-3.5 w-32" />
+                  <Skeleton className="h-2.5 w-44" />
+                </div>
+                <Skeleton className="h-5 w-16 rounded-full shrink-0" />
+                <Skeleton className="h-8 w-20 rounded-lg shrink-0" />
+              </div>
             ))}
           </div>
         </div>

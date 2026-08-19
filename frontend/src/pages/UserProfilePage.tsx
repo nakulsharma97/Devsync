@@ -4,7 +4,6 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import {
   User,
-  AtSign,
   MapPin,
   MessageCircle,
   ArrowLeft,
@@ -16,11 +15,8 @@ import {
   MessageSquare,
   FileText,
   CalendarDays,
-  UserPlus,
-  UserCheck,
   Pencil,
   Loader2,
-  X,
   Flag,
 } from "lucide-react";
 import {
@@ -32,6 +28,8 @@ import {
   type SocialProfileDto,
   type FollowUserDto,
 } from "@/services/socialService";
+import { postService, type PostDto } from "@/services/postService";
+import FeedPostCard from "@/components/feed/FeedPostCard";
 import { useAuth } from "@/contexts/AuthContext";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import {
@@ -102,12 +100,12 @@ function ContributionHeatmap({ counts }: { counts: Map<string, number> }) {
 
 function StatCard({ icon, label, value }: { icon: React.ReactNode; label: string; value: number }) {
   return (
-    <div className="rounded-xl border border-border/40 bg-card p-4">
+    <div className="rounded-xl border border-border/40 bg-muted/20 p-4 hover:border-indigo-500/20 hover:bg-indigo-500/5 transition-all">
       <div className="flex items-center gap-2 text-muted-foreground mb-1.5">
         {icon}
         <span className="text-[11px] font-medium uppercase tracking-wide">{label}</span>
       </div>
-      <p className="text-2xl font-bold">{value.toLocaleString()}</p>
+      <p className="text-2xl font-bold text-foreground">{value.toLocaleString()}</p>
     </div>
   );
 }
@@ -178,13 +176,15 @@ function FollowListDialog({
                 </button>
                 {!u.isSelf && (
                   <Button
-                    variant={u.isFollowing ? "outline" : "default"}
+                    variant="outline"
                     size="sm"
                     disabled={togglingIds.has(u.id)}
                     onClick={() => onFollowToggle(u.id, u.isFollowing)}
                     className={cn(
                       "text-xs shrink-0",
-                      u.isFollowing && "border-accent/30 text-accent hover:bg-accent/5"
+                      u.isFollowing
+                        ? "border-border/60 text-foreground hover:border-red-500/50 hover:text-red-600 hover:bg-red-500/5 dark:hover:border-red-400/50 dark:hover:text-red-400 dark:hover:bg-red-500/10"
+                        : "border-indigo-500/30 bg-indigo-500 text-white hover:bg-indigo-600 dark:bg-indigo-600 dark:hover:bg-indigo-700"
                     )}
                   >
                     {togglingIds.has(u.id) ? (
@@ -194,7 +194,7 @@ function FollowListDialog({
                     ) : (
                       <UserPlus className="w-3 h-3 mr-1" />
                     )}
-                    {u.isFollowing ? "Following" : "Follow"}
+                    {u.isFollowing ? "Unfollow" : "Follow"}
                   </Button>
                 )}
               </div>
@@ -228,6 +228,13 @@ export default function UserProfilePage() {
   // Report dialog
   const [reportOpen, setReportOpen] = useState(false);
 
+  // User posts
+  const [userPosts, setUserPosts] = useState<PostDto[]>([]);
+  const [postsLoading, setPostsLoading] = useState(true);
+  const [postsPage, setPostsPage] = useState(0);
+  const [hasMorePosts, setHasMorePosts] = useState(true);
+  const [loadingMorePosts, setLoadingMorePosts] = useState(false);
+
   const counts = useHeatmap(profile);
 
   const fetchProfile = useCallback(async () => {
@@ -251,6 +258,39 @@ export default function UserProfilePage() {
   useEffect(() => {
     fetchProfile();
   }, [fetchProfile]);
+
+  // Fetch user's posts
+  const fetchPosts = useCallback(
+    async (pageNum: number, append = false) => {
+      if (!social?.id) return;
+      if (pageNum === 0) setPostsLoading(true);
+      else setLoadingMorePosts(true);
+      try {
+        const result = await postService.getPostsByUser(social.id, pageNum, 10);
+        if (append) {
+          setUserPosts((prev) => {
+            const existing = new Set(prev.map((p) => p.id));
+            const fresh = result.content.filter((p) => !existing.has(p.id));
+            return [...prev, ...fresh];
+          });
+        } else {
+          setUserPosts(result.content);
+        }
+        setHasMorePosts(!result.last);
+        setPostsPage(pageNum);
+      } catch {
+        // Silently fail — posts section just stays empty
+      } finally {
+        setPostsLoading(false);
+        setLoadingMorePosts(false);
+      }
+    },
+    [social?.id]
+  );
+
+  useEffect(() => {
+    if (social?.id) fetchPosts(0);
+  }, [social?.id, fetchPosts]);
 
   const openList = useCallback(
     async (mode: "followers" | "following") => {
@@ -279,11 +319,12 @@ export default function UserProfilePage() {
     try {
       if (social.isFollowing) {
         await socialService.unfollow(social.id);
-        setSocial((s) => (s ? { ...s, isFollowing: false, followerCount: Math.max(0, s.followerCount - 1) } : s));
       } else {
         await socialService.follow(social.id);
-        setSocial((s) => (s ? { ...s, isFollowing: true, followerCount: s.followerCount + 1 } : s));
       }
+      // Re-fetch authoritative state from backend to avoid stale data
+      const freshSocial = await socialService.getProfile(username!);
+      setSocial(freshSocial);
     } catch (err) {
       toast.error(getErrorMessage(err, "Unable to update follow status."));
     } finally {
@@ -368,25 +409,24 @@ export default function UserProfilePage() {
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-card border border-border/50 rounded-xl p-6 mb-6 relative overflow-hidden hover:border-accent/30 hover:shadow-lg hover:shadow-accent/5 transition-all duration-300"
+        className="bg-card border border-border/50 rounded-2xl p-6 mb-6 relative overflow-hidden hover:border-indigo-500/20 hover:shadow-lg hover:shadow-indigo-500/5 transition-all duration-300"
       >
-        <div className="absolute inset-0 bg-gradient-to-br from-accent/[0.02] to-transparent pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/[0.03] to-purple-500/[0.02] pointer-events-none" />
 
         <div className="flex items-start gap-5 relative flex-wrap">
           {/* Avatar */}
-          <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-accent/20 to-accent/5 flex items-center justify-center ring-1 ring-accent/20 shrink-0 overflow-hidden shadow-sm">
+          <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-indigo-500/20 to-purple-500/10 flex items-center justify-center ring-2 ring-indigo-500/20 shrink-0 overflow-hidden shadow-md shadow-indigo-500/10">
             {profile.avatarUrl ? (
               <img src={profile.avatarUrl} alt="" className="w-full h-full object-cover" />
             ) : (
-              <User className="w-8 h-8 text-accent" />
+              <User className="w-8 h-8 text-indigo-500" />
             )}
           </div>
 
           {/* Info */}
           <div className="flex-1 min-w-0">
             <h2 className="text-xl font-bold text-foreground truncate">{profile.displayName}</h2>
-            <p className="text-sm text-muted-foreground flex items-center gap-1 mt-0.5">
-              <AtSign className="w-3.5 h-3.5 shrink-0" />
+            <p className="text-sm text-muted-foreground mt-0.5">
               <span className="truncate">@{profile.username}</span>
             </p>
 
@@ -472,22 +512,32 @@ export default function UserProfilePage() {
             ) : (
               <Button
                 size="sm"
-                variant={social.isFollowing ? "outline" : "default"}
+                variant="outline"
                 disabled={followBusy}
                 onClick={toggleFollow}
                 className={cn(
-                  "text-xs gap-1.5",
-                  social.isFollowing && "border-accent/30 text-accent hover:bg-accent/5"
+                  "text-xs gap-1.5 min-w-[100px] justify-center",
+                  social.isFollowing
+                    ? "border-border/60 text-foreground hover:border-red-500/50 hover:text-red-600 hover:bg-red-500/5 dark:hover:border-red-400/50 dark:hover:text-red-400 dark:hover:bg-red-500/10"
+                    : "border-indigo-500/30 bg-indigo-500 text-white hover:bg-indigo-600 dark:bg-indigo-600 dark:hover:bg-indigo-700"
                 )}
               >
                 {followBusy ? (
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    {social.isFollowing ? "Unfollowing..." : "Following..."}
+                  </>
                 ) : social.isFollowing ? (
-                  <UserCheck className="w-3.5 h-3.5" />
+                  <>
+                    <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 6L9 17l-5-5"/></svg>
+                    Following
+                  </>
                 ) : (
-                  <UserPlus className="w-3.5 h-3.5" />
+                  <>
+                    <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 5v14M5 12h14"/></svg>
+                    Follow
+                  </>
                 )}
-                {social.isFollowing ? "Following" : "Follow"}
               </Button>
             )}
             {social.isSelf && (
@@ -520,10 +570,10 @@ export default function UserProfilePage() {
         <div className="grid grid-cols-3 gap-3 mt-6 relative">
           <button
             type="button"
-            onClick={() => navigate("/profile/posts")}
-            className="rounded-xl border border-border/40 bg-card p-4 text-left hover:border-accent/30 transition-colors"
+            onClick={() => document.getElementById("user-posts")?.scrollIntoView({ behavior: "smooth" })}
+            className="rounded-xl border border-border/40 bg-muted/20 p-4 text-left hover:border-indigo-500/20 hover:bg-indigo-500/5 transition-all"
           >
-            <p className="text-2xl font-bold">{postsCount.toLocaleString()}</p>
+            <p className="text-2xl font-bold text-foreground">{postsCount.toLocaleString()}</p>
             <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
               Posts
             </p>
@@ -531,10 +581,10 @@ export default function UserProfilePage() {
           <button
             type="button"
             onClick={() => openList("followers")}
-            className="rounded-xl border border-border/40 bg-card p-4 text-left hover:border-accent/30 transition-colors"
+            className="rounded-xl border border-border/40 bg-muted/20 p-4 text-left hover:border-indigo-500/20 hover:bg-indigo-500/5 transition-all"
             aria-label={`View followers (${followerCount})`}
           >
-            <p className="text-2xl font-bold">{followerCount.toLocaleString()}</p>
+            <p className="text-2xl font-bold text-foreground">{followerCount.toLocaleString()}</p>
             <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
               Followers
             </p>
@@ -542,10 +592,10 @@ export default function UserProfilePage() {
           <button
             type="button"
             onClick={() => openList("following")}
-            className="rounded-xl border border-border/40 bg-card p-4 text-left hover:border-accent/30 transition-colors"
+            className="rounded-xl border border-border/40 bg-muted/20 p-4 text-left hover:border-indigo-500/20 hover:bg-indigo-500/5 transition-all"
             aria-label={`View following (${followingCount})`}
           >
-            <p className="text-2xl font-bold">{followingCount.toLocaleString()}</p>
+            <p className="text-2xl font-bold text-foreground">{followingCount.toLocaleString()}</p>
             <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
               Following
             </p>
@@ -563,7 +613,7 @@ export default function UserProfilePage() {
       </div>
 
       {/* Heatmap */}
-      <div className="rounded-xl border border-border/50 bg-card p-5 mb-6">
+      <div className="rounded-2xl border border-border/50 bg-card p-5 mb-6">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
             <Flame className="w-4 h-4 text-orange-500" />
@@ -576,6 +626,77 @@ export default function UserProfilePage() {
           <p className="text-xs text-muted-foreground mt-3">
             No contributions yet — this developer is just getting started.
           </p>
+        )}
+      </div>
+
+      {/* User's Posts */}
+      <div id="user-posts" className="mb-6">
+        <h3 className="text-sm font-semibold text-foreground mb-4">
+          {social.isSelf ? "Your Posts" : `Posts by ${profile.displayName}`}
+        </h3>
+        {postsLoading ? (
+          <div className="space-y-4">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="border border-border/40 rounded-xl p-5 bg-card animate-pulse">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 rounded-full bg-muted" />
+                  <div className="space-y-1.5">
+                    <div className="h-3 bg-muted rounded w-24" />
+                    <div className="h-2 bg-muted rounded w-16" />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <div className="h-3 bg-muted rounded w-full" />
+                  <div className="h-3 bg-muted rounded w-3/4" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : userPosts.length === 0 ? (
+          <div className="bg-card border border-border/50 rounded-2xl text-center py-12 px-6">
+            <div className="w-12 h-12 mx-auto mb-3 rounded-2xl bg-gradient-to-br from-indigo-500/15 to-purple-500/10 flex items-center justify-center ring-1 ring-indigo-500/20">
+              <FileText className="w-5 h-5 text-indigo-400" />
+            </div>
+            <p className="text-sm font-medium text-foreground mb-1">No posts yet</p>
+            <p className="text-xs text-muted-foreground">
+              {social.isSelf
+                ? "You haven't shared any posts yet."
+                : "This developer hasn't shared any updates yet."}
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {userPosts.map((post) => (
+              <FeedPostCard
+                key={post.id}
+                post={post}
+                currentUserId={currentUser?.id}
+                onUpdated={(updated) =>
+                  setUserPosts((prev) => prev.map((p) => (p.id === updated.id ? updated : p)))
+                }
+                onDeleted={(postId) =>
+                  setUserPosts((prev) => prev.filter((p) => p.id !== postId))
+                }
+              />
+            ))}
+            {hasMorePosts && (
+              <div className="text-center py-3">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => fetchPosts(postsPage + 1, true)}
+                  disabled={loadingMorePosts}
+                  className="text-xs gap-1 rounded-full text-muted-foreground hover:text-indigo-500 hover:border-indigo-500/30"
+                >
+                  {loadingMorePosts ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    "Load more"
+                  )}
+                </Button>
+              </div>
+            )}
+          </div>
         )}
       </div>
 

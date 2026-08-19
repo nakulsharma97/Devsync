@@ -37,8 +37,10 @@ public class FeedController {
     @GetMapping("/feed")
     public ResponseEntity<ApiResponse<Page<PostResponse>>> getFeed(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
-        Page<PostResponse> feed = feedService.getFeed(page, size);
+            @RequestParam(defaultValue = "20") int size,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        String userId = userDetails != null ? userDetails.getUsername() : null;
+        Page<PostResponse> feed = feedService.getFeed(page, size, userId);
         return ResponseEntity.ok(ApiResponse.success(feed));
     }
 
@@ -124,8 +126,10 @@ public class FeedController {
     public ResponseEntity<ApiResponse<Page<PostResponse>>> getPostsByUser(
             @PathVariable String userId,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
-        Page<PostResponse> posts = feedService.getPostsByUser(userId, page, size);
+            @RequestParam(defaultValue = "20") int size,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        String currentUserId = userDetails != null ? userDetails.getUsername() : null;
+        Page<PostResponse> posts = feedService.getPostsByUser(userId, page, size, currentUserId);
         return ResponseEntity.ok(ApiResponse.success(posts));
     }
 }

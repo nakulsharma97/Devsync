@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router";
+import AdminPageTransition from "@/components/AdminPageTransition";
 
 // ── Admin Navigation config ─────────────────────────────
 
@@ -328,7 +329,9 @@ export default function AdminLayout() {
           </div>
         </header>
         <main className="p-4 md:p-6">
-          <Outlet />
+          <AdminPageTransition>
+            <Outlet />
+          </AdminPageTransition>
         </main>
       </div>
     </div>

@@ -12,7 +12,6 @@ import PricingSection from "@/components/PricingSection";
 import FinalCtaSection from "@/components/FinalCtaSection";
 import FooterSection from "@/components/FooterSection";
 import ParticleField from "@/components/ParticleField";
-import { keyframesStyle } from "@/data/landing";
 import {
   landingService,
   type PublicReviewsResponse,
@@ -42,8 +41,6 @@ export default function Landing() {
 
   return (
     <div className="min-h-screen bg-background text-foreground overflow-x-hidden relative">
-      <style>{keyframesStyle}</style>
-
       {/* Premium animated background */}
       <div className="fixed inset-0 z-0">
         <ParticleField />

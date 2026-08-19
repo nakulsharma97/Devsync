@@ -140,7 +140,7 @@ describe("DashboardLayout admin navigation", () => {
 
     renderLayout();
 
-    await user.click(screen.getByRole("button", { name: "Open command menu" }));
+    await user.click(screen.getByRole("button", { name: "Open search" }));
 
     expect(
       screen.getByPlaceholderText(/type a command or search/i)

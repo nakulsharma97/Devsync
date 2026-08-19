@@ -117,7 +117,9 @@ export default function Analytics() {
               </div>
               <div>
                 <p className="text-xl font-bold text-foreground">{stat.value}</p>
-                <p className="text-xs text-muted-foreground">{stat.label}</p>
+                <p className="text-xs text-muted-foreground">
+                  {stat.value === 0 ? `No ${stat.label.toLowerCase()} yet` : stat.label}
+                </p>
               </div>
             </div>
           </motion.div>
@@ -137,34 +139,46 @@ export default function Analytics() {
             <TrendingUp className="w-4 h-4 text-accent" />
             <h3 className="text-sm font-semibold text-foreground">Posts per Day (30 days)</h3>
           </div>
-          <div className="h-56">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={postStats?.dailyData || []}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis
-                  dataKey="date"
-                  tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
-                  tickFormatter={(v) => v.slice(5)}
-                  axisLine={{ stroke: "hsl(var(--border))" }}
-                />
-                <YAxis
-                  allowDecimals={false}
-                  tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
-                  axisLine={{ stroke: "hsl(var(--border))" }}
-                />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "hsl(var(--popover))",
-                    border: "1px solid hsl(var(--border))",
-                    borderRadius: "8px",
-                    fontSize: "12px",
-                    color: "hsl(var(--popover-foreground))",
-                  }}
-                />
-                <Bar dataKey="count" fill="hsl(var(--accent))" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
+          {(postStats?.dailyData?.length ?? 0) > 0 ? (
+            <div className="h-56">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={postStats?.dailyData || []}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis
+                    dataKey="date"
+                    tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+                    tickFormatter={(v) => v.slice(5)}
+                    axisLine={{ stroke: "hsl(var(--border))" }}
+                  />
+                  <YAxis
+                    allowDecimals={false}
+                    tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+                    axisLine={{ stroke: "hsl(var(--border))" }}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "hsl(var(--popover))",
+                      border: "1px solid hsl(var(--border))",
+                      borderRadius: "8px",
+                      fontSize: "12px",
+                      color: "hsl(var(--popover-foreground))",
+                    }}
+                  />
+                  <Bar dataKey="count" fill="hsl(var(--accent))" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center h-56 text-center">
+              <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center mb-3">
+                <TrendingUp className="w-5 h-5 text-accent/50" />
+              </div>
+              <p className="text-sm font-medium text-muted-foreground">No posting activity yet</p>
+              <p className="text-xs text-muted-foreground/70 mt-1 max-w-[200px]">
+                Create your first post to start tracking your activity.
+              </p>
+            </div>
+          )}
         </motion.div>
 
         {/* Follower Growth Chart */}
@@ -178,41 +192,53 @@ export default function Analytics() {
             <UserPlus className="w-4 h-4 text-green-500" />
             <h3 className="text-sm font-semibold text-foreground">Follower Growth (30 days)</h3>
           </div>
-          <div className="h-56">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={followerGrowth?.dailyData || []}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis
-                  dataKey="date"
-                  tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
-                  tickFormatter={(v) => v.slice(5)}
-                  axisLine={{ stroke: "hsl(var(--border))" }}
-                />
-                <YAxis
-                  allowDecimals={false}
-                  tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
-                  axisLine={{ stroke: "hsl(var(--border))" }}
-                />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "hsl(var(--popover))",
-                    border: "1px solid hsl(var(--border))",
-                    borderRadius: "8px",
-                    fontSize: "12px",
-                    color: "hsl(var(--popover-foreground))",
-                  }}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="count"
-                  stroke="#22c55e"
-                  strokeWidth={2}
-                  dot={false}
-                  activeDot={{ r: 4 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
+          {(followerGrowth?.dailyData?.length ?? 0) > 0 ? (
+            <div className="h-56">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={followerGrowth?.dailyData || []}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis
+                    dataKey="date"
+                    tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+                    tickFormatter={(v) => v.slice(5)}
+                    axisLine={{ stroke: "hsl(var(--border))" }}
+                  />
+                  <YAxis
+                    allowDecimals={false}
+                    tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+                    axisLine={{ stroke: "hsl(var(--border))" }}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "hsl(var(--popover))",
+                      border: "1px solid hsl(var(--border))",
+                      borderRadius: "8px",
+                      fontSize: "12px",
+                      color: "hsl(var(--popover-foreground))",
+                    }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="count"
+                    stroke="#22c55e"
+                    strokeWidth={2}
+                    dot={false}
+                    activeDot={{ r: 4 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center h-56 text-center">
+              <div className="w-10 h-10 rounded-xl bg-green-500/10 flex items-center justify-center mb-3">
+                <UserPlus className="w-5 h-5 text-green-500/50" />
+              </div>
+              <p className="text-sm font-medium text-muted-foreground">No follower growth yet</p>
+              <p className="text-xs text-muted-foreground/70 mt-1 max-w-[200px]">
+                Connect with developers and share your profile to start building your network.
+              </p>
+            </div>
+          )}
         </motion.div>
       </div>
 
@@ -262,8 +288,14 @@ export default function Analytics() {
             </ResponsiveContainer>
           </div>
         ) : (
-          <div className="flex items-center justify-center h-32 text-sm text-muted-foreground">
-            No activity data yet. Start posting and interacting to see stats!
+          <div className="flex flex-col items-center justify-center h-48 text-center">
+            <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center mb-3">
+              <Activity className="w-5 h-5 text-accent/50" />
+            </div>
+            <p className="text-sm font-medium text-muted-foreground">No activity yet</p>
+            <p className="text-xs text-muted-foreground/70 mt-1 max-w-[240px]">
+              Your posts, likes, comments, and follower activity will appear here.
+            </p>
           </div>
         )}
       </motion.div>

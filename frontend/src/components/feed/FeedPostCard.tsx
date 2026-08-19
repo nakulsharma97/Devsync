@@ -20,6 +20,9 @@ import {
   Pencil,
   Trash2,
   Flag,
+  Bookmark,
+  BookmarkCheck,
+  Crop,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -49,6 +52,8 @@ import {
 import { toast } from "sonner";
 import { getErrorMessage } from "@/lib/utils";
 import { ReportDialog } from "@/components/ReportDialog";
+import { bookmarkService } from "@/services/bookmarkService";
+import CropModal from "@/components/feed/CropModal";
 
 const MAX_CONTENT_LENGTH = 1000;
 const IMAGE_EXTENSIONS = new Set(["png", "jpg", "jpeg", "gif", "webp", "svg", "bmp"]);
@@ -182,11 +187,31 @@ export default function FeedPostCard({
   // Report dialog (any user can report a post)
   const [reportOpen, setReportOpen] = useState(false);
 
+  // Bookmark state
+  const [isBookmarked, setIsBookmarked] = useState(post.isBookmarked || false);
+  const [bookmarkLoading, setBookmarkLoading] = useState(false);
+
+  // Crop state for edit dialog
+  const [editCropOpen, setEditCropOpen] = useState(false);
+
+  const handleEditCropApply = useCallback(
+    (croppedFile: File, previewUrl: string) => {
+      setEditImagePreview((prev) => {
+        if (prev) URL.revokeObjectURL(prev);
+        return previewUrl;
+      });
+      setEditImageFile(croppedFile);
+      setEditRemoveImage(false);
+    },
+    []
+  );
+
   // When the parent hands us a refreshed post (e.g. edit), sync counts.
   useEffect(() => {
     setLikeCount(post.likeCount || 0);
     setCommentCount(post.commentCount || 0);
-  }, [post.likeCount, post.commentCount]);
+    setIsBookmarked(post.isBookmarked || false);
+  }, [post.likeCount, post.commentCount, post.isBookmarked]);
 
   const openComments = useCallback(async () => {
     if (commentsOpen) {
@@ -216,6 +241,23 @@ export default function FeedPostCard({
       // revert
       setIsLiked(wasLiked);
       setLikeCount((c) => c + (wasLiked ? 1 : -1));
+    }
+  };
+
+  const handleBookmark = async () => {
+    if (bookmarkLoading) return;
+    const wasBookmarked = isBookmarked;
+    setIsBookmarked(!wasBookmarked);
+    setBookmarkLoading(true);
+    try {
+      const newState = await bookmarkService.togglePostBookmark(post.id);
+      setIsBookmarked(newState);
+    } catch {
+      // revert on failure
+      setIsBookmarked(wasBookmarked);
+      toast.error("Failed to update bookmark");
+    } finally {
+      setBookmarkLoading(false);
     }
   };
 
@@ -467,9 +509,29 @@ export default function FeedPostCard({
           </button>
 
           <button
+            onClick={handleBookmark}
+            disabled={bookmarkLoading}
+            aria-label={isBookmarked ? "Remove bookmark" : "Bookmark post"}
+            className={`flex items-center gap-1.5 text-xs rounded-full px-3 py-1.5 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40 ${
+              isBookmarked
+                ? "text-indigo-500 bg-indigo-500/10"
+                : "text-muted-foreground hover:text-indigo-500 hover:bg-indigo-500/5"
+            }`}
+          >
+            {bookmarkLoading ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : isBookmarked ? (
+              <BookmarkCheck className="w-4 h-4" />
+            ) : (
+              <Bookmark className="w-4 h-4" />
+            )}
+            <span className="hidden sm:inline">{isBookmarked ? "Saved" : "Save"}</span>
+          </button>
+
+          <button
             onClick={() => setReportOpen(true)}
             aria-label="Report post"
-            className="flex items-center gap-1.5 text-xs rounded-full px-3 py-1.5 ml-auto text-muted-foreground/60 hover:text-amber-500 hover:bg-amber-500/5 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/40"
+            className="flex items-center gap-1.5 text-xs rounded-full px-3 py-1.5 text-muted-foreground/60 hover:text-amber-500 hover:bg-amber-500/5 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/40"
           >
             <Flag className="w-4 h-4" />
             <span className="hidden sm:inline">Report</span>
@@ -585,6 +647,17 @@ export default function FeedPostCard({
                   className="w-full max-h-48 object-cover rounded-xl border border-border/40"
                 />
                 <div className="absolute bottom-2 right-2 flex gap-1.5">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => setEditCropOpen(true)}
+                    className="h-8 text-xs gap-1.5 shadow-md"
+                    aria-label="Crop image"
+                  >
+                    <Crop className="h-3.5 w-3.5" />
+                    Crop
+                  </Button>
                   <Button
                     type="button"
                     variant="secondary"
@@ -730,6 +803,16 @@ export default function FeedPostCard({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Edit crop modal */}
+      {editImagePreview && (
+        <CropModal
+          open={editCropOpen}
+          onOpenChange={setEditCropOpen}
+          imageSrc={editImagePreview}
+          onApply={handleEditCropApply}
+        />
+      )}
 
       {/* Report dialog (any user) */}
       <ReportDialog

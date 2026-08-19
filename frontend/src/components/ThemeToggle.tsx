@@ -49,29 +49,29 @@ export function ThemeToggle() {
         variant="ghost"
         size="icon"
         onClick={handleToggle}
-        className="relative text-muted-foreground hover:text-foreground hover:bg-accent/5"
+        className="relative w-9 h-9 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent/10 transition-colors"
         aria-label={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
       >
         <Sun
-          className={`w-4 h-4 absolute transition-all duration-300 ${
+          className={`w-[18px] h-[18px] absolute transition-all duration-300 ${
             isDark
-              ? "opacity-0 scale-0 rotate-90"
-              : "opacity-100 scale-100 rotate-0"
+              ? "opacity-0 scale-50 rotate-90"
+              : "opacity-100 scale-100 rotate-0 text-amber-500"
           } ${isRotating ? "rotate-180" : ""}`}
         />
         <Moon
-          className={`w-4 h-4 absolute transition-all duration-300 ${
+          className={`w-[18px] h-[18px] absolute transition-all duration-300 ${
             isDark
-              ? "opacity-100 scale-100 rotate-0"
-              : "opacity-0 scale-0 -rotate-90"
+              ? "opacity-100 scale-100 rotate-0 text-indigo-300"
+              : "opacity-0 scale-50 -rotate-90"
           } ${isRotating ? "-rotate-180" : ""}`}
         />
       </Button>
 
       {/* Tooltip */}
       <div className="absolute top-full mt-1.5 right-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50">
-        <div className="bg-popover text-popover-foreground text-[11px] font-medium px-2 py-1 rounded-md border border-border shadow-sm whitespace-nowrap">
-          {isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
+        <div className="bg-popover text-popover-foreground text-[11px] font-medium px-2.5 py-1.5 rounded-lg border border-border shadow-md whitespace-nowrap">
+          {isDark ? "☀ Light Mode" : "🌙 Dark Mode"}
         </div>
       </div>
     </div>
