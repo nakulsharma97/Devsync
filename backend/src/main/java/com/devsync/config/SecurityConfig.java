@@ -36,10 +36,14 @@ public class SecurityConfig {
     private final JwtTokenProvider jwtTokenProvider;
     private final UserDetailsService userDetailsService;
     private final RateLimiter rateLimiter;
+    private final CsrfConfig csrfConfig;
 
     /** HSTS is HTTPS-only: enabled via app.security.hsts (true in the prod profile). */
     @org.springframework.beans.factory.annotation.Value("${app.security.hsts:false}")
     private boolean hstsEnabled;
+
+    @org.springframework.beans.factory.annotation.Value("${app.csrf.enabled:true}")
+    private boolean csrfEnabled;
 
     @org.springframework.beans.factory.annotation.Value("${app.rate-limit.enabled:true}")
     private boolean rateLimitEnabled;
@@ -69,10 +73,27 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-            // CSRF disabled because we use stateless JWT Bearer tokens, not cookies.
-            // All authenticated requests require an Authorization: Bearer <token> header.
-            // If cookie-based auth is ever added, CSRF protection MUST be re-enabled.
-            .csrf(csrf -> csrf.disable())
+            // CSRF protection is enabled because authentication now uses HttpOnly cookies.
+            // CookieCsrfTokenRepository stores the token in XSRF-TOKEN cookie; the
+            // frontend reads it and sends X-XSRF-TOKEN header on state-changing requests.
+            // See CsrfConfig for excluded paths (webhooks, public API, etc.).
+            .csrf(csrf -> {
+                if (!csrfEnabled) {
+                    csrf.disable();
+                } else {
+                    csrf.csrfTokenRepository(csrfConfig.csrfTokenRepository())
+                        .csrfTokenRequestHandler(csrfConfig.csrfTokenRequestHandler())
+                        .ignoringRequestMatchers(
+                            "/api/billing/webhook/**",
+                            "/api/public/**",
+                            "/api/health",
+                            "/actuator/**",
+                            "/ws/**",
+                            "/oauth2/**",
+                            "/login/**"
+                        );
+                }
+            })
             .cors(cors -> {})
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .headers(headers -> {

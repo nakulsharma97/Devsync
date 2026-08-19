@@ -1,9 +1,11 @@
+import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useApi } from "@/hooks/useApi";
 import { useCountUp } from "@/hooks/useCountUp";
 import { projectService } from "@/services/projectService";
 import { notificationService } from "@/services/notificationService";
 import { pinnedProjectService } from "@/services/pinnedProjectService";
+import { billingService } from "@/services/billingService";
 import { PinButton } from "@/components/PinButton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -22,6 +24,8 @@ import {
   Clock,
   Sparkles,
   Pin,
+  X,
+  Crown,
   type LucideIcon,
 } from "lucide-react";
 import { useNavigate } from "react-router";
@@ -138,6 +142,10 @@ export default function Dashboard() {
     pinnedProjectService.getPinned()
   );
   const { data: unreadCount } = useApi(() => notificationService.getUnreadCount());
+  const { data: subscription } = useApi(() => billingService.getSubscription());
+  const [bannerDismissed, setBannerDismissed] = useState(false);
+
+  const isFree = subscription?.planCode === "FREE" || (!subscription && subscription !== null);
 
   const firstName = user?.fullName?.split(" ")[0] || "Developer";
   const recentProjects = projects
@@ -204,6 +212,36 @@ export default function Dashboard() {
           />
         </Button>
       </div>
+
+      {/* ── Upgrade banner (FREE plan only) ── */}
+      {isFree && !bannerDismissed && (
+        <div className="relative flex items-center gap-3 px-4 py-3 rounded-xl border border-indigo-500/20 bg-gradient-to-r from-indigo-500/[0.06] to-purple-500/[0.04] animate-fade-in-up">
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shrink-0 shadow-sm">
+            <Crown className="w-4 h-4 text-white" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-foreground">
+              You&apos;re on the Free plan
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Upgrade for more private projects, storage, and team members.
+            </p>
+          </div>
+          <button
+            onClick={() => navigate("/settings/billing")}
+            className="shrink-0 text-xs font-medium px-3 py-1.5 rounded-lg bg-gradient-to-r from-indigo-500 to-purple-600 text-white hover:from-indigo-600 hover:to-purple-700 shadow-sm transition-all"
+          >
+            Upgrade
+          </button>
+          <button
+            onClick={() => setBannerDismissed(true)}
+            aria-label="Dismiss upgrade banner"
+            className="shrink-0 p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
 
       {/* ── Stat cards ── */}
       <div className="relative grid sm:grid-cols-2 lg:grid-cols-3 gap-4">

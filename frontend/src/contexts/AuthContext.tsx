@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useCallback, useEffect, useMemo, t
 import { authService, type AuthResponse } from "@/services/authService";
 import { wsService } from "@/services/websocketService";
 import { getErrorMessage } from "@/lib/utils";
+import api from "@/services/api";
 
 interface AuthContextType {
   user: AuthResponse["user"] | null;
@@ -57,13 +58,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const refreshUser = useCallback(async () => {
-    const token = localStorage.getItem("accessToken");
-    if (!token) {
-      setUser(null);
-      setIsLoading(false);
-      wsService.disconnect();
-      return;
-    }
     try {
       const userData = await authService.getMe();
       const user = {
@@ -75,8 +69,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         role: userData.role,
       };
       setUser(user);
-      // Connect WebSocket for real-time messaging
-      wsService.connect(user.id, token);
+      // Fetch a short-lived WebSocket auth token (cookies can't be sent with WS)
+      try {
+        const wsTokenRes = await api.get("/auth/ws-token");
+        wsService.connect(user.id, wsTokenRes.data.accessToken);
+      } catch {
+        // WebSocket auth token fetch failed — messaging won't work but app still functions
+        console.warn("Could not fetch WebSocket auth token");
+      }
     } catch {
       authService.clearSession();
       setUser(null);

@@ -1,8 +1,8 @@
 import axios from "axios";
 
-// Re-export for Convex-based services (legacy, will be migrated)
+// Re-export for legacy consumers — now returns null since tokens are in HttpOnly cookies.
 export function getAuthToken(): string | null {
-  return localStorage.getItem("accessToken");
+  return null;
 }
 
 export interface RateLimitState {
@@ -18,7 +18,6 @@ const rateLimitStore: RateLimitState = {
 };
 
 export function getRateLimitState(): RateLimitState {
-  // Auto-expire if retry window has passed
   if (rateLimitStore.retryAt && Date.now() > rateLimitStore.retryAt) {
     rateLimitStore.isRateLimited = false;
     rateLimitStore.retryAfter = 0;
@@ -40,41 +39,50 @@ export function clearRateLimit(): void {
 }
 
 // Same-origin by default: the nginx reverse proxy (prod) and the Vite dev
-// server (dev) both forward /api to the backend. A bare path never leaks a
-// localhost hostname into a production bundle, and the browser always uses the
-// correct http/https scheme.
+// server (dev) both forward /api to the backend.
 const API_BASE_URL = import.meta.env.VITE_API_URL || "/api";
 
 const api = axios.create({
   baseURL: API_BASE_URL,
-  withCredentials: true, // send the HttpOnly refresh-token cookie on /api/auth requests
+  withCredentials: true, // send HttpOnly cookies (access_token + refresh_token)
   headers: {
     "Content-Type": "application/json",
   },
 });
 
-// Request interceptor — attach JWT token
+/**
+ * Read a cookie value by name. Used to extract the CSRF token from the
+ * X-XSRF-TOKEN cookie that Spring Security sets on the first response.
+ */
+function getCookie(name: string): string | null {
+  const match = document.cookie.match(new RegExp("(^| )" + name + "=([^;]+)"));
+  return match ? decodeURIComponent(match[2]) : null;
+}
+
+// Request interceptor — attach CSRF token for state-changing requests
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem("accessToken");
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+    const method = (config.method || "").toUpperCase();
+    // Spring Security's CsrfTokenRequestAttributeHandler expects the token
+    // in the X-XSRF-TOKEN header (read from the XSRF-TOKEN cookie).
+    if (["POST", "PUT", "PATCH", "DELETE"].includes(method)) {
+      const csrfToken = getCookie("XSRF-TOKEN");
+      if (csrfToken) {
+        config.headers["X-XSRF-TOKEN"] = csrfToken;
+      }
     }
     return config;
   },
   (error) => Promise.reject(error)
 );
 
-// Response interceptor — handle 401, token refresh and stale-role 403s
+// Response interceptor — handle 401 (token refresh via cookie)
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
 
-    // A 403 on an admin endpoint means the current token's role is no longer
-    // sufficient (e.g. the admin was downgraded or blocked while logged in).
-    // Drop the cached role and let AuthContext re-fetch the authoritative
-    // profile from the server - never trust client-side role state.
+    // A 403 on an admin endpoint means the current role is no longer sufficient.
     if (error.response?.status === 403 && originalRequest?.url?.includes("/admin/")) {
       localStorage.removeItem("user");
       window.dispatchEvent(new Event("auth:authorization-changed"));
@@ -84,21 +92,20 @@ api.interceptors.response.use(
       originalRequest._retry = true;
 
       try {
-        // The HttpOnly refresh cookie is sent automatically (withCredentials).
-        // No token is read from or written to localStorage here — the new refresh
-        // token is set as a fresh cookie by the server (rotation).
+        // The HttpOnly refresh_token cookie is sent automatically.
+        // The server rotates the refresh cookie and sets a new access_token cookie.
         const { data } = await axios.post(
           `${API_BASE_URL}/auth/refresh`,
           {},
           { withCredentials: true }
         );
-        localStorage.setItem("accessToken", data.accessToken);
-        originalRequest.headers.Authorization = `Bearer ${data.accessToken}`;
+        // The new user data is in the response — store user profile (not tokens).
+        if (data?.user) {
+          localStorage.setItem("user", JSON.stringify(data.user));
+        }
         return api(originalRequest);
       } catch {
-        // Refresh failed (expired/rotated/revoked, or the account was blocked).
-        // Clean up and send the user to the login screen.
-        localStorage.removeItem("accessToken");
+        // Refresh failed — clean up and redirect to login.
         localStorage.removeItem("user");
         window.location.href = "/auth";
       }

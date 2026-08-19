@@ -302,14 +302,17 @@ public class FeedService {
     }
 
     private PostResponse toPostResponse(Post post, User user) {
-        PostResponse.UserInfo userInfo = user != null
-                ? PostResponse.UserInfo.builder().id(user.getId()).fullName(user.getFullName()).username(user.getUsername()).avatarUrl(user.getAvatarUrl()).build()
-                : PostResponse.UserInfo.builder().id(post.getUserId()).fullName("Unknown").build();
-        return PostResponse.builder()
-                .id(post.getId()).content(post.getContent()).imageUrl(post.getImageUrl()).postType(post.getPostType())
-                .likeCount(postLikeRepository.countByPostId(post.getId())).commentCount(commentRepository.countByPostId(post.getId()))
-                .createdAt(post.getCreatedAt()).updatedAt(post.getUpdatedAt()).user(userInfo)
-                .build();
+        // Reuse the batch-counting infrastructure to avoid N+1 queries.
+        // For a single post, we still use the batch method with a singleton set.
+        Set<String> postIds = Set.of(post.getId());
+        Map<String, Long> likeCounts = postLikeRepository.countLikesByPostIdIn(postIds).stream()
+                .collect(Collectors.toMap(row -> (String) row[0], row -> (Long) row[1]));
+        Map<String, Long> commentCounts = commentRepository.countCommentsByPostIdIn(postIds).stream()
+                .collect(Collectors.toMap(row -> (String) row[0], row -> (Long) row[1]));
+        return toPostResponseWithCounts(
+                post, user,
+                likeCounts.getOrDefault(post.getId(), 0L),
+                commentCounts.getOrDefault(post.getId(), 0L));
     }
 
     private String snippet(String content) {

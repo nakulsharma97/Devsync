@@ -50,7 +50,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { getErrorMessage } from "@/lib/utils";
+import { getErrorMessage, getFeatureLimitError } from "@/lib/utils";
 import { ReportDialog } from "@/components/ReportDialog";
 import { bookmarkService } from "@/services/bookmarkService";
 import CropModal from "@/components/feed/CropModal";
@@ -350,8 +350,19 @@ export default function FeedPostCard({
       setEditImagePreview(null);
       setEditRemoveImage(false);
       toast.success("Post updated");
-    } catch (err) {
-      toast.error(getErrorMessage(err, "Unable to update post."));
+    } catch (err: unknown) {
+      const limitErr = getFeatureLimitError(err);
+      if (limitErr?.code === "STORAGE_LIMIT") {
+        toast.error(limitErr.message, {
+          description: "Upgrade to Pro for more storage.",
+          action: {
+            label: "Upgrade",
+            onClick: () => navigate("/settings/billing"),
+          },
+        });
+      } else {
+        toast.error(getErrorMessage(err, "Unable to update post."));
+      }
     } finally {
       setEditSaving(false);
     }

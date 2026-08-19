@@ -80,14 +80,12 @@ export const authService = {
   },
 
   saveSession(response: AuthResponse) {
-    // Only the short-lived access token and the user profile live in localStorage.
-    // The refresh token is an HttpOnly cookie and never touches JavaScript.
-    localStorage.setItem("accessToken", response.accessToken);
+    // Tokens are stored in HttpOnly cookies by the backend — never in localStorage.
+    // Only the user profile (non-sensitive) is cached client-side for instant UI render.
     localStorage.setItem("user", JSON.stringify(response.user));
   },
 
   clearSession() {
-    localStorage.removeItem("accessToken");
     localStorage.removeItem("user");
   },
 
@@ -114,7 +112,9 @@ export const authService = {
   },
 
   isAuthenticated(): boolean {
-    return !!localStorage.getItem("accessToken");
+    // With cookie-based auth, we cannot read the HttpOnly token from JS.
+    // Check for the user profile cache as a proxy; actual auth is verified server-side.
+    return !!localStorage.getItem("user");
   },
 
   /** Generic response — the server never reveals whether the email exists. */

@@ -13,6 +13,9 @@ import lombok.*;
 @Builder
 public class Post extends BaseEntity {
 
+    @Version
+    private Long version;
+
     @Column(name = "user_id", nullable = false, length = 36)
     private String userId;
 

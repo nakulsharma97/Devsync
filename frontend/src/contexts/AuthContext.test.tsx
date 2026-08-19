@@ -83,7 +83,7 @@ describe("AuthContext", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
-    localStorage.setItem("accessToken", "test-token");
+    // With cookie-based auth, tokens are HttpOnly. Mock getMe for authenticated state.
   });
 
   it("derives isAdmin=true when the authenticated user has the ADMIN role", async () => {
@@ -138,9 +138,9 @@ describe("AuthContext", () => {
     expect(wsMocks.disconnect).toHaveBeenCalled();
   });
 
-  it("clears the session when no access token exists", async () => {
-    localStorage.removeItem("accessToken");
+  it("clears the session when getMe fails (expired cookies)", async () => {
     authMocks.getStoredUser.mockReturnValue(null);
+    authMocks.getMe.mockRejectedValue(new Error("Unauthorized"));
 
     renderProvider();
 

@@ -12,7 +12,7 @@ import { wsService } from "@/services/websocketService";
 import { formatBytes, timeAgo } from "@/lib/format";
 import { FilePreviewDialog } from "@/components/FilePreviewDialog";
 import { MarkdownPreview } from "@/components/MarkdownPreview";
-import { getErrorMessage, getHttpErrorMessage } from "@/lib/utils";
+import { getErrorMessage, getHttpErrorMessage, getFeatureLimitError } from "@/lib/utils";
 import { StatusPill } from "@/components/StatusPill";
 import { InviteMemberDialog } from "@/components/project/InviteMemberDialog";
 import { ProjectChat } from "@/components/project/ProjectChat";
@@ -818,7 +818,18 @@ function FilesTab({ projectId }: { projectId: string }) {
       toast(`${file.name} uploaded`);
       refetch();
     } catch (err: unknown) {
-      toast(getErrorMessage(err, "Upload failed"));
+      const limitErr = getFeatureLimitError(err);
+      if (limitErr?.code === "STORAGE_LIMIT") {
+        toast.error(limitErr.message, {
+          description: "Upgrade to Pro for more storage.",
+          action: {
+            label: "Upgrade",
+            onClick: () => navigate("/settings/billing"),
+          },
+        });
+      } else {
+        toast(getErrorMessage(err, "Upload failed"));
+      }
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";

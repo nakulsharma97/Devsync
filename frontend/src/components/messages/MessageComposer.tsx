@@ -3,7 +3,9 @@ import { Paperclip, Send, Loader2, X, FileText } from "lucide-react";
 import { EmojiPicker } from "@/components/EmojiPicker";
 import { attachmentService, validateAttachment, type AttachmentDto } from "@/services/attachmentService";
 import { formatBytes } from "@/lib/format";
-import { cn } from "@/lib/utils";
+import { cn, getFeatureLimitError } from "@/lib/utils";
+import { useNavigate } from "react-router";
+import { toast } from "sonner";
 
 interface MessageComposerProps {
   onSend: (text: string, attachmentId?: string, attachment?: AttachmentDto | null) => void;
@@ -24,6 +26,7 @@ export function MessageComposer({ onSend, onTyping, contextId, projectId, disabl
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const sendingRef = useRef(false);
+  const navigate = useNavigate();
 
   // Drop a staged attachment when the conversation changes.
   useEffect(() => {
@@ -49,8 +52,20 @@ export function MessageComposer({ onSend, onTyping, contextId, projectId, disabl
     try {
       const uploaded = await attachmentService.upload(file, contextId, projectId);
       setAttachment(uploaded);
-    } catch {
-      setUploadError("Upload failed. Try again.");
+    } catch (err: unknown) {
+      const limitErr = getFeatureLimitError(err);
+      if (limitErr?.code === "STORAGE_LIMIT") {
+        toast.error(limitErr.message, {
+          description: "Upgrade to Pro for more storage.",
+          action: {
+            label: "Upgrade",
+            onClick: () => navigate("/settings/billing"),
+          },
+        });
+        setUploadError(limitErr.message);
+      } else {
+        setUploadError("Upload failed. Try again.");
+      }
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";

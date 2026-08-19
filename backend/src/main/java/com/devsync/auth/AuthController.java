@@ -21,6 +21,8 @@ public class AuthController {
     private final AuthService authService;
     private final AccountRecoveryService accountRecoveryService;
     private final RefreshTokenCookie refreshTokenCookie;
+    private final AccessTokenCookie accessTokenCookie;
+    private final JwtTokenProvider jwtTokenProvider;
 
     @PostMapping("/register")
     public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request,
@@ -120,6 +122,7 @@ public class AuthController {
         // require a valid access token.
         authService.logout(userDetails != null ? userDetails.getUsername() : null, refreshToken);
         servletResponse.addCookie(refreshTokenCookie.clear());
+        servletResponse.addCookie(accessTokenCookie.clear());
         return ResponseEntity.ok().build();
     }
 
@@ -129,14 +132,34 @@ public class AuthController {
     }
 
     /**
+     * Returns a short-lived access token for WebSocket (STOMP) authentication.
+     * The browser cannot attach HttpOnly cookies to WebSocket CONNECT frames,
+     * so this endpoint provides a token that can be included in the STOMP
+     * Authorization header. The token is valid for 5 minutes — just long enough
+     * for the WebSocket handshake.
+     */
+    @GetMapping("/ws-token")
+    public ResponseEntity<Map<String, String>> getWebSocketToken(
+            @AuthenticationPrincipal UserDetails userDetails) {
+        String accessToken = jwtTokenProvider.generateAccessToken(
+                userDetails.getUsername(), userDetails.getUsername());
+        return ResponseEntity.ok(Map.of("accessToken", accessToken));
+    }
+
+    /**
      * Sets the refresh token as an HttpOnly cookie and removes it from the JSON
      * body so it never reaches JavaScript / logs / browser history.
      */
     private ResponseEntity<AuthResponse> withRefreshCookie(AuthResponse response,
                                                            HttpServletResponse servletResponse) {
         String refreshToken = response.getRefreshToken();
+        String accessToken = response.getAccessToken();
         response.setRefreshToken(null);
+        // Access token is also removed from the response body and set as an
+        // HttpOnly cookie — JavaScript never sees the raw token value.
+        response.setAccessToken(null);
         servletResponse.addCookie(refreshTokenCookie.create(refreshToken));
+        servletResponse.addCookie(accessTokenCookie.create(accessToken));
         return ResponseEntity.ok(response);
     }
 

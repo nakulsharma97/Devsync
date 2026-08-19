@@ -24,7 +24,7 @@ import { MemberStack } from "@/components/MemberStack";
 import { PinButton } from "@/components/PinButton";
 import { pinnedProjectService } from "@/services/pinnedProjectService";
 import { timeAgo } from "@/lib/format";
-import { getErrorMessage } from "@/lib/utils";
+import { getErrorMessage, getFeatureLimitError } from "@/lib/utils";
 import {
   Plus,
   FolderKanban,
@@ -102,7 +102,18 @@ export default function Projects() {
       // Open the new project workspace.
       navigate(`/projects/${created.id}`);
     } catch (err: unknown) {
-      toast(getErrorMessage(err, "Failed to create project"));
+      const limitErr = getFeatureLimitError(err);
+      if (limitErr?.code === "PRIVATE_PROJECT_LIMIT") {
+        toast.error(limitErr.message, {
+          description: "Upgrade to Pro for more private projects.",
+          action: {
+            label: "Upgrade",
+            onClick: () => navigate("/settings/billing"),
+          },
+        });
+      } else {
+        toast(getErrorMessage(err, "Failed to create project"));
+      }
     } finally {
       setCreating(false);
     }

@@ -28,6 +28,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
+import { billingService, type SubscriptionInfo } from "@/services/billingService";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import { WifiOff, Check } from "lucide-react";
@@ -165,6 +166,7 @@ export default function DashboardLayout() {
   const isOnline = useOnlineStatus();
   const [wasOffline, setWasOffline] = useState(false);
   const [showReconnected, setShowReconnected] = useState(false);
+  const [subscription, setSubscription] = useState<SubscriptionInfo | null>(null);
 
   // Track transitions: when coming back online, show a brief confirmation
   useEffect(() => {
@@ -181,6 +183,11 @@ export default function DashboardLayout() {
   }, [isOnline, wasOffline]);
 
   const closeSidebar = () => setSidebarOpen(false);
+
+  // Fetch subscription for plan badge
+  useEffect(() => {
+    billingService.getSubscription().then(setSubscription).catch(() => {});
+  }, []);
 
   // Unread badges for Notifications + Messages
   const fetchUnreadCounts = useCallback(async () => {
@@ -362,7 +369,23 @@ export default function DashboardLayout() {
               <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-500 ring-2 ring-background" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate">{user?.fullName || "User"}</p>
+              <div className="flex items-center gap-1.5">
+                <p className="text-sm font-medium truncate">{user?.fullName || "User"}</p>
+                {subscription && (
+                  <button
+                    onClick={() => { navigate("/settings/billing"); closeSidebar(); }}
+                    className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider transition-colors hover:opacity-80 ${
+                      subscription.planCode === "FREE"
+                        ? "bg-muted text-muted-foreground"
+                        : subscription.planCode === "PRO"
+                          ? "bg-gradient-to-r from-indigo-500 to-purple-600 text-white"
+                          : "bg-gradient-to-r from-amber-500 to-orange-600 text-white"
+                    }`}
+                  >
+                    {subscription.planCode}
+                  </button>
+                )}
+              </div>
               <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
             </div>
           </div>

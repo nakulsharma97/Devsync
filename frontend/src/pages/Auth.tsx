@@ -212,22 +212,20 @@ export default function AuthPage() {
 
   // ── OAuth Callback Handler ───────────────────────────────────
   // Parse the access token from the URL fragment (#access_token=...). The refresh
-  // token was set as an HttpOnly cookie by the backend during the OAuth redirect,
-  // so it is NOT present in (and must never be read from) the URL.
+  // OAuth callback: both tokens are now set as HttpOnly cookies by the backend.
+  // The frontend detects the ?oauth=success param and redirects to dashboard.
   useEffect(() => {
     if (isLoading) return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("oauth") === "success") {
+      window.history.replaceState({}, "", "/auth");
+      window.location.href = "/dashboard";
+    }
+    // Legacy fallback: handle any in-flight OAuth flows using the old hash pattern
     const hash = window.location.hash;
     if (hash && hash.includes("access_token=")) {
-      const params = new URLSearchParams(hash.replace("#", ""));
-      const accessToken = params.get("access_token");
-      if (accessToken) {
-        localStorage.setItem("accessToken", accessToken);
-        // Clear the hash so the token isn't visible in the URL bar
-        window.location.hash = "";
-        // Note: OAuth callback doesn't have role info yet, redirect to user dashboard
-        // The ProtectedRoute will handle role-based redirect if needed
-        window.location.href = "/dashboard";
-      }
+      window.location.hash = "";
+      window.location.href = "/dashboard";
     }
   }, [isLoading]);
 

@@ -12,6 +12,8 @@ import { userService, type PublicUserDto } from "@/services/userService";
 import { projectService, type ProjectMemberDto } from "@/services/projectService";
 import { Search, Loader2, UserPlus, Check } from "lucide-react";
 import { toast } from "sonner";
+import { getFeatureLimitError } from "@/lib/utils";
+import { useNavigate } from "react-router";
 
 interface InviteMemberDialogProps {
   open: boolean;
@@ -75,6 +77,8 @@ export function InviteMemberDialog({
     };
   }, [query, search]);
 
+  const navigate = useNavigate();
+
   const handleInvite = async (user: PublicUserDto) => {
     setInvitingId(user.id);
     try {
@@ -83,9 +87,20 @@ export function InviteMemberDialog({
       toast(`Invitation sent to ${user.fullName}`);
       onInvited?.();
     } catch (err: unknown) {
-      toast(
-        err instanceof Error ? err.message : "Failed to send invitation"
-      );
+      const limitErr = getFeatureLimitError(err);
+      if (limitErr?.code === "MEMBER_LIMIT") {
+        toast.error(limitErr.message, {
+          description: "Upgrade the project owner's plan to add more members.",
+          action: {
+            label: "Upgrade",
+            onClick: () => navigate("/settings/billing"),
+          },
+        });
+      } else {
+        toast(
+          err instanceof Error ? err.message : "Failed to send invitation"
+        );
+      }
     } finally {
       setInvitingId(null);
     }

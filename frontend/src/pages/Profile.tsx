@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useApi } from "@/hooks/useApi";
 import { userService } from "@/services/userService";
 import { socialService, type SocialProfileDto } from "@/services/socialService";
+import { billingService } from "@/services/billingService";
 import { getErrorMessage } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,6 +22,8 @@ import {
   Twitter,
   ExternalLink,
   CalendarDays,
+  CreditCard,
+  Crown,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -33,6 +36,7 @@ export default function Profile() {
       ? socialService.getProfile(user.username)
       : Promise.reject(new Error("no username"))
   );
+  const { data: subscription } = useApi(() => billingService.getSubscription());
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
     fullName: "",
@@ -224,6 +228,42 @@ export default function Profile() {
             </button>
           </div>
         )}
+      </div>
+
+      {/* Current Plan */}
+      <div className="bg-card border border-border/50 rounded-2xl p-5">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${
+              subscription && subscription.planCode !== "FREE"
+                ? "bg-gradient-to-br from-indigo-500 to-purple-600"
+                : "bg-muted"
+            }`}>
+              {subscription && subscription.planCode !== "FREE" ? (
+                <Crown className="w-4 h-4 text-white" />
+              ) : (
+                <CreditCard className="w-4 h-4 text-muted-foreground" />
+              )}
+            </div>
+            <div>
+              <p className="text-sm font-medium">
+                Current plan: <span className="text-foreground">{subscription?.planName ?? "Free"}</span>
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {subscription && subscription.planCode !== "FREE"
+                  ? `${subscription.status} · Renews ${subscription.currentPeriodEnd ? new Date(subscription.currentPeriodEnd).toLocaleDateString() : "—"}`
+                  : "No payment required"
+                }
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => navigate("/settings/billing")}
+            className="text-xs font-medium px-3 py-1.5 rounded-lg border border-border/50 hover:border-indigo-500/30 hover:bg-indigo-500/5 transition-all"
+          >
+            Manage billing
+          </button>
+        </div>
       </div>
 
       {/* Edit Form */}

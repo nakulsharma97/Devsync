@@ -2,6 +2,7 @@ package com.devsync.config;
 
 import com.devsync.auth.JwtTokenProvider;
 import com.devsync.auth.RefreshTokenCookie;
+import com.devsync.auth.AccessTokenCookie;
 import com.devsync.auth.RefreshTokenService;
 import com.devsync.user.entity.User;
 import com.devsync.user.repository.UserRepository;
@@ -29,6 +30,7 @@ public class OAuth2Config {
     private final JwtTokenProvider jwtTokenProvider;
     private final RefreshTokenService refreshTokenService;
     private final RefreshTokenCookie refreshTokenCookie;
+    private final AccessTokenCookie accessTokenCookie;
     private final PasswordEncoder passwordEncoder;
 
     /**
@@ -88,12 +90,15 @@ public class OAuth2Config {
             String refreshToken = refreshTokenService.issue(user.getId(),
                     request.getRemoteAddr(), request.getHeader("User-Agent"));
             response.addCookie(refreshTokenCookie.create(refreshToken));
+            response.addCookie(accessTokenCookie.create(accessToken));
 
             String frontendUrl = System.getenv("FRONTEND_URL") != null
                     ? System.getenv("FRONTEND_URL")
                     : "http://localhost:5173";
 
-            response.sendRedirect(frontendUrl + "/auth#access_token=" + accessToken);
+            // Redirect without exposing the token in the URL — both tokens are now
+            // in HttpOnly cookies, so the frontend just needs to fetch the user profile.
+            response.sendRedirect(frontendUrl + "/auth?oauth=success");
         };
     }
 

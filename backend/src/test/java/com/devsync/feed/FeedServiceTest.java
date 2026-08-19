@@ -112,8 +112,8 @@ class FeedServiceTest {
             saved.setUpdatedAt(Instant.now());
             return saved;
         });
-        when(postLikeRepository.countByPostId("post-1")).thenReturn(0L);
-        when(commentRepository.countByPostId("post-1")).thenReturn(0L);
+        when(postLikeRepository.countLikesByPostIdIn(anySet())).thenReturn(List.<Object[]>of(new Object[]{"post-1", 0L}));
+        when(commentRepository.countCommentsByPostIdIn(anySet())).thenReturn(List.<Object[]>of(new Object[]{"post-1", 0L}));
 
         PostResponse response = feedService.createPost("user-1", postRequest);
 
@@ -147,8 +147,8 @@ class FeedServiceTest {
             saved.setUpdatedAt(Instant.now());
             return saved;
         });
-        when(postLikeRepository.countByPostId("post-2")).thenReturn(0L);
-        when(commentRepository.countByPostId("post-2")).thenReturn(0L);
+        when(postLikeRepository.countLikesByPostIdIn(anySet())).thenReturn(List.<Object[]>of(new Object[]{"post-2", 0L}));
+        when(commentRepository.countCommentsByPostIdIn(anySet())).thenReturn(List.<Object[]>of(new Object[]{"post-2", 0L}));
 
         PostResponse response = feedService.createPost("user-1", xssRequest);
 
@@ -170,8 +170,8 @@ class FeedServiceTest {
             saved.setUpdatedAt(Instant.now());
             return saved;
         });
-        when(postLikeRepository.countByPostId("post-3")).thenReturn(0L);
-        when(commentRepository.countByPostId("post-3")).thenReturn(0L);
+        when(postLikeRepository.countLikesByPostIdIn(anySet())).thenReturn(List.<Object[]>of(new Object[]{"post-3", 0L}));
+        when(commentRepository.countCommentsByPostIdIn(anySet())).thenReturn(List.<Object[]>of(new Object[]{"post-3", 0L}));
 
         PostResponse response = feedService.createPost("user-1", noTypeRequest);
         assertThat(response.getPostType()).isEqualTo("TEXT");
@@ -277,8 +277,8 @@ class FeedServiceTest {
     void getPost_shouldReturnPostResponse() {
         when(postRepository.findById("post-1")).thenReturn(Optional.of(testPost));
         when(userRepository.findById("user-1")).thenReturn(Optional.of(testUser));
-        when(postLikeRepository.countByPostId("post-1")).thenReturn(5L);
-        when(commentRepository.countByPostId("post-1")).thenReturn(3L);
+        when(postLikeRepository.countLikesByPostIdIn(anySet())).thenReturn(List.<Object[]>of(new Object[]{"post-1", 5L}));
+        when(commentRepository.countCommentsByPostIdIn(anySet())).thenReturn(List.<Object[]>of(new Object[]{"post-1", 3L}));
 
         PostResponse response = feedService.getPost("post-1");
 
@@ -527,8 +527,8 @@ class FeedServiceTest {
         when(postRepository.findById("post-1")).thenReturn(Optional.of(testPost));
         when(postRepository.save(any(Post.class))).thenAnswer(inv -> inv.getArgument(0));
         when(userRepository.findById("user-1")).thenReturn(Optional.of(testUser));
-        when(postLikeRepository.countByPostId("post-1")).thenReturn(2L);
-        when(commentRepository.countByPostId("post-1")).thenReturn(3L);
+        when(postLikeRepository.countLikesByPostIdIn(anySet())).thenReturn(List.<Object[]>of(new Object[]{"post-1", 2L}));
+        when(commentRepository.countCommentsByPostIdIn(anySet())).thenReturn(List.<Object[]>of(new Object[]{"post-1", 3L}));
 
         PostRequest edit = new PostRequest();
         edit.setContent("Edited content");

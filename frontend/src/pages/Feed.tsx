@@ -22,7 +22,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
-import { getErrorMessage } from "@/lib/utils";
+import { getErrorMessage, getFeatureLimitError } from "@/lib/utils";
 
 const MAX_CONTENT_LENGTH = 1000;
 
@@ -159,7 +159,18 @@ export default function Feed() {
           );
           created = await postService.updatePostImage(created.id, attachment.url);
         } catch (err: unknown) {
-          toast.error(getErrorMessage(err, "Unable to upload image."));
+          const limitErr = getFeatureLimitError(err);
+          if (limitErr?.code === "STORAGE_LIMIT") {
+            toast.error(limitErr.message, {
+              description: "Upgrade to Pro for more storage.",
+              action: {
+                label: "Upgrade",
+                onClick: () => navigate("/settings/billing"),
+              },
+            });
+          } else {
+            toast.error(getErrorMessage(err, "Unable to upload image."));
+          }
           throw err;
         }
       }

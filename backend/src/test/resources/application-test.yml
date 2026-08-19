@@ -1,41 +1,5 @@
-spring:
-  flyway:
-    enabled: false
-  datasource:
-    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1
-    username: sa
-    password:
-    driver-class-name: org.h2.Driver
-  jpa:
-    hibernate:
-      ddl-auto: create-drop
-    # NOTE: no explicit hibernate.dialect here — Hibernate auto-detects it from
-    # the JDBC connection (H2Dialect for the local H2 URL, MySQLDialect when CI
-    # overrides SPRING_DATASOURCE_URL with MySQL). Pinning H2Dialect made CI's
-    # MySQL runs emit H2-only SQL ("FETCH FIRST n ROWS ONLY") → HTTP 500.
-    show-sql: false
-  security:
-    oauth2:
-      client:
-        registration:
-          github:
-            client-id: test-client-id
-            client-secret: test-client-secret
-          google:
-            client-id: test-client-id
-            client-secret: test-client-secret
-
+# Test profile: disables CSRF for MockMvc tests that send state-changing
+# requests without CSRF tokens. CSRF is enforced in production (see CsrfConfig).
 app:
-  jwt:
-    secret: dGVzdFNlY3JldEtleUZvckpXVDI1NklzUmVxdWlyZWRUb0JlQmFzZTY0RW5jb2RlZEV4Y2VlZHMzMjBCeXRlcw==
-    expiration-ms: 86400000
-  upload:
-    # Keep test uploads out of the repo tree.
-    dir: ${java.io.tmpdir}/devsync-test-uploads
-  rate-limit:
-    # Integration tests exercise the auth endpoints many times per second.
+  csrf:
     enabled: false
-    ws:
-      # Low limit so the rate-limit tests can trip it without long waits.
-      max-messages-per-minute: 5
-      max-subscriptions-per-minute: 3

@@ -58,3 +58,31 @@ export function getHttpErrorMessage(
   }
   return fallback;
 }
+
+// ── Billing / Feature-limit helpers ───────────────────────
+
+export interface FeatureLimitError {
+  status: number;
+  code: string;
+  message: string;
+}
+
+/**
+ * Detects a 403 FeatureLimitException from the billing entitlement service.
+ * Returns the structured limit error or null if the error is unrelated.
+ */
+export function getFeatureLimitError(err: unknown): FeatureLimitError | null {
+  if (typeof err !== "object" || err === null || !("response" in err)) return null;
+  const res = (err as { response?: { status?: number; data?: { code?: string; message?: string } } }).response;
+  if (res?.status !== 403 || !res?.data?.code) return null;
+  const code = res.data.code;
+  if (
+    code === "PRIVATE_PROJECT_LIMIT" ||
+    code === "MEMBER_LIMIT" ||
+    code === "STORAGE_LIMIT" ||
+    code === "ADVANCED_ANALYTICS"
+  ) {
+    return { status: 403, code, message: res.data.message || "Plan limit reached" };
+  }
+  return null;
+}
