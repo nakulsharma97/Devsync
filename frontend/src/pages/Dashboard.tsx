@@ -3,6 +3,8 @@ import { useApi } from "@/hooks/useApi";
 import { useCountUp } from "@/hooks/useCountUp";
 import { projectService } from "@/services/projectService";
 import { notificationService } from "@/services/notificationService";
+import { pinnedProjectService } from "@/services/pinnedProjectService";
+import { PinButton } from "@/components/PinButton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton, SkeletonTableRow } from "@/components/Skeletons";
@@ -19,6 +21,7 @@ import {
   CalendarDays,
   Clock,
   Sparkles,
+  Pin,
   type LucideIcon,
 } from "lucide-react";
 import { useNavigate } from "react-router";
@@ -131,6 +134,9 @@ export default function Dashboard() {
   const { data: projects, loading: projectsLoading } = useApi(() =>
     projectService.getMyProjects()
   );
+  const { data: pinnedProjects, refetch: refetchPinned } = useApi(() =>
+    pinnedProjectService.getPinned()
+  );
   const { data: unreadCount } = useApi(() => notificationService.getUnreadCount());
 
   const firstName = user?.fullName?.split(" ")[0] || "Developer";
@@ -139,6 +145,12 @@ export default function Dashboard() {
         (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
       )
     : [];
+
+  const pinnedIds = new Set((pinnedProjects ?? []).map((p) => p.projectId));
+  // Match pinned projects back to full project data for the pinned section.
+  const pinnedFull = (pinnedProjects ?? [])
+    .map((p) => (projects ?? []).find((proj) => proj.id === p.projectId))
+    .filter((p): p is NonNullable<typeof p> => !!p);
 
   return (
     <div className="relative space-y-6 max-w-5xl">
@@ -234,6 +246,68 @@ export default function Dashboard() {
         />
       </div>
 
+      {/* ── Pinned Projects ── */}
+      {pinnedFull.length > 0 && (
+        <Card className="relative border-border/40">
+          <CardHeader className="flex-row items-center justify-between space-y-0">
+            <CardTitle className="text-base font-semibold flex items-center gap-2">
+              <Pin className="w-4 h-4 text-indigo-400" />
+              Pinned
+            </CardTitle>
+            {pinnedFull.length > 0 && (
+              <button
+                onClick={() => navigate("/projects")}
+                className="inline-flex items-center gap-1 text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 dark:hover:text-indigo-300 transition-colors"
+              >
+                View all
+                <ArrowRight className="w-3 h-3" />
+              </button>
+            )}
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {pinnedFull.map((p) => (
+                <div
+                  key={p.id}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`Open project ${p.name}`}
+                  onClick={() => navigate(`/board/${p.id}`)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      navigate(`/board/${p.id}`);
+                    }
+                  }}
+                  className="group flex items-center justify-between gap-3 p-3 rounded-xl border border-indigo-500/20 bg-indigo-500/[0.03] hover:border-indigo-500/40 hover:bg-indigo-500/[0.06] hover:shadow-sm transition-all duration-200 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shrink-0 shadow-sm">
+                      <FolderKanban className="w-4 h-4 text-white" />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-medium truncate">{p.name}</p>
+                        <StatusPill status={p.status} />
+                      </div>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                        {p.memberCount} member{p.memberCount !== 1 ? "s" : ""}
+                      </p>
+                    </div>
+                  </div>
+                  <PinButton
+                    projectId={p.id}
+                    pinned
+                    size="icon"
+                    onChanged={() => refetchPinned()}
+                  />
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* ── Recent Projects ── */}
       <Card className="relative border-border/40">
         <CardHeader className="flex-row items-center justify-between space-y-0">
@@ -301,7 +375,14 @@ export default function Dashboard() {
                       </div>
                     </div>
                   </div>
-                  <ChevronRight className="w-4 h-4 text-muted-foreground/40 group-hover:text-indigo-400 group-hover:translate-x-0.5 transition-all duration-200 shrink-0" />
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <PinButton
+                      projectId={p.id}
+                      pinned={pinnedIds.has(p.id)}
+                      onChanged={() => refetchPinned()}
+                    />
+                    <ChevronRight className="w-4 h-4 text-muted-foreground/40 group-hover:text-indigo-400 group-hover:translate-x-0.5 transition-all duration-200 shrink-0" />
+                  </div>
                 </div>
               ))}
             </div>

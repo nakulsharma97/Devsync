@@ -85,8 +85,10 @@ public class ReviewService {
                 .rating(review.getRating())
                 .title(review.getTitle())
                 .comment(review.getComment())
-                .category(review.getCategory().name())
-                .status(review.getStatus().name())
+                .category(review.getCategory() != null
+                        ? review.getCategory().name()
+                        : ReviewCategory.OVERALL_EXPERIENCE.name())
+                .status(review.getStatus() != null ? review.getStatus().name() : ReviewStatus.PENDING.name())
                 .featured(review.isFeatured())
                 .createdAt(review.getCreatedAt())
                 .updatedAt(review.getUpdatedAt())

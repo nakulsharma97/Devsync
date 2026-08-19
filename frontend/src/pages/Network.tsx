@@ -13,6 +13,8 @@ import {
   User,
   Briefcase,
   AtSign,
+  AlertTriangle,
+  RefreshCw,
 } from "lucide-react";
 import { connectionService, type ConnectionUserDto } from "@/services/connectionService";
 import { conversationService } from "@/services/conversationService";
@@ -24,16 +26,19 @@ export default function Network() {
   const [users, setUsers] = useState<ConnectionUserDto[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<ConnectionUserDto[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [togglingIds, setTogglingIds] = useState<Set<string>>(new Set());
   const [activeTab, setActiveTab] = useState<"all" | "following" | "followers">("all");
 
   const fetchUsers = useCallback(async () => {
     try {
+      setLoadError(null);
       const all = await connectionService.getAllUsers();
       setUsers(all);
     } catch (err) {
       console.error("Failed to fetch users:", err);
+      setLoadError("Couldn't load the developer network. Please try again.");
     }
     setLoading(false);
   }, []);
@@ -187,7 +192,17 @@ export default function Network() {
         </div>
       )}
 
-      {!loading && filteredUsers.length === 0 && (
+      {!loading && loadError && (
+        <div className="border border-red-500/20 bg-red-500/5 rounded-xl p-6 flex flex-col items-center text-center gap-2">
+          <AlertTriangle className="w-5 h-5 text-red-500" />
+          <p className="text-sm font-medium text-foreground">{loadError}</p>
+          <Button variant="outline" size="sm" onClick={fetchUsers}>
+            <RefreshCw className="w-3.5 h-3.5 mr-1.5" /> Retry
+          </Button>
+        </div>
+      )}
+
+      {!loading && !loadError && filteredUsers.length === 0 && (
         <div className="border border-border/50 rounded-xl p-12 flex flex-col items-center text-center gap-4 bg-card">
           <div className="w-12 h-12 rounded-2xl bg-accent/10 flex items-center justify-center ring-1 ring-accent/20">
             <Search className="w-6 h-6 text-accent" />

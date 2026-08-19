@@ -33,6 +33,8 @@ public interface UserRepository extends JpaRepository<User, String> {
     boolean existsByRole(User.Role role);
     long countByRole(User.Role role);
 
+    java.util.List<User> findAllByRole(User.Role role);
+
     long countByBlockedTrue();
 
     long countByDeletedFalse();
@@ -91,5 +93,8 @@ public interface UserRepository extends JpaRepository<User, String> {
     @Query("SELECT cast(u.createdAt as date) AS day, COUNT(u) FROM User u " +
             "WHERE u.createdAt >= :from AND u.createdAt < :to GROUP BY cast(u.createdAt as date)")
     List<Object[]> countGroupedByDay(@Param("from") Instant from, @Param("to") Instant to);
+
+    /** Find users by name or email (case-insensitive) — used by AuditLogService for search. */
+    List<User> findByFullNameContainingIgnoreCaseOrEmailContainingIgnoreCase(String fullName, String email);
 
 }

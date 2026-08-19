@@ -59,6 +59,23 @@ export interface InvitationDto {
   createdAt: string;
 }
 
+export interface PublicProjectSummaryDto {
+  id: string;
+  name: string;
+  description: string | null;
+  ownerId: string;
+  ownerName: string | null;
+  ownerAvatarUrl: string | null;
+  status: string;
+  repositoryUrl: string | null;
+  imageUrl: string | null;
+  memberCount: number;
+  visibility: string;
+  currentUserJoinRequestStatus?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export const projectService = {
   async getMyProjects(): Promise<ProjectDto[]> {
     const res = await api.get("/projects");
@@ -70,7 +87,7 @@ export const projectService = {
     return res.data;
   },
 
-  async discoverProjects(search?: string): Promise<ProjectDto[]> {
+  async discoverProjects(search?: string): Promise<PublicProjectSummaryDto[]> {
     const res = await api.get("/projects/discover", {
       params: search?.trim() ? { search: search.trim() } : undefined,
     });

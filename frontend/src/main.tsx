@@ -22,6 +22,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AdminRoute } from "@/components/AdminRoute";
 import DashboardLayout from "@/components/DashboardLayout";
+import AdminLayout from "@/components/AdminLayout";
 import PageTransition from "@/components/PageTransition";
 import { RouteSkeleton } from "@/components/Skeletons";
 import Landing from "./pages/Landing";
@@ -50,6 +51,7 @@ const Billing = lazy(() => import("./pages/Billing"));
 const Notifications = lazy(() => import("./pages/Notifications"));
 const Feed = lazy(() => import("./pages/Feed"));
 const SearchPage = lazy(() => import("./pages/SearchPage"));
+const NetworkPage = lazy(() => import("./pages/Network"));
 const Analytics = lazy(() => import("./pages/Analytics"));
 const Feedback = lazy(() => import("./pages/Feedback"));
 const Admin = lazy(() => import("./pages/Admin"));
@@ -61,6 +63,8 @@ const AdminAuditLogs = lazy(() => import("./pages/AdminAuditLogs"));
 const AdminReviews = lazy(() => import("./pages/AdminReviews"));
 const AdminFeedback = lazy(() => import("./pages/AdminFeedback"));
 const AdminBilling = lazy(() => import("./pages/AdminBilling"));
+const AdminSupport = lazy(() => import("./pages/AdminSupport"));
+const Support = lazy(() => import("./pages/Support"));
 
 function App() {
   return (
@@ -98,17 +102,33 @@ function App() {
               <Route path="/notifications" element={<Notifications />} />
               <Route path="/feed" element={<Feed />} />
               <Route path="/search" element={<SearchPage />} />
+              <Route path="/network" element={<NetworkPage />} />
               <Route path="/feedback" element={<Feedback />} />
-              <Route path="/admin/dashboard" element={<AdminRoute><Admin /></AdminRoute>} />
-              <Route path="/admin/users" element={<AdminRoute><AdminUsers /></AdminRoute>} />
-              <Route path="/admin/projects" element={<AdminRoute><AdminProjects /></AdminRoute>} />
-              <Route path="/admin/reports" element={<AdminRoute><AdminReports /></AdminRoute>} />
-              <Route path="/admin/activity" element={<AdminRoute><AdminActivity /></AdminRoute>} />
-              <Route path="/admin/audit-logs" element={<AdminRoute><AdminAuditLogs /></AdminRoute>} />
-              <Route path="/admin/reviews" element={<AdminRoute><AdminReviews /></AdminRoute>} />
-              <Route path="/admin/feedback" element={<AdminRoute><AdminFeedback /></AdminRoute>} />
-              <Route path="/admin/billing" element={<AdminRoute><AdminBilling /></AdminRoute>} />
-              <Route path="/admin" element={<AdminRoute><Navigate to="/admin/dashboard" replace /></AdminRoute>} />
+              <Route path="/support" element={<Support />} />
+            </Route>
+            {/* Admin routes with dedicated AdminLayout */}
+            <Route
+              element={
+                <ProtectedRoute>
+                  <AdminRoute>
+                    <AdminLayout />
+                  </AdminRoute>
+                </ProtectedRoute>
+              }
+            >
+              <Route path="/admin/dashboard" element={<Admin />} />
+              <Route path="/admin/users" element={<AdminUsers />} />
+              <Route path="/admin/projects" element={<AdminProjects />} />
+              <Route path="/admin/reports" element={<AdminReports />} />
+              <Route path="/admin/activity" element={<AdminActivity />} />
+              <Route path="/admin/audit-logs" element={<AdminAuditLogs />} />
+              <Route path="/admin/reviews" element={<AdminReviews />} />
+              <Route path="/admin/feedback" element={<AdminFeedback />} />
+              <Route path="/admin/billing" element={<AdminBilling />} />
+              <Route path="/admin/support" element={<AdminSupport />} />
+              <Route path="/admin/profile" element={<Profile />} />
+              <Route path="/admin/settings" element={<Settings />} />
+              <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>

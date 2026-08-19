@@ -64,7 +64,7 @@ class FollowServiceTest {
         verify(followRepository).save(argThat(f ->
                 f.getFollowerId().equals("alice-1") && f.getFollowingId().equals("bob-1")));
         verify(notificationService).createNotification(
-                eq("bob-1"), eq("FOLLOW"), eq("New follower"),
+                eq("bob-1"), eq("NEW_FOLLOWER"), eq("New follower"),
                 contains("Alice"), eq("alice-1"), eq("Alice"), isNull(),
                 eq("alice-1"), eq("user"), eq("/profile/alice"));
     }

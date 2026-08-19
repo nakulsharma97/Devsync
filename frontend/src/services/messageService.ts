@@ -54,8 +54,10 @@ export const messageService = {
     return res.data;
   },
 
-  async getRoomMessages(roomId: string, limit = 100): Promise<MessageDto[]> {
-    const res = await api.get(`/messages/room/${roomId}?limit=${limit}`);
+  async getRoomMessages(roomId: string, limit = 100, cursor?: string): Promise<MessageDto[]> {
+    const params: Record<string, string | number> = { limit };
+    if (cursor) params.cursor = cursor;
+    const res = await api.get(`/messages/room/${roomId}`, { params });
     return res.data;
   },
 

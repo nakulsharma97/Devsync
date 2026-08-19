@@ -720,6 +720,52 @@ export const adminService = {
   async cancelSubscription(subscriptionId: string): Promise<void> {
     await api.post(`/admin/billing/subscriptions/${subscriptionId}/cancel`);
   },
+
+  // ---------- Support Tickets ----------
+
+  async getSupportTickets(query: {
+    page?: number;
+    size?: number;
+    search?: string;
+    status?: string;
+    priority?: string;
+    assignedTo?: string;
+    from?: string;
+    to?: string;
+  } = {}): Promise<PageResponse<SupportTicketListItem>> {
+    const res = await api.get("/admin/support", { params: query });
+    return res.data;
+  },
+
+  async getSupportTicketStats(): Promise<SupportTicketStats> {
+    const res = await api.get("/admin/support/stats");
+    return res.data;
+  },
+
+  async getSupportTicketDetail(ticketId: string): Promise<SupportTicketListItem> {
+    const res = await api.get(`/admin/support/${ticketId}`);
+    return res.data;
+  },
+
+  async getSupportTicketReplies(ticketId: string): Promise<SupportTicketReply[]> {
+    const res = await api.get(`/admin/support/${ticketId}/replies`);
+    return res.data;
+  },
+
+  async replySupportTicket(ticketId: string, message: string, internalNote = false): Promise<SupportTicketReply> {
+    const res = await api.post(`/admin/support/${ticketId}/replies`, { message, internalNote });
+    return res.data?.data ?? res.data;
+  },
+
+  async updateSupportTicketStatus(ticketId: string, status: string): Promise<SupportTicketListItem> {
+    const res = await api.put(`/admin/support/${ticketId}/status`, { status });
+    return res.data;
+  },
+
+  async assignSupportTicket(ticketId: string, assignedTo: string): Promise<SupportTicketListItem> {
+    const res = await api.put(`/admin/support/${ticketId}/assign`, { assignedTo });
+    return res.data;
+  },
 };
 
 export interface AdminSubscriptionListItem {
@@ -732,4 +778,50 @@ export interface AdminSubscriptionListItem {
   currentPeriodEnd?: string | null;
   cancelAtPeriodEnd: boolean;
   createdAt: string;
+}
+
+// ---------- Support Tickets ----------
+
+export type SupportTicketStatus = "OPEN" | "IN_PROGRESS" | "WAITING_USER" | "RESOLVED" | "CLOSED";
+export type SupportTicketPriority = "LOW" | "MEDIUM" | "HIGH" | "URGENT";
+
+export interface SupportTicketListItem {
+  id: string;
+  ticketNumber: string;
+  userId: string;
+  userName?: string | null;
+  userEmail?: string | null;
+  userAvatarUrl?: string | null;
+  subject: string;
+  description: string;
+  status: SupportTicketStatus;
+  priority: SupportTicketPriority;
+  category?: string | null;
+  assignedTo?: string | null;
+  assignedToName?: string | null;
+  replyCount: number;
+  resolvedAt?: string | null;
+  closedAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SupportTicketReply {
+  id: string;
+  ticketId: string;
+  userId: string;
+  userName?: string | null;
+  userAvatarUrl?: string | null;
+  message: string;
+  adminReply: boolean;
+  internalNote: boolean;
+  createdAt: string;
+}
+
+export interface SupportTicketStats {
+  OPEN: number;
+  IN_PROGRESS: number;
+  WAITING_USER: number;
+  RESOLVED: number;
+  CLOSED: number;
 }

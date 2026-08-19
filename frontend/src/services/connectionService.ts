@@ -18,23 +18,23 @@ export const connectionService = {
     await api.post("/connections/unfollow", { followingId });
   },
   async isFollowing(followingId: string): Promise<boolean> {
-    try { const res = await api.get(`/connections/is-following/${followingId}`); return res.data?.isFollowing || false; }
-    catch { return false; }
+    const res = await api.get(`/connections/is-following/${followingId}`);
+    return res.data?.isFollowing ?? false;
   },
   async getFollowingIds(): Promise<string[]> {
-    try { const res = await api.get("/connections/following"); return res.data; }
-    catch { return []; }
+    const res = await api.get("/connections/following");
+    return res.data;
   },
   async getFollowerCount(userId: string): Promise<number> {
-    try { const res = await api.get(`/connections/followers/count/${userId}`); return res.data?.count || 0; }
-    catch { return 0; }
+    const res = await api.get(`/connections/followers/count/${userId}`);
+    return res.data?.count ?? 0;
   },
   async getFollowingCount(userId: string): Promise<number> {
-    try { const res = await api.get(`/connections/following/count/${userId}`); return res.data?.count || 0; }
-    catch { return 0; }
+    const res = await api.get(`/connections/following/count/${userId}`);
+    return res.data?.count ?? 0;
   },
   async getAllUsers(searchQuery?: string): Promise<ConnectionUserDto[]> {
-    try { const res = await api.get(`/users?q=${encodeURIComponent(searchQuery || "")}`); return res.data; }
-    catch { return []; }
+    const res = await api.get(`/users?q=${encodeURIComponent(searchQuery || "")}`);
+    return res.data;
   },
 };

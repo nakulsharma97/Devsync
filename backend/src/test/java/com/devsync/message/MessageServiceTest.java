@@ -67,6 +67,7 @@ class MessageServiceTest {
 
         SendMessageRequest request = mock(SendMessageRequest.class);
         when(request.getRoomId()).thenReturn("r1");
+        when(request.getContent()).thenReturn("Hello");
 
         assertThatThrownBy(() -> messageService.sendMessage(request, "u1"))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -89,6 +90,7 @@ class MessageServiceTest {
 
         SendMessageRequest request = mock(SendMessageRequest.class);
         when(request.getRoomId()).thenReturn("r1");
+        when(request.getContent()).thenReturn("Hello");
 
         assertThatThrownBy(() -> messageService.sendMessage(request, "u1"))
                 .isInstanceOf(com.devsync.common.ResourceNotFoundException.class);
@@ -124,6 +126,7 @@ class MessageServiceTest {
 
         SendMessageRequest request = mock(SendMessageRequest.class);
         when(request.getRoomId()).thenReturn("r1");
+        when(request.getContent()).thenReturn("Hello");
 
         assertThatThrownBy(() -> messageService.sendMessage(request, "u1"))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -216,6 +219,28 @@ class MessageServiceTest {
         assertThatThrownBy(() -> messageService.sendMessage(request, "u1"))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("yourself");
+        verify(messageRepository, never()).save(any());
+    }
+
+    @Test
+    void sendMessage_shouldReject_WhenContentIsNullOrBlank() {
+        SendMessageRequest request = new SendMessageRequest();
+        request.setReceiverId("u2");
+        request.setContent(null);
+
+        assertThatThrownBy(() -> messageService.sendMessage(request, "u1"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Message content is required");
+        verify(messageRepository, never()).save(any());
+
+        // Blank content should also be rejected
+        SendMessageRequest blankRequest = new SendMessageRequest();
+        blankRequest.setReceiverId("u2");
+        blankRequest.setContent("   ");
+
+        assertThatThrownBy(() -> messageService.sendMessage(blankRequest, "u1"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Message content is required");
         verify(messageRepository, never()).save(any());
     }
 

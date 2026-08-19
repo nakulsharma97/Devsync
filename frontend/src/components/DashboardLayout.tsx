@@ -19,19 +19,17 @@ import {
   X,
   Search,
   Rss,
-  Shield,
   Users,
-  Flag,
-  Activity,
-  ScrollText,
-  CreditCard,
   TrendingUp,
   ChevronRight,
   Command,
+  Headphones,
   type LucideIcon,
 } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
+import { WifiOff, RefreshCw, Check } from "lucide-react";
 
 // ── Navigation config ─────────────────────────────────────
 
@@ -51,23 +49,14 @@ const mainNavItems: NavItem[] = [
 const discoverNavItems: NavItem[] = [
   { to: "/analytics", icon: TrendingUp, label: "Analytics" },
   { to: "/search", icon: Search, label: "Search" },
+  { to: "/network", icon: Users, label: "Network" },
 ];
 
 const accountNavItems: NavItem[] = [
   { to: "/notifications", icon: Bell, label: "Notifications" },
+  { to: "/support", icon: Headphones, label: "Support" },
   { to: "/profile", icon: User, label: "Profile" },
   { to: "/settings", icon: Settings, label: "Settings" },
-];
-
-// Rendered only for users with the ADMIN role.
-const adminNavItems: NavItem[] = [
-  { to: "/admin/dashboard", icon: Shield, label: "Admin Dashboard" },
-  { to: "/admin/users", icon: Users, label: "Admin Users" },
-  { to: "/admin/projects", icon: FolderKanban, label: "Admin Projects" },
-  { to: "/admin/reports", icon: Flag, label: "Admin Reports" },
-  { to: "/admin/billing", icon: CreditCard, label: "Admin Billing" },
-  { to: "/admin/activity", icon: Activity, label: "Admin Activity" },
-  { to: "/admin/audit-logs", icon: ScrollText, label: "Admin Audit Logs" },
 ];
 
 // ── Header page titles ────────────────────────────────────
@@ -79,11 +68,12 @@ const pageMeta: Record<string, { title: string; icon: LucideIcon }> = {
   "/messages": { title: "Messages", icon: MessageSquare },
   "/notifications": { title: "Notifications", icon: Bell },
   "/search": { title: "Search", icon: Search },
+  "/network": { title: "Network", icon: Users },
   "/profile": { title: "Profile", icon: User },
   "/settings": { title: "Settings", icon: Settings },
   "/analytics": { title: "Analytics", icon: TrendingUp },
   "/board": { title: "Board", icon: FolderKanban },
-  "/admin": { title: "Admin", icon: Shield },
+  "/support": { title: "Support", icon: Headphones },
 };
 
 function getPageMeta(pathname: string): { title: string; icon: LucideIcon } {
@@ -170,6 +160,23 @@ export default function DashboardLayout() {
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [msgUnreadCount, setMsgUnreadCount] = useState(0);
+  const isOnline = useOnlineStatus();
+  const [wasOffline, setWasOffline] = useState(false);
+  const [showReconnected, setShowReconnected] = useState(false);
+
+  // Track transitions: when coming back online, show a brief confirmation
+  useEffect(() => {
+    if (!isOnline) {
+      setWasOffline(true);
+      setShowReconnected(false);
+    } else if (wasOffline) {
+      // Was offline, now back online — show confirmation
+      setShowReconnected(true);
+      const timer = setTimeout(() => setShowReconnected(false), 3000);
+      setWasOffline(false);
+      return () => clearTimeout(timer);
+    }
+  }, [isOnline, wasOffline]);
 
   const closeSidebar = () => setSidebarOpen(false);
 
@@ -208,9 +215,35 @@ export default function DashboardLayout() {
   const page = getPageMeta(location.pathname);
   const PageIcon = page.icon;
 
+  const bannerVisible = !isOnline || showReconnected;
+
   return (
     <div className="min-h-screen bg-background">
       <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} />
+
+      {/* Connection status banner */}
+      {bannerVisible && (
+        <div
+          className={cn(
+            "fixed top-0 left-0 right-0 z-[60] flex items-center justify-center gap-2 px-4 py-2 text-xs font-medium transition-colors duration-300",
+            !isOnline
+              ? "bg-amber-500/90 text-white"
+              : "bg-emerald-500/90 text-white"
+          )}
+        >
+          {!isOnline ? (
+            <>
+              <WifiOff className="w-3.5 h-3.5" />
+              You&apos;re offline — changes will sync when you&apos;re back
+            </>
+          ) : (
+            <>
+              <Check className="w-3.5 h-3.5" />
+              Back online
+            </>
+          )}
+        </div>
+      )}
 
       {/* Mobile sidebar overlay */}
       {sidebarOpen && (
@@ -290,22 +323,7 @@ export default function DashboardLayout() {
             ))}
           </div>
 
-          {isAdmin && (
-            <>
-              <SectionLabel>Administration</SectionLabel>
-              <div className="space-y-1">
-                {adminNavItems.map((item) => (
-                  <SidebarLink
-                    key={item.to}
-                    to={item.to}
-                    icon={item.icon}
-                    label={item.label}
-                    onNavigate={closeSidebar}
-                  />
-                ))}
-              </div>
-            </>
-          )}
+
         </nav>
 
         {/* User card */}

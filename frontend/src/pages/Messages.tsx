@@ -68,6 +68,9 @@ export default function Messages() {
   const [detailsLoading, setDetailsLoading] = useState(false);
   /** Optimistic messages that never got a server echo (no ACK channel exists). */
   const [failedIds, setFailedIds] = useState<Set<string>>(new Set());
+  /** Scroll-up pagination: tracks whether older messages may exist. */
+  const [hasMoreOlder, setHasMoreOlder] = useState(true);
+  const [loadingOlder, setLoadingOlder] = useState(false);
 
   // ── Message upgrades: reply / edit / delete / threads ──
   const [replyingTo, setReplyingTo] = useState<MessageDto | null>(null);
@@ -292,6 +295,7 @@ export default function Messages() {
     if (!conversationId) return;
     setMsgLoading(true);
     setMessages([]);
+    setHasMoreOlder(true);
     const fetch = isRoom
       ? messageService.getRoomMessages(actualId)
       : messageService.getConversation(actualId);
@@ -299,12 +303,44 @@ export default function Messages() {
     fetch
       .then((msgs) => {
         setMessages(msgs);
+        // If fewer messages than requested, no older messages exist.
+        if (msgs.length < 100) setHasMoreOlder(false);
         // Opening a conversation marks its messages as read.
         markConversationRead(conversationId, actualId, isRoom);
       })
       .catch(() => toast("Failed to load messages"))
       .finally(() => setMsgLoading(false));
   }, [conversationId, isRoom, actualId, markConversationRead]);
+
+  // ── Scroll-up pagination: load older messages ──────────────
+  const loadOlderMessages = useCallback(async () => {
+    if (!isRoom || !hasMoreOlder || loadingOlder || !actualId || messages.length === 0) return;
+    setLoadingOlder(true);
+    try {
+      // The cursor is the id of the oldest message currently visible.
+      const oldestId = messages[0]?.id;
+      if (!oldestId) return;
+      const el = scrollRef.current;
+      const prevScrollHeight = el?.scrollHeight ?? 0;
+      const older = await messageService.getRoomMessages(actualId, 100, oldestId);
+      if (older.length === 0) {
+        setHasMoreOlder(false);
+      } else {
+        setMessages((prev) => [...older, ...prev]);
+        // After prepending, maintain scroll position so the user doesn't jump.
+        requestAnimationFrame(() => {
+          if (el) {
+            el.scrollTop = el.scrollHeight - prevScrollHeight + (el.scrollTop || 0);
+          }
+        });
+        if (older.length < 100) setHasMoreOlder(false);
+      }
+    } catch {
+      // Non-fatal: user can scroll again.
+    } finally {
+      setLoadingOlder(false);
+    }
+  }, [isRoom, hasMoreOlder, loadingOlder, actualId, messages]);
 
   // ── Real-time messages: one subscription for rooms OR DMs on the
   //    EXISTING STOMP connection (no new socket, no duplicates) ──
@@ -380,6 +416,10 @@ export default function Messages() {
     const el = scrollRef.current;
     if (!el) return;
     nearBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 150;
+    // Trigger older message loading when scrolling near the top.
+    if (el.scrollTop < 120 && !loadingOlder && hasMoreOlder && isRoom) {
+      loadOlderMessages();
+    }
   };
 
   // ── Send (optimistic, dedup via WS echo; REST fallback) ────
@@ -653,6 +693,17 @@ export default function Messages() {
 
             {/* Messages */}
             <div ref={scrollRef} onScroll={handleScroll} className="flex-1 overflow-y-auto min-h-0 px-3 md:px-5 py-4">
+              {/* Loading older messages indicator */}
+              {loadingOlder && (
+                <div className="flex justify-center py-2">
+                  <Spinner className="h-4 w-4 animate-spin text-muted-foreground/50" />
+                </div>
+              )}
+              {!hasMoreOlder && messages.length > 10 && isRoom && (
+                <div className="flex justify-center py-2">
+                  <span className="text-[10px] text-muted-foreground/40">Beginning of conversation</span>
+                </div>
+              )}
               <MessageList
                 messages={messages}
                 loading={msgLoading}
@@ -743,7 +794,7 @@ export default function Messages() {
               onTyping={markTyping}
               contextId={conversationId || ""}
               projectId={room?.projectId ?? null}
-              disabled={!conversationId}
+              disabled={!conversationId || !wsConnected}
             />
           </>
         ) : (

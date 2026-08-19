@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 import { useApi } from "@/hooks/useApi";
 import { userService } from "@/services/userService";
-import { projectService, type ProjectDto } from "@/services/projectService";
+import { projectService, type PublicProjectSummaryDto } from "@/services/projectService";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search, Loader2, User, FolderKanban, Globe, UserPlus, Users, Check, Clock } from "lucide-react";
@@ -38,7 +38,7 @@ export default function SearchPage() {
   // Request to join a PUBLIC project. Membership is granted only after the
   // owner approves; until then the card flips to a "Request Pending" state.
   const handleRequestJoin = useCallback(
-    async (project: ProjectDto) => {
+    async (project: PublicProjectSummaryDto) => {
       setJoiningId(project.id);
       try {
         await projectService.requestJoin(project.id);
@@ -163,10 +163,7 @@ export default function SearchPage() {
                     <p className="text-[11px] text-muted-foreground/70 mt-1.5 inline-flex items-center gap-1">
                       <Users className="w-3 h-3" />
                       {p.memberCount} member{p.memberCount !== 1 ? "s" : ""}
-                      {p.ownerId && <span className="text-muted-foreground/40">·</span>}
-                      {p.members.find((m) => m.userId === p.ownerId)?.fullName
-                        ? `Owned by ${p.members.find((m) => m.userId === p.ownerId)?.fullName}`
-                        : ""}
+                      {p.ownerName && <><span className="text-muted-foreground/40">·</span> Owned by {p.ownerName}</>}
                     </p>
                   </div>
                   <div className="shrink-0">

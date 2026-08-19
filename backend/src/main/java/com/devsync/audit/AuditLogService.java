@@ -74,9 +74,12 @@ public class AuditLogService {
         Instant toInstant = parseInstant(to, "Invalid to date");
         String searchFilter = (search == null || search.isBlank()) ? null : search.trim();
 
+        // Resolve user-name/email search to IDs to avoid cross-table collation issues
+        Set<String> userSearchIds = resolveUserSearchIds(searchFilter);
+
         Page<AuditLog> logs = auditLogRepository.searchAdminLogs(
                 actionFilter, blankToNull(adminId), blankToNull(userId), statusFilter,
-                fromInstant, toInstant, searchFilter, pageable);
+                fromInstant, toInstant, searchFilter, userSearchIds, pageable);
 
         List<AuditLog> content = logs.getContent();
         Map<String, User> userMap = batchUsers(content);
@@ -114,10 +117,11 @@ public class AuditLogService {
         Instant fromInstant = parseInstant(from, "Invalid from date");
         Instant toInstant = parseInstant(to, "Invalid to date");
         String searchFilter = (search == null || search.isBlank()) ? null : search.trim();
+        Set<String> userSearchIds = resolveUserSearchIds(searchFilter);
 
         Page<AuditLog> logs = auditLogRepository.searchAdminLogs(
                 actionFilter, blankToNull(adminId), blankToNull(userId), statusFilter,
-                fromInstant, toInstant, searchFilter,
+                fromInstant, toInstant, searchFilter, userSearchIds,
                 PageRequest.of(0, EXPORT_LIMIT, Sort.by(Sort.Direction.DESC, "createdAt")));
 
         Map<String, User> userMap = batchUsers(logs.getContent());
@@ -153,6 +157,20 @@ public class AuditLogService {
             return "\"" + escaped + "\"";
         }
         return escaped;
+    }
+
+    /**
+     * Resolves a user-name/email search term to matching user IDs.
+     * Returns null if no search term is provided (meaning "no user-name filter").
+     * Returns an empty set if the search term doesn't match any users (meaning "no results").
+     */
+    private Set<String> resolveUserSearchIds(String search) {
+        if (search == null || search.isBlank()) return null;
+        // Search users by fullName or email (case-insensitive via LOWER in JPQL)
+        List<User> matched = userRepository
+                .findByFullNameContainingIgnoreCaseOrEmailContainingIgnoreCase(search, search);
+        if (matched.isEmpty()) return Set.of(); // No matching users → no results
+        return matched.stream().map(User::getId).collect(Collectors.toSet());
     }
 
     private Map<String, User> batchUsers(List<AuditLog> logs) {

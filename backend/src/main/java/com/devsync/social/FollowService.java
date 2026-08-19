@@ -53,7 +53,7 @@ public class FollowService {
 
         User actor = userRepository.findById(followerId).orElse(null);
         notificationService.createNotification(
-                followingId, "FOLLOW", "New follower",
+                followingId, "NEW_FOLLOWER", "New follower",
                 (actor != null ? actor.getFullName() : "Someone") + " started following you.",
                 followerId,
                 actor != null ? actor.getFullName() : "",

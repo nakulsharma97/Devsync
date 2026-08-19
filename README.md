@@ -28,13 +28,14 @@ behind nginx. CI/CD runs via GitHub Actions, and the whole stack ships as Docker
 🔐 JWT + OAuth2 (GitHub/Google) · OTP email verification · per-IP rate limiting · BCrypt
 📋 Kanban boards with drag-drop tasks, labels, priorities, due dates, filters
 💬 WebSocket real-time chat, team rooms & DMs, typing indicators, presence
-👥 Projects, invitations, join requests, role-based access (Owner/Admin/Member)
-🛡️ Admin suite: users, projects, reports & moderation, activity, audit logs, analytics
+👥 Projects, invitations, join requests, role-based access (Owner/Admin/Member), owner-only member management & ownership transfer
+🛡️ Admin suite: users, projects, reports & moderation, activity, audit logs, analytics; in-app report button on users/posts/projects
 📊 Analytics: admin/platform metrics, project stats, user contribution heatmaps
 🔗 GitHub integration: OAuth connect, repo linking, commits/issues/PRs, signed webhooks
-📎 Secure file uploads (magic-byte validation, no executables), pinned projects, bookmarks
-🔔 Notifications for invitations, join requests, mentions, role changes
-📡 Social feed, search, user profiles, global search
+📎 Secure file uploads (magic-byte validation, no executables), pinned projects (pin from dashboard/project cards), bookmarks
+🔔 Notifications for invitations, join requests, mentions, role changes, new followers
+📡 Social feed with local image upload, post edit/delete (author-only, 403-enforced), comment deletion (author or post owner), likes, My Posts page, follow/following with follower lists and profiles
+🛡️ Rate limiting on auth, invitations/join-requests, follow/unfollow, and moderation reports (429 + Retry-After)
 
 ## 🛠️ Tech Stack
 

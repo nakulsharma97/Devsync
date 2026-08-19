@@ -29,6 +29,7 @@ import com.devsync.feed.entity.Post;
 import com.devsync.feed.repository.CommentRepository;
 import com.devsync.feed.repository.PostLikeRepository;
 import com.devsync.feed.repository.PostRepository;
+import com.devsync.social.repository.FollowRepository;
 import com.devsync.kanban.entity.Board;
 import com.devsync.kanban.entity.BoardColumn;
 import com.devsync.kanban.entity.Task;
@@ -87,6 +88,7 @@ public class AdminService {
     private final ActivityService activityService;
     private final AuditLogService auditLogService;
     private final com.devsync.auth.RefreshTokenService refreshTokenService;
+    private final FollowRepository followRepository;
 
     @Transactional(readOnly = true)
     public DashboardResponse getDashboard() {
@@ -150,9 +152,13 @@ public class AdminService {
         Set<String> userIds = users.stream().map(User::getId).collect(Collectors.toSet());
         Map<String, Long> postCounts = postRepository.countPostsByUserIdIn(userIds).stream()
                 .collect(Collectors.toMap(row -> (String) row[0], row -> (Long) row[1]));
+        Map<String, Long> followerCounts = followRepository.countByFollowingIdInGrouped(userIds).stream()
+                .collect(Collectors.toMap(row -> (String) row[0], row -> (Long) row[1]));
 
         return users.stream()
-                .map(user -> toAdminUserResponse(user, postCounts.getOrDefault(user.getId(), 0L)))
+                .map(user -> toAdminUserResponse(user,
+                        postCounts.getOrDefault(user.getId(), 0L),
+                        followerCounts.getOrDefault(user.getId(), 0L)))
                 .toList();
     }
 
@@ -307,7 +313,8 @@ public class AdminService {
             auditLogService.record(currentUserId, userId, AuditAction.ADMIN_CREATED, AuditStatus.SUCCESS,
                     "Granted ADMIN role to " + user.getEmail());
         }
-        return toAdminUserResponse(user, postRepository.countByUserId(user.getId()));
+        return toAdminUserResponse(user, postRepository.countByUserId(user.getId()),
+                followRepository.countByFollowingId(userId));
     }
 
     @Transactional
@@ -340,7 +347,8 @@ public class AdminService {
             auditLogService.record(currentUserId, userId, AuditAction.USER_UNBLOCKED, AuditStatus.SUCCESS,
                     "Unblocked user: " + user.getEmail() + reasonDetail);
         }
-        return toAdminUserResponse(user, postRepository.countByUserId(user.getId()));
+        return toAdminUserResponse(user, postRepository.countByUserId(user.getId()),
+                followRepository.countByFollowingId(userId));
     }
 
     @Transactional
@@ -829,7 +837,7 @@ public class AdminService {
                 .build();
     }
 
-    private AdminUserResponse toAdminUserResponse(User user, long postCount) {
+    private AdminUserResponse toAdminUserResponse(User user, long postCount, long followerCount) {
         return AdminUserResponse.builder()
                 .id(user.getId())
                 .email(user.getEmail())
@@ -839,7 +847,7 @@ public class AdminService {
                 .avatarUrl(user.getAvatarUrl())
                 .blocked(user.isBlocked())
                 .postCount(postCount)
-                .followerCount(0)
+                .followerCount(followerCount)
                 .createdAt(user.getCreatedAt())
                 .build();
     }
