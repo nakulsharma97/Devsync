@@ -21,7 +21,7 @@ export const prefersReducedMotion =
 export function getErrorMessage(err: unknown, fallback = "Something went wrong"): string {
   if (typeof err === "object" && err !== null) {
     if ("response" in err) {
-      const res = (err as { response?: { status?: number; data?: { message?: string; error?: string } } }).response;
+      const res = (err as { response?: { status?: number; data?: { message?: string; error?: string }; headers?: Record<string, string | undefined> } }).response;
       if (res?.status === 429) {
         const retryAfter = res?.headers?.["retry-after"];
         if (retryAfter) {

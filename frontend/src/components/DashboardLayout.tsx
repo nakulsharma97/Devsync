@@ -179,7 +179,7 @@ export default function DashboardLayout() {
       setShowReconnected(true);
       const timer = setTimeout(() => setShowReconnected(false), 3000);
       setWasOffline(false);
-      return () => clearTimeout(timer);
+      return () => { clearTimeout(timer); };
     }
   }, [isOnline, wasOffline]);
 

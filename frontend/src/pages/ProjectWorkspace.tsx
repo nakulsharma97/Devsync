@@ -801,6 +801,7 @@ function ChatTab({ project }: { project: ProjectDto }) {
 // ── Files ──────────────────────────────────────────────────
 
 function FilesTab({ projectId }: { projectId: string }) {
+  const navigate = useNavigate();
   const { data: files, loading, refetch } = useApi(
     () => attachmentService.listByProject(projectId),
     [projectId]

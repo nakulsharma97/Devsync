@@ -23,6 +23,7 @@ import {
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { getErrorMessage, getFeatureLimitError } from "@/lib/utils";
+import { useNavigate } from "react-router";
 
 const MAX_CONTENT_LENGTH = 1000;
 
@@ -33,6 +34,7 @@ const MAX_IMAGE_SIZE = 10 * 1024 * 1024;
 
 export default function Feed() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [posts, setPosts] = useState<PostDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);

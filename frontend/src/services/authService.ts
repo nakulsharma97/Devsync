@@ -35,6 +35,7 @@ export interface AuthResponse {
     username: string;
     avatarUrl: string | null;
     role: string;
+    authProvider?: string;
   };
 }
 

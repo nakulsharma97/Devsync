@@ -18,6 +18,8 @@ import {
   Pencil,
   Loader2,
   Flag,
+  UserCheck,
+  UserPlus,
 } from "lucide-react";
 import {
   publicProfileService,
