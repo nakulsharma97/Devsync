@@ -235,7 +235,7 @@ export default function DashboardLayout() {
         fetchUnreadCounts();
       }
     });
-    return unsub;
+    return () => { unsub(); };
   }, [fetchUnreadCounts, user?.id]);
 
   const page = getPageMeta(location.pathname);
