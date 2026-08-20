@@ -35,8 +35,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import org.springframework.web.util.HtmlUtils;
-
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -55,12 +53,11 @@ public class FeedService {
     public PostResponse createPost(String userId, PostRequest request) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User", userId));
-        String sanitizedContent = HtmlUtils.htmlEscape(request.getContent());
-        String sanitizedImageUrl = request.getImageUrl() != null
-                ? HtmlUtils.htmlEscape(request.getImageUrl())
-                : null;
+        // Content is NOT escaped here — React auto-escapes in JSX by default,
+        // which is safe for plain-text rendering and avoids double-escaping on
+        // the frontend (e.g. "a < b" displaying as literal "a &lt; b").
         Post post = Post.builder()
-                .userId(userId).content(sanitizedContent).imageUrl(sanitizedImageUrl)
+                .userId(userId).content(request.getContent()).imageUrl(request.getImageUrl())
                 .postType(request.getPostType() != null ? request.getPostType() : "TEXT").build();
         post = postRepository.save(post);
         activityService.record(userId, null, ActivityType.POST_CREATED,
@@ -75,10 +72,10 @@ public class FeedService {
 
     @Transactional(readOnly = true)
     public Page<PostResponse> getFeed(int page, int size, String currentUserId) {
-        Page<Post> posts = postRepository.findAllByOrderByCreatedAtDesc(PageRequest.of(page, size));
-        List<Post> visible = posts.getContent().stream()
-                .filter(p -> !p.isHidden())
-                .toList();
+        // Filter hidden posts at the query level so that totalElements/
+        // totalPages in the Page metadata reflect the true count.
+        Page<Post> posts = postRepository.findByHiddenFalseOrderByCreatedAtDesc(PageRequest.of(page, size));
+        List<Post> visible = posts.getContent();
         if (visible.isEmpty()) return Page.empty();
 
         Set<String> postIds = visible.stream().map(Post::getId).collect(Collectors.toSet());
@@ -110,7 +107,7 @@ public class FeedService {
                         likeCounts.getOrDefault(post.getId(), 0L),
                         commentCounts.getOrDefault(post.getId(), 0L),
                         bookmarkedPostIds.contains(post.getId())))
-                .toList(), posts.getPageable(), visible.size());
+                .toList(), posts.getPageable(), posts.getTotalElements());
     }
 
     @Transactional(readOnly = true)
@@ -157,7 +154,8 @@ public class FeedService {
         if (!post.getUserId().equals(userId)) {
             throw new ForbiddenException("Only the post author can edit this post");
         }
-        post.setContent(HtmlUtils.htmlEscape(request.getContent()));
+        // See createPost() for why content is stored unescaped.
+        post.setContent(request.getContent());
         post = postRepository.save(post);
         User user = userRepository.findById(post.getUserId()).orElse(null);
         return toPostResponse(post, user);
@@ -176,8 +174,9 @@ public class FeedService {
         if (!post.getUserId().equals(userId)) {
             throw new ForbiddenException("Only the post author can change its image");
         }
+        // See createPost() for why content is stored unescaped.
         post.setImageUrl(imageUrl != null && !imageUrl.isBlank()
-                ? HtmlUtils.htmlEscape(imageUrl.trim())
+                ? imageUrl.trim()
                 : null);
         post = postRepository.save(post);
         User user = userRepository.findById(post.getUserId()).orElse(null);
@@ -239,10 +238,10 @@ public class FeedService {
 
     @Transactional(readOnly = true)
     public Page<PostResponse> getPostsByUser(String userId, int page, int size, String currentUserId) {
-        Page<Post> posts = postRepository.findByUserIdOrderByCreatedAtDesc(userId, PageRequest.of(page, size));
-        List<Post> visible = posts.getContent().stream()
-                .filter(p -> !p.isHidden())
-                .toList();
+        // Filter hidden posts at the query level so that totalElements/
+        // totalPages in the Page metadata reflect the true count.
+        Page<Post> posts = postRepository.findByUserIdAndHiddenFalseOrderByCreatedAtDesc(userId, PageRequest.of(page, size));
+        List<Post> visible = posts.getContent();
         if (visible.isEmpty()) return Page.empty();
 
         Set<String> postIds = visible.stream().map(Post::getId).collect(Collectors.toSet());
@@ -266,7 +265,7 @@ public class FeedService {
                         likeCounts.getOrDefault(post.getId(), 0L),
                         commentCounts.getOrDefault(post.getId(), 0L),
                         bookmarkedPostIds.contains(post.getId())))
-                .toList(), posts.getPageable(), visible.size());
+                .toList(), posts.getPageable(), posts.getTotalElements());
     }
 
     @Transactional(readOnly = true)

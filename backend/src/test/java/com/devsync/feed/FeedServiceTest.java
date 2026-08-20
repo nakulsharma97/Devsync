@@ -129,12 +129,12 @@ class FeedServiceTest {
         verify(postRepository).save(postCaptor.capture());
         Post saved = postCaptor.getValue();
         assertThat(saved.getUserId()).isEqualTo("user-1");
-        // Content is HTML-escaped but there's nothing to escape, so should be same
+        // Content is stored unescaped (React auto-escapes in JSX)
         assertThat(saved.getContent()).isEqualTo("Hello DevSync!");
     }
 
     @Test
-    void createPost_shouldSanitizeXssContent() {
+    void createPost_shouldStoreRawContentForReactEscaping() {
         PostRequest xssRequest = new PostRequest();
         xssRequest.setContent("<script>alert(1)</script>");
         xssRequest.setPostType("TEXT");
@@ -152,9 +152,37 @@ class FeedServiceTest {
 
         PostResponse response = feedService.createPost("user-1", xssRequest);
 
-        // Verify content is HTML-escaped
-        assertThat(response.getContent()).doesNotContain("<script>");
-        assertThat(response.getContent()).contains("&lt;script&gt;");
+        // Content is stored unescaped — React auto-escapes in JSX by default
+        assertThat(response.getContent()).isEqualTo("<script>alert(1)</script>");
+
+        // Verify the saved entity also stores raw content
+        verify(postRepository).save(postCaptor.capture());
+        assertThat(postCaptor.getValue().getContent()).isEqualTo("<script>alert(1)</script>");
+    }
+
+    @Test
+    void createPost_shouldPreserveSpecialCharacters() {
+        PostRequest specialRequest = new PostRequest();
+        specialRequest.setContent("a < b & c > d");
+        specialRequest.setPostType("TEXT");
+
+        when(userRepository.findById("user-1")).thenReturn(Optional.of(testUser));
+        when(postRepository.save(any(Post.class))).thenAnswer(invocation -> {
+            Post saved = invocation.getArgument(0);
+            saved.setId("post-3");
+            saved.setCreatedAt(Instant.now());
+            saved.setUpdatedAt(Instant.now());
+            return saved;
+        });
+        when(postLikeRepository.countLikesByPostIdIn(anySet())).thenReturn(List.<Object[]>of(new Object[]{"post-3", 0L}));
+        when(commentRepository.countCommentsByPostIdIn(anySet())).thenReturn(List.<Object[]>of(new Object[]{"post-3", 0L}));
+
+        PostResponse response = feedService.createPost("user-1", specialRequest);
+
+        // Verify content is stored with raw special characters, not escaped
+        assertThat(response.getContent()).isEqualTo("a < b & c > d");
+        verify(postRepository).save(postCaptor.capture());
+        assertThat(postCaptor.getValue().getContent()).isEqualTo("a < b & c > d");
     }
 
     @Test
@@ -201,7 +229,7 @@ class FeedServiceTest {
         user2.setId("user-2");
 
         Page<Post> page = new PageImpl<>(List.of(testPost, post2));
-        when(postRepository.findAllByOrderByCreatedAtDesc(PageRequest.of(0, 20))).thenReturn(page);
+        when(postRepository.findByHiddenFalseOrderByCreatedAtDesc(PageRequest.of(0, 20))).thenReturn(page);
 
         // Batch-loading mocks
         when(userRepository.findAllById(Set.of("user-1", "user-2"))).thenReturn(List.of(testUser, user2));
@@ -241,7 +269,7 @@ class FeedServiceTest {
 
     @Test
     void getFeed_shouldReturnEmpty_WhenNoPosts() {
-        when(postRepository.findAllByOrderByCreatedAtDesc(PageRequest.of(0, 20)))
+        when(postRepository.findByHiddenFalseOrderByCreatedAtDesc(PageRequest.of(0, 20)))
                 .thenReturn(Page.empty());
 
         Page<PostResponse> result = feedService.getFeed(0, 20);
@@ -255,7 +283,7 @@ class FeedServiceTest {
 
     @Test
     void getFeed_shouldHandlePostsByDeletedUsers() {
-        when(postRepository.findAllByOrderByCreatedAtDesc(PageRequest.of(0, 20)))
+        when(postRepository.findByHiddenFalseOrderByCreatedAtDesc(PageRequest.of(0, 20)))
                 .thenReturn(new PageImpl<>(List.of(testPost)));
 
         // User not found (deleted account)
@@ -391,6 +419,26 @@ class FeedServiceTest {
         assertThat(response.getContent()).isEqualTo("Great post!");
         assertThat(response.getUser().getId()).isEqualTo("user-1");
         assertThat(response.getUser().getFullName()).isEqualTo("Test User");
+    }
+
+    @Test
+    void addComment_shouldStoreRawContentWithSpecialCharacters() {
+        CommentRequest specialComment = new CommentRequest();
+        specialComment.setContent("a < b & c > d");
+
+        when(postRepository.findById("post-1")).thenReturn(Optional.of(testPost));
+        when(userRepository.findById("user-1")).thenReturn(Optional.of(testUser));
+        when(commentRepository.save(any(Comment.class))).thenAnswer(invocation -> {
+            Comment saved = invocation.getArgument(0);
+            saved.setId("comment-2");
+            saved.setCreatedAt(Instant.now());
+            return saved;
+        });
+
+        CommentResponse response = feedService.addComment("post-1", "user-1", specialComment);
+
+        // Content stored unescaped — React auto-escapes in JSX by default
+        assertThat(response.getContent()).isEqualTo("a < b & c > d");
     }
 
     @Test
@@ -661,7 +709,7 @@ class FeedServiceTest {
     @Test
     void getPostsByUser_shouldReturnOnlyThatUsersPosts() {
         Page<Post> page = new PageImpl<>(List.of(testPost), PageRequest.of(0, 20), 1);
-        when(postRepository.findByUserIdOrderByCreatedAtDesc("user-1", PageRequest.of(0, 20)))
+        when(postRepository.findByUserIdAndHiddenFalseOrderByCreatedAtDesc("user-1", PageRequest.of(0, 20)))
                 .thenReturn(page);
         when(userRepository.findById("user-1")).thenReturn(Optional.of(testUser));
         when(postLikeRepository.countLikesByPostIdIn(Set.of("post-1"))).thenReturn(List.of());
@@ -672,21 +720,77 @@ class FeedServiceTest {
         assertThat(result.getContent()).hasSize(1);
         assertThat(result.getContent().get(0).getId()).isEqualTo("post-1");
         assertThat(result.getContent().get(0).getUser().getUsername()).isEqualTo("testuser");
-        verify(postRepository).findByUserIdOrderByCreatedAtDesc("user-1", PageRequest.of(0, 20));
+        verify(postRepository).findByUserIdAndHiddenFalseOrderByCreatedAtDesc("user-1", PageRequest.of(0, 20));
     }
 
     @Test
     void getPostsByUser_shouldReturnEmptyPage_WhenNoVisiblePosts() {
-        Post hidden = Post.builder().userId("user-1").content("Hidden").postType("TEXT").build();
-        hidden.setId("post-2");
-        hidden.setHidden(true);
-        Page<Post> page = new PageImpl<>(List.of(hidden), PageRequest.of(0, 20), 1);
-        when(postRepository.findByUserIdOrderByCreatedAtDesc("user-1", PageRequest.of(0, 20)))
+        // Hidden posts are now filtered at the query level, so an empty page
+        // is returned directly from the repository when all posts are hidden.
+        Page<Post> page = new PageImpl<>(List.of(), PageRequest.of(0, 20), 0);
+        when(postRepository.findByUserIdAndHiddenFalseOrderByCreatedAtDesc("user-1", PageRequest.of(0, 20)))
                 .thenReturn(page);
 
         Page<PostResponse> result = feedService.getPostsByUser("user-1", 0, 20);
 
         assertThat(result.getContent()).isEmpty();
         verify(postRepository, never()).findAllById(any());
+    }
+
+    // ── Pagination accuracy with hidden posts ────────────────
+
+    @Test
+    void getFeed_shouldReturnCorrectTotalCount_WhenSomePostsHidden() {
+        // Simulate: 3 visible posts on page 1, DB total = 5 (some hidden elsewhere)
+        Post post2 = Post.builder().userId("user-2").content("Post 2").postType("TEXT").build();
+        post2.setId("post-2");
+        post2.setCreatedAt(Instant.now());
+        post2.setUpdatedAt(Instant.now());
+
+        Post post3 = Post.builder().userId("user-1").content("Post 3").postType("TEXT").build();
+        post3.setId("post-3");
+        post3.setCreatedAt(Instant.now());
+        post3.setUpdatedAt(Instant.now());
+
+        User user2 = User.builder().email("user2@example.com").fullName("User Two").build();
+        user2.setId("user-2");
+
+        // The query filters hidden posts at DB level, so this page has 3 visible posts
+        // and totalElements=5 (the real count of visible posts across all pages)
+        Page<Post> page = new PageImpl<>(List.of(testPost, post2, post3), PageRequest.of(0, 3), 5);
+        when(postRepository.findByHiddenFalseOrderByCreatedAtDesc(PageRequest.of(0, 3))).thenReturn(page);
+
+        when(userRepository.findAllById(Set.of("user-1", "user-2"))).thenReturn(List.of(testUser, user2));
+        when(postLikeRepository.countLikesByPostIdIn(Set.of("post-1", "post-2", "post-3")))
+                .thenReturn(List.<Object[]>of(new Object[]{"post-1", 1L}, new Object[]{"post-2", 2L}, new Object[]{"post-3", 0L}));
+        when(commentRepository.countCommentsByPostIdIn(Set.of("post-1", "post-2", "post-3")))
+                .thenReturn(List.<Object[]>of(new Object[]{"post-1", 0L}, new Object[]{"post-2", 0L}, new Object[]{"post-3", 0L}));
+
+        Page<PostResponse> result = feedService.getFeed(0, 3);
+
+        assertThat(result.getContent()).hasSize(3);
+        // Total count should reflect the DB total, not just the page size
+        assertThat(result.getTotalElements()).isEqualTo(5);
+        assertThat(result.getTotalPages()).isEqualTo(2);
+    }
+
+    @Test
+    void getPostsByUser_shouldReturnCorrectTotalCount_WhenSomePostsHidden() {
+        // Simulate: user has 2 visible posts total, page size is 1.
+        // The DB query filters hidden posts, so totalElements = 2.
+        Page<Post> page = new PageImpl<>(List.of(testPost), PageRequest.of(0, 1), 2);
+        when(postRepository.findByUserIdAndHiddenFalseOrderByCreatedAtDesc("user-1", PageRequest.of(0, 1)))
+                .thenReturn(page);
+        when(userRepository.findById("user-1")).thenReturn(Optional.of(testUser));
+        when(postLikeRepository.countLikesByPostIdIn(Set.of("post-1")))
+                .thenReturn(List.<Object[]>of(new Object[]{"post-1", 0L}));
+        when(commentRepository.countCommentsByPostIdIn(Set.of("post-1")))
+                .thenReturn(List.<Object[]>of(new Object[]{"post-1", 0L}));
+
+        Page<PostResponse> result = feedService.getPostsByUser("user-1", 0, 1);
+
+        assertThat(result.getContent()).hasSize(1);
+        assertThat(result.getTotalElements()).isEqualTo(2);
+        assertThat(result.getTotalPages()).isEqualTo(2);
     }
 }

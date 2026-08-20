@@ -68,6 +68,9 @@ class BillingIntegrationTest {
     @MockitoBean
     private RazorpayClient razorpayClient;
 
+    @MockitoBean
+    private com.devsync.auth.EmailService emailService;
+
     private String aliceId;
     private String bobId;
     private String adminId;

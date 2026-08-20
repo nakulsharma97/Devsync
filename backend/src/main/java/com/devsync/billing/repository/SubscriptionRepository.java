@@ -16,6 +16,8 @@ public interface SubscriptionRepository extends JpaRepository<Subscription, Stri
 
     Optional<Subscription> findByUserId(String userId);
 
+    Optional<Subscription> findByProviderSubscriptionId(String providerSubscriptionId);
+
     List<Subscription> findByStatusIn(List<SubscriptionStatus> statuses);
 
     @Query("SELECT s FROM Subscription s WHERE s.status IN :statuses AND s.currentPeriodEnd < :now")

@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Check, Crown, Loader2, PartyPopper, RefreshCw, X } from "lucide-react";
 import { billingService, type Plan, type SubscriptionInfo, type Usage, type PaymentRecord } from "@/services/billingService";
+import { Skeleton } from "@/components/Skeletons";
+import api from "@/services/api";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -67,16 +69,16 @@ export default function Billing() {
 
   const refresh = useCallback(async () => {
     try {
-      const [sub, usg, pays, planList] = await Promise.all([
+      const [sub, usg, pays, planList] = await Promise.allSettled([
         billingService.getSubscription(),
         billingService.getUsage(),
         billingService.getPayments(),
         billingService.getPlans(),
       ]);
-      setSubscription(sub);
-      setUsage(usg);
-      setPayments(pays);
-      setPlans(planList);
+      if (sub.status === "fulfilled") setSubscription(sub.value);
+      if (usg.status === "fulfilled") setUsage(usg.value);
+      if (pays.status === "fulfilled") setPayments(pays.value);
+      if (planList.status === "fulfilled") setPlans(planList.value);
     } catch {
       toast.error("Could not load billing information");
     } finally {
@@ -85,6 +87,10 @@ export default function Billing() {
   }, []);
 
   useEffect(() => {
+    // Eagerly load the CSRF token so it's available when the user clicks
+    // "Upgrade to Pro" (a POST request). Without this, the token might not
+    // be in the cookie yet if no prior GET response set it.
+    api.get("/auth/csrf").catch(() => { /* best-effort */ });
     refresh();
   }, [refresh]);
 
@@ -96,6 +102,7 @@ export default function Billing() {
   const upgrade = useCallback(
     async (plan: Plan) => {
       if (plan.code === currentPlanCode) return;
+
       setCheckoutLoading(plan.code);
       try {
         const session = await billingService.createCheckout(plan.code);
@@ -120,10 +127,19 @@ export default function Billing() {
         });
         rzp.open();
       } catch (err: any) {
-        if (err?.response?.status === 503) {
+        const status = err?.response?.status;
+        if (status === 503) {
           toast.error("Payments are not configured yet — try again later.");
+        } else if (status === 403) {
+          toast.error("You don't have permission to perform this action. Please log in again.");
+        } else if (status === 409) {
+          toast.error(err?.response?.data?.message || "You are already subscribed to this plan.");
+        } else if (status === 400) {
+          toast.error(err?.response?.data?.message || "Invalid request. Please try again.");
+        } else if (!err?.response) {
+          toast.error("Unable to connect to the server. Please try again.");
         } else {
-          toast.error(err?.response?.data?.message || "Unable to start checkout");
+          toast.error("Unable to start checkout. Please try again.");
         }
         setCheckoutLoading(null);
       }
@@ -162,8 +178,73 @@ export default function Billing() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[50vh]">
-        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8 space-y-8 animate-in fade-in duration-200">
+        {/* Header */}
+        <header className="space-y-1.5">
+          <Skeleton className="h-7 w-64" />
+          <Skeleton className="h-3.5 w-96 max-w-full" />
+        </header>
+
+        {/* Current plan card */}
+        <section className="rounded-2xl border border-border/40 bg-card/70 p-6">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <Skeleton className="w-10 h-10 rounded-xl" />
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Skeleton className="h-5 w-24" />
+                  <Skeleton className="h-4 w-12 rounded-full" />
+                </div>
+                <Skeleton className="h-3.5 w-48" />
+              </div>
+            </div>
+            <Skeleton className="h-9 w-28 rounded-lg" />
+          </div>
+          <div className="mt-6 grid sm:grid-cols-3 gap-6">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <Skeleton className="h-3 w-24" />
+                  <Skeleton className="h-3 w-16" />
+                </div>
+                <Skeleton className="h-2 w-full rounded-full" />
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* Plan cards */}
+        <section className="grid md:grid-cols-3 gap-6">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="rounded-2xl border border-border/40 bg-card/70 p-6 space-y-4">
+              <Skeleton className="h-5 w-20" />
+              <Skeleton className="h-3 w-40" />
+              <Skeleton className="h-9 w-16" />
+              <div className="space-y-2.5 pt-2">
+                {[0, 1, 2, 3].map((j) => (
+                  <div key={j} className="flex items-center gap-2">
+                    <Skeleton className="w-4 h-4 rounded shrink-0" />
+                    <Skeleton className="h-3 w-full" />
+                  </div>
+                ))}
+              </div>
+              <Skeleton className="h-9 w-full rounded-lg mt-auto" />
+            </div>
+          ))}
+        </section>
+
+        {/* Payment history */}
+        <section className="rounded-2xl border border-border/40 bg-card/70 p-6">
+          <Skeleton className="h-5 w-36 mb-4" />
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="flex items-center gap-4 py-2.5 border-b border-border/20 last:border-0">
+              <Skeleton className="h-3.5 w-24" />
+              <Skeleton className="h-3.5 w-16" />
+              <Skeleton className="h-3.5 w-20" />
+              <Skeleton className="h-4 w-16 rounded-full" />
+            </div>
+          ))}
+        </section>
       </div>
     );
   }
@@ -335,10 +416,8 @@ export default function Billing() {
                 >
                   {checkoutLoading === plan.code ? (
                     <span className="inline-flex items-center gap-2">
-                      <Loader2 className="w-4 h-4 animate-spin" /> Opening checkout…
+                      <Loader2 className="w-4 h-4 animate-spin" /> Creating checkout…
                     </span>
-                  ) : plan.code === "ENTERPRISE" ? (
-                    "Contact us"
                   ) : (
                     `Upgrade to ${plan.name}`
                   )}

@@ -57,12 +57,14 @@ const api = axios.create({
 let csrfInitialized = false;
 
 async function initCsrf(): Promise<void> {
-  if (csrfInitialized) return;
+  // Always re-fetch if the cookie is missing — the flag alone isn't enough
+  // because the cookie can be rotated/expired while the flag stays true.
+  if (csrfInitialized && getCookie("XSRF-TOKEN")) return;
   try {
     await axios.get(`${API_BASE_URL}/auth/csrf`, { withCredentials: true });
     csrfInitialized = true;
   } catch {
-    // CSRF init failure — login will fail with 403, which is correct behavior.
+    // CSRF init failure — the POST will fail with 403, which is correct behavior.
     // Do not bypass CSRF as a fallback.
   }
 }
@@ -103,14 +105,29 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
+    const requestUrl = originalRequest?.url || "";
 
     // A 403 on an admin endpoint means the current role is no longer sufficient.
-    if (error.response?.status === 403 && originalRequest?.url?.includes("/admin/")) {
+    if (error.response?.status === 403 && requestUrl.includes("/admin/")) {
       localStorage.removeItem("user");
       window.dispatchEvent(new Event("auth:authorization-changed"));
     }
 
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    // Skip refresh for auth-page requests: /auth/csrf, /auth/me, and /auth/refresh
+    // itself. These fire during session bootstrap — there is no valid refresh token
+    // to rotate, so attempting one would waste a request and could trigger the
+    // rate limiter. Also skip if we are already on /auth to prevent a redirect loop.
+    const isAuthPageRequest = requestUrl.includes("/auth/");
+    const onAuthPage =
+      window.location.pathname === "/auth" ||
+      window.location.pathname.startsWith("/auth?");
+
+    if (
+      error.response?.status === 401 &&
+      !originalRequest._retry &&
+      !isAuthPageRequest &&
+      !onAuthPage
+    ) {
       originalRequest._retry = true;
 
       try {

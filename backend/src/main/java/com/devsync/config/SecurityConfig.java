@@ -90,7 +90,11 @@ public class SecurityConfig {
                             "/actuator/**",
                             "/ws/**",
                             "/oauth2/**",
-                            "/login/**"
+                            "/login/**",
+                            // /auth/refresh is invoked by the Axios 401 interceptor
+                            // using raw axios (no CSRF header).  The refresh token is in
+                            // an HttpOnly cookie so CSRF protection is not critical here.
+                            "/api/auth/refresh"
                         );
                 }
             })

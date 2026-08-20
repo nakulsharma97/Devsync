@@ -49,9 +49,11 @@ public class RateLimitingFilter extends OncePerRequestFilter {
                                     FilterChain filterChain) throws ServletException, IOException {
         String path = request.getRequestURI();
 
-        // Only rate-limit auth endpoints; can be disabled behind a dedicated
-        // edge limiter (app.rate-limit.enabled=false).
-        if (!enabled || !path.startsWith("/api/auth/")) {
+        // Only rate-limit auth-mutating endpoints (login, register, OTP, password
+        // reset). Non-mutating endpoints like /auth/csrf, /auth/me, /auth/refresh,
+        // and /auth/logout are excluded so the normal session-check + refresh
+        // flow cannot accidentally exhaust the limit.
+        if (!enabled || !isAuthMutatingEndpoint(path)) {
             filterChain.doFilter(request, response);
             return;
         }
@@ -60,13 +62,29 @@ public class RateLimitingFilter extends OncePerRequestFilter {
         if (!rateLimiter.tryAcquire("auth:" + clientIp, MAX_REQUESTS, WINDOW_SECONDS)) {
             response.setStatus(429);
             response.setContentType("application/json");
+            response.setHeader("Retry-After", String.valueOf(WINDOW_SECONDS));
             response.getWriter().write(
-                "{\"success\":false,\"error\":\"Too many requests. Please try again later.\"}"
+                "{\"success\":false,\"error\":\"Too many requests. Please wait a moment and try again.\",\"retryAfter\":" + WINDOW_SECONDS + "}"
             );
             return;
         }
 
         filterChain.doFilter(request, response);
+    }
+
+    /** Returns true for endpoints where repeated requests indicate abuse. */
+    private boolean isAuthMutatingEndpoint(String path) {
+        if (!path.startsWith("/api/auth/")) return false;
+        // Include: login, register, OTP send/verify, password reset, email verify
+        // Exclude: csrf, me, refresh, logout, ws-token (session/cookie operations)
+        return path.equals("/api/auth/login")
+                || path.equals("/api/auth/register")
+                || path.equals("/api/auth/otp/send")
+                || path.equals("/api/auth/otp/verify")
+                || path.equals("/api/auth/forgot-password")
+                || path.equals("/api/auth/reset-password")
+                || path.equals("/api/auth/email/verify")
+                || path.equals("/api/auth/email/verify/request");
     }
 
     private String getClientIp(HttpServletRequest request) {

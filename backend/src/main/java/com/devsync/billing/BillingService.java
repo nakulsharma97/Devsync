@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.devsync.audit.AuditLogService;
 import com.devsync.audit.entity.AuditAction;
 import com.devsync.audit.entity.AuditStatus;
+import com.devsync.auth.EmailService;
 import com.devsync.billing.dto.*;
 import com.devsync.billing.entity.*;
 import com.devsync.billing.repository.PaymentRepository;
@@ -53,6 +54,7 @@ public class BillingService {
     private final PlanService planService;
     private final EntitlementService entitlements;
     private final RazorpayClient razorpayClient;
+    private final EmailService emailService;
     private final ObjectMapper objectMapper;
 
     // ── Checkout ──────────────────────────────────────────────────
@@ -151,6 +153,10 @@ public class BillingService {
                 case PAYMENT_CAPTURED, ORDER_PAID -> handlePaymentCaptured(root, eventId);
                 case PAYMENT_FAILED -> handlePaymentFailed(root, eventId);
                 case PAYMENT_REFUNDED -> handlePaymentRefunded(root, eventId);
+                case SUBSCRIPTION_CANCELLED -> handleSubscriptionCancelled(root, eventId);
+                case SUBSCRIPTION_EXPIRED -> handleSubscriptionExpired(root, eventId);
+                case SUBSCRIPTION_ACTIVATED -> handleSubscriptionActivated(root, eventId);
+                case SUBSCRIPTION_CHANGED -> handleSubscriptionChanged(root, eventId);
                 default -> log.info("Webhook event {} ({}) recorded, not processed", eventId, event);
             }
 
@@ -203,6 +209,16 @@ public class BillingService {
                 renewal ? "Your " + planName + " subscription has been renewed."
                         : "Your " + planName + " plan is now active. Enjoy the extra features!",
                 null);
+        // Email notification (non-blocking)
+        sendBillingEmail(user -> {
+            if (renewal) {
+                emailService.sendSubscriptionRenewal(user.getEmail(), user.getFullName(),
+                        planName, payment.getAmountPaise(), payment.getCurrency(), ref.paymentId());
+            } else {
+                emailService.sendPaymentReceipt(user.getEmail(), user.getFullName(),
+                        planName, payment.getAmountPaise(), payment.getCurrency(), ref.paymentId());
+            }
+        }, payment.getUserId());
     }
 
     private void handlePaymentFailed(JsonNode root, String eventId) {
@@ -231,6 +247,11 @@ public class BillingService {
                                 "Your " + planName(s.getPlanCode()) + " renewal payment failed. You keep access for now — update your payment method to avoid interruption.",
                                 null);
                     });
+            // Email notification (non-blocking)
+            sendBillingEmail(user ->
+                    emailService.sendPaymentFailed(user.getEmail(), user.getFullName(),
+                            planName(payment.getPlanCode())),
+                    payment.getUserId());
         });
         log.info("Webhook {} recorded payment failure for order {}", eventId, orderId);
     }
@@ -248,8 +269,149 @@ public class BillingService {
             notify(payment.getUserId(), "PAYMENT_REFUNDED", "Refund processed",
                     "A refund for your " + planName(payment.getPlanCode()) + " payment has been processed.",
                     null);
+            // Email notification (non-blocking)
+            sendBillingEmail(user ->
+                    emailService.sendRefundProcessed(user.getEmail(), user.getFullName(),
+                            planName(payment.getPlanCode())),
+                    payment.getUserId());
         });
         log.info("Webhook {} recorded refund for order {}", eventId, orderId);
+    }
+
+    private void handleSubscriptionCancelled(JsonNode root, String eventId) {
+        // Extract the subscription entity from the webhook payload.
+        JsonNode entity = root.path("payload").path("subscription").path("entity");
+        if (entity.isMissingNode() || entity.isNull()) {
+            log.info("Webhook {} has no subscription entity, skipping", eventId);
+            return;
+        }
+        String providerSubId = entity.path("id").asText("");
+        if (providerSubId.isBlank()) return;
+
+        // Find the DevSync subscription by provider subscription ID.
+        Subscription subscription = subscriptionRepository
+                .findByProviderSubscriptionId(providerSubId)
+                .orElse(null);
+        if (subscription == null) {
+            log.info("No local subscription for provider sub {} (event {}), ignoring", providerSubId, eventId);
+            return;
+        }
+
+        // Idempotent: if already cancelled/expired, skip.
+        if (subscription.getStatus() == SubscriptionStatus.CANCELLED
+                || subscription.getStatus() == SubscriptionStatus.EXPIRED) {
+            log.info("Subscription {} already {} — ignoring duplicate cancel event {}",
+                    subscription.getId(), subscription.getStatus(), eventId);
+            return;
+        }
+
+        // The user requested cancellation — mark cancelAtPeriodEnd so they
+        // keep access until the current period ends.
+        subscription.setCancelAtPeriodEnd(true);
+        subscriptionRepository.save(subscription);
+
+        String planCode = subscription.getPlanCode();
+        auditLogService.record(subscription.getUserId(), subscription.getUserId(),
+                AuditAction.SUBSCRIPTION_CANCELLED, AuditStatus.SUCCESS,
+                "Subscription cancelled via provider webhook (" + providerSubId + ")");
+        notify(subscription.getUserId(), "SUBSCRIPTION_CANCELLED", "Subscription cancelled",
+                "Your " + planName(planCode) + " subscription has been cancelled and will end on "
+                        + subscription.getCurrentPeriodEnd() + ".",
+                null);
+        // Email notification (non-blocking)
+        sendBillingEmail(user ->
+                emailService.sendSubscriptionCancelled(user.getEmail(), user.getFullName(),
+                        planName(planCode), subscription.getCurrentPeriodEnd().toString()),
+                subscription.getUserId());
+        log.info("Subscription {} cancelled at period end via webhook {}", subscription.getId(), eventId);
+    }
+
+    private void handleSubscriptionExpired(JsonNode root, String eventId) {
+        JsonNode entity = root.path("payload").path("subscription").path("entity");
+        if (entity.isMissingNode() || entity.isNull()) return;
+        String providerSubId = entity.path("id").asText("");
+        if (providerSubId.isBlank()) return;
+
+        Subscription subscription = subscriptionRepository
+                .findByProviderSubscriptionId(providerSubId)
+                .orElse(null);
+        if (subscription == null) {
+            log.info("No local subscription for provider sub {} (event {}), ignoring", providerSubId, eventId);
+            return;
+        }
+
+        // Idempotent: if already expired, skip.
+        if (subscription.getStatus() == SubscriptionStatus.EXPIRED) {
+            log.info("Subscription {} already expired — ignoring duplicate expiry event {}",
+                    subscription.getId(), eventId);
+            return;
+        }
+
+        // Expire: the billing period ended without renewal.
+        subscription.setStatus(SubscriptionStatus.EXPIRED);
+        subscription.setCancelAtPeriodEnd(false);
+        subscription.setPlanCode(PlanCode.FREE);
+        subscription.setCurrentPeriodEnd(Instant.now());
+        subscriptionRepository.save(subscription);
+
+        auditLogService.record(subscription.getUserId(), subscription.getUserId(),
+                AuditAction.SUBSCRIPTION_EXPIRED, AuditStatus.SUCCESS,
+                "Subscription expired via provider webhook (" + providerSubId + ")");
+        notify(subscription.getUserId(), "SUBSCRIPTION_EXPIRED", "Subscription expired",
+                "Your subscription has expired. You are now on the Free plan. "
+                        + "Upgrade anytime to regain access to premium features.",
+                null);
+        // Email notification (non-blocking)
+        sendBillingEmail(user ->
+                emailService.sendSubscriptionExpired(user.getEmail(), user.getFullName()),
+                subscription.getUserId());
+        log.info("Subscription {} expired via webhook {} — downgraded to FREE", subscription.getId(), eventId);
+    }
+
+    private void handleSubscriptionActivated(JsonNode root, String eventId) {
+        JsonNode entity = root.path("payload").path("subscription").path("entity");
+        if (entity.isMissingNode() || entity.isNull()) return;
+        String providerSubId = entity.path("id").asText("");
+        String planCode = entity.path("plan_id").asText("");
+        if (providerSubId.isBlank()) return;
+
+        Subscription subscription = subscriptionRepository
+                .findByProviderSubscriptionId(providerSubId)
+                .orElse(null);
+        if (subscription == null) {
+            log.info("No local subscription for provider sub {} (event {}), ignoring", providerSubId, eventId);
+            return;
+        }
+
+        // Activate the subscription if it was pending.
+        if (subscription.getStatus() == SubscriptionStatus.INCOMPLETE
+                || subscription.getStatus() == SubscriptionStatus.CANCELLED) {
+            subscription.setStatus(SubscriptionStatus.ACTIVE);
+            subscription.setCancelAtPeriodEnd(false);
+            subscriptionRepository.save(subscription);
+            log.info("Subscription {} activated via webhook {}", subscription.getId(), eventId);
+        }
+    }
+
+    private void handleSubscriptionChanged(JsonNode root, String eventId) {
+        JsonNode entity = root.path("payload").path("subscription").path("entity");
+        if (entity.isMissingNode() || entity.isNull()) return;
+        String providerSubId = entity.path("id").asText("");
+        if (providerSubId.isBlank()) return;
+
+        Subscription subscription = subscriptionRepository
+                .findByProviderSubscriptionId(providerSubId)
+                .orElse(null);
+        if (subscription == null) return;
+
+        // Sync cancellation state from provider.
+        boolean cancelAtEnd = "yes".equalsIgnoreCase(entity.path("cancel_at_period_end").asText("no"));
+        if (cancelAtEnd != subscription.isCancelAtPeriodEnd()) {
+            subscription.setCancelAtPeriodEnd(cancelAtEnd);
+            subscriptionRepository.save(subscription);
+            log.info("Subscription {} cancel_at_period_end synced to {} via webhook {}",
+                    subscription.getId(), cancelAtEnd, eventId);
+        }
     }
 
     /** Creates the subscription on first payment, or extends the period on renewal. */
@@ -438,6 +600,10 @@ public class BillingService {
             case "payment.failed" -> RazorpayEventType.PAYMENT_FAILED;
             case "payment.refunded" -> RazorpayEventType.PAYMENT_REFUNDED;
             case "payment.pending", "payment.authorized" -> RazorpayEventType.PAYMENT_PENDING;
+            case "subscription.cancelled" -> RazorpayEventType.SUBSCRIPTION_CANCELLED;
+            case "subscription.expired" -> RazorpayEventType.SUBSCRIPTION_EXPIRED;
+            case "subscription.activated" -> RazorpayEventType.SUBSCRIPTION_ACTIVATED;
+            case "subscription.charged", "subscription.updated" -> RazorpayEventType.SUBSCRIPTION_CHANGED;
             default -> RazorpayEventType.UNKNOWN;
         };
     }
@@ -462,6 +628,25 @@ public class BillingService {
                     null, "billing", "/settings/billing");
         } catch (Exception e) {
             log.warn("Billing notification failed for user {}", userId);
+        }
+    }
+
+    /**
+     * Safely send a billing email. Failures are logged but never cause the
+     * primary transaction to roll back — the in-app notification and payment
+     * state are always preserved.
+     */
+    private void sendBillingEmail(java.util.function.Consumer<User> mailAction, String userId) {
+        try {
+            userRepository.findById(userId).ifPresent(user -> {
+                try {
+                    mailAction.accept(user);
+                } catch (Exception e) {
+                    log.warn("Billing email failed for user {}", userId, e);
+                }
+            });
+        } catch (Exception e) {
+            log.warn("Failed to look up user {} for billing email", userId, e);
         }
     }
 

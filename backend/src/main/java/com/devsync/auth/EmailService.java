@@ -93,4 +93,126 @@ public class EmailService {
         );
         mailSender.send(message);
     }
+
+    // ── Billing emails ──────────────────────────────────────────
+
+    /**
+     * Send a payment receipt after a successful payment.
+     */
+    public void sendPaymentReceipt(String to, String fullName, String planName,
+                                    long amountPaise, String currency, String paymentId) {
+        String amount = String.format("%s%,.0f", currencySymbol(currency), amountPaise / 100.0);
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setFrom(fromEmail);
+        message.setTo(to);
+        message.setSubject("Payment received — " + planName + " plan");
+        message.setText(
+            "Hi " + fullName + ",\n\n"
+            + "Your payment has been received successfully.\n\n"
+            + "  Plan:    " + planName + "\n"
+            + "  Amount:  " + amount + "\n"
+            + "  Payment: " + paymentId + "\n\n"
+            + "Your subscription is now active. Enjoy the extra features!\n\n"
+            + "— The DevSync Team"
+        );
+        mailSender.send(message);
+    }
+
+    /**
+     * Send a subscription renewal confirmation.
+     */
+    public void sendSubscriptionRenewal(String to, String fullName, String planName,
+                                         long amountPaise, String currency, String paymentId) {
+        String amount = String.format("%s%,.0f", currencySymbol(currency), amountPaise / 100.0);
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setFrom(fromEmail);
+        message.setTo(to);
+        message.setSubject("Subscription renewed — " + planName + " plan");
+        message.setText(
+            "Hi " + fullName + ",\n\n"
+            + "Your " + planName + " subscription has been renewed.\n\n"
+            + "  Amount:  " + amount + "\n"
+            + "  Payment: " + paymentId + "\n\n"
+            + "Thank you for staying with DevSync!\n\n"
+            + "— The DevSync Team"
+        );
+        mailSender.send(message);
+    }
+
+    /**
+     * Send a payment failure notification.
+     */
+    public void sendPaymentFailed(String to, String fullName, String planName) {
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setFrom(fromEmail);
+        message.setTo(to);
+        message.setSubject("Payment failed — " + planName + " plan");
+        message.setText(
+            "Hi " + fullName + ",\n\n"
+            + "Your payment for the " + planName + " plan could not be completed.\n\n"
+            + "Please update your payment method to avoid interruption to your subscription.\n\n"
+            + "— The DevSync Team"
+        );
+        mailSender.send(message);
+    }
+
+    /**
+     * Send a subscription cancellation confirmation.
+     */
+    public void sendSubscriptionCancelled(String to, String fullName, String planName, String periodEnd) {
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setFrom(fromEmail);
+        message.setTo(to);
+        message.setSubject("Subscription cancelled — " + planName + " plan");
+        message.setText(
+            "Hi " + fullName + ",\n\n"
+            + "Your " + planName + " subscription has been cancelled.\n\n"
+            + "You will keep access to " + planName + " features until " + periodEnd + ".\n"
+            + "After that, your account will move to the Free plan.\n\n"
+            + "You can resubscribe at any time from Settings → Billing.\n\n"
+            + "— The DevSync Team"
+        );
+        mailSender.send(message);
+    }
+
+    /**
+     * Send a subscription expired notification.
+     */
+    public void sendSubscriptionExpired(String to, String fullName) {
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setFrom(fromEmail);
+        message.setTo(to);
+        message.setSubject("Subscription expired");
+        message.setText(
+            "Hi " + fullName + ",\n\n"
+            + "Your DevSync subscription has expired. You are now on the Free plan.\n\n"
+            + "Upgrade anytime from Settings → Billing to regain access to premium features.\n\n"
+            + "— The DevSync Team"
+        );
+        mailSender.send(message);
+    }
+
+    /**
+     * Send a refund processed notification.
+     */
+    public void sendRefundProcessed(String to, String fullName, String planName) {
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setFrom(fromEmail);
+        message.setTo(to);
+        message.setSubject("Refund processed — " + planName + " plan");
+        message.setText(
+            "Hi " + fullName + ",\n\n"
+            + "A refund for your " + planName + " subscription payment has been processed.\n"
+            + "The amount will be credited to your original payment method.\n\n"
+            + "— The DevSync Team"
+        );
+        mailSender.send(message);
+    }
+
+    private String currencySymbol(String currency) {
+        if ("INR".equalsIgnoreCase(currency)) return "₹";
+        if ("USD".equalsIgnoreCase(currency)) return "$";
+        if ("EUR".equalsIgnoreCase(currency)) return "€";
+        return currency + " ";
+    }
 }

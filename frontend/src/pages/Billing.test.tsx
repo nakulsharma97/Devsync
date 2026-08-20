@@ -14,6 +14,12 @@ const mocks = vi.hoisted(() => ({
   cancelSubscription: vi.fn(),
 }));
 
+vi.mock("@/services/api", () => ({
+  default: {
+    get: vi.fn().mockResolvedValue({ data: { csrfToken: "test" } }),
+  },
+}));
+
 vi.mock("@/services/billingService", () => ({
   billingService: {
     getPlans: mocks.getPlans,
@@ -109,7 +115,32 @@ describe("Billing", () => {
     await waitFor(() => {
       expect(mocks.createCheckout).toHaveBeenCalledWith("PRO");
     });
-    expect(await screen.findByText(/payment received — activating your plan/i)).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText(/payment received/i)).toBeInTheDocument();
+    });
+  });
+
+  it("starts checkout for Enterprise (same flow as Pro)", async () => {
+    mocks.createCheckout.mockResolvedValue({
+      orderId: "order_ent",
+      amountPaise: 99900,
+      currency: "INR",
+      keyId: "rzp_test",
+      planCode: "ENTERPRISE",
+      planName: "Enterprise",
+    });
+    const user = userEvent.setup();
+
+    renderPage();
+    await screen.findByText("₹999");
+
+    await user.click(screen.getByRole("button", { name: /upgrade to enterprise/i }));
+
+    // Verify checkout was initiated with the correct plan — the Razorpay
+    // handler fires asynchronously so we only assert the API call here.
+    await waitFor(() => {
+      expect(mocks.createCheckout).toHaveBeenCalledWith("ENTERPRISE");
+    });
   });
 
   it("cancels the subscription with confirmation", async () => {

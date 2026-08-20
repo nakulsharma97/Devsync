@@ -25,6 +25,7 @@ import {
   ChevronRight,
   Command,
   Headphones,
+  Crown,
   type LucideIcon,
 } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
@@ -455,6 +456,21 @@ export default function DashboardLayout() {
               >
                 <Search className="w-[18px] h-[18px] text-muted-foreground" />
               </Button>
+              {/* Upgrade CTA */}
+              <button
+                onClick={() => navigate("/settings/billing")}
+                aria-label={subscription?.planCode && subscription.planCode !== "FREE" ? "Manage subscription" : "Upgrade plan"}
+                className={`inline-flex items-center gap-1.5 h-9 px-3 rounded-lg text-sm font-medium transition-all duration-200 shrink-0 ${
+                  subscription?.planCode && subscription.planCode !== "FREE"
+                    ? "bg-gradient-to-r from-indigo-500/15 to-purple-500/10 text-indigo-600 dark:text-indigo-300 border border-indigo-500/20 hover:border-indigo-500/40 hover:bg-indigo-500/10"
+                    : "bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-md shadow-indigo-500/20 hover:shadow-lg hover:shadow-indigo-500/30 hover:opacity-90"
+                }`}
+              >
+                <Crown className="w-4 h-4 shrink-0" />
+                <span className="hidden sm:inline">
+                  {subscription?.planCode && subscription.planCode !== "FREE" ? "Manage Plan" : "Upgrade"}
+                </span>
+              </button>
               {/* Messages badge */}
               <button
                 onClick={() => navigate("/messages")}
