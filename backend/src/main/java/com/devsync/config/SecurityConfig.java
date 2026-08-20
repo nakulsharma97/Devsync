@@ -94,6 +94,11 @@ public class SecurityConfig {
                         );
                 }
             })
+            // Eagerly load the CSRF token on every request so the XSRF-TOKEN
+            // cookie is always set on the response.  Must run after CsrfFilter
+            // but before the controller so the token attribute is populated.
+            .addFilterAfter(csrfConfig.csrfCookieFilter(),
+                    org.springframework.security.web.csrf.CsrfFilter.class)
             .cors(cors -> {})
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .headers(headers -> {

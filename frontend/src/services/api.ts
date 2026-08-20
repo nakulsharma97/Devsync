@@ -50,6 +50,23 @@ const api = axios.create({
   },
 });
 
+// CSRF initialization: fetch the token before any state-changing requests.
+// The XSRF-TOKEN cookie is set by the CsrfFilter on this GET response.
+// Subsequent POST/PUT/DELETE requests read it from the cookie and attach
+// it as the X-XSRF-TOKEN header.
+let csrfInitialized = false;
+
+async function initCsrf(): Promise<void> {
+  if (csrfInitialized) return;
+  try {
+    await axios.get(`${API_BASE_URL}/auth/csrf`, { withCredentials: true });
+    csrfInitialized = true;
+  } catch {
+    // CSRF init failure — login will fail with 403, which is correct behavior.
+    // Do not bypass CSRF as a fallback.
+  }
+}
+
 /**
  * Read a cookie value by name. Used to extract the CSRF token from the
  * X-XSRF-TOKEN cookie that Spring Security sets on the first response.
@@ -59,13 +76,18 @@ function getCookie(name: string): string | null {
   return match ? decodeURIComponent(match[2]) : null;
 }
 
-// Request interceptor — attach CSRF token for state-changing requests
+// Request interceptor — attach CSRF token for state-changing requests.
+// Uses the SPA pattern: CSRF token is read from the XSRF-TOKEN cookie
+// (set by CsrfFilter on the initCsrf GET response) and sent as a header.
 api.interceptors.request.use(
-  (config) => {
+  async (config) => {
     const method = (config.method || "").toUpperCase();
-    // Spring Security's CsrfTokenRequestAttributeHandler expects the token
-    // in the X-XSRF-TOKEN header (read from the XSRF-TOKEN cookie).
+    // Only attach CSRF for state-changing requests
     if (["POST", "PUT", "PATCH", "DELETE"].includes(method)) {
+      // Ensure CSRF token cookie exists before sending
+      if (!csrfInitialized) {
+        await initCsrf();
+      }
       const csrfToken = getCookie("XSRF-TOKEN");
       if (csrfToken) {
         config.headers["X-XSRF-TOKEN"] = csrfToken;

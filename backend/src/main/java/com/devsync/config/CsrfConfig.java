@@ -1,9 +1,17 @@
 package com.devsync.config;
 
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.web.csrf.CsrfToken;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
-import org.springframework.security.web.csrf.XorCsrfTokenRequestAttributeHandler;
+import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
+import org.springframework.web.filter.OncePerRequestFilter;
+
+import java.io.IOException;
 
 /**
  * CSRF configuration for cookie-based authentication.
@@ -14,8 +22,14 @@ import org.springframework.security.web.csrf.XorCsrfTokenRequestAttributeHandler
  * a cookie ({@code XSRF-TOKEN}) and expects it back in the
  * {@code X-XSRF-TOKEN} header on state-changing requests.
  *
- * <p>The React frontend reads the token from the cookie and attaches it
- * automatically via the axios request interceptor in {@code api.ts}.
+ * <p>We use {@link CsrfTokenRequestAttributeHandler} (not the XOR variant)
+ * because the SPA reads the raw token from the cookie and sends it as a
+ * header. The XOR handler would try to XOR-decode the already-raw token,
+ * producing garbage and causing 403 errors.
+ *
+ * <p>The {@link CsrfCookieFilter} eagerly loads the CSRF token on every
+ * request so the {@code XSRF-TOKEN} cookie is always set on responses —
+ * Spring Security 6.x defers token loading by default.
  */
 @Configuration
 public class CsrfConfig {
@@ -26,10 +40,36 @@ public class CsrfConfig {
     }
 
     @Bean
-    public XorCsrfTokenRequestAttributeHandler csrfTokenRequestHandler() {
-        // XorCsrfTokenRequestAttributeHandler BREACH-protects the CSRF token
-        // by XORing it with a random value in the cookie. The server can
-        // still validate the original token.
-        return new XorCsrfTokenRequestAttributeHandler();
+    public CsrfTokenRequestAttributeHandler csrfTokenRequestHandler() {
+        // Plain CsrfTokenRequestAttributeHandler: the SPA reads the raw
+        // XSRF-TOKEN cookie value and sends it as the X-XSRF-TOKEN header.
+        // The handler compares the raw token directly — no XOR transform.
+        return new CsrfTokenRequestAttributeHandler();
+    }
+
+    /**
+     * Eagerly loads the CSRF token on every request so the {@code XSRF-TOKEN}
+     * cookie is always set on the response. Without this filter, Spring
+     * Security 6.x defers token loading and the cookie is never sent to
+     * the browser.
+     */
+    @Bean
+    public OncePerRequestFilter csrfCookieFilter() {
+        return new OncePerRequestFilter() {
+            @Override
+            protected void doFilterInternal(HttpServletRequest request,
+                                            HttpServletResponse response,
+                                            FilterChain filterChain)
+                    throws ServletException, IOException {
+                CsrfToken csrfToken = (CsrfToken) request.getAttribute(
+                        CsrfToken.class.getName());
+                if (csrfToken != null) {
+                    // Trigger token resolution — this causes the
+                    // CsrfFilter to save the token to the cookie.
+                    csrfToken.getToken();
+                }
+                filterChain.doFilter(request, response);
+            }
+        };
     }
 }

@@ -6,6 +6,8 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
+import org.springframework.security.web.csrf.CsrfToken;
 import org.springframework.web.bind.annotation.RequestBody;
 
 import java.util.Map;
@@ -23,6 +25,32 @@ public class AuthController {
     private final RefreshTokenCookie refreshTokenCookie;
     private final AccessTokenCookie accessTokenCookie;
     private final JwtTokenProvider jwtTokenProvider;
+    private final CookieCsrfTokenRepository csrfTokenRepository;
+
+    /**
+     * Generates a CSRF token and returns it. The XSRF-TOKEN cookie is also set
+     * by the CsrfFilter on the response. The frontend must call this endpoint
+     * before making any state-changing (POST/PUT/DELETE) request so the
+     * XSRF-TOKEN cookie exists and can be read by the axios interceptor.
+     *
+     * This endpoint is stateless-safe: it generates a fresh token each time and
+     * stores it in the CSRF token repository (backed by the HTTP session).
+     * Subsequent requests reuse the same token until the session expires.
+     */
+    @GetMapping("/csrf")
+    public ResponseEntity<Map<String, String>> getCsrfToken(HttpServletRequest request,
+                                                            HttpServletResponse response) {
+        // The CsrfFilter has already loaded or generated the CSRF token and
+        // stored it as a request attribute.  We also explicitly save it to
+        // the response so the XSRF-TOKEN cookie is always set — including on
+        // the very first request before any cookie exists.
+        CsrfToken csrfToken = (CsrfToken) request.getAttribute(CsrfToken.class.getName());
+        if (csrfToken == null) {
+            csrfToken = csrfTokenRepository.generateToken(request);
+        }
+        csrfTokenRepository.saveToken(csrfToken, request, response);
+        return ResponseEntity.ok(Map.of("csrfToken", csrfToken.getToken()));
+    }
 
     @PostMapping("/register")
     public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request,

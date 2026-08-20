@@ -1,6 +1,7 @@
 package com.devsync.auth;
 
 import com.devsync.auth.dto.*;
+import com.devsync.auth.AccessTokenCookie;
 import com.devsync.common.GlobalExceptionHandler;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
@@ -36,6 +37,9 @@ class AuthControllerTest {
     @Mock private AuthService authService;
     @Mock private AccountRecoveryService accountRecoveryService;
     @Mock private RefreshTokenCookie refreshTokenCookie;
+    @Mock private AccessTokenCookie accessTokenCookie;
+    @Mock private JwtTokenProvider jwtTokenProvider;
+    @Mock private org.springframework.security.web.csrf.CookieCsrfTokenRepository csrfTokenRepository;
     @InjectMocks private AuthController authController;
 
     @BeforeEach
@@ -48,6 +52,14 @@ class AuthControllerTest {
         Cookie cleared = new Cookie(RefreshTokenCookie.NAME, "");
         cleared.setMaxAge(0);
         lenient().when(refreshTokenCookie.clear()).thenReturn(cleared);
+        Cookie accessHttpOnly = new Cookie(AccessTokenCookie.NAME, "at-cookie");
+        accessHttpOnly.setHttpOnly(true);
+        lenient().when(accessTokenCookie.create(anyString())).thenReturn(accessHttpOnly);
+        Cookie accessCleared = new Cookie(AccessTokenCookie.NAME, "");
+        accessCleared.setMaxAge(0);
+        lenient().when(accessTokenCookie.clear()).thenReturn(accessCleared);
+        lenient().when(csrfTokenRepository.generateToken(any())).thenReturn(
+                new org.springframework.security.web.csrf.DefaultCsrfToken("X-XSRF-TOKEN", "_csrf", "test-csrf-token"));
         mockMvc = MockMvcBuilders.standaloneSetup(authController)
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .setCustomArgumentResolvers(new org.springframework.security.web.method.annotation.AuthenticationPrincipalArgumentResolver())
@@ -75,13 +87,15 @@ class AuthControllerTest {
                 .with(SecurityMockMvcRequestPostProcessors.csrf())
                 .with(SecurityMockMvcRequestPostProcessors.user("test@test.com").roles("USER")))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.accessToken").value("at"))
+                .andExpect(jsonPath("$.accessToken").doesNotExist())
                 .andExpect(jsonPath("$.user.email").value("test@test.com"))
-                // The refresh token must never appear in the JSON body — it lives
-                // in the HttpOnly cookie only.
+                // Neither token appears in the JSON body — both live in
+                // HttpOnly cookies only.
                 .andExpect(jsonPath("$.refreshToken").doesNotExist())
                 .andExpect(cookie().exists(RefreshTokenCookie.NAME))
-                .andExpect(cookie().httpOnly(RefreshTokenCookie.NAME, true));
+                .andExpect(cookie().httpOnly(RefreshTokenCookie.NAME, true))
+                .andExpect(cookie().exists(AccessTokenCookie.NAME))
+                .andExpect(cookie().httpOnly(AccessTokenCookie.NAME, true));
     }
 
     @Test
@@ -124,9 +138,10 @@ class AuthControllerTest {
                 .with(SecurityMockMvcRequestPostProcessors.csrf())
                 .with(SecurityMockMvcRequestPostProcessors.user("test@test.com").roles("USER")))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.accessToken").value("at"))
+                .andExpect(jsonPath("$.accessToken").doesNotExist())
                 .andExpect(jsonPath("$.refreshToken").doesNotExist())
-                .andExpect(cookie().exists(RefreshTokenCookie.NAME));
+                .andExpect(cookie().exists(RefreshTokenCookie.NAME))
+                .andExpect(cookie().exists(AccessTokenCookie.NAME));
     }
 
     @Test
@@ -152,9 +167,10 @@ class AuthControllerTest {
                 .with(SecurityMockMvcRequestPostProcessors.csrf())
                 .with(SecurityMockMvcRequestPostProcessors.user("test@test.com").roles("USER")))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.accessToken").value("at"))
+                .andExpect(jsonPath("$.accessToken").doesNotExist())
                 .andExpect(jsonPath("$.refreshToken").doesNotExist())
-                .andExpect(cookie().exists(RefreshTokenCookie.NAME));
+                .andExpect(cookie().exists(RefreshTokenCookie.NAME))
+                .andExpect(cookie().exists(AccessTokenCookie.NAME));
 
         // Rotation must have been performed with the cookie value.
         verify(authService).refreshToken(argThat(r -> "cookie-refresh-token".equals(r.getRefreshToken())),
@@ -185,6 +201,9 @@ class AuthControllerTest {
         jakarta.servlet.http.Cookie cookie = servletResponse.getCookie(RefreshTokenCookie.NAME);
         assertThat(cookie).isNotNull();
         assertThat(cookie.getMaxAge()).isZero();
+        jakarta.servlet.http.Cookie accessCookie = servletResponse.getCookie(AccessTokenCookie.NAME);
+        assertThat(accessCookie).isNotNull();
+        assertThat(accessCookie.getMaxAge()).isZero();
     }
 
     @Test
@@ -208,8 +227,9 @@ class AuthControllerTest {
                 .with(SecurityMockMvcRequestPostProcessors.csrf())
                 .with(SecurityMockMvcRequestPostProcessors.user("test@test.com").roles("USER")))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.accessToken").value("at"))
-                .andExpect(cookie().exists(RefreshTokenCookie.NAME));
+                .andExpect(jsonPath("$.accessToken").doesNotExist())
+                .andExpect(cookie().exists(RefreshTokenCookie.NAME))
+                .andExpect(cookie().exists(AccessTokenCookie.NAME));
     }
 
     @Test
