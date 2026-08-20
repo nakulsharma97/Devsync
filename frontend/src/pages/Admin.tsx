@@ -9,6 +9,7 @@ import {
   type AdminPost,
   type AdminUser,
   type PlatformStats,
+  type AdminBillingStats,
 } from "@/services/adminService";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -23,12 +24,12 @@ export default function Admin() {
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [dashboard, setDashboard] = useState<AdminDashboard | null>(null);
   const [stats, setStats] = useState<PlatformStats | null>(null);
+  const [billingStats, setBillingStats] = useState<AdminBillingStats | null>(null);
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [posts, setPosts] = useState<AdminPost[]>([]);
   const [tab, setTab] = useState<"overview" | "users" | "posts">("overview");
   const [loading, setLoading] = useState(true);
   const [deletingPost, setDeletingPost] = useState<string | null>(null);
-  const [changingRole, setChangingRole] = useState<string | null>(null);
   const [togglingBlock, setTogglingBlock] = useState<string | null>(null);
 
   useEffect(() => {
@@ -37,16 +38,18 @@ export default function Admin() {
         const admin = await adminService.isAdmin();
         setIsAdmin(admin);
         if (admin) {
-          const [dash, platformStats, allUsers, allPosts] = await Promise.all([
+          const [dash, platformStats, allUsers, allPosts, bStats] = await Promise.all([
             adminService.getDashboard(),
             adminService.getPlatformStats(),
             adminService.getAllUsers(),
             adminService.getAllPosts(),
+            adminService.getBillingStats(),
           ]);
           setDashboard(dash);
           setStats(platformStats);
           setUsers(allUsers);
           setPosts(allPosts);
+          setBillingStats(bStats);
         }
       } catch {
         setIsAdmin(false);
@@ -70,18 +73,6 @@ export default function Admin() {
     }
   };
 
-  const handleRoleChange = async (userId: string, newRole: string) => {
-    setChangingRole(userId);
-    try {
-      const updated = await adminService.updateUserRole(userId, newRole);
-      setUsers((prev) => prev.map((u) => (u.id === userId ? updated : u)));
-      toast.success(`Role updated to ${newRole}`);
-    } catch {
-      toast.error("Failed to update role");
-    } finally {
-      setChangingRole(null);
-    }
-  };
 
   const handleToggleBlock = async (user: AdminUser) => {
     setTogglingBlock(user.id);
@@ -313,6 +304,36 @@ export default function Admin() {
         </Card>
       )}
 
+      {tab === "overview" && billingStats && (
+        <Card className="border-border/50">
+          <CardHeader className="pb-4"><CardTitle className="text-sm font-semibold text-foreground">Billing Overview</CardTitle></CardHeader>
+          <CardContent>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              <div className="border border-border/50 rounded-lg p-4">
+                <p className="text-xs text-muted-foreground mb-1">Total Revenue</p>
+                <p className="text-2xl font-bold text-foreground">{`₹${(billingStats.totalRevenuePaise / 100).toLocaleString("en-IN")}`}</p>
+                <p className="text-[10px] text-muted-foreground mt-1">This month: {`₹${(billingStats.revenueThisMonthPaise / 100).toLocaleString("en-IN")}`}</p>
+              </div>
+              <div className="border border-border/50 rounded-lg p-4">
+                <p className="text-xs text-muted-foreground mb-1">Active Subscriptions</p>
+                <p className="text-2xl font-bold text-foreground">{billingStats.activeSubscriptions}</p>
+                <p className="text-[10px] text-muted-foreground mt-1">{billingStats.proUsers} Pro · {billingStats.enterpriseUsers} Enterprise</p>
+              </div>
+              <div className="border border-border/50 rounded-lg p-4">
+                <p className="text-xs text-muted-foreground mb-1">Free Users</p>
+                <p className="text-2xl font-bold text-foreground">{billingStats.freeUsers}</p>
+                <p className="text-[10px] text-muted-foreground mt-1">{billingStats.cancelledSubscriptions} cancelled · {billingStats.expiredSubscriptions} expired</p>
+              </div>
+              <div className="border border-border/50 rounded-lg p-4">
+                <p className="text-xs text-muted-foreground mb-1">Payments</p>
+                <p className="text-2xl font-bold text-foreground">{billingStats.successfulPayments}</p>
+                <p className="text-[10px] text-muted-foreground mt-1">{billingStats.failedPayments} failed · {billingStats.refundedPayments} refunded</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {tab === "users" && (
         <div className="space-y-2">
           {users.length === 0 ? (
@@ -332,15 +353,6 @@ export default function Admin() {
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
                   {roleBadge(user.role)}
-                  <select
-                    value={user.role}
-                    onChange={(e) => handleRoleChange(user.id, e.target.value)}
-                    disabled={changingRole === user.id}
-                    className="text-xs bg-background border border-border/50 rounded-lg px-2 py-1 text-foreground"
-                  >
-                    <option value="USER">User</option>
-                    <option value="ADMIN">Admin</option>
-                  </select>
                   <Button
                     size="sm"
                     variant="ghost"
@@ -351,7 +363,6 @@ export default function Admin() {
                     {togglingBlock === user.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Ban className="w-3.5 h-3.5" />}
                     <span className="ml-1">{user.blocked ? "Unblock" : "Block"}</span>
                   </Button>
-                  {changingRole === user.id && <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />}
                 </div>
               </div>
             ))

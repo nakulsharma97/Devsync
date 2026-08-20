@@ -33,4 +33,10 @@ public interface SubscriptionRepository extends JpaRepository<Subscription, Stri
                                    @Param("planCode") String planCode,
                                    @Param("status") SubscriptionStatus status,
                                    Pageable pageable);
+
+    long countByStatus(SubscriptionStatus status);
+
+    long countByPlanCode(String planCode);
+
+    long countByStatusIn(List<SubscriptionStatus> statuses);
 }

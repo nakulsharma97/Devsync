@@ -57,18 +57,13 @@ const api = axios.create({
 let csrfInitialized = false;
 
 async function initCsrf(): Promise<void> {
-  // Always re-fetch if the cookie is missing — the flag alone isn't enough
-  // because the cookie can be rotated/expired while the flag stays true.
-  if (csrfInitialized && getCookie("XSRF-TOKEN")) return;
   try {
     await axios.get(`${API_BASE_URL}/auth/csrf`, { withCredentials: true });
     csrfInitialized = true;
   } catch {
     // CSRF init failure — the POST will fail with 403, which is correct behavior.
-    // Do not bypass CSRF as a fallback.
   }
 }
-
 /**
  * Read a cookie value by name. Used to extract the CSRF token from the
  * X-XSRF-TOKEN cookie that Spring Security sets on the first response.
@@ -84,10 +79,11 @@ function getCookie(name: string): string | null {
 api.interceptors.request.use(
   async (config) => {
     const method = (config.method || "").toUpperCase();
-    // Only attach CSRF for state-changing requests
     if (["POST", "PUT", "PATCH", "DELETE"].includes(method)) {
-      // Ensure CSRF token cookie exists before sending
-      if (!csrfInitialized) {
+      // Always verify the cookie is actually present, not just the flag —
+      // the flag can be stale (true) while the session-only XSRF-TOKEN
+      // cookie has been cleared (browser restart, privacy settings, etc).
+      if (!getCookie("XSRF-TOKEN")) {
         await initCsrf();
       }
       const csrfToken = getCookie("XSRF-TOKEN");

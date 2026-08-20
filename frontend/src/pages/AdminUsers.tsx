@@ -226,19 +226,6 @@ export default function AdminUsers() {
     }
   };
 
-  const handleRoleChange = async (userId: string, newRole: string) => {
-    setBusyId(userId);
-    try {
-      await adminService.updateUserRole(userId, newRole);
-      toast.success(`Role updated to ${newRole}`);
-      fetchUsers();
-    } catch (err) {
-      toast.error(getErrorMessage(err, "Failed to update role"));
-    } finally {
-      setBusyId(null);
-    }
-  };
-
   const confirmBlock = async () => {
     if (!blockTarget) return;
     setBusyId(blockTarget.id);
@@ -504,19 +491,6 @@ export default function AdminUsers() {
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center justify-end gap-1.5">
-                          <Select
-                            value={u.role}
-                            onValueChange={(v) => handleRoleChange(u.id, v)}
-                            disabled={busyId === u.id || isSelf(u.id) || u.status === "DELETED"}
-                          >
-                            <SelectTrigger size="sm" className="w-[92px]" aria-label="Change role">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="USER">User</SelectItem>
-                              <SelectItem value="ADMIN">Admin</SelectItem>
-                            </SelectContent>
-                          </Select>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button size="sm" variant="ghost" className="px-2 text-muted-foreground hover:text-foreground">

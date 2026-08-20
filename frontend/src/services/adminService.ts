@@ -721,6 +721,11 @@ export const adminService = {
     await api.post(`/admin/billing/subscriptions/${subscriptionId}/cancel`);
   },
 
+  async getBillingStats(): Promise<AdminBillingStats> {
+    const res = await api.get("/admin/billing/stats");
+    return res.data;
+  },
+
   // ---------- Support Tickets ----------
 
   async getSupportTickets(query: {
@@ -778,6 +783,24 @@ export interface AdminSubscriptionListItem {
   currentPeriodEnd?: string | null;
   cancelAtPeriodEnd: boolean;
   createdAt: string;
+}
+
+export interface AdminBillingStats {
+  totalSubscriptions: number;
+  activeSubscriptions: number;
+  cancelledSubscriptions: number;
+  expiredSubscriptions: number;
+  pastDueSubscriptions: number;
+  freeUsers: number;
+  proUsers: number;
+  enterpriseUsers: number;
+  totalPayments: number;
+  successfulPayments: number;
+  failedPayments: number;
+  refundedPayments: number;
+  totalRevenuePaise: number;
+  revenueThisMonthPaise: number;
+  revenueThisYearPaise: number;
 }
 
 // ---------- Support Tickets ----------

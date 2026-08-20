@@ -1,5 +1,6 @@
 package com.devsync.billing;
 
+import com.devsync.billing.dto.AdminBillingStats;
 import com.devsync.billing.dto.AdminSubscriptionListItem;
 import com.devsync.billing.dto.SubscriptionResponse;
 import com.devsync.common.PageResponse;
@@ -34,5 +35,10 @@ public class AdminBillingController {
     public ResponseEntity<SubscriptionResponse> cancel(@PathVariable String id,
                                                        @AuthenticationPrincipal UserDetails admin) {
         return ResponseEntity.ok(billingService.adminCancelSubscription(id, admin.getUsername()));
+    }
+
+    @GetMapping("/stats")
+    public ResponseEntity<AdminBillingStats> stats() {
+        return ResponseEntity.ok(billingService.getAdminBillingStats());
     }
 }

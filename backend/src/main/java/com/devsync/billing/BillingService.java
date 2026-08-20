@@ -85,6 +85,10 @@ public class BillingService {
         RazorpayClient.Order order;
         try {
             order = razorpayClient.createOrder(amountPaise, CURRENCY, "devsync_" + userId);
+        } catch (PaymentNotConfiguredException e) {
+            // Let this specific, already-mapped exception (→ 503) pass through
+            // untouched instead of being swallowed into a generic 500.
+            throw e;
         } catch (Exception e) {
             log.error("Checkout order creation failed for user {}", userId, e);
             throw new IllegalStateException("Unable to start checkout. Please try again.");
@@ -513,6 +517,46 @@ public class BillingService {
                         .limit(plan.getMembersPerProject())
                         .build())
                 .advancedAnalytics(plan.isAdvancedAnalytics())
+                .build();
+    }
+
+    @Transactional(readOnly = true)
+    public AdminBillingStats getAdminBillingStats() {
+        long active = subscriptionRepository.countByStatus(SubscriptionStatus.ACTIVE);
+        long cancelled = subscriptionRepository.countByStatus(SubscriptionStatus.CANCELLED);
+        long expired = subscriptionRepository.countByStatus(SubscriptionStatus.EXPIRED);
+        long pastDue = subscriptionRepository.countByStatus(SubscriptionStatus.PAST_DUE);
+        long pro = subscriptionRepository.countByPlanCode(PlanCode.PRO);
+        long enterprise = subscriptionRepository.countByPlanCode(PlanCode.ENTERPRISE);
+        long totalSubs = active + cancelled + expired + pastDue
+                + subscriptionRepository.countByStatus(SubscriptionStatus.TRIALING)
+                + subscriptionRepository.countByStatus(SubscriptionStatus.INCOMPLETE);
+        long totalPayments = paymentRepository.count();
+        long successPayments = paymentRepository.countByStatus(PaymentStatus.SUCCESS);
+        long failedPayments = paymentRepository.countByStatus(PaymentStatus.FAILED);
+        long refundedPayments = paymentRepository.countByStatus(PaymentStatus.REFUNDED);
+        long totalRevenue = paymentRepository.sumSuccessfulAmountSince(Instant.EPOCH);
+        Instant monthStart = java.time.YearMonth.now().atDay(1).atStartOfDay(java.time.ZoneId.systemDefault()).toInstant();
+        Instant yearStart = java.time.LocalDate.ofYearDay(java.time.Year.now().getValue(), 1).atStartOfDay(java.time.ZoneId.systemDefault()).toInstant();
+        long revenueMonth = paymentRepository.sumSuccessfulAmountSince(monthStart);
+        long revenueYear = paymentRepository.sumSuccessfulAmountSince(yearStart);
+
+        return AdminBillingStats.builder()
+                .totalSubscriptions(totalSubs)
+                .activeSubscriptions(active)
+                .cancelledSubscriptions(cancelled)
+                .expiredSubscriptions(expired)
+                .pastDueSubscriptions(pastDue)
+                .freeUsers(userRepository.count() - pro - enterprise)
+                .proUsers(pro)
+                .enterpriseUsers(enterprise)
+                .totalPayments(totalPayments)
+                .successfulPayments(successPayments)
+                .failedPayments(failedPayments)
+                .refundedPayments(refundedPayments)
+                .totalRevenuePaise(totalRevenue)
+                .revenueThisMonthPaise(revenueMonth)
+                .revenueThisYearPaise(revenueYear)
                 .build();
     }
 
