@@ -12,7 +12,6 @@ interface AuthContextType {
   isAdmin: boolean;
   error: string | null;
   login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string, fullName: string, username?: string) => Promise<void>;
   logout: () => void;
   clearError: () => void;
   forgotPassword: (email: string) => Promise<void>;
@@ -119,23 +118,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const register = useCallback(async (email: string, password: string, fullName: string, username?: string) => {
-    setError(null);
-    setIsLoading(true);
-    try {
-      const response = await authService.register({ email, password, fullName, username });
-      authService.saveSession(response);
-      setUser(response.user);
-      // Role-aware redirect is handled by Auth.tsx useEffect — do NOT
-      // hardcode window.location.href here.
-    } catch (err) {
-      setError(getErrorMessage(err, "Registration failed"));
-      throw err;
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
   const logout = useCallback(() => {
     // Revoke the refresh token server-side (and clear the cookie) before
     // dropping the local session — a stolen refresh token must not outlive logout.
@@ -156,7 +138,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isAdmin: user?.role === "ADMIN",
       error,
       login,
-      register,
       logout,
       clearError,
       forgotPassword,
@@ -168,7 +149,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isLoading,
       error,
       login,
-      register,
       logout,
       clearError,
       forgotPassword,

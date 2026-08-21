@@ -8,7 +8,6 @@ const authMocks = vi.hoisted(() => ({
   clearSession: vi.fn(),
   saveSession: vi.fn(),
   login: vi.fn(),
-  register: vi.fn(),
   forgotPassword: vi.fn(),
   loginWithOAuth: vi.fn(),
 }));
@@ -25,7 +24,6 @@ vi.mock("@/services/authService", () => ({
     clearSession: authMocks.clearSession,
     saveSession: authMocks.saveSession,
     login: authMocks.login,
-    register: authMocks.register,
     forgotPassword: authMocks.forgotPassword,
     loginWithOAuth: authMocks.loginWithOAuth,
   },

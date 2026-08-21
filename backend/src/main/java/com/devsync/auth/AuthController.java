@@ -93,15 +93,6 @@ public class AuthController {
         return ResponseEntity.ok(Map.of("message", "Verification code resent"));
     }
 
-    @PostMapping("/register")
-    public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request,
-                                                 HttpServletRequest servletRequest,
-                                                 HttpServletResponse servletResponse) {
-        AuthResponse response = authService.register(request, clientIp(servletRequest),
-                servletRequest.getHeader("User-Agent"));
-        return withRefreshCookie(response, servletResponse);
-    }
-
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request,
                                               HttpServletRequest servletRequest,

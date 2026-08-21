@@ -18,6 +18,13 @@ vi.mock("@/hooks/useApi", () => ({
   useApi: mocks.useApi,
 }));
 
+vi.mock("@/contexts/SubscriptionContext", () => ({
+  useSubscription: () => ({
+    subscription: { planCode: "FREE", planName: "Free", priceInr: 0, status: "active", cancelAtPeriodEnd: false },
+    refreshSubscription: vi.fn(),
+  }),
+}));
+
 // Return the target immediately — keeps assertions deterministic without rAF.
 vi.mock("@/hooks/useCountUp", () => ({
   useCountUp: (target: number) => String(target),

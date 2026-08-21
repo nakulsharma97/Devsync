@@ -30,7 +30,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
-import { billingService, type SubscriptionInfo } from "@/services/billingService";
+import { useSubscription } from "@/contexts/SubscriptionContext";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import { WifiOff, Check } from "lucide-react";
@@ -170,7 +170,7 @@ export default function DashboardLayout() {
   const isOnline = useOnlineStatus();
   const [wasOffline, setWasOffline] = useState(false);
   const [showReconnected, setShowReconnected] = useState(false);
-  const [subscription, setSubscription] = useState<SubscriptionInfo | null>(null);
+  const { subscription } = useSubscription();
 
   // Track transitions: when coming back online, show a brief confirmation
   useEffect(() => {
@@ -188,10 +188,7 @@ export default function DashboardLayout() {
 
   const closeSidebar = () => setSidebarOpen(false);
 
-  // Fetch subscription for plan badge
-  useEffect(() => {
-    billingService.getSubscription().then(setSubscription).catch(() => {});
-  }, []);
+
 
   // Unread badges for Notifications + Messages
   const fetchUnreadCounts = useCallback(async () => {

@@ -2,10 +2,12 @@ package com.devsync.auth;
 
 import com.devsync.auth.entity.PendingRegistration;
 import com.devsync.auth.repository.PendingRegistrationRepository;
+import com.devsync.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,6 +24,7 @@ import java.util.Optional;
 public class PendingRegistrationService {
 
     private final PendingRegistrationRepository pendingRegistrationRepository;
+    private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
     private final SecureRandom random = new SecureRandom();
@@ -39,6 +42,15 @@ public class PendingRegistrationService {
      */
     @Transactional
     public void initiateRegistration(String email, String password, String fullName, String username) {
+        // Reject immediately if the email already has a real account — no OTP sent.
+        if (userRepository.countByEmail(email) > 0) {
+            throw new AuthException("Email already in use");
+        }
+        // Reject immediately if the username is already taken.
+        if (username != null && !username.isBlank() && userRepository.countByUsername(username) > 0) {
+            throw new AuthException("Username already taken");
+        }
+
         // Check if email already exists in pending registrations
         Optional<PendingRegistration> existing = pendingRegistrationRepository.findByEmail(email);
         if (existing.isPresent()) {
@@ -168,6 +180,7 @@ public class PendingRegistrationService {
     /**
      * Clean up expired pending registrations.
      */
+    @Scheduled(fixedRate = 3_600_000) // every hour
     @Transactional
     public void cleanupExpiredRegistrations() {
         pendingRegistrationRepository.findAll().stream()

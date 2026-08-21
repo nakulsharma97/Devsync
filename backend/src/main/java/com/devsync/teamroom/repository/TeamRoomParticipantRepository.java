@@ -12,4 +12,9 @@ public interface TeamRoomParticipantRepository extends JpaRepository<TeamRoomPar
     Optional<TeamRoomParticipant> findByRoomIdAndUserId(String roomId, String userId);
     boolean existsByRoomIdAndUserId(String roomId, String userId);
     long countByRoomId(String roomId);
+
+    /** (roomId, COUNT) — participant count per room for a batch of rooms. */
+    @org.springframework.data.jpa.repository.Query(
+        "SELECT p.roomId, COUNT(p) FROM TeamRoomParticipant p WHERE p.roomId IN :roomIds GROUP BY p.roomId")
+    java.util.List<Object[]> countByRoomIdInGrouped(@org.springframework.data.repository.query.Param("roomIds") java.util.Collection<String> roomIds);
 }

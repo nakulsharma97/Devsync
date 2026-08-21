@@ -34,49 +34,6 @@ public class AuthService {
     private final AuditLogService auditLogService;
 
     @Transactional
-    public AuthResponse register(RegisterRequest request) {
-        return register(request, null, null);
-    }
-
-    @Transactional
-    public AuthResponse register(RegisterRequest request, String ipAddress, String userAgent) {
-        if (userRepository.countByEmail(request.getEmail()) > 0) {
-            throw new AuthException("Email already in use", HttpStatus.CONFLICT);
-        }
-
-        if (request.getUsername() != null && userRepository.countByUsername(request.getUsername()) > 0) {
-            throw new AuthException("Username already taken", HttpStatus.CONFLICT);
-        }
-
-        String username = request.getUsername();
-        if (username == null || username.isBlank()) {
-            username = request.getEmail().split("@")[0];
-            String baseUsername = username;
-            int suffix = 1;
-            while (userRepository.countByUsername(username) > 0) {
-                username = baseUsername + suffix++;
-            }
-        }
-
-        User user = User.builder()
-                .email(request.getEmail())
-                .password(passwordEncoder.encode(request.getPassword()))
-                .fullName(request.getFullName())
-                .username(username)
-                .authProvider("email")
-                .build();
-
-        user = userRepository.save(user);
-
-        String accessToken = jwtTokenProvider.generateAccessToken(user.getId(), user.getEmail());
-        String refreshToken = refreshTokenService.issue(user.getId(), ipAddress, userAgent);
-
-        auditLogService.record(user.getId(), user.getId(), AuditAction.REGISTER, AuditStatus.SUCCESS,
-                "New account registered: " + user.getEmail());
-        return buildAuthResponse(user, accessToken, refreshToken);
-    }
-
-    @Transactional
     public AuthResponse registerWithHashedPassword(String email, String hashedPassword, String fullName, String username, String ipAddress, String userAgent) {
         if (userRepository.countByEmail(email) > 0) {
             throw new AuthException("Email already in use", HttpStatus.CONFLICT);

@@ -78,7 +78,9 @@ public class RateLimitingFilter extends OncePerRequestFilter {
         // Include: login, register, OTP send/verify, password reset, email verify
         // Exclude: csrf, me, refresh, logout, ws-token (session/cookie operations)
         return path.equals("/api/auth/login")
-                || path.equals("/api/auth/register")
+                || path.equals("/api/auth/register/initiate")
+                || path.equals("/api/auth/register/verify")
+                || path.equals("/api/auth/register/resend")
                 || path.equals("/api/auth/otp/send")
                 || path.equals("/api/auth/otp/verify")
                 || path.equals("/api/auth/forgot-password")

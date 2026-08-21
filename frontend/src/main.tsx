@@ -25,6 +25,8 @@ import DashboardLayout from "@/components/DashboardLayout";
 import AdminLayout from "@/components/AdminLayout";
 import PageTransition from "@/components/PageTransition";
 import { RouteSkeleton } from "@/components/Skeletons";
+import ScrollToTop from "@/components/ScrollToTop";
+import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
 import Landing from "./pages/Landing";
 import AuthPage from "./pages/Auth";
 import ForgotPassword from "./pages/ForgotPassword";
@@ -71,6 +73,7 @@ function App() {
   return (
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
       <BrowserRouter>
+        <ScrollToTop />
         <AuthProvider>
           <PageTransition>
           <Suspense fallback={<RouteSkeleton />}>
@@ -84,7 +87,9 @@ function App() {
             <Route
               element={
                 <ProtectedRoute>
-                  <DashboardLayout />
+                  <SubscriptionProvider>
+                    <DashboardLayout />
+                  </SubscriptionProvider>
                 </ProtectedRoute>
               }
             >

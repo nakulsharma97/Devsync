@@ -15,6 +15,13 @@ vi.mock("@/contexts/AuthContext", () => ({
   useAuth: mocks.useAuth,
 }));
 
+vi.mock("@/contexts/SubscriptionContext", () => ({
+  useSubscription: () => ({
+    subscription: { planCode: "FREE", planName: "Free", priceInr: 0, status: "active", cancelAtPeriodEnd: false },
+    refreshSubscription: vi.fn(),
+  }),
+}));
+
 vi.mock("@/services/notificationService", () => ({
   notificationService: { getUnreadCount: mocks.getUnreadCount },
 }));

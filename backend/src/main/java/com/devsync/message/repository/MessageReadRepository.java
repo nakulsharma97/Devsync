@@ -33,4 +33,15 @@ public interface MessageReadRepository extends JpaRepository<MessageRead, String
     long countUnreadRoomsForUser(@Param("userId") String userId);
 
     List<MessageRead> findByMessageIdIn(java.util.Collection<String> messageIds);
+
+    /**
+     * (roomId, COUNT) — unread message count per room for a user across a batch of room ids.
+     * Single grouped query instead of one call per room.
+     */
+    @Query("SELECT m.roomId, COUNT(m) FROM Message m " +
+            "WHERE m.roomId IN :roomIds AND m.senderId <> :userId AND m.hidden = false " +
+            "AND NOT EXISTS (SELECT 1 FROM MessageRead r WHERE r.messageId = m.id AND r.userId = :userId) " +
+            "GROUP BY m.roomId")
+    List<Object[]> countUnreadByRoomsAndUser(@Param("roomIds") java.util.Collection<String> roomIds,
+                                            @Param("userId") String userId);
 }

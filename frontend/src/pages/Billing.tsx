@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Check, Crown, Loader2, PartyPopper, RefreshCw, X } from "lucide-react";
-import { billingService, type Plan, type SubscriptionInfo, type Usage, type PaymentRecord } from "@/services/billingService";
+import { billingService, type Plan, type Usage, type PaymentRecord } from "@/services/billingService";
+import { useSubscription } from "@/contexts/SubscriptionContext";
 import { Skeleton } from "@/components/Skeletons";
 import api from "@/services/api";
 
@@ -60,7 +61,7 @@ function UsageBar({ label, used, limit, unit }: { label: string; used: number; l
 
 export default function Billing() {
   const [plans, setPlans] = useState<Plan[]>([]);
-  const [subscription, setSubscription] = useState<SubscriptionInfo | null>(null);
+  const { subscription, refreshSubscription } = useSubscription();
   const [usage, setUsage] = useState<Usage | null>(null);
   const [payments, setPayments] = useState<PaymentRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -69,13 +70,12 @@ export default function Billing() {
 
   const refresh = useCallback(async () => {
     try {
-      const [sub, usg, pays, planList] = await Promise.allSettled([
-        billingService.getSubscription(),
+      const [usg, pays, planList] = await Promise.allSettled([
         billingService.getUsage(),
         billingService.getPayments(),
         billingService.getPlans(),
       ]);
-      if (sub.status === "fulfilled") setSubscription(sub.value);
+      await refreshSubscription();
       if (usg.status === "fulfilled") setUsage(usg.value);
       if (pays.status === "fulfilled") setPayments(pays.value);
       if (planList.status === "fulfilled") setPlans(planList.value);
@@ -84,7 +84,7 @@ export default function Billing() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [refreshSubscription]);
 
   useEffect(() => {
     // Eagerly load the CSRF token so it's available when the user clicks
@@ -115,11 +115,22 @@ export default function Billing() {
           name: "DevSync",
           description: `${plan.name} plan`,
           theme: { color: "#0f766e" },
-          handler: () => {
+          handler: async () => {
             toast.success("Payment received — activating your plan");
-            // The backend webhook verifies the payment and activates the plan;
-            // polling just reflects server truth.
-            setTimeout(() => refresh(), 2000);
+            // The backend webhook verifies the payment and activates the plan.
+            // Poll with retries to wait for the webhook to process.
+            const currentPlan = subscription?.planCode;
+            for (let attempt = 0; attempt < 3; attempt++) {
+              await new Promise((r) => setTimeout(r, 2000 + attempt * 2000));
+              const fresh = await refreshSubscription();
+              if (fresh && fresh.planCode !== currentPlan) {
+                toast.success(`Your ${fresh.planName} plan is now active!`);
+                break;
+              }
+              if (attempt === 2) {
+                toast.info("Your payment was received — it may take a minute to activate. Refresh if it doesn't update shortly.");
+              }
+            }
           },
           modal: {
             ondismiss: () => setCheckoutLoading(null),
@@ -144,19 +155,19 @@ export default function Billing() {
         setCheckoutLoading(null);
       }
     },
-    [currentPlanCode, refresh]
+    [currentPlanCode, refresh, refreshSubscription, subscription]
   );
 
   const cancelSubscription = useCallback(async () => {
     try {
-      const updated = await billingService.cancelSubscription();
-      setSubscription(updated);
+      await billingService.cancelSubscription();
+      await refreshSubscription();
       setCancelOpen(false);
       toast.success("Subscription cancelled — you keep Pro until the period ends");
     } catch (err: any) {
       toast.error(err?.response?.data?.message || "Could not cancel the subscription");
     }
-  }, []);
+  }, [refreshSubscription]);
 
   const planFeatures = useMemo(
     () => (plan: Plan) => {

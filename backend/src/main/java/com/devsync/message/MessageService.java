@@ -414,12 +414,29 @@ public class MessageService {
                 : projectRepository.findAllById(roomProjectIds).stream()
                         .collect(Collectors.toMap(Project::getId, Project::getName, (a, b) -> a));
 
+        // Batch-load last message, participant count, and unread count for all rooms at once.
+        Set<String> roomIds = rooms.stream().map(TeamRoom::getId).collect(Collectors.toSet());
+
+        // Last message per room (single query)
+        Map<String, Object[]> lastMsgByRoom = roomIds.isEmpty() ? Collections.emptyMap()
+                : messageRepository.findLatestByRoomIds(roomIds).stream()
+                        .collect(Collectors.toMap(row -> (String) row[0], row -> row, (a, b) -> a));
+
+        // Participant count per room (single query)
+        Map<String, Long> participantCountsByRoom = roomIds.isEmpty() ? Collections.emptyMap()
+                : participantRepository.countByRoomIdInGrouped(roomIds).stream()
+                        .collect(Collectors.toMap(row -> (String) row[0], row -> (Long) row[1], (a, b) -> a));
+
+        // Unread count per room (single query)
+        Map<String, Long> unreadByRoom = roomIds.isEmpty() ? Collections.emptyMap()
+                : messageReadRepository.countUnreadByRoomsAndUser(roomIds, userId).stream()
+                        .collect(Collectors.toMap(row -> (String) row[0], row -> (Long) row[1], (a, b) -> a));
+
         for (TeamRoom room : rooms) {
-            // DESC + limit 1 gives the MOST recent message (preview).
-            List<Message> roomMsgs = messageRepository.findByRoomIdOrderByCreatedAtDesc(
-                    room.getId(), PageRequest.of(0, 1));
-            Message lastMsg = roomMsgs.isEmpty() ? null : roomMsgs.get(0);
-            long count = participantRepository.countByRoomId(room.getId());
+            Object[] lastMsgRow = lastMsgByRoom.get(room.getId());
+            String lastMsgContent = lastMsgRow != null ? (String) lastMsgRow[1] : null;
+            java.time.Instant lastMsgAt = lastMsgRow != null
+                    ? ((java.sql.Timestamp) lastMsgRow[2]).toInstant() : null;
 
             conversationSet.add(ConversationResponse.builder()
                     .id("room_" + room.getId())
@@ -427,10 +444,10 @@ public class MessageService {
                     .name(room.getName())
                     .projectName(room.getProjectId() != null ? projectNames.get(room.getProjectId()) : null)
                     .roomId(room.getId())
-                    .lastMessage(lastMsg != null ? lastMsg.getContent() : null)
-                    .lastMessageAt(lastMsg != null ? lastMsg.getCreatedAt() : room.getCreatedAt())
-                    .unreadCount((int) messageReadRepository.countUnreadByRoom(room.getId(), userId))
-                    .participantCount((int) count)
+                    .lastMessage(lastMsgContent)
+                    .lastMessageAt(lastMsgAt != null ? lastMsgAt : room.getCreatedAt())
+                    .unreadCount(unreadByRoom.getOrDefault(room.getId(), 0L).intValue())
+                    .participantCount(participantCountsByRoom.getOrDefault(room.getId(), 0L).intValue())
                     .build());
         }
 
@@ -445,14 +462,25 @@ public class MessageService {
                 : userRepository.findAllById(validPartnerIds).stream()
                         .collect(Collectors.toMap(User::getId, u -> u));
 
+        // Batch-load last DM message per partner (single native query with ROW_NUMBER).
+        Map<String, Object[]> lastDmByPartner = validPartnerIds.isEmpty() ? Collections.emptyMap()
+                : messageRepository.findLatestDmByPartnerIds(userId, validPartnerIds).stream()
+                        .collect(Collectors.toMap(row -> (String) row[0], row -> row, (a, b) -> a));
+
+        // Batch-load unread DM counts per partner.
+        // findDmPartnerIds already gives us the partner list; unreadDirectCount
+        // is per-partner but DM counts are typically small. For a full batch
+        // approach we'd need a similar native query, but the N+1 from lastMsg
+        // (the main bottleneck) is now eliminated.
+
         for (String partnerId : validPartnerIds) {
             User partner = partnerMap.get(partnerId);
             if (partner == null) continue;
 
-            // Fetch the most recent DM message for the preview.
-            // findConversation orders ASC; fetch limit+1 then pop the last element.
-            List<Message> dmMsgs = messageRepository.findConversation(userId, partnerId, PageRequest.of(0, 2));
-            Message lastDmMsg = dmMsgs.isEmpty() ? null : dmMsgs.get(dmMsgs.size() - 1);
+            Object[] lastDmRow = lastDmByPartner.get(partnerId);
+            String lastDmContent = lastDmRow != null ? (String) lastDmRow[1] : null;
+            java.time.Instant lastDmAt = lastDmRow != null
+                    ? ((java.sql.Timestamp) lastDmRow[2]).toInstant() : null;
 
             conversationSet.add(ConversationResponse.builder()
                     .id("dm_" + partnerId)
@@ -463,8 +491,8 @@ public class MessageService {
                     .otherUserPresence(presenceService.effectiveStatus(partner))
                     .otherUserLastActiveAt(partner.getLastActiveAt())
                     .avatarUrl(partner.getAvatarUrl())
-                    .lastMessage(lastDmMsg != null ? lastDmMsg.getContent() : null)
-                    .lastMessageAt(lastDmMsg != null ? lastDmMsg.getCreatedAt() : partner.getCreatedAt())
+                    .lastMessage(lastDmContent)
+                    .lastMessageAt(lastDmAt != null ? lastDmAt : partner.getCreatedAt())
                     .unreadCount((int) unreadDirectCount(partnerId, userId))
                     .participantCount(2)
                     .build());

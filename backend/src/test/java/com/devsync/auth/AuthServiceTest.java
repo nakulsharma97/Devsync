@@ -48,15 +48,11 @@ class AuthServiceTest {
         authService = new AuthService(userRepository, passwordEncoder, jwtTokenProvider, refreshTokenService, otpService, emailService, userService, auditLogService);
     }
 
-    // ── Register ─────────────────────────────────────────────
+    // ── Register via OTP (registerWithHashedPassword) ──────────────
 
     @Test
-    void register_shouldCreateUserAndReturnTokens() {
-        RegisterRequest request = new RegisterRequest();
-        request.setEmail("new@test.com");
-        request.setPassword("password123");
-        request.setFullName("New User");
-        request.setUsername("newuser");
+    void registerWithHashedPassword_shouldCreateUserAndReturnTokens() {
+        String hashedPw = passwordEncoder.encode("password123");
 
         when(userRepository.countByEmail("new@test.com")).thenReturn(0L);
         when(userRepository.countByUsername("newuser")).thenReturn(0L);
@@ -68,7 +64,8 @@ class AuthServiceTest {
         when(jwtTokenProvider.generateAccessToken(anyString(), anyString())).thenReturn("access-token");
         when(refreshTokenService.issue(anyString(), any(), any())).thenReturn("refresh-token");
 
-        AuthResponse response = authService.register(request);
+        AuthResponse response = authService.registerWithHashedPassword(
+                "new@test.com", hashedPw, "New User", "newuser", null, null);
 
         assertThat(response.getAccessToken()).isEqualTo("access-token");
         assertThat(response.getRefreshToken()).isEqualTo("refresh-token");
@@ -79,49 +76,35 @@ class AuthServiceTest {
         verify(userRepository).save(userCaptor.capture());
         User saved = userCaptor.getValue();
         assertThat(saved.getEmail()).isEqualTo("new@test.com");
-        assertThat(saved.getPassword()).isNotEqualTo("password123"); // must be encoded
-        assertThat(saved.getPassword()).startsWith("$2a$"); // BCrypt prefix
+        assertThat(saved.getPassword()).isEqualTo(hashedPw); // pre-hashed, not double-encoded
         assertThat(saved.getAuthProvider()).isEqualTo("email");
         assertThat(saved.getRole()).isEqualTo(User.Role.USER);
     }
 
     @Test
-    void register_shouldThrowWhenEmailTaken() {
-        RegisterRequest request = new RegisterRequest();
-        request.setEmail("taken@test.com");
-        request.setPassword("password123");
-        request.setFullName("Taken User");
-
+    void registerWithHashedPassword_shouldThrowWhenEmailTaken() {
         when(userRepository.countByEmail("taken@test.com")).thenReturn(1L);
 
-        assertThatThrownBy(() -> authService.register(request))
+        assertThatThrownBy(() -> authService.registerWithHashedPassword(
+                "taken@test.com", "hashed", "Taken User", null, null, null))
                 .isInstanceOf(AuthException.class)
                 .hasMessageContaining("Email already in use");
     }
 
     @Test
-    void register_shouldThrowWhenUsernameTaken() {
-        RegisterRequest request = new RegisterRequest();
-        request.setEmail("user@test.com");
-        request.setPassword("password123");
-        request.setFullName("Test User");
-        request.setUsername("occupied");
-
+    void registerWithHashedPassword_shouldThrowWhenUsernameTaken() {
         when(userRepository.countByEmail("user@test.com")).thenReturn(0L);
         when(userRepository.countByUsername("occupied")).thenReturn(1L);
 
-        assertThatThrownBy(() -> authService.register(request))
+        assertThatThrownBy(() -> authService.registerWithHashedPassword(
+                "user@test.com", "hashed", "Test User", "occupied", null, null))
                 .isInstanceOf(AuthException.class)
                 .hasMessageContaining("Username already taken");
     }
 
     @Test
-    void register_shouldAutoGenerateUsernameWhenBlank() {
-        RegisterRequest request = new RegisterRequest();
-        request.setEmail("jane@example.com");
-        request.setPassword("password123");
-        request.setFullName("Jane Doe");
-        request.setUsername(null);
+    void registerWithHashedPassword_shouldAutoGenerateUsernameWhenBlank() {
+        String hashedPw = passwordEncoder.encode("password123");
 
         when(userRepository.countByEmail("jane@example.com")).thenReturn(0L);
         when(userRepository.countByUsername("jane")).thenReturn(0L);
@@ -133,7 +116,8 @@ class AuthServiceTest {
         when(jwtTokenProvider.generateAccessToken(anyString(), anyString())).thenReturn("at");
         when(refreshTokenService.issue(anyString(), any(), any())).thenReturn("rt");
 
-        authService.register(request);
+        authService.registerWithHashedPassword(
+                "jane@example.com", hashedPw, "Jane Doe", null, null, null);
 
         verify(userRepository).save(userCaptor.capture());
         assertThat(userCaptor.getValue().getUsername()).isEqualTo("jane");

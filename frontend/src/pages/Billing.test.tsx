@@ -31,6 +31,20 @@ vi.mock("@/services/billingService", () => ({
   },
 }));
 
+// Mutable state shared between mock and Billing component
+let mockSubscription: import("@/services/billingService").SubscriptionInfo | null = null;
+
+vi.mock("@/contexts/SubscriptionContext", () => ({
+  useSubscription: () => ({
+    subscription: mockSubscription,
+    refreshSubscription: async () => {
+      // Re-fetch from the mock service and update shared state
+      mockSubscription = await mocks.getSubscription();
+      return mockSubscription;
+    },
+  }),
+}));
+
 const plans = [
   { code: "FREE", name: "Free", description: "Start collaborating.", priceInr: 0, currency: "INR", privateProjectLimit: 2, membersPerProject: 5, storageBytes: 1073741824, advancedAnalytics: false, customDomain: false, sso: false, auditLevel: "BASIC", prioritySupport: false },
   { code: "PRO", name: "Pro", description: "More power.", priceInr: 299, currency: "INR", privateProjectLimit: 20, membersPerProject: 25, storageBytes: 53687091200, advancedAnalytics: true, customDomain: false, sso: false, auditLevel: "FULL", prioritySupport: true },
@@ -49,6 +63,13 @@ function renderPage() {
 describe("Billing", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockSubscription = {
+      planCode: "FREE",
+      planName: "Free",
+      priceInr: 0,
+      status: "FREE",
+      cancelAtPeriodEnd: false,
+    };
     mocks.getPlans.mockResolvedValue(plans);
     mocks.getSubscription.mockResolvedValue({
       planCode: "FREE",
@@ -144,6 +165,14 @@ describe("Billing", () => {
   });
 
   it("cancels the subscription with confirmation", async () => {
+    mockSubscription = {
+      planCode: "PRO",
+      planName: "Pro",
+      priceInr: 299,
+      status: "ACTIVE",
+      currentPeriodEnd: "2026-08-31T00:00:00Z",
+      cancelAtPeriodEnd: false,
+    };
     mocks.getSubscription.mockResolvedValue({
       planCode: "PRO",
       planName: "Pro",

@@ -5,7 +5,7 @@ import { useCountUp } from "@/hooks/useCountUp";
 import { projectService } from "@/services/projectService";
 import { notificationService } from "@/services/notificationService";
 import { pinnedProjectService } from "@/services/pinnedProjectService";
-import { billingService } from "@/services/billingService";
+import { useSubscription } from "@/contexts/SubscriptionContext";
 import { PinButton } from "@/components/PinButton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -142,7 +142,7 @@ export default function Dashboard() {
     pinnedProjectService.getPinned()
   );
   const { data: unreadCount } = useApi(() => notificationService.getUnreadCount());
-  const { data: subscription } = useApi(() => billingService.getSubscription());
+  const { subscription } = useSubscription();
   const [bannerDismissed, setBannerDismissed] = useState(false);
 
   const isFree = subscription?.planCode === "FREE" || (!subscription && subscription !== null);

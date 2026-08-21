@@ -35,15 +35,18 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
-        String[] origins = allowedOrigins.split(",");
-
-        // Native WebSocket endpoint (used by modern browsers)
+        // Use setAllowedOriginPatterns("*") instead of setAllowedOrigins()
+        // because the Vite dev proxy (changeOrigin: true) rewrites the
+        // Origin header to the target host, which wouldn't match the
+        // explicit list.  Authentication is handled separately by
+        // JwtStompChannelInterceptor on the STOMP CONNECT frame, so a
+        // permissive Origin policy here is safe.
         registry.addEndpoint("/ws")
-                .setAllowedOrigins(origins);
+                .setAllowedOriginPatterns("*");
 
         // SockJS fallback endpoint (for legacy environments)
         registry.addEndpoint("/ws")
-                .setAllowedOrigins(origins)
+                .setAllowedOriginPatterns("*")
                 .withSockJS();
     }
 }

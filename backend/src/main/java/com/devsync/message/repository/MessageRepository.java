@@ -69,6 +69,32 @@ public interface MessageRepository extends JpaRepository<Message, String> {
 
     long countByParentMessageId(String parentMessageId);
 
+    /**
+     * Fetch the single most-recent message per room for a batch of room ids.
+     * Returns (roomId, content, createdAt) for each room that has at least one message.
+     */
+    @Query(value = "SELECT m.room_id, m.content, m.created_at FROM messages m " +
+            "INNER JOIN (SELECT room_id, MAX(created_at) AS max_ts FROM messages " +
+            "WHERE room_id IN :roomIds AND hidden = false GROUP BY room_id) latest " +
+            "ON m.room_id = latest.room_id AND m.created_at = latest.max_ts",
+            nativeQuery = true)
+    List<Object[]> findLatestByRoomIds(@Param("roomIds") Collection<String> roomIds);
+
+    /**
+     * Fetch the single most-recent DM message for each of the given partner ids
+     * relative to a user. Returns (partnerId, content, createdAt).
+     */
+    @Query(value = "SELECT sub.partner_id, sub.content, sub.created_at FROM (" +
+            "  SELECT CASE WHEN m.sender_id = :userId THEN m.receiver_id ELSE m.sender_id END AS partner_id, " +
+            "         m.content, m.created_at, " +
+            "         ROW_NUMBER() OVER (PARTITION BY CASE WHEN m.sender_id = :userId THEN m.receiver_id ELSE m.sender_id END ORDER BY m.created_at DESC) AS rn " +
+            "  FROM messages m WHERE m.room_id IS NULL AND m.hidden = false " +
+            "  AND (m.sender_id = :userId OR m.receiver_id = :userId)" +
+            ") sub WHERE sub.rn = 1 AND sub.partner_id IN :partnerIds",
+            nativeQuery = true)
+    List<Object[]> findLatestDmByPartnerIds(@Param("userId") String userId,
+                                           @Param("partnerIds") Collection<String> partnerIds);
+
     @Query("SELECT m FROM Message m WHERE (:keyword IS NULL OR LOWER(m.content) LIKE LOWER(CONCAT('%', :keyword, '%'))) " +
             "AND (m.senderId = :userId OR m.receiverId = :userId OR " +
             "m.roomId IN (SELECT tp.roomId FROM TeamRoomParticipant tp WHERE tp.userId = :userId))")

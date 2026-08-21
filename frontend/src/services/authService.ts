@@ -40,16 +40,6 @@ export interface AuthResponse {
 }
 
 export const authService = {
-  async register(data: {
-    email: string;
-    password: string;
-    fullName: string;
-    username?: string;
-  }): Promise<AuthResponse> {
-    const res = await api.post("/auth/register", data);
-    return res.data;
-  },
-
   async initiateRegistration(
     email: string,
     password: string,

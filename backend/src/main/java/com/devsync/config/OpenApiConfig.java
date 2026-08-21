@@ -41,6 +41,6 @@ public class OpenApiConfig {
                                 .type(SecurityScheme.Type.HTTP)
                                 .scheme("bearer")
                                 .bearerFormat("JWT")
-                                .description("Enter your JWT token. You can get one by calling POST /api/auth/login or POST /api/auth/register")));
+                                .description("Enter your JWT token. You can get one by calling POST /api/auth/login")));
     }
 }

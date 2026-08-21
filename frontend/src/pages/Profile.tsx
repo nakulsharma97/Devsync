@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useApi } from "@/hooks/useApi";
 import { userService } from "@/services/userService";
 import { socialService, type SocialProfileDto } from "@/services/socialService";
-import { billingService } from "@/services/billingService";
+import { useSubscription } from "@/contexts/SubscriptionContext";
 import { getErrorMessage } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -36,7 +36,7 @@ export default function Profile() {
       ? socialService.getProfile(user.username)
       : Promise.reject(new Error("no username"))
   );
-  const { data: subscription } = useApi(() => billingService.getSubscription());
+  const { subscription } = useSubscription();
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
     fullName: "",

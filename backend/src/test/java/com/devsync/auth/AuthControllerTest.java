@@ -39,6 +39,7 @@ class AuthControllerTest {
     @Mock private RefreshTokenCookie refreshTokenCookie;
     @Mock private AccessTokenCookie accessTokenCookie;
     @Mock private JwtTokenProvider jwtTokenProvider;
+    @Mock private PendingRegistrationService pendingRegistrationService;
     @Mock private org.springframework.security.web.csrf.CookieCsrfTokenRepository csrfTokenRepository;
     @InjectMocks private AuthController authController;
 
@@ -75,36 +76,43 @@ class AuthControllerTest {
     }
 
     @Test
-    void register_shouldReturn200() throws Exception {
+    void register_shouldReturn404_endpointRemoved() throws Exception {
+        // The insecure direct-registration endpoint was removed.
+        // The only way to create an account is via OTP: initiate → verify.
         RegisterRequest request = new RegisterRequest();
         request.setEmail("test@test.com");
         request.setPassword("Secure1@pass");
         request.setFullName("Test User");
-        when(authService.register(any(), any(), any())).thenReturn(sampleResponse());
         mockMvc.perform(post("/api/auth/register")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request))
                 .with(SecurityMockMvcRequestPostProcessors.csrf())
                 .with(SecurityMockMvcRequestPostProcessors.user("test@test.com").roles("USER")))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.accessToken").doesNotExist())
-                .andExpect(jsonPath("$.user.email").value("test@test.com"))
-                // Neither token appears in the JSON body — both live in
-                // HttpOnly cookies only.
-                .andExpect(jsonPath("$.refreshToken").doesNotExist())
-                .andExpect(cookie().exists(RefreshTokenCookie.NAME))
-                .andExpect(cookie().httpOnly(RefreshTokenCookie.NAME, true))
-                .andExpect(cookie().exists(AccessTokenCookie.NAME))
-                .andExpect(cookie().httpOnly(AccessTokenCookie.NAME, true));
+                .andExpect(status().isNotFound());
     }
 
     @Test
-    void register_shouldReturn400ForShortPassword() throws Exception {
+    void registerInitiate_shouldReturn200() throws Exception {
+        RegisterRequest request = new RegisterRequest();
+        request.setEmail("test@test.com");
+        request.setPassword("Secure1@pass");
+        request.setFullName("Test User");
+        mockMvc.perform(post("/api/auth/register/initiate")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request))
+                .with(SecurityMockMvcRequestPostProcessors.csrf())
+                .with(SecurityMockMvcRequestPostProcessors.user("test@test.com").roles("USER")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("Verification code sent to your email"));
+    }
+
+    @Test
+    void registerInitiate_shouldReturn400ForShortPassword() throws Exception {
         RegisterRequest request = new RegisterRequest();
         request.setEmail("test@test.com");
         request.setPassword("123");
         request.setFullName("Test User");
-        mockMvc.perform(post("/api/auth/register")
+        mockMvc.perform(post("/api/auth/register/initiate")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request))
                 .with(SecurityMockMvcRequestPostProcessors.csrf())
@@ -113,12 +121,11 @@ class AuthControllerTest {
     }
 
     @Test
-    void register_shouldReturn400ForBlankEmail() throws Exception {
-        RegisterRequest request = new RegisterRequest();
-        request.setEmail("");
-        request.setPassword("Secure1@pass");
-        request.setFullName("Test User");
-        mockMvc.perform(post("/api/auth/register")
+    void registerVerify_shouldReturn400ForBlankOtp() throws Exception {
+        OtpVerificationRequest request = new OtpVerificationRequest();
+        request.setEmail("test@test.com");
+        request.setOtp("");
+        mockMvc.perform(post("/api/auth/register/verify")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request))
                 .with(SecurityMockMvcRequestPostProcessors.csrf())
