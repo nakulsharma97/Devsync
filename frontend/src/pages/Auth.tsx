@@ -181,7 +181,7 @@ const keyframesStyle = `
 // ─── Main Auth Page ─────────────────────────────────────────
 
 export default function AuthPage() {
-  const { isAuthenticated, isLoading, isAdmin, login, register } = useAuth();
+  const { isAuthenticated, isLoading, isAdmin, login } = useAuth();
   const navigate = useNavigate();
   const [stats, setStats] = useState<PublicStats | null>(null);
 
@@ -209,6 +209,8 @@ export default function AuthPage() {
   const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [attempted, setAttempted] = useState(false);
+  const [registrationStep, setRegistrationStep] = useState<"form" | "verify">("form");
+  const [resendCooldown, setResendCooldown] = useState(0);
 
   // ── OAuth Callback Handler ───────────────────────────────────
   // Parse the access token from the URL fragment (#access_token=...). The refresh
@@ -262,14 +264,68 @@ export default function AuthPage() {
         }
       } else if (mode === "login") {
         await login(email, password);
-      } else {
-        await register(email, password, fullName, username);
+      } else if (mode === "register" && registrationStep === "form") {
+        // Step 1: Initiate registration - send verification code
+        const { authService } = await import("@/services/authService");
+        await authService.initiateRegistration(email, password, fullName, username);
+        setRegistrationStep("verify");
+        setResendCooldown(60);
+        // Start cooldown timer
+        const interval = setInterval(() => {
+          setResendCooldown((prev) => {
+            if (prev <= 1) {
+              clearInterval(interval);
+              return 0;
+            }
+            return prev - 1;
+          });
+        }, 1000);
+      } else if (mode === "register" && registrationStep === "verify") {
+        // Step 2: Verify OTP and complete registration
+        if (otpCode.length === 6) {
+          const { authService } = await import("@/services/authService");
+          const response = await authService.verifyRegistration(email, otpCode);
+          authService.saveSession(response);
+          // Redirect based on role after registration
+          window.location.href = response.user?.role === "ADMIN" ? "/admin/dashboard" : "/dashboard";
+        }
       }
     } catch (err) {
       setError(getErrorMessage(err, "Something went wrong"));
     } finally {
       setLocalLoading(false);
     }
+  };
+
+  const handleResendOtp = async () => {
+    if (resendCooldown > 0) return;
+    setError(null);
+    setLocalLoading(true);
+    try {
+      const { authService } = await import("@/services/authService");
+      await authService.resendRegistrationOtp(email);
+      setResendCooldown(60);
+      // Start cooldown timer
+      const interval = setInterval(() => {
+        setResendCooldown((prev) => {
+          if (prev <= 1) {
+            clearInterval(interval);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    } catch (err) {
+      setError(getErrorMessage(err, "Failed to resend code"));
+    } finally {
+      setLocalLoading(false);
+    }
+  };
+
+  const handleBackToForm = () => {
+    setRegistrationStep("form");
+    setOtpCode("");
+    setError(null);
   };
 
   if (!attempted && isLoading) {
@@ -284,7 +340,9 @@ export default function AuthPage() {
     ? otpCode.length === 6
     : mode === "login"
       ? email && password.length >= 8
-      : email && password.length >= 8 && fullName;
+      : mode === "register" && registrationStep === "verify"
+        ? otpCode.length === 6
+        : email && password.length >= 8 && fullName;
 
   return (
     <div className="min-h-screen bg-[#07071a] text-white overflow-hidden">
@@ -416,16 +474,20 @@ export default function AuthPage() {
               <h1 className="text-2xl font-bold tracking-tight">
                 {useOtp
                   ? "Check your email"
-                  : mode === "login"
-                    ? "Welcome back"
-                    : "Join DevSync"}
+                  : mode === "register" && registrationStep === "verify"
+                    ? "Verify your email"
+                    : mode === "login"
+                      ? "Welcome back"
+                      : "Join DevSync"}
               </h1>
               <p className="text-sm text-white/50 mt-1">
                 {useOtp
                   ? "We sent a code to your email"
-                  : mode === "login"
-                    ? "Sign in to your account"
-                    : "Create your developer account"}
+                  : mode === "register" && registrationStep === "verify"
+                    ? "Enter the 6-digit code sent to your email"
+                    : mode === "login"
+                      ? "Sign in to your account"
+                      : "Create your developer account"}
               </p>
             </div>
 
@@ -482,8 +544,8 @@ export default function AuthPage() {
 
             {/* Form */}
             <form onSubmit={handleSubmit} className="space-y-4" noValidate>
-              {/* Register fields */}
-              {mode === "register" && !useOtp && (
+              {/* Register fields - Step 1: Form */}
+              {mode === "register" && registrationStep === "form" && !useOtp && (
                 <>
                   <div>
                     <label className="block text-xs font-medium text-white/60 mb-1.5">
@@ -513,7 +575,7 @@ export default function AuthPage() {
                 </>
               )}
 
-              {useOtp ? (
+              {useOtp || (mode === "register" && registrationStep === "verify") ? (
                 <div>
                   <label className="block text-xs font-medium text-white/60 mb-1.5">
                     Enter verification code
@@ -523,6 +585,19 @@ export default function AuthPage() {
                     Sent to{" "}
                     <span className="text-indigo-400">{email || "your email"}</span>
                   </p>
+                  {/* Resend button */}
+                  <div className="mt-3 text-center">
+                    <button
+                      type="button"
+                      onClick={handleResendOtp}
+                      disabled={resendCooldown > 0 || localLoading}
+                      className="text-xs text-white/40 hover:text-indigo-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {resendCooldown > 0
+                        ? `Resend code in ${resendCooldown}s`
+                        : "Resend code"}
+                    </button>
+                  </div>
                 </div>
               ) : (
                 <>
@@ -610,6 +685,8 @@ export default function AuthPage() {
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : useOtp ? (
                   "Verify code"
+                ) : mode === "register" && registrationStep === "verify" ? (
+                  "Verify & Create account"
                 ) : (
                   <>
                     {mode === "login" ? "Sign in" : "Create account"}
@@ -617,6 +694,17 @@ export default function AuthPage() {
                   </>
                 )}
               </Button>
+
+              {/* Back to form button for registration verification */}
+              {mode === "register" && registrationStep === "verify" && (
+                <button
+                  type="button"
+                  onClick={handleBackToForm}
+                  className="w-full mt-2 text-xs text-white/40 hover:text-indigo-400 transition-colors"
+                >
+                  Back to registration form
+                </button>
+              )}
             </form>
 
             {/* OTP toggle */}
@@ -656,6 +744,8 @@ export default function AuthPage() {
                   setMode(mode === "login" ? "register" : "login");
                   setError(null);
                   setUseOtp(false);
+                  setRegistrationStep("form");
+                  setOtpCode("");
                 }}
               >
                 {mode === "login" ? (

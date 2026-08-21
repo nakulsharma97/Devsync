@@ -59,10 +59,13 @@ class RefreshFlowIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"email\":\"flow@test.dev\",\"password\":\"password123\"}"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.accessToken").isNotEmpty())
+                // Access token travels as an HttpOnly cookie — not in the JSON body.
+                .andExpect(jsonPath("$.accessToken").doesNotExist())
                 .andExpect(jsonPath("$.refreshToken").doesNotExist())
                 .andExpect(cookie().exists(RefreshTokenCookie.NAME))
                 .andExpect(cookie().httpOnly(RefreshTokenCookie.NAME, true))
+                .andExpect(cookie().exists(AccessTokenCookie.NAME))
+                .andExpect(cookie().httpOnly(AccessTokenCookie.NAME, true))
                 .andReturn();
     }
 
@@ -86,18 +89,21 @@ class RefreshFlowIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{}"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.accessToken").isNotEmpty())
+                // Access token is set as an HttpOnly cookie, not in the JSON body.
+                .andExpect(jsonPath("$.accessToken").doesNotExist())
                 .andExpect(jsonPath("$.refreshToken").doesNotExist())
                 .andExpect(cookie().exists(RefreshTokenCookie.NAME))
+                .andExpect(cookie().exists(AccessTokenCookie.NAME))
                 .andReturn();
 
         // The new refresh token differs from the old one (rotation).
         assertThat(refreshed.getResponse().getCookie(RefreshTokenCookie.NAME).getValue())
                 .isNotEqualTo(oldValue);
 
-        // The new access token is a valid, working access token.
-        String newAccess = com.jayway.jsonpath.JsonPath.read(
-                refreshed.getResponse().getContentAsString(), "$.accessToken");
+        // The new access token cookie is a valid, working access token.
+        Cookie accessCookie = refreshed.getResponse().getCookie(AccessTokenCookie.NAME);
+        assertThat(accessCookie).isNotNull();
+        String newAccess = accessCookie.getValue();
         assertThat(jwtTokenProvider.isAccessToken(newAccess)).isTrue();
         mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
                         .get("/api/users/me")

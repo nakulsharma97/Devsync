@@ -1,6 +1,7 @@
 package com.devsync.auth;
 
 import com.devsync.auth.dto.*;
+import com.devsync.auth.entity.PendingRegistration;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
@@ -26,6 +27,7 @@ public class AuthController {
     private final AccessTokenCookie accessTokenCookie;
     private final JwtTokenProvider jwtTokenProvider;
     private final CookieCsrfTokenRepository csrfTokenRepository;
+    private final PendingRegistrationService pendingRegistrationService;
 
     /**
      * Generates a CSRF token and returns it. The XSRF-TOKEN cookie is also set
@@ -50,6 +52,45 @@ public class AuthController {
         }
         csrfTokenRepository.saveToken(csrfToken, request, response);
         return ResponseEntity.ok(Map.of("csrfToken", csrfToken.getToken()));
+    }
+
+    @PostMapping("/register/initiate")
+    public ResponseEntity<Map<String, String>> initiateRegistration(@Valid @RequestBody RegisterRequest request) {
+        pendingRegistrationService.initiateRegistration(
+            request.getEmail(),
+            request.getPassword(),
+            request.getFullName(),
+            request.getUsername()
+        );
+        return ResponseEntity.ok(Map.of("message", "Verification code sent to your email"));
+    }
+
+    @PostMapping("/register/verify")
+    public ResponseEntity<AuthResponse> verifyRegistration(@Valid @RequestBody OtpVerificationRequest request,
+                                                           HttpServletRequest servletRequest,
+                                                           HttpServletResponse servletResponse) {
+        PendingRegistration pending = pendingRegistrationService.verifyOtp(request.getEmail(), request.getOtp());
+
+        // Create the actual user account with the pre-hashed password
+        AuthResponse response = authService.registerWithHashedPassword(
+            pending.getEmail(),
+            pending.getPasswordHash(),
+            pending.getFullName(),
+            pending.getUsername(),
+            clientIp(servletRequest),
+            servletRequest.getHeader("User-Agent")
+        );
+
+        // Delete the pending registration
+        pendingRegistrationService.completeRegistration(pending);
+
+        return withRefreshCookie(response, servletResponse);
+    }
+
+    @PostMapping("/register/resend")
+    public ResponseEntity<Map<String, String>> resendOtp(@Valid @RequestBody EmailVerificationRequest request) {
+        pendingRegistrationService.resendOtp(request.getEmail());
+        return ResponseEntity.ok(Map.of("message", "Verification code resent"));
     }
 
     @PostMapping("/register")

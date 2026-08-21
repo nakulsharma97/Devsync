@@ -197,7 +197,7 @@ export default function Feed() {
 
   if (loading) {
     return (
-      <div className="max-w-[1100px] mx-auto px-6 sm:px-8 py-7 space-y-6">
+      <div className="relative space-y-5">
         <FeedHeader onCreatePost={openComposer} />
         <SkeletonCardList count={3} />
       </div>
@@ -205,7 +205,7 @@ export default function Feed() {
   }
 
   return (
-    <div className="max-w-[1100px] mx-auto px-6 sm:px-8 py-7 space-y-6">
+    <div className="relative space-y-5">
       <FeedHeader onCreatePost={openComposer} />
 
       {/* Composer — collapsible */}
@@ -394,7 +394,7 @@ export default function Feed() {
 
       {/* Posts or Empty State */}
       {posts.length === 0 && !composerOpen ? (
-        <div className="border border-border/40 rounded-2xl bg-card py-12 px-6 text-center">
+        <div className="border border-border/40 rounded-xl bg-card py-8 px-6 text-center">
           <div className="w-14 h-14 mx-auto mb-3 rounded-2xl bg-gradient-to-br from-indigo-500/15 to-purple-500/10 flex items-center justify-center ring-1 ring-indigo-500/20 shadow-md shadow-indigo-500/10">
             <Rss className="w-6 h-6 text-indigo-400" />
           </div>
@@ -417,7 +417,7 @@ export default function Feed() {
           Your post will appear here once published
         </p>
       ) : (
-        <div className="space-y-5">
+        <div className="space-y-4">
           {posts.map((post) => (
             <FeedPostCard
               key={post.id}
@@ -459,15 +459,15 @@ export default function Feed() {
 
 function FeedHeader({ onCreatePost }: { onCreatePost: () => void }) {
   return (
-    <div className="flex items-start justify-between gap-4">
+    <div className="flex items-start justify-between gap-4 mb-6">
       <div>
-        <h1 className="text-[28px] font-bold tracking-tight text-foreground flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-indigo-500/10 flex items-center justify-center">
-            <Sparkles className="w-4 h-4 text-indigo-500" />
+        <div className="flex items-center gap-2 mb-1">
+          <div className="w-5 h-5 rounded-md bg-accent/10 flex items-center justify-center">
+            <Sparkles className="w-3 h-3 text-accent" />
           </div>
-          Feed
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1.5">
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">Feed</h1>
+        </div>
+        <p className="ml-7 text-sm text-muted-foreground">
           Latest updates from your team and projects
         </p>
       </div>

@@ -14,10 +14,8 @@ import {
   Briefcase,
   AlertTriangle,
   RefreshCw,
-  MapPin,
   Calendar,
   Heart,
-  FolderKanban,
 } from "lucide-react";
 import { connectionService, type ConnectionUserDto } from "@/services/connectionService";
 import { conversationService } from "@/services/conversationService";
@@ -25,9 +23,9 @@ import { useDevSyncAuth } from "@/contexts/AuthContext";
 
 function SkeletonCard() {
   return (
-    <div className="border border-border/40 rounded-2xl p-5 bg-card animate-pulse">
-      <div className="flex items-start gap-4">
-        <div className="w-16 h-16 rounded-2xl bg-muted shrink-0" />
+    <div className="border border-border/40 rounded-xl p-4 bg-card animate-pulse">
+      <div className="flex items-start gap-3">
+        <div className="w-12 h-12 rounded-xl bg-muted shrink-0" />
         <div className="flex-1 space-y-3">
           <div className="h-5 bg-muted rounded w-32" />
           <div className="h-3.5 bg-muted rounded w-24" />
@@ -160,36 +158,38 @@ export default function Network() {
   ];
 
   return (
-    <div className="max-w-[1200px] mx-auto px-6 sm:px-8 py-7">
+    <div className="relative">
+      <div className="absolute -top-20 -right-20 w-72 h-72 bg-gradient-to-bl from-accent/[0.03] to-transparent rounded-full blur-3xl pointer-events-none" />
+
       {/* Header */}
-      <div className="flex items-start justify-between gap-4 mb-7">
+      <div className="mb-6">
         <div>
-          <div className="flex items-center gap-2.5 mb-1">
-            <div className="w-8 h-8 rounded-xl bg-indigo-500/10 flex items-center justify-center">
-              <Users className="w-4 h-4 text-indigo-500" />
+          <div className="flex items-center gap-2 mb-1">
+            <div className="w-5 h-5 rounded-md bg-accent/10 flex items-center justify-center">
+              <Users className="w-3 h-3 text-accent" />
             </div>
-            <h1 className="text-[28px] font-bold tracking-tight text-foreground">Network</h1>
+            <h1 className="text-2xl font-bold tracking-tight text-foreground">Network</h1>
           </div>
-          <p className="text-sm text-muted-foreground mt-1">
+          <p className="ml-7 text-sm text-muted-foreground">
             Discover and connect with other developers
           </p>
         </div>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-7">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">
         {statCards.map((stat) => {
           const Icon = stat.icon;
           return (
             <div
               key={stat.label}
-              className="bg-card border border-border/50 rounded-2xl p-5 flex items-center gap-4 hover:border-indigo-500/20 transition-all"
+              className="bg-card border border-border/50 rounded-xl p-4 flex items-center gap-3 hover:border-accent/30 transition-all"
             >
-              <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${stat.color}`}>
-                <Icon className="w-5 h-5" />
+              <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${stat.color}`}>
+                <Icon className="w-4 h-4" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-foreground">{stat.value}</p>
+                <p className="text-xl font-bold text-foreground">{stat.value}</p>
                 <p className="text-xs text-muted-foreground">{stat.label}</p>
                 <p className="text-[10px] text-muted-foreground/60 mt-0.5">{stat.description}</p>
               </div>
@@ -199,9 +199,9 @@ export default function Network() {
       </div>
 
       {/* Search */}
-      <div className="mb-5">
+      <div className="mb-3">
         <div className="relative">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -211,13 +211,13 @@ export default function Network() {
               }
             }}
             placeholder="Search developers by name, username, or bio..."
-            className="pl-11 h-11 text-sm bg-muted/30 border-border/50 focus-visible:ring-indigo-500/30 focus-visible:border-indigo-500/40 rounded-xl"
+            className="pl-9 h-9 text-sm bg-muted/30 border-border/50 focus-visible:ring-accent/30 focus-visible:border-accent/40 rounded-xl"
           />
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="flex items-center gap-7 border-b border-border/50 mb-6">
+      <div className="flex items-center gap-5 border-b border-border/50 mb-5">
         {([
           { key: "all" as const, label: "All Developers" },
           { key: "following" as const, label: `Following (${followingCount})` },
@@ -226,7 +226,7 @@ export default function Network() {
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
-            className={`pb-3 text-sm font-medium border-b-2 transition-all ${
+            className={`pb-2.5 text-sm font-medium border-b-2 transition-all ${
               activeTab === tab.key
                 ? "border-indigo-500 text-indigo-500"
                 : "border-transparent text-muted-foreground hover:text-foreground"
@@ -239,7 +239,7 @@ export default function Network() {
 
       {/* Loading */}
       {loading && (
-        <div className="space-y-4">
+        <div className="space-y-3">
           {Array.from({ length: 4 }).map((_, i) => (
             <SkeletonCard key={i} />
           ))}
@@ -282,7 +282,7 @@ export default function Network() {
 
       {/* Developer cards */}
       <AnimatePresence mode="popLayout">
-        <div className="space-y-4">
+        <div className="space-y-3">
           {filteredUsers.map((netUser) => (
             <motion.div
               key={netUser.id}
@@ -291,10 +291,10 @@ export default function Network() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
               transition={{ duration: 0.2 }}
-              className="border border-border/40 rounded-2xl bg-card hover:border-indigo-500/20 hover:shadow-lg hover:shadow-indigo-500/5 transition-all duration-200"
+              className="border border-border/40 rounded-xl bg-card hover:border-accent/20 hover:shadow-lg hover:shadow-accent/5 transition-all duration-200"
             >
-              <div className="p-5">
-                <div className="flex items-start gap-4">
+              <div className="p-4">
+                <div className="flex items-start gap-3">
                   {/* Avatar */}
                   <button
                     type="button"
@@ -303,11 +303,11 @@ export default function Network() {
                     }}
                     className="shrink-0"
                   >
-                    <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500/20 to-purple-500/10 flex items-center justify-center ring-2 ring-indigo-500/15 overflow-hidden shadow-md shadow-indigo-500/10 hover:ring-indigo-500/30 transition-all">
+                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500/20 to-purple-500/10 flex items-center justify-center ring-2 ring-indigo-500/15 overflow-hidden shadow-md shadow-indigo-500/10 hover:ring-indigo-500/30 transition-all">
                       {netUser.avatarUrl ? (
                         <img src={netUser.avatarUrl} alt="" className="w-full h-full object-cover" />
                       ) : (
-                        <User className="w-7 h-7 text-indigo-500" />
+                        <User className="w-5 h-5 text-indigo-500" />
                       )}
                     </div>
                   </button>
@@ -341,13 +341,13 @@ export default function Network() {
                     </p>
 
                     {netUser.bio && (
-                      <p className="text-sm text-muted-foreground/80 mt-2 line-clamp-2 leading-relaxed">
+                      <p className="text-xs text-muted-foreground/80 mt-1.5 line-clamp-2 leading-relaxed">
                         {netUser.bio}
                       </p>
                     )}
 
                     {/* Metadata */}
-                    <div className="flex items-center gap-4 mt-3 text-xs text-muted-foreground">
+                    <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
                       {netUser.role && (
                         <span className="flex items-center gap-1">
                           <Briefcase className="w-3 h-3" />
@@ -363,7 +363,7 @@ export default function Network() {
                     </div>
 
                     {/* Stats strip */}
-                    <div className="flex items-center gap-5 mt-3 pt-3 border-t border-border/30">
+                    <div className="flex items-center gap-4 mt-2 pt-2 border-t border-border/30">
                       <div className="text-center">
                         <p className="text-sm font-bold text-foreground">{netUser.followerCount}</p>
                         <p className="text-[10px] text-muted-foreground">Followers</p>

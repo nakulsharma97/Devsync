@@ -37,6 +37,7 @@ class OAuth2ConfigTest {
     @MockitoBean private JwtTokenProvider jwtTokenProvider;
     @MockitoBean private RefreshTokenService refreshTokenService;
     @MockitoBean private RefreshTokenCookie refreshTokenCookie;
+    @MockitoBean private com.devsync.auth.AccessTokenCookie accessTokenCookie;
     @MockitoBean private PasswordEncoder passwordEncoder;
 
     @BeforeEach
@@ -47,6 +48,8 @@ class OAuth2ConfigTest {
                 .thenReturn("mock-refresh-token");
         lenient().when(refreshTokenCookie.create(anyString()))
                 .thenAnswer(inv -> new Cookie(RefreshTokenCookie.NAME, inv.getArgument(0)));
+        lenient().when(accessTokenCookie.create(anyString()))
+                .thenAnswer(inv -> new Cookie(com.devsync.auth.AccessTokenCookie.NAME, inv.getArgument(0)));
     }
 
     private OAuth2User oauthUser(String email, String login) {
@@ -82,18 +85,18 @@ class OAuth2ConfigTest {
         HttpServletResponse response = mock(HttpServletResponse.class);
         oAuth2SuccessHandler.onAuthenticationSuccess(request(), response, authentication(oauthUser("oauth@test.com", "oauthuser")));
 
+        // Both tokens travel as HttpOnly cookies — the redirect URL has no tokens.
         verify(response).sendRedirect(argThat(redirectUrl -> {
             assertThat(redirectUrl)
-                    .startsWith("http://localhost:5173/auth#access_token=")
-                    .contains("access_token=mock-access-token")
-                    // The refresh token must NEVER be in the URL (logs/history/Referer).
+                    .startsWith("http://localhost:5173/auth?oauth=success")
+                    .doesNotContain("access_token")
                     .doesNotContain("refresh_token");
             return true;
         }));
-        // Refresh token travels as an HttpOnly cookie, issued through the registry.
-        verify(refreshTokenService).issue(eq("user-oauth-1"), any(), any());
         verify(response).addCookie(argThat(c ->
                 RefreshTokenCookie.NAME.equals(c.getName()) && "mock-refresh-token".equals(c.getValue())));
+        verify(response).addCookie(argThat(c ->
+                com.devsync.auth.AccessTokenCookie.NAME.equals(c.getName()) && "mock-access-token".equals(c.getValue())));
     }
 
     @Test
@@ -104,8 +107,10 @@ class OAuth2ConfigTest {
         HttpServletResponse response = mock(HttpServletResponse.class);
         oAuth2SuccessHandler.onAuthenticationSuccess(request(), response, authentication(oauthUser("prod@test.com", "produser")));
 
+        // Redirect uses ?oauth=success — no tokens in the URL.
         verify(response).sendRedirect(argThat(redirectUrl ->
-                redirectUrl.startsWith("http://localhost:5173/auth#access_token=")
+                redirectUrl.startsWith("http://localhost:5173/auth?oauth=success")
+                        && !redirectUrl.contains("access_token")
                         && !redirectUrl.contains("refresh_token")
         ));
     }
@@ -138,8 +143,10 @@ class OAuth2ConfigTest {
         oAuth2SuccessHandler.onAuthenticationSuccess(request(), response,
                 authentication(oauthUser("token@test.com", "tokenuser")));
 
-        verify(response).sendRedirect("http://localhost:5173/auth#access_token=at-123");
+        verify(response).sendRedirect("http://localhost:5173/auth?oauth=success");
         verify(response).addCookie(argThat(c ->
                 RefreshTokenCookie.NAME.equals(c.getName()) && "rt-456".equals(c.getValue())));
+        verify(response).addCookie(argThat(c ->
+                com.devsync.auth.AccessTokenCookie.NAME.equals(c.getName()) && "at-123".equals(c.getValue())));
     }
 }

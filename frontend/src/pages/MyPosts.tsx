@@ -47,7 +47,7 @@ export default function MyPosts() {
         setLoadingMore(false);
       }
     },
-    [user?.id]
+    [user]
   );
 
   useEffect(() => {

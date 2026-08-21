@@ -26,6 +26,7 @@ import {
   Command,
   Headphones,
   Crown,
+  Bookmark,
   type LucideIcon,
 } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
@@ -47,6 +48,7 @@ const mainNavItems: NavItem[] = [
   { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
   { to: "/projects", icon: FolderKanban, label: "Projects" },
   { to: "/feed", icon: Rss, label: "Feed" },
+  { to: "/bookmarks", icon: Bookmark, label: "Bookmarks" },
   { to: "/messages", icon: MessageSquare, label: "Messages" },
 ];
 
@@ -76,6 +78,7 @@ const pageMeta: Record<string, { title: string; icon: LucideIcon }> = {
   "/profile": { title: "Profile", icon: User },
   "/settings": { title: "Settings", icon: Settings },
   "/analytics": { title: "Analytics", icon: TrendingUp },
+  "/bookmarks": { title: "Bookmarks", icon: Bookmark },
   "/board": { title: "Board", icon: FolderKanban },
   "/support": { title: "Support", icon: Headphones },
 };
@@ -157,7 +160,7 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 // ── Layout ────────────────────────────────────────────────
 
 export default function DashboardLayout() {
-  const { user, isAdmin, logout } = useAuth();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);

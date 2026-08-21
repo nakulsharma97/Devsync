@@ -4,7 +4,6 @@ import {
   CreditCard,
   Loader2,
   Search,
-  TrendingUp,
   Users,
   XCircle,
   CheckCircle,

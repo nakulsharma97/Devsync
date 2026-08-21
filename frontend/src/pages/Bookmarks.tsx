@@ -7,16 +7,15 @@ import {
   bookmarkService,
   type BookmarkResponse,
 } from "@/services/bookmarkService";
-import { Bookmark, Rss, Loader2, AlertTriangle } from "lucide-react";
+import { Bookmark, Rss, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
 
 export default function Bookmarks() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const currentUserId = user?.id || null;
 
-  const [bookmarks, setBookmarks] = useState<BookmarkResponse[]>([]);
+  const [_bookmarks, setBookmarks] = useState<BookmarkResponse[]>([]);
   const [posts, setPosts] = useState<PostDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -70,31 +69,29 @@ export default function Bookmarks() {
   };
 
   return (
-    <div className="max-w-[1060px] mx-auto space-y-5 px-4 sm:px-6 lg:px-8 py-6">
+    <div className="relative">
+      <div className="absolute -top-20 -right-20 w-72 h-72 bg-gradient-to-bl from-accent/[0.03] to-transparent rounded-full blur-3xl pointer-events-none" />
+
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-md shadow-indigo-500/20">
-            <Bookmark className="w-5 h-5 text-white" />
+      <div className="mb-6">
+        <div className="flex items-center gap-2 mb-1">
+          <div className="w-5 h-5 rounded-md bg-accent/10 flex items-center justify-center">
+            <Bookmark className="w-3 h-3 text-accent" />
           </div>
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight text-foreground">
-              Bookmarks
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              Posts you&apos;ve saved for later
-            </p>
-          </div>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">Bookmarks</h1>
         </div>
+        <p className="ml-7 text-sm text-muted-foreground">
+          Posts you&apos;ve saved for later
+        </p>
       </div>
 
       {/* Loading state */}
       {loading && (
-        <div className="space-y-4">
+        <div className="space-y-3">
           {[1, 2, 3].map((i) => (
             <div
               key={i}
-              className="border border-border/50 rounded-xl p-5 animate-pulse bg-card"
+              className="border border-border/40 rounded-xl p-4 animate-pulse bg-card"
             >
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-10 h-10 rounded-full bg-muted" />
@@ -114,7 +111,7 @@ export default function Bookmarks() {
 
       {/* Error state */}
       {!loading && error && (
-        <div className="border border-border/50 rounded-xl p-12 flex flex-col items-center text-center gap-4 bg-card">
+        <div className="border border-border/50 rounded-xl p-8 flex flex-col items-center text-center gap-3 bg-card">
           <div className="w-12 h-12 rounded-2xl bg-red-500/10 flex items-center justify-center ring-1 ring-red-500/20">
             <AlertTriangle className="w-6 h-6 text-red-500" />
           </div>
@@ -139,7 +136,7 @@ export default function Bookmarks() {
 
       {/* Empty state */}
       {!loading && !error && posts.length === 0 && (
-        <div className="border border-border/50 rounded-xl p-12 flex flex-col items-center text-center gap-4 bg-card">
+        <div className="border border-border/50 rounded-xl p-8 flex flex-col items-center text-center gap-3 bg-card">
           <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 flex items-center justify-center ring-1 ring-indigo-500/20">
             <Bookmark className="w-6 h-6 text-indigo-500" />
           </div>
@@ -165,7 +162,7 @@ export default function Bookmarks() {
 
       {/* Bookmarked posts */}
       {!loading && !error && posts.length > 0 && (
-        <div className="space-y-5">
+        <div className="space-y-4">
           {posts.map((post) => (
             <FeedPostCard
               key={post.id}

@@ -2,6 +2,7 @@ package com.devsync.common;
 
 import lombok.extern.slf4j.Slf4j;
 import com.devsync.auth.AuthException;
+import com.devsync.auth.EmailService.EmailNotConfiguredException;
 import com.devsync.billing.FeatureLimitException;
 import com.devsync.billing.PaymentNotConfiguredException;
 import com.devsync.github.GitHubException;
@@ -71,6 +72,17 @@ public class GlobalExceptionHandler {
                 .message(ex.getMessage())
                 .timestamp(Instant.now())
                 .code(ex.getCode())
+                .build());
+    }
+
+    @ExceptionHandler(EmailNotConfiguredException.class)
+    public ResponseEntity<ErrorResponse> handleEmailNotConfigured(EmailNotConfiguredException ex) {
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(ErrorResponse.builder()
+                .status(503)
+                .error("Email Not Configured")
+                .message(ex.getMessage())
+                .timestamp(Instant.now())
+                .code("EMAIL_NOT_CONFIGURED")
                 .build());
     }
 

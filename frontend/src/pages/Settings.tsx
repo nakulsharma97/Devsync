@@ -17,7 +17,6 @@ import {
   Globe,
   Mail,
   AtSign,
-  Calendar,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { githubService, type GitHubConnection } from "@/services/githubService";

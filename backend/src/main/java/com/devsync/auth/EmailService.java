@@ -1,19 +1,74 @@
 package com.devsync.auth;
 
-import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
 
 @Service
-@RequiredArgsConstructor
+@Slf4j
 public class EmailService {
 
     private final JavaMailSender mailSender;
+    private final String fromEmail;
+    private final boolean smtpConfigured;
 
-    @Value("${spring.mail.username}")
-    private String fromEmail;
+    public EmailService(JavaMailSender mailSender,
+                        @Value("${spring.mail.username:}") String fromEmail) {
+        this.mailSender = mailSender;
+        this.fromEmail = fromEmail;
+        this.smtpConfigured = fromEmail != null && !fromEmail.isBlank();
+        if (!this.smtpConfigured) {
+            log.warn("SMTP not configured (MAIL_USERNAME is empty) — emails will not be sent");
+        }
+    }
+
+    /** Returns true when SMTP credentials are configured and emails can be sent. */
+    public boolean isSmtpConfigured() {
+        return smtpConfigured;
+    }
+
+    /**
+     * Send a message. Returns true on success, false on transient failure.
+     * Throws {@link EmailNotConfiguredException} when SMTP credentials are
+     * missing — callers that need to propagate the failure (OTP, password
+     * reset) should catch this and surface a user-friendly error.
+     */
+    private void send(SimpleMailMessage message) {
+        if (!smtpConfigured) {
+            throw new EmailNotConfiguredException(
+                "Email service is not configured. Please set MAIL_USERNAME and MAIL_PASSWORD.");
+        }
+        try {
+            mailSender.send(message);
+        } catch (Exception e) {
+            log.error("Failed to send email to {}: {}", message.getTo(), e.getMessage());
+            throw new EmailNotConfiguredException(
+                "Failed to send email: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Try to send a best-effort email (welcome, billing notifications).
+     * Failures are logged but never propagated — these emails are not
+     * critical to the request flow.
+     */
+    private void trySend(SimpleMailMessage message) {
+        if (!smtpConfigured) return;
+        try {
+            mailSender.send(message);
+        } catch (Exception e) {
+            log.error("Failed to send email to {}: {}", message.getTo(), e.getMessage());
+        }
+    }
+
+    /** Thrown when SMTP is not configured or sending fails. */
+    public static class EmailNotConfiguredException extends RuntimeException {
+        public EmailNotConfiguredException(String message) {
+            super(message);
+        }
+    }
 
     /**
      * Send an OTP code to the user's email for passwordless login.
@@ -31,7 +86,7 @@ public class EmailService {
             + "If you didn't request this code, you can safely ignore this email.\n\n"
             + "— The DevSync Team"
         );
-        mailSender.send(message);
+        send(message);
     }
 
     /**
@@ -51,7 +106,7 @@ public class EmailService {
             + "If you didn't request this, you can safely ignore this email — your password won't change.\n\n"
             + "— The DevSync Team"
         );
-        mailSender.send(message);
+        send(message);
     }
 
     /**
@@ -70,7 +125,7 @@ public class EmailService {
             + "If you didn't request this, you can safely ignore this email.\n\n"
             + "— The DevSync Team"
         );
-        mailSender.send(message);
+        trySend(message);
     }
 
     /**
@@ -91,7 +146,7 @@ public class EmailService {
             + "- Set up your developer profile\n\n"
             + "— The DevSync Team"
         );
-        mailSender.send(message);
+        trySend(message);
     }
 
     // ── Billing emails ──────────────────────────────────────────
@@ -115,7 +170,7 @@ public class EmailService {
             + "Your subscription is now active. Enjoy the extra features!\n\n"
             + "— The DevSync Team"
         );
-        mailSender.send(message);
+        trySend(message);
     }
 
     /**
@@ -136,7 +191,7 @@ public class EmailService {
             + "Thank you for staying with DevSync!\n\n"
             + "— The DevSync Team"
         );
-        mailSender.send(message);
+        trySend(message);
     }
 
     /**
@@ -153,7 +208,7 @@ public class EmailService {
             + "Please update your payment method to avoid interruption to your subscription.\n\n"
             + "— The DevSync Team"
         );
-        mailSender.send(message);
+        trySend(message);
     }
 
     /**
@@ -172,7 +227,7 @@ public class EmailService {
             + "You can resubscribe at any time from Settings → Billing.\n\n"
             + "— The DevSync Team"
         );
-        mailSender.send(message);
+        trySend(message);
     }
 
     /**
@@ -189,7 +244,7 @@ public class EmailService {
             + "Upgrade anytime from Settings → Billing to regain access to premium features.\n\n"
             + "— The DevSync Team"
         );
-        mailSender.send(message);
+        trySend(message);
     }
 
     /**
@@ -206,7 +261,7 @@ public class EmailService {
             + "The amount will be credited to your original payment method.\n\n"
             + "— The DevSync Team"
         );
-        mailSender.send(message);
+        trySend(message);
     }
 
     private String currencySymbol(String currency) {

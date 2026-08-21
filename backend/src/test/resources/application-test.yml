@@ -1,5 +1,42 @@
 # Test profile: disables CSRF for MockMvc tests that send state-changing
 # requests without CSRF tokens. CSRF is enforced in production (see CsrfConfig).
+spring:
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    properties:
+      hibernate:
+        type:
+          preferred_instant_jdbc_type: TIMESTAMP
+  flyway:
+    enabled: false
+  security:
+    oauth2:
+      client:
+        registration:
+          github:
+            client-id: test-client-id
+            client-secret: test-client-secret
+          google:
+            client-id: test-client-id
+            client-secret: test-client-secret
+
 app:
+  jwt:
+    # Test-only secret — never used outside the test profile.
+    secret: ${JWT_SECRET:test-secret-key-that-is-at-least-32-bytes-long-for-tests-only}
+    expiration-ms: 3600000
+    refresh-expiration-ms: 86400000
   csrf:
     enabled: false
+  rate-limit:
+    enabled: false
+    ws:
+      enabled: true
+      max-messages-per-minute: 5
+      max-subscriptions-per-minute: 3

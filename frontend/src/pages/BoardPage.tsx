@@ -26,11 +26,6 @@ import {
   ChevronRight,
   BarChart3,
   Clock,
-  CircleDot,
-  FolderKanban,
-  MoreHorizontal,
-  Trash2,
-  Pencil,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -53,12 +48,6 @@ const PRIORITY_DOTS: Record<string, string> = {
   HIGH: "bg-amber-500",
   MEDIUM: "bg-blue-500",
   LOW: "bg-muted-foreground/50",
-};
-
-const COLUMN_COLORS: Record<string, string> = {
-  "To Do": "bg-purple-500",
-  "In Progress": "bg-blue-500",
-  "Done": "bg-emerald-500",
 };
 
 function getColumnColor(name: string): string {

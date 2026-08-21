@@ -76,6 +76,43 @@ public class AuthService {
         return buildAuthResponse(user, accessToken, refreshToken);
     }
 
+    @Transactional
+    public AuthResponse registerWithHashedPassword(String email, String hashedPassword, String fullName, String username, String ipAddress, String userAgent) {
+        if (userRepository.countByEmail(email) > 0) {
+            throw new AuthException("Email already in use", HttpStatus.CONFLICT);
+        }
+
+        if (username != null && userRepository.countByUsername(username) > 0) {
+            throw new AuthException("Username already taken", HttpStatus.CONFLICT);
+        }
+
+        if (username == null || username.isBlank()) {
+            username = email.split("@")[0];
+            String baseUsername = username;
+            int suffix = 1;
+            while (userRepository.countByUsername(username) > 0) {
+                username = baseUsername + suffix++;
+            }
+        }
+
+        User user = User.builder()
+                .email(email)
+                .password(hashedPassword)  // Already hashed
+                .fullName(fullName)
+                .username(username)
+                .authProvider("email")
+                .build();
+
+        user = userRepository.save(user);
+
+        String accessToken = jwtTokenProvider.generateAccessToken(user.getId(), user.getEmail());
+        String refreshToken = refreshTokenService.issue(user.getId(), ipAddress, userAgent);
+
+        auditLogService.record(user.getId(), user.getId(), AuditAction.REGISTER, AuditStatus.SUCCESS,
+                "New account registered via email verification: " + user.getEmail());
+        return buildAuthResponse(user, accessToken, refreshToken);
+    }
+
     public AuthResponse login(LoginRequest request) {
         return login(request, null, null);
     }

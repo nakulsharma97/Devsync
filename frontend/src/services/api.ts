@@ -54,12 +54,9 @@ const api = axios.create({
 // The XSRF-TOKEN cookie is set by the CsrfFilter on this GET response.
 // Subsequent POST/PUT/DELETE requests read it from the cookie and attach
 // it as the X-XSRF-TOKEN header.
-let csrfInitialized = false;
-
 async function initCsrf(): Promise<void> {
   try {
     await axios.get(`${API_BASE_URL}/auth/csrf`, { withCredentials: true });
-    csrfInitialized = true;
   } catch {
     // CSRF init failure — the POST will fail with 403, which is correct behavior.
   }

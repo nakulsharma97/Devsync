@@ -50,6 +50,29 @@ export const authService = {
     return res.data;
   },
 
+  async initiateRegistration(
+    email: string,
+    password: string,
+    fullName: string,
+    username?: string
+  ): Promise<void> {
+    await api.post("/auth/register/initiate", {
+      email,
+      password,
+      fullName,
+      username,
+    });
+  },
+
+  async verifyRegistration(email: string, otp: string): Promise<AuthResponse> {
+    const res = await api.post("/auth/register/verify", { email, otp });
+    return res.data;
+  },
+
+  async resendRegistrationOtp(email: string): Promise<void> {
+    await api.post("/auth/register/resend", { email });
+  },
+
   async login(email: string, password: string): Promise<AuthResponse> {
     const res = await api.post("/auth/login", { email, password });
     return res.data;

@@ -42,7 +42,7 @@ export default function CropModal({
   const dragStart = useRef({ mx: 0, my: 0, bx: 0, by: 0, bw: 0, bh: 0 });
 
   // Display scale from natural image → canvas CSS px
-  const [scale, setScale] = useState(1);
+  const [_scale, setScale] = useState(1);
   // Max canvas CSS dimensions
   const maxDims = useRef({ w: 0, h: 0 });
 
@@ -219,7 +219,7 @@ export default function CropModal({
       ctx.fill();
     });
     ctx.shadowBlur = 0;
-  }, [box, imageLoaded, zoom, showGrid]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [box, imageLoaded, zoom, showGrid]);
 
   // ── Pointer helpers ──────────────────────────────────────
   const getCanvasPos = (e: React.MouseEvent | React.TouchEvent) => {
@@ -502,7 +502,7 @@ export default function CropModal({
         <div className="px-5 flex justify-center">
           <div
             className="relative rounded-xl overflow-hidden bg-neutral-900 border border-border/30"
-            style={{ cursor: dragging || resizing ? (dragging ? "move" : getCursor({ clientX: 0, clientY: 0 } as React.MouseEvent)) : undefined }}
+            style={{ cursor: dragging ? "move" : resizing ? "nwse-resize" : undefined }}
           >
             <canvas
               ref={canvasRef}

@@ -287,7 +287,7 @@ export default function UserProfilePage() {
         setLoadingMorePosts(false);
       }
     },
-    [social?.id]
+    [social]
   );
 
   useEffect(() => {
