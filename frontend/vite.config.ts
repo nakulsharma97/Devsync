@@ -17,6 +17,15 @@ export default defineConfig({
     emptyOutDir: true,
     // Enable source maps for better debugging (disable in production if needed)
     sourcemap: false,
+    // Stop Vite from auto-preloading chunks that are only needed by specific
+    // lazy pages.  The charts chunk (recharts ~113 KB gzip) is only required
+    // by Analytics/AdminActivity which are already React.lazy()-loaded, so
+    // eager-preloading it on every page is wasted bandwidth.
+    modulePreload: {
+      resolveDependencies: (_filename, deps) => {
+        return deps.filter(dep => !dep.includes('charts'));
+      },
+    },
     // Optimize chunk splitting
     rollupOptions: {
       output: {
@@ -54,6 +63,11 @@ export default defineConfig({
           // Heavy optional libraries - separate chunks for better lazy loading
           'framer-motion': ['framer-motion'],
           'charts': ['recharts'],
+          // Shared utility libs used by nearly every component (cn helper).
+          // Must be in their own chunk so they don't get absorbed into the
+          // charts chunk via chart.tsx → cn → clsx, which would create a
+          // static dependency from the entry bundle to the charts chunk.
+          'core-utils': ['clsx', 'tailwind-merge'],
           'forms': ['react-hook-form', '@hookform/resolvers', 'zod'],
         },
         // Optimize chunk size
