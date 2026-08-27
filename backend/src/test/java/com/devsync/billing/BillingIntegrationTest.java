@@ -1494,4 +1494,180 @@ class BillingIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.orderId").isNotEmpty());
     }
+
+    // ── Additional verification tests ─────────────────────────────
+
+    @Test
+    void stripeWebhook_currencyMismatch_rejected() throws Exception {
+        setupStripeSignatureMock();
+
+        String sessionId = "cs_curr_mismatch";
+        paymentRepository.save(Payment.builder()
+                .userId(aliceId).planCode("PRO").provider("STRIPE")
+                .providerOrderId(sessionId)
+                .amountPaise(29900).currency("INR").status(PaymentStatus.PENDING).build());
+
+        // Send webhook with correct amount but wrong currency (usd instead of inr).
+        String payload = stripeCheckoutCompletedPayload(sessionId, "pi_curr",
+                29900, "usd", "PRO", aliceId, "paid");
+
+        mockMvc.perform(post("/api/billing/webhook/stripe")
+                        .header("Stripe-Signature", "t=123,v1=valid")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(payload))
+                .andExpect(status().isBadRequest());
+
+        // Payment stays PENDING.
+        Payment payment = paymentRepository.findTopByProviderOrderIdOrderByCreatedAtDesc(sessionId).orElseThrow();
+        assertThat(payment.getStatus()).isEqualTo(PaymentStatus.PENDING);
+    }
+
+    @Test
+    void expiredSubscription_renewalAllowed() throws Exception {
+        // Alice had a PRO subscription that expired 5 days ago.
+        subscriptionRepository.save(Subscription.builder()
+                .userId(aliceId).planCode("PRO").status(SubscriptionStatus.EXPIRED)
+                .currentPeriodStart(Instant.now().minus(35, ChronoUnit.DAYS))
+                .currentPeriodEnd(Instant.now().minus(5, ChronoUnit.DAYS)).build());
+
+        // Effective plan should be FREE.
+        assertThat(planService.getEffectivePlan(aliceId).getCode()).isEqualTo("FREE");
+
+        // Checkout for PRO again — should succeed (reactivation).
+        mockMvc.perform(post("/api/billing/checkout")
+                        .header("Authorization", bearer(aliceId))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"planCode\":\"PRO\",\"provider\":\"RAZORPAY\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.orderId").isNotEmpty());
+    }
+
+    @Test
+    void expiredSubscription_stripeRenewalAllowed() throws Exception {
+        setupStripeSignatureMock();
+        when(stripeClient.createCheckoutSession(anyLong(), anyString(), anyString(), anyString()))
+                .thenAnswer(inv -> new StripeClient.CheckoutSession("cs_exp_renew", "https://checkout.stripe.com/cs_exp_renew"));
+
+        // Alice had a PRO subscription that expired 5 days ago.
+        subscriptionRepository.save(Subscription.builder()
+                .userId(aliceId).planCode("PRO").status(SubscriptionStatus.EXPIRED)
+                .currentPeriodStart(Instant.now().minus(35, ChronoUnit.DAYS))
+                .currentPeriodEnd(Instant.now().minus(5, ChronoUnit.DAYS)).build());
+
+        // Effective plan should be FREE.
+        assertThat(planService.getEffectivePlan(aliceId).getCode()).isEqualTo("FREE");
+
+        // Checkout for PRO via Stripe — should succeed (reactivation).
+        mockMvc.perform(post("/api/billing/checkout")
+                        .header("Authorization", bearer(aliceId))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"planCode\":\"PRO\",\"provider\":\"STRIPE\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.provider").value("STRIPE"));
+    }
+
+    @Test
+    void razorpayWebhook_duplicatePaymentEvent_idempotent() throws Exception {
+        // Activate Pro, then send the same payment.captured webhook twice.
+        String orderId = "order_dup_evt";
+        paymentRepository.save(Payment.builder()
+                .userId(aliceId).planCode("PRO").providerOrderId(orderId)
+                .amountPaise(29900).currency("INR").status(PaymentStatus.PENDING).build());
+
+        String body = webhookPayload("payment.captured", orderId, "pay_dup_evt", 29900);
+        mockMvc.perform(post("/api/billing/webhook/razorpay")
+                        .header("X-Razorpay-Signature", "sig")
+                        .header("X-Razorpay-Event-Id", "evt_dup_evt")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.duplicate").value(false));
+
+        Subscription first = subscriptionRepository.findByUserId(aliceId).orElseThrow();
+        Instant firstEnd = first.getCurrentPeriodEnd();
+
+        // Same event again — should be acknowledged as duplicate.
+        mockMvc.perform(post("/api/billing/webhook/razorpay")
+                        .header("X-Razorpay-Signature", "sig")
+                        .header("X-Razorpay-Event-Id", "evt_dup_evt")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.duplicate").value(true));
+
+        // Subscription period not extended twice.
+        Subscription second = subscriptionRepository.findByUserId(aliceId).orElseThrow();
+        assertThat(second.getCurrentPeriodEnd()).isEqualTo(firstEnd);
+    }
+
+    @Test
+    void subscriptionPeriod_correct30Days() throws Exception {
+        // Verify the subscription period is exactly 30 days from now.
+        activatePro(aliceId);
+        Subscription sub = subscriptionRepository.findByUserId(aliceId).orElseThrow();
+        assertThat(sub.getCurrentPeriodStart()).isNotNull();
+        assertThat(sub.getCurrentPeriodEnd()).isNotNull();
+
+        long daysBetween = ChronoUnit.DAYS.between(sub.getCurrentPeriodStart(), sub.getCurrentPeriodEnd());
+        assertThat(daysBetween).isEqualTo(30);
+    }
+
+    @Test
+    void stripeWebhook_renewal_preservesProvider() throws Exception {
+        setupStripeSignatureMock();
+
+        // Alice has an active STRIPE subscription.
+        subscriptionRepository.save(Subscription.builder()
+                .userId(aliceId).planCode("PRO").provider("STRIPE")
+                .status(SubscriptionStatus.ACTIVE)
+                .currentPeriodStart(Instant.now().minus(10, ChronoUnit.DAYS))
+                .currentPeriodEnd(Instant.now().plus(20, ChronoUnit.DAYS)).build());
+
+        String sessionId = "cs_renew_stripe";
+        paymentRepository.save(Payment.builder()
+                .userId(aliceId).planCode("PRO").provider("STRIPE")
+                .providerOrderId(sessionId)
+                .amountPaise(29900).currency("INR").status(PaymentStatus.PENDING).build());
+
+        String payload = stripeCheckoutCompletedPayload(sessionId, "pi_renew_stripe",
+                29900, "inr", "PRO", aliceId, "paid");
+
+        mockMvc.perform(post("/api/billing/webhook/stripe")
+                        .header("Stripe-Signature", "t=123,v1=valid")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(payload))
+                .andExpect(status().isOk());
+
+        // Provider should remain STRIPE after renewal.
+        Subscription sub = subscriptionRepository.findByUserId(aliceId).orElseThrow();
+        assertThat(sub.getProvider()).isEqualTo("STRIPE");
+    }
+
+    @Test
+    void razorpayWebhook_renewal_preservesProvider() throws Exception {
+        // Alice has an active RAZORPAY subscription.
+        subscriptionRepository.save(Subscription.builder()
+                .userId(aliceId).planCode("PRO").provider("RAZORPAY")
+                .status(SubscriptionStatus.ACTIVE)
+                .currentPeriodStart(Instant.now().minus(10, ChronoUnit.DAYS))
+                .currentPeriodEnd(Instant.now().plus(20, ChronoUnit.DAYS)).build());
+
+        String orderId = "order_renew_rzp";
+        paymentRepository.save(Payment.builder()
+                .userId(aliceId).planCode("PRO").provider("RAZORPAY")
+                .providerOrderId(orderId)
+                .amountPaise(29900).currency("INR").status(PaymentStatus.PENDING).build());
+
+        String body = webhookPayload("payment.captured", orderId, "pay_renew_rzp", 29900);
+        mockMvc.perform(post("/api/billing/webhook/razorpay")
+                        .header("X-Razorpay-Signature", "sig")
+                        .header("X-Razorpay-Event-Id", "evt_renew_rzp")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isOk());
+
+        // Provider should remain RAZORPAY after renewal.
+        Subscription sub = subscriptionRepository.findByUserId(aliceId).orElseThrow();
+        assertThat(sub.getProvider()).isEqualTo("RAZORPAY");
+    }
 }
