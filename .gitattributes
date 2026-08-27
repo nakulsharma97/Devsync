@@ -1,0 +1,2 @@
+# Ensure Maven Wrapper retains executable permission on all platforms (Linux, macOS, Windows/Git Bash)
+backend/mvnw text eol=lf

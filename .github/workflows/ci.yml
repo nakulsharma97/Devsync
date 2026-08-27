@@ -23,10 +23,15 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
+      - name: Ensure Maven Wrapper is executable
+        run: chmod +x backend/mvnw || true
+
       - name: Run auth unit tests
         run: |
           cd backend
-          mvn test -B -Dtest="**/auth/*Test,!**/auth/*IntegrationTest" -pl .
+          mvn test -B \
+            -Dtest="com.devsync.auth.AccountRecoveryServiceTest,com.devsync.auth.AuthControllerTest,com.devsync.auth.AuthServiceTest,com.devsync.auth.JwtAuthenticationFilterTest,com.devsync.auth.JwtTokenProviderTest,com.devsync.auth.OtpServiceTest,com.devsync.auth.RefreshTokenServiceTest" \
+            -pl .
 
       - name: Publish auth test results
         uses: dorny/test-reporter@v3
@@ -59,6 +64,9 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
           cache: 'maven'
+
+      - name: Ensure Maven Wrapper is executable
+        run: chmod +x backend/mvnw || true
 
       - name: Backend compile & verify (with MySQL)
         run: |
