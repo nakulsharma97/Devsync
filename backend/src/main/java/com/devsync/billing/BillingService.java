@@ -965,6 +965,26 @@ public class BillingService {
             return;
         }
 
+        // For Stripe RECURRING subscriptions, cancel the provider-side subscription
+        // so Stripe stops auto-charging the customer.  Without this, Stripe would
+        // keep billing on the next cycle even though the customer has been refunded
+        // and downgraded in DevSync.
+        if ("STRIPE".equals(subscription.getProvider())
+                && subscription.getProviderSubscriptionId() != null
+                && !subscription.getProviderSubscriptionId().isBlank()) {
+            try {
+                stripeClient.cancelSubscriptionImmediately(subscription.getProviderSubscriptionId());
+            } catch (Exception e) {
+                // CRITICAL: silent failure here means the customer will be auto-charged
+                // again after receiving a refund.  Log loudly but still proceed with
+                // the internal revocation — we can't block in-app downgrade on a Stripe
+                // API failure, but ops MUST be alerted.
+                log.error("CRITICAL: failed to cancel Stripe subscription {} after refund "
+                        + "revocation for user {} — customer may be auto-charged again next cycle",
+                        subscription.getProviderSubscriptionId(), userId, e);
+            }
+        }
+
         // Revoke immediately: the money is back with the customer.
         subscription.setStatus(SubscriptionStatus.EXPIRED);
         subscription.setCurrentPeriodEnd(Instant.now());
@@ -1321,13 +1341,19 @@ public class BillingService {
                     "Cannot process refund: the original payment has no provider information."
                     + " Payment ID: " + payment.getId());
         }
-        String refundNote = adminNote != null ? adminNote : "Refund approved by admin";
+        // Razorpay's 'notes' field accepts arbitrary free text — pass adminNote
+        // straight through.  Stripe's 'reason' field only accepts one of three
+        // literal values ("duplicate", "fraudulent", "requested_by_customer")
+        // so we always pass a valid Stripe reason code here; adminNote is stored
+        // on the RefundRequest row for audit purposes regardless.
+        String razorpayNote = adminNote != null ? adminNote : "Refund approved by admin";
+        String stripeReason = "requested_by_customer";
         try {
             switch (provider.toUpperCase()) {
                 case "RAZORPAY" -> razorpayClient.createRefund(
-                        payment.getProviderPaymentId(), refundNote);
+                        payment.getProviderPaymentId(), razorpayNote);
                 case "STRIPE" -> stripeClient.createRefund(
-                        payment.getProviderPaymentId(), refundNote);
+                        payment.getProviderPaymentId(), stripeReason);
                 default -> throw new IllegalStateException(
                         "Cannot process refund: unsupported payment provider '" + provider + "'."
                         + " Payment ID: " + payment.getId());

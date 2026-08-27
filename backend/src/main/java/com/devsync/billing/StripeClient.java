@@ -363,10 +363,18 @@ public class StripeClient {
         return null;
     }
 
+    /** Stripe refund reason codes accepted by the API. */
+    private static final java.util.Set<String> VALID_STRIPE_REFUND_REASONS =
+            java.util.Set.of("duplicate", "fraudulent", "requested_by_customer");
+
     /**
      * POST /v1/refunds — creates a full refund via Stripe's Refund API.
      * The resulting charge.refunded webhook will trigger entitlement revocation
      * in BillingService (single code path for all refunds).
+     *
+     * @param paymentIntentId the Stripe payment intent to refund
+     * @param reason          one of "duplicate", "fraudulent",
+     *                        "requested_by_customer", or null/blank (omitted)
      */
     public RefundResponse createRefund(String paymentIntentId, String reason) throws Exception {
         if (!isConfigured()) {
@@ -374,9 +382,14 @@ public class StripeClient {
                     "Stripe payment is not configured. Set STRIPE_SECRET_KEY.");
         }
 
+        // Stripe only accepts three literal values for 'reason'.  Arbitrary free
+        // text (e.g. an admin note) would cause a 400 from Stripe's API, so we
+        // silently replace any non-whitelisted value with the safe default.
+        String effectiveReason = (reason != null && !reason.isBlank()
+                && VALID_STRIPE_REFUND_REASONS.contains(reason)) ? reason : "requested_by_customer";
+
         String params = "payment_intent=" + paymentIntentId
-                + (reason != null && !reason.isBlank()
-                        ? "&reason=" + java.net.URLEncoder.encode(reason, StandardCharsets.UTF_8) : "");
+                + "&reason=" + java.net.URLEncoder.encode(effectiveReason, StandardCharsets.UTF_8);
 
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create("https://api.stripe.com/v1/refunds"))

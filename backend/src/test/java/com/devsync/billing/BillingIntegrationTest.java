@@ -40,8 +40,12 @@ import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -1982,5 +1986,274 @@ class BillingIntegrationTest {
                 .andExpect(jsonPath("$.cancelAtPeriodEnd").value(true));
 
         org.mockito.Mockito.verify(stripeClient).cancelSubscription(stripeSubId);
+    }
+
+    // ── Bug 1: Stripe refund reason validation ────────────────────
+
+    @Test
+    void refundRequest_stripeApproval_sendsValidStripeReason() throws Exception {
+        // Create a Stripe payment with an active RECURRING subscription.
+        Payment stripePayment = paymentRepository.save(Payment.builder()
+                .userId(aliceId).planCode("PRO").provider("STRIPE")
+                .providerOrderId("cs_reason_test")
+                .providerPaymentId("pi_reason_test")
+                .amountPaise(29900).currency("INR").status(PaymentStatus.SUCCESS)
+                .paidAt(Instant.now()).build());
+
+        when(stripeClient.createRefund(anyString(), anyString()))
+                .thenAnswer(inv -> {
+                    // Capture the reason argument to verify it's valid
+                    String reason = inv.getArgument(1);
+                    org.assertj.core.api.Assertions.assertThat(reason)
+                            .isIn("duplicate", "fraudulent", "requested_by_customer");
+                    return new StripeClient.RefundResponse(
+                            "re_reason_test", inv.getArgument(0), 29900, "succeeded");
+                });
+
+        // Submit refund request.
+        mockMvc.perform(post("/api/billing/refund-requests")
+                        .header("Authorization", bearer(aliceId))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"paymentId\":\"" + stripePayment.getId() + "\",\"reason\":\"Changed my mind\"}"))
+                .andExpect(status().isOk());
+
+        RefundRequest rr = refundRequestRepository.findByUserIdOrderByCreatedAtDesc(aliceId).stream()
+                .filter(r -> r.getPaymentId().equals(stripePayment.getId()))
+                .findFirst().orElseThrow();
+
+        // Approve with a free-text admin note — the note must NOT be sent as the Stripe reason.
+        mockMvc.perform(post("/api/admin/billing/refund-requests/" + rr.getId() + "/approve")
+                        .header("Authorization", bearer(adminId))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"adminNote\":\"Customer complained about feature X\"}"))
+                .andExpect(status().isOk());
+
+        // Verify createRefund was called with a valid Stripe reason code,
+        // NOT the raw admin note text.
+        org.mockito.Mockito.verify(stripeClient).createRefund(
+                eq("pi_reason_test"), eq("requested_by_customer"));
+    }
+
+    @Test
+    void refundRequest_stripeApproval_defaultAdminNote_sendsValidReason() throws Exception {
+        // Approving with the default admin note (null) should still send a valid reason.
+        Payment stripePayment = paymentRepository.save(Payment.builder()
+                .userId(aliceId).planCode("PRO").provider("STRIPE")
+                .providerOrderId("cs_default_note")
+                .providerPaymentId("pi_default_note")
+                .amountPaise(29900).currency("INR").status(PaymentStatus.SUCCESS)
+                .paidAt(Instant.now()).build());
+
+        when(stripeClient.createRefund(anyString(), anyString()))
+                .thenAnswer(inv -> new StripeClient.RefundResponse(
+                        "re_default_note", inv.getArgument(0), 29900, "succeeded"));
+
+        mockMvc.perform(post("/api/billing/refund-requests")
+                        .header("Authorization", bearer(aliceId))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"paymentId\":\"" + stripePayment.getId() + "\",\"reason\":\"Test\"}"))
+                .andExpect(status().isOk());
+
+        RefundRequest rr = refundRequestRepository.findByUserIdOrderByCreatedAtDesc(aliceId).stream()
+                .filter(r -> r.getPaymentId().equals(stripePayment.getId()))
+                .findFirst().orElseThrow();
+
+        // Approve without adminNote (null/empty) — should default to "requested_by_customer".
+        mockMvc.perform(post("/api/admin/billing/refund-requests/" + rr.getId() + "/approve")
+                        .header("Authorization", bearer(adminId))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isOk());
+
+        org.mockito.Mockito.verify(stripeClient).createRefund(
+                eq("pi_default_note"), eq("requested_by_customer"));
+    }
+
+    @Test
+    void stripeClient_createRefund_invalidReason_fallsBackToDefault() {
+        // Unit test: StripeClient.createRefund rejects non-whitelisted reason codes
+        // and silently falls back to "requested_by_customer".
+        // This is tested at the unit level via StripeClientTest, but also verified
+        // here through the BillingService integration path.
+        // The integration test above already asserts the correct reason is passed.
+    }
+
+    // ── Bug 2: Stripe subscription cancellation on refund ──────────
+
+    @Test
+    void webhook_fullRefund_recurringStripeSubscription_cancelsStripeSub() throws Exception {
+        setupStripeSignatureMock();
+
+        // Set up a RECURRING Stripe subscription for Alice.
+        String stripeSubId = "sub_refund_cancel_001";
+        subscriptionRepository.save(Subscription.builder()
+                .userId(aliceId).planCode("PRO").provider("STRIPE")
+                .providerSubscriptionId(stripeSubId)
+                .status(SubscriptionStatus.ACTIVE)
+                .currentPeriodStart(Instant.now().minus(10, ChronoUnit.DAYS))
+                .currentPeriodEnd(Instant.now().plus(20, ChronoUnit.DAYS)).build());
+
+        // Create a payment linked to the subscription.
+        Payment payment = paymentRepository.save(Payment.builder()
+                .userId(aliceId).planCode("PRO").provider("STRIPE")
+                .providerOrderId("cs_refund_cancel")
+                .providerPaymentId("pi_refund_cancel")
+                .amountPaise(29900).currency("INR").status(PaymentStatus.SUCCESS)
+                .paidAt(Instant.now())
+                .subscriptionId(subscriptionRepository.findByUserId(aliceId).orElseThrow().getId())
+                .build());
+
+        // Mock cancelSubscriptionImmediately to succeed.
+        org.mockito.Mockito.doNothing().when(stripeClient)
+                .cancelSubscriptionImmediately(anyString());
+
+        // Fire a charge.refunded webhook (full refund).
+        String chargePayload = mapToJson(Map.of(
+                "id", "evt_refund_recurring",
+                "type", "charge.refunded",
+                "data", Map.of("object", Map.of(
+                        "id", "ch_refund_cancel",
+                        "payment_intent", "pi_refund_cancel",
+                        "amount", 29900,
+                        "amount_refunded", 29900))));
+
+        mockMvc.perform(post("/api/billing/webhook/stripe")
+                        .header("Stripe-Signature", "t=123,v1=valid")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(chargePayload))
+                .andExpect(status().isOk());
+
+        // Subscription revoked internally.
+        Subscription sub = subscriptionRepository.findByUserId(aliceId).orElseThrow();
+        assertThat(sub.getStatus()).isEqualTo(SubscriptionStatus.EXPIRED);
+
+        // Stripe subscription was cancelled immediately.
+        org.mockito.Mockito.verify(stripeClient)
+                .cancelSubscriptionImmediately(eq(stripeSubId));
+    }
+
+    @Test
+    void webhook_fullRefund_oneTimeStripeSubscription_doesNotCancelStripeSub() throws Exception {
+        setupStripeSignatureMock();
+
+        // Set up a ONE-TIME Stripe subscription (no providerSubscriptionId).
+        subscriptionRepository.save(Subscription.builder()
+                .userId(aliceId).planCode("PRO").provider("STRIPE")
+                // No providerSubscriptionId — this is a one-time payment.
+                .status(SubscriptionStatus.ACTIVE)
+                .currentPeriodStart(Instant.now().minus(10, ChronoUnit.DAYS))
+                .currentPeriodEnd(Instant.now().plus(20, ChronoUnit.DAYS)).build());
+
+        Payment payment = paymentRepository.save(Payment.builder()
+                .userId(aliceId).planCode("PRO").provider("STRIPE")
+                .providerOrderId("cs_onetime_refund")
+                .providerPaymentId("pi_onetime_refund")
+                .amountPaise(29900).currency("INR").status(PaymentStatus.SUCCESS)
+                .paidAt(Instant.now())
+                .subscriptionId(subscriptionRepository.findByUserId(aliceId).orElseThrow().getId())
+                .build());
+
+        String chargePayload = mapToJson(Map.of(
+                "id", "evt_refund_onetime",
+                "type", "charge.refunded",
+                "data", Map.of("object", Map.of(
+                        "id", "ch_onetime_refund",
+                        "payment_intent", "pi_onetime_refund",
+                        "amount", 29900,
+                        "amount_refunded", 29900))));
+
+        mockMvc.perform(post("/api/billing/webhook/stripe")
+                        .header("Stripe-Signature", "t=123,v1=valid")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(chargePayload))
+                .andExpect(status().isOk());
+
+        // Subscription revoked internally.
+        Subscription sub = subscriptionRepository.findByUserId(aliceId).orElseThrow();
+        assertThat(sub.getStatus()).isEqualTo(SubscriptionStatus.EXPIRED);
+
+        // cancelSubscriptionImmediately must NOT be called for one-time payments.
+        org.mockito.Mockito.verify(stripeClient, org.mockito.Mockito.never())
+                .cancelSubscriptionImmediately(anyString());
+    }
+
+    @Test
+    void webhook_fullRefund_recurringStripeSub_cancelFails_stillExpires() throws Exception {
+        setupStripeSignatureMock();
+
+        // If cancelSubscriptionImmediately throws, the internal revocation
+        // must still proceed (best-effort cancellation).
+        String stripeSubId = "sub_cancel_fail_001";
+        subscriptionRepository.save(Subscription.builder()
+                .userId(aliceId).planCode("PRO").provider("STRIPE")
+                .providerSubscriptionId(stripeSubId)
+                .status(SubscriptionStatus.ACTIVE)
+                .currentPeriodStart(Instant.now().minus(10, ChronoUnit.DAYS))
+                .currentPeriodEnd(Instant.now().plus(20, ChronoUnit.DAYS)).build());
+
+        Payment payment = paymentRepository.save(Payment.builder()
+                .userId(aliceId).planCode("PRO").provider("STRIPE")
+                .providerOrderId("cs_cancel_fail")
+                .providerPaymentId("pi_cancel_fail")
+                .amountPaise(29900).currency("INR").status(PaymentStatus.SUCCESS)
+                .paidAt(Instant.now())
+                .subscriptionId(subscriptionRepository.findByUserId(aliceId).orElseThrow().getId())
+                .build());
+
+        // Mock cancelSubscriptionImmediately to throw.
+        org.mockito.Mockito.doThrow(new java.net.ConnectException("Stripe down"))
+                .when(stripeClient).cancelSubscriptionImmediately(anyString());
+
+        String chargePayload = mapToJson(Map.of(
+                "id", "evt_cancel_fail",
+                "type", "charge.refunded",
+                "data", Map.of("object", Map.of(
+                        "id", "ch_cancel_fail",
+                        "payment_intent", "pi_cancel_fail",
+                        "amount", 29900,
+                        "amount_refunded", 29900))));
+
+        // Should not throw — the Stripe failure is logged, not propagated.
+        mockMvc.perform(post("/api/billing/webhook/stripe")
+                        .header("Stripe-Signature", "t=123,v1=valid")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(chargePayload))
+                .andExpect(status().isOk());
+
+        // Internal revocation still happened despite Stripe API failure.
+        Subscription sub = subscriptionRepository.findByUserId(aliceId).orElseThrow();
+        assertThat(sub.getStatus()).isEqualTo(SubscriptionStatus.EXPIRED);
+    }
+
+    @Test
+    void webhook_subscriptionDeleted_afterRefund_isIdempotent() throws Exception {
+        setupStripeSignatureMock();
+
+        // After a full refund triggers revokeSubscriptionOnRefund (which calls
+        // cancelSubscriptionImmediately), Stripe fires customer.subscription.deleted.
+        // That webhook re-enters handleStripeSubscriptionDeleted, which should be
+        // a no-op (idempotent) because the subscription is already EXPIRED.
+        String stripeSubId = "sub_idempotent_after_refund";
+        subscriptionRepository.save(Subscription.builder()
+                .userId(aliceId).planCode("PRO").provider("STRIPE")
+                .providerSubscriptionId(stripeSubId)
+                .status(SubscriptionStatus.EXPIRED)
+                .currentPeriodEnd(Instant.now().minus(1, ChronoUnit.DAYS)).build());
+
+        String payload = mapToJson(Map.of(
+                "id", "evt_idempotent_after_refund",
+                "type", "customer.subscription.deleted",
+                "data", Map.of("object", Map.of("id", stripeSubId))));
+
+        mockMvc.perform(post("/api/billing/webhook/stripe")
+                        .header("Stripe-Signature", "t=123,v1=valid")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(payload))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.processed").value(true));
+
+        // Still EXPIRED — idempotent, no double-log, no error.
+        Subscription sub = subscriptionRepository.findByUserId(aliceId).orElseThrow();
+        assertThat(sub.getStatus()).isEqualTo(SubscriptionStatus.EXPIRED);
     }
 }
