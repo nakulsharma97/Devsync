@@ -38,6 +38,8 @@ public interface SubscriptionRepository extends JpaRepository<Subscription, Stri
 
     long countByPlanCode(String planCode);
 
+    long countByPlanCodeAndStatus(String planCode, SubscriptionStatus status);
+
     long countByStatusIn(List<SubscriptionStatus> statuses);
 
     /**

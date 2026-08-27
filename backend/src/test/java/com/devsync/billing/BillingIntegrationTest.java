@@ -1239,4 +1239,259 @@ class BillingIntegrationTest {
         Subscription aliceSub = subscriptionRepository.findByUserId(aliceId).orElseThrow();
         assertThat(aliceSub.getStatus()).isEqualTo(SubscriptionStatus.EXPIRED);
     }
+
+    // ── Stripe webhook tests ──────────────────────────────────────
+
+    private String stripeCheckoutCompletedPayload(String sessionId, String paymentIntentId,
+            long amountTotal, String currency, String planCode, String userId, String paymentStatus) {
+        return "{\"id\":\"evt_stripe_" + sessionId
+                + "\",\"type\":\"checkout.session.completed\"" +
+                ",\"data\":{\"object\":{\"id\":\"" + sessionId
+                + "\",\"payment_intent\":\"" + paymentIntentId
+                + "\",\"amount_total\":" + amountTotal
+                + ",\"currency\":\"" + currency
+                + "\",\"metadata\":{\"plan_code\":\"" + planCode
+                + "\"},\"client_reference_id\":\"" + userId
+                + "\",\"payment_status\":\"" + paymentStatus + "\"}}}";
+    }
+
+    private void setupStripeSignatureMock() {
+        // In test mode, StripeClient.verifyWebhookSignature is a real bean but
+        // has no secret key configured, so it always returns false. We need to
+        // mock it to return true for all tests.
+        org.mockito.Mockito.reset(stripeClient);
+        when(stripeClient.verifyWebhookSignature(any(byte[].class), anyString())).thenReturn(true);
+    }
+
+    @Test
+    void stripeWebhook_checkoutCompleted_activatesSubscription() throws Exception {
+        setupStripeSignatureMock();
+
+        // Create a Stripe checkout session for Alice.
+        String sessionId = "cs_test_alice";
+        String paymentIntentId = "pi_test_alice";
+        paymentRepository.save(Payment.builder()
+                .userId(aliceId).planCode("PRO").provider("STRIPE")
+                .providerOrderId(sessionId)
+                .amountPaise(29900).currency("INR").status(PaymentStatus.PENDING).build());
+
+        String payload = stripeCheckoutCompletedPayload(sessionId, paymentIntentId,
+                29900, "inr", "PRO", aliceId, "paid");
+
+        mockMvc.perform(post("/api/billing/webhook/stripe")
+                        .header("Stripe-Signature", "t=123,v1=valid")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(payload))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.processed").value(true));
+
+        // Payment SUCCESS, subscription ACTIVE, provider = STRIPE.
+        Payment payment = paymentRepository.findTopByProviderOrderIdOrderByCreatedAtDesc(sessionId).orElseThrow();
+        assertThat(payment.getStatus()).isEqualTo(PaymentStatus.SUCCESS);
+        assertThat(payment.getProviderPaymentId()).isEqualTo(paymentIntentId);
+
+        Subscription sub = subscriptionRepository.findByUserId(aliceId).orElseThrow();
+        assertThat(sub.getPlanCode()).isEqualTo("PRO");
+        assertThat(sub.getStatus()).isEqualTo(SubscriptionStatus.ACTIVE);
+        assertThat(sub.getProvider()).isEqualTo("STRIPE");
+        assertThat(sub.getCurrentPeriodEnd()).isAfter(Instant.now());
+    }
+
+    @Test
+    void stripeWebhook_invalidSignature_rejected() throws Exception {
+        org.mockito.Mockito.reset(stripeClient);
+        when(stripeClient.verifyWebhookSignature(any(byte[].class), anyString())).thenReturn(false);
+
+        mockMvc.perform(post("/api/billing/webhook/stripe")
+                        .header("Stripe-Signature", "t=123,v1=bad")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"id\":\"evt_bad\",\"type\":\"checkout.session.completed\"}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void stripeWebhook_amountMismatch_rejected() throws Exception {
+        setupStripeSignatureMock();
+
+        String sessionId = "cs_amt_mismatch";
+        paymentRepository.save(Payment.builder()
+                .userId(aliceId).planCode("PRO").provider("STRIPE")
+                .providerOrderId(sessionId)
+                .amountPaise(29900).currency("INR").status(PaymentStatus.PENDING).build());
+
+        // Send webhook with wrong amount (100 instead of 29900).
+        String payload = stripeCheckoutCompletedPayload(sessionId, "pi_amt",
+                100, "inr", "PRO", aliceId, "paid");
+
+        mockMvc.perform(post("/api/billing/webhook/stripe")
+                        .header("Stripe-Signature", "t=123,v1=valid")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(payload))
+                .andExpect(status().isBadRequest());
+
+        // Payment stays PENDING.
+        Payment payment = paymentRepository.findTopByProviderOrderIdOrderByCreatedAtDesc(sessionId).orElseThrow();
+        assertThat(payment.getStatus()).isEqualTo(PaymentStatus.PENDING);
+    }
+
+    @Test
+    void stripeWebhook_notPaid_doesNotActivate() throws Exception {
+        setupStripeSignatureMock();
+
+        String sessionId = "cs_not_paid";
+        paymentRepository.save(Payment.builder()
+                .userId(aliceId).planCode("PRO").provider("STRIPE")
+                .providerOrderId(sessionId)
+                .amountPaise(29900).currency("INR").status(PaymentStatus.PENDING).build());
+
+        // payment_status = "unpaid" — should not activate.
+        String payload = stripeCheckoutCompletedPayload(sessionId, "pi_unpaid",
+                29900, "inr", "PRO", aliceId, "unpaid");
+
+        mockMvc.perform(post("/api/billing/webhook/stripe")
+                        .header("Stripe-Signature", "t=123,v1=valid")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(payload))
+                .andExpect(status().isOk());
+
+        Payment payment = paymentRepository.findTopByProviderOrderIdOrderByCreatedAtDesc(sessionId).orElseThrow();
+        assertThat(payment.getStatus()).isEqualTo(PaymentStatus.PENDING);
+        assertThat(subscriptionRepository.findByUserId(aliceId)).isEmpty();
+    }
+
+    @Test
+    void stripeWebhook_duplicateEvent_isIdempotent() throws Exception {
+        setupStripeSignatureMock();
+
+        String sessionId = "cs_dup";
+        paymentRepository.save(Payment.builder()
+                .userId(aliceId).planCode("PRO").provider("STRIPE")
+                .providerOrderId(sessionId)
+                .amountPaise(29900).currency("INR").status(PaymentStatus.PENDING).build());
+
+        String payload = stripeCheckoutCompletedPayload(sessionId, "pi_dup",
+                29900, "inr", "PRO", aliceId, "paid");
+
+        // First delivery — processed.
+        mockMvc.perform(post("/api/billing/webhook/stripe")
+                        .header("Stripe-Signature", "t=123,v1=valid")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(payload))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.duplicate").value(false));
+
+        Subscription first = subscriptionRepository.findByUserId(aliceId).orElseThrow();
+        Instant firstEnd = first.getCurrentPeriodEnd();
+
+        // Second delivery — duplicate, acknowledged.
+        mockMvc.perform(post("/api/billing/webhook/stripe")
+                        .header("Stripe-Signature", "t=123,v1=valid")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(payload))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.duplicate").value(true));
+
+        // Subscription not extended twice.
+        Subscription second = subscriptionRepository.findByUserId(aliceId).orElseThrow();
+        assertThat(second.getCurrentPeriodEnd()).isEqualTo(firstEnd);
+    }
+
+    @Test
+    void stripeWebhook_checkoutCompleted_setsProviderToStripe() throws Exception {
+        setupStripeSignatureMock();
+
+        String sessionId = "cs_provider_test";
+        paymentRepository.save(Payment.builder()
+                .userId(aliceId).planCode("PRO").provider("STRIPE")
+                .providerOrderId(sessionId)
+                .amountPaise(29900).currency("INR").status(PaymentStatus.PENDING).build());
+
+        String payload = stripeCheckoutCompletedPayload(sessionId, "pi_prov",
+                29900, "inr", "PRO", aliceId, "paid");
+
+        mockMvc.perform(post("/api/billing/webhook/stripe")
+                        .header("Stripe-Signature", "t=123,v1=valid")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(payload))
+                .andExpect(status().isOk());
+
+        Subscription sub = subscriptionRepository.findByUserId(aliceId).orElseThrow();
+        assertThat(sub.getProvider()).isEqualTo("STRIPE");
+    }
+
+    @Test
+    void stripeWebhook_noMatchingPayment_skips() throws Exception {
+        setupStripeSignatureMock();
+
+        // Webhook for a session that has no corresponding PENDING payment.
+        String payload = stripeCheckoutCompletedPayload("cs_ghost", "pi_ghost",
+                29900, "inr", "PRO", aliceId, "paid");
+
+        mockMvc.perform(post("/api/billing/webhook/stripe")
+                        .header("Stripe-Signature", "t=123,v1=valid")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(payload))
+                .andExpect(status().isOk());
+
+        // No subscription created.
+        assertThat(subscriptionRepository.findByUserId(aliceId)).isEmpty();
+    }
+
+    @Test
+    void stripeWebhook_checkoutWithRenewal_extendsSubscription() throws Exception {
+        setupStripeSignatureMock();
+
+        // Alice already has an active PRO subscription expiring in 15 days.
+        Instant futureEnd = Instant.now().plus(15, ChronoUnit.DAYS);
+        subscriptionRepository.save(Subscription.builder()
+                .userId(aliceId).planCode("PRO").provider("STRIPE")
+                .status(SubscriptionStatus.ACTIVE)
+                .currentPeriodStart(Instant.now().minus(15, ChronoUnit.DAYS))
+                .currentPeriodEnd(futureEnd).build());
+
+        String sessionId = "cs_renew";
+        paymentRepository.save(Payment.builder()
+                .userId(aliceId).planCode("PRO").provider("STRIPE")
+                .providerOrderId(sessionId)
+                .amountPaise(29900).currency("INR").status(PaymentStatus.PENDING).build());
+
+        String payload = stripeCheckoutCompletedPayload(sessionId, "pi_renew",
+                29900, "inr", "PRO", aliceId, "paid");
+
+        mockMvc.perform(post("/api/billing/webhook/stripe")
+                        .header("Stripe-Signature", "t=123,v1=valid")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(payload))
+                .andExpect(status().isOk());
+
+        // Subscription renewed: period end extended from the future end date + 30 days.
+        Subscription sub = subscriptionRepository.findByUserId(aliceId).orElseThrow();
+        assertThat(sub.getStatus()).isEqualTo(SubscriptionStatus.ACTIVE);
+        assertThat(sub.getCurrentPeriodEnd()).isAfter(futureEnd);
+    }
+
+    @Test
+    void razorpayWebhook_stripePayment_webhookSetsProviderToRazorpay() throws Exception {
+        // Activate Pro via Razorpay webhook and verify provider is set correctly.
+        activatePro(aliceId);
+        Subscription sub = subscriptionRepository.findByUserId(aliceId).orElseThrow();
+        assertThat(sub.getProvider()).isEqualTo("RAZORPAY");
+    }
+
+    @Test
+    void samePlanRenewal_allowedViaCheckout() throws Exception {
+        // Alice has an active PRO subscription — should still be able to
+        // purchase PRO again (renewal).
+        activatePro(aliceId);
+        Subscription sub = subscriptionRepository.findByUserId(aliceId).orElseThrow();
+        assertThat(sub.getStatus()).isEqualTo(SubscriptionStatus.ACTIVE);
+
+        // Checkout for PRO again — should succeed (renewal).
+        mockMvc.perform(post("/api/billing/checkout")
+                        .header("Authorization", bearer(aliceId))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"planCode\":\"PRO\",\"provider\":\"RAZORPAY\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.orderId").isNotEmpty());
+    }
 }

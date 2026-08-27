@@ -107,8 +107,6 @@ export default function Billing() {
 
   const upgrade = useCallback(
     async (plan: Plan, provider?: string) => {
-      if (plan.code === currentPlanCode) return;
-
       setCheckoutLoading(plan.code);
       try {
         const session = await billingService.createCheckout(plan.code, provider);

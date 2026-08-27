@@ -81,13 +81,12 @@ public class BillingService {
             throw new IllegalArgumentException("The " + plan.getName() + " plan does not require a payment");
         }
 
+        // Allow same-plan renewal — only block if there's already a PENDING payment
+        // for this plan (to prevent duplicate checkout attempts).
         Subscription existing = subscriptionRepository.findByUserId(userId).orElse(null);
         if (existing != null && existing.getPlanCode().equals(planCode)
-                && List.of(SubscriptionStatus.ACTIVE, SubscriptionStatus.PAST_DUE, SubscriptionStatus.TRIALING)
-                        .contains(existing.getStatus())
-                && (existing.getCurrentPeriodEnd() == null
-                        || !existing.getCurrentPeriodEnd().isBefore(Instant.now()))) {
-            throw new IllegalArgumentException("You are already subscribed to the " + plan.getName() + " plan");
+                && existing.getStatus() == SubscriptionStatus.INCOMPLETE) {
+            throw new IllegalArgumentException("You already have a checkout in progress for the " + plan.getName() + " plan");
         }
 
         // Default to RAZORPAY if no provider specified
@@ -319,11 +318,17 @@ public class BillingService {
             return; // already processed
         }
 
-        // Cross-check amount
+        // Cross-check amount and currency
         if (payment.getAmountPaise() != amountTotal) {
             log.error("Stripe amount mismatch for session {}: expected {} got {}",
                     sessionId, payment.getAmountPaise(), amountTotal);
             throw new IllegalArgumentException("Stripe webhook amount mismatch");
+        }
+        if (currency != null && !currency.isBlank()
+                && !currency.equalsIgnoreCase(payment.getCurrency())) {
+            log.error("Stripe currency mismatch for session {}: expected {} got {}",
+                    sessionId, payment.getCurrency(), currency);
+            throw new IllegalArgumentException("Stripe webhook currency mismatch");
         }
 
         if (!"paid".equals(paymentStatus)) {
@@ -336,7 +341,7 @@ public class BillingService {
         payment.setPaidAt(Instant.now());
         paymentRepository.save(payment);
 
-        Subscription subscription = activateOrRenew(payment.getUserId(), payment.getPlanCode());
+        Subscription subscription = activateOrRenew(payment.getUserId(), payment.getPlanCode(), "STRIPE");
         payment.setSubscriptionId(subscription.getId());
         paymentRepository.save(payment);
 
@@ -443,7 +448,7 @@ public class BillingService {
         payment.setPaidAt(Instant.now());
         paymentRepository.save(payment);
 
-        Subscription subscription = activateOrRenew(payment.getUserId(), payment.getPlanCode());
+        Subscription subscription = activateOrRenew(payment.getUserId(), payment.getPlanCode(), "RAZORPAY");
         payment.setSubscriptionId(subscription.getId());
         paymentRepository.save(payment);
 
@@ -754,13 +759,14 @@ public class BillingService {
     }
 
     /** Creates the subscription on first payment, or extends the period on renewal. */
-    private Subscription activateOrRenew(String userId, String planCode) {
+    private Subscription activateOrRenew(String userId, String planCode, String provider) {
         Instant now = Instant.now();
         Subscription subscription = subscriptionRepository.findByUserId(userId).orElse(null);
         if (subscription == null) {
             return subscriptionRepository.save(Subscription.builder()
                     .userId(userId)
                     .planCode(planCode)
+                    .provider(provider != null ? provider : "RAZORPAY")
                     .status(SubscriptionStatus.ACTIVE)
                     .currentPeriodStart(now)
                     .currentPeriodEnd(now.plus(BILLING_PERIOD_DAYS, ChronoUnit.DAYS))
@@ -786,6 +792,9 @@ public class BillingService {
             subscription.setCurrentPeriodEnd(now.plus(BILLING_PERIOD_DAYS, ChronoUnit.DAYS));
             auditLogService.record(userId, userId, AuditAction.PLAN_CHANGED, AuditStatus.SUCCESS,
                     "Plan changed to " + planCode);
+        }
+        if (provider != null) {
+            subscription.setProvider(provider);
         }
         subscription.setCancelAtPeriodEnd(false);
         return subscriptionRepository.save(subscription);
@@ -1057,8 +1066,8 @@ public class BillingService {
         long cancelled = subscriptionRepository.countByStatus(SubscriptionStatus.CANCELLED);
         long expired = subscriptionRepository.countByStatus(SubscriptionStatus.EXPIRED);
         long pastDue = subscriptionRepository.countByStatus(SubscriptionStatus.PAST_DUE);
-        long pro = subscriptionRepository.countByPlanCode(PlanCode.PRO);
-        long enterprise = subscriptionRepository.countByPlanCode(PlanCode.ENTERPRISE);
+        long pro = subscriptionRepository.countByPlanCodeAndStatus(PlanCode.PRO, SubscriptionStatus.ACTIVE);
+        long enterprise = subscriptionRepository.countByPlanCodeAndStatus(PlanCode.ENTERPRISE, SubscriptionStatus.ACTIVE);
         long totalSubs = active + cancelled + expired + pastDue
                 + subscriptionRepository.countByStatus(SubscriptionStatus.TRIALING)
                 + subscriptionRepository.countByStatus(SubscriptionStatus.INCOMPLETE);
