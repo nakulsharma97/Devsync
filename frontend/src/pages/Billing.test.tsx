@@ -12,6 +12,8 @@ const mocks = vi.hoisted(() => ({
   getPayments: vi.fn(),
   createCheckout: vi.fn(),
   cancelSubscription: vi.fn(),
+  getMyRefundRequests: vi.fn(),
+  requestRefund: vi.fn(),
 }));
 
 vi.mock("@/services/api", () => ({
@@ -28,6 +30,8 @@ vi.mock("@/services/billingService", () => ({
     getPayments: mocks.getPayments,
     createCheckout: mocks.createCheckout,
     cancelSubscription: mocks.cancelSubscription,
+    getMyRefundRequests: mocks.getMyRefundRequests,
+    requestRefund: mocks.requestRefund,
   },
 }));
 
@@ -87,6 +91,7 @@ describe("Billing", () => {
       advancedAnalytics: false,
     });
     mocks.getPayments.mockResolvedValue([]);
+    mocks.getMyRefundRequests.mockResolvedValue([]);
     // @ts-expect-error tests stub the global checkout object
     window.Razorpay = class {
       options: { handler: () => void };
@@ -131,10 +136,12 @@ describe("Billing", () => {
     renderPage();
     await screen.findByText("₹299");
 
-    await user.click(screen.getByRole("button", { name: /upgrade to pro/i }));
+    // Pro plan has the first "Pay with Razorpay" button (after Free's "Current plan")
+    const payButtons = screen.getAllByRole("button", { name: /pay with razorpay/i });
+    await user.click(payButtons[0]);
 
     await waitFor(() => {
-      expect(mocks.createCheckout).toHaveBeenCalledWith("PRO");
+      expect(mocks.createCheckout).toHaveBeenCalledWith("PRO", "RAZORPAY");
     });
     await waitFor(() => {
       expect(screen.getByText(/payment received/i)).toBeInTheDocument();
@@ -155,12 +162,14 @@ describe("Billing", () => {
     renderPage();
     await screen.findByText("₹999");
 
-    await user.click(screen.getByRole("button", { name: /upgrade to enterprise/i }));
+    // Enterprise plan has the second "Pay with Razorpay" button
+    const payButtons = screen.getAllByRole("button", { name: /pay with razorpay/i });
+    await user.click(payButtons[1]);
 
     // Verify checkout was initiated with the correct plan — the Razorpay
     // handler fires asynchronously so we only assert the API call here.
     await waitFor(() => {
-      expect(mocks.createCheckout).toHaveBeenCalledWith("ENTERPRISE");
+      expect(mocks.createCheckout).toHaveBeenCalledWith("ENTERPRISE", "RAZORPAY");
     });
   });
 
