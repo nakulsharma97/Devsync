@@ -24,12 +24,12 @@ jobs:
           cache: 'maven'
 
       - name: Ensure Maven Wrapper is executable
-        run: chmod +x backend/mvnw || true
+        run: chmod +x backend/mvnw
 
       - name: Run auth unit tests
         run: |
           cd backend
-          mvn test -B \
+          ./mvnw test -B \
             -Dtest="com.devsync.auth.AccountRecoveryServiceTest,com.devsync.auth.AuthControllerTest,com.devsync.auth.AuthServiceTest,com.devsync.auth.JwtAuthenticationFilterTest,com.devsync.auth.JwtTokenProviderTest,com.devsync.auth.OtpServiceTest,com.devsync.auth.RefreshTokenServiceTest" \
             -pl .
 
@@ -66,12 +66,12 @@ jobs:
           cache: 'maven'
 
       - name: Ensure Maven Wrapper is executable
-        run: chmod +x backend/mvnw || true
+        run: chmod +x backend/mvnw
 
       - name: Backend compile & verify (with MySQL)
         run: |
           cd backend
-          mvn clean verify -B -Pcoverage
+          ./mvnw clean verify -B -Pcoverage
         env:
           SPRING_DATASOURCE_URL: jdbc:mysql://localhost:3306/devsync_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
           SPRING_DATASOURCE_USERNAME: root
