@@ -8,7 +8,9 @@ import com.devsync.billing.entity.RefundRequest;
 import com.devsync.billing.entity.RefundRequestStatus;
 import com.devsync.billing.entity.Subscription;
 import com.devsync.billing.entity.SubscriptionStatus;
+import com.devsync.audit.AuditLogService;
 import com.devsync.billing.repository.PaymentRepository;
+import com.devsync.billing.repository.PlanRepository;
 import com.devsync.billing.repository.RefundRequestRepository;
 import com.devsync.billing.repository.SubscriptionRepository;
 import com.devsync.billing.repository.WebhookEventRepository;
@@ -73,7 +75,21 @@ class BillingIntegrationTest {
     private RazorpayClient razorpayClient;
 
     @MockitoBean
+    private StripeClient stripeClient;
+
+    @MockitoBean
     private com.devsync.auth.EmailService emailService;
+
+    @Autowired
+    private com.devsync.billing.repository.SubscriptionRepository subscriptionRepoForScheduler;
+    @Autowired
+    private com.devsync.billing.repository.PlanRepository planRepositoryForScheduler;
+    @Autowired
+    private com.devsync.audit.AuditLogService auditLogServiceForScheduler;
+    @Autowired
+    private com.devsync.auth.EmailService emailServiceForScheduler;
+    @Autowired
+    private com.devsync.notification.NotificationService notificationServiceForScheduler;
 
     private String aliceId;
     private String bobId;
@@ -875,5 +891,352 @@ class BillingIntegrationTest {
         mockMvc.perform(get("/api/admin/billing/refund-requests")
                         .header("Authorization", bearer(adminId)))
                 .andExpect(status().isOk());
+    }
+
+    // ── Provider-based refund routing ───────────────────────────
+
+    @Test
+    void refundRequest_razorpayPayment_routesToRazorpay() throws Exception {
+        activatePro(aliceId);
+        Payment payment = paymentRepository.findByUserIdOrderByCreatedAtDesc(aliceId).get(0);
+        assertThat(payment.getProvider()).isEqualTo("RAZORPAY");
+
+        when(razorpayClient.createRefund(anyString(), anyString()))
+                .thenAnswer(inv -> new RazorpayClient.RefundResponse(
+                        "rfund_raz", inv.getArgument(0), 29900, "processed"));
+
+        // Submit and approve.
+        mockMvc.perform(post("/api/billing/refund-requests")
+                        .header("Authorization", bearer(aliceId))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"paymentId\":\"" + payment.getId() + "\",\"reason\":\"Test\"}"))
+                .andExpect(status().isOk());
+
+        RefundRequest rr = refundRequestRepository.findByUserIdOrderByCreatedAtDesc(aliceId).get(0);
+        mockMvc.perform(post("/api/admin/billing/refund-requests/" + rr.getId() + "/approve")
+                        .header("Authorization", bearer(adminId))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"adminNote\":\"Approved\"}"))
+                .andExpect(status().isOk());
+
+        org.mockito.Mockito.verify(razorpayClient).createRefund(
+                eq(payment.getProviderPaymentId()), anyString());
+    }
+
+    @Test
+    void refundRequest_stripePayment_routesToStripe() throws Exception {
+        // Create a Stripe payment for Alice directly (bypass Razorpay checkout).
+        Payment stripePayment = paymentRepository.save(Payment.builder()
+                .userId(aliceId).planCode("PRO").provider("STRIPE")
+                .providerOrderId("cs_test_stripe")
+                .providerPaymentId("pi_test_stripe")
+                .amountPaise(29900).currency("INR").status(PaymentStatus.SUCCESS)
+                .paidAt(Instant.now()).build());
+
+        when(stripeClient.createRefund(anyString(), anyString()))
+                .thenAnswer(inv -> new StripeClient.RefundResponse(
+                        "re_test_refund", inv.getArgument(0), 29900, "succeeded"));
+
+        // Submit refund for the Stripe payment.
+        mockMvc.perform(post("/api/billing/refund-requests")
+                        .header("Authorization", bearer(aliceId))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"paymentId\":\"" + stripePayment.getId() + "\",\"reason\":\"Test\"}"))
+                .andExpect(status().isOk());
+
+        RefundRequest rr = refundRequestRepository.findByUserIdOrderByCreatedAtDesc(aliceId).stream()
+                .filter(r -> r.getPaymentId().equals(stripePayment.getId()))
+                .findFirst().orElseThrow();
+
+        mockMvc.perform(post("/api/admin/billing/refund-requests/" + rr.getId() + "/approve")
+                        .header("Authorization", bearer(adminId))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"adminNote\":\"Approved\"}"))
+                .andExpect(status().isOk());
+
+        org.mockito.Mockito.verify(stripeClient).createRefund(
+                eq("pi_test_stripe"), anyString());
+    }
+
+    @Test
+    void refundRequest_stripePayment_mustNotCallRazorpay() throws Exception {
+        // Verify that approving a Stripe refund does NOT call Razorpay API.
+        Payment stripePayment = paymentRepository.save(Payment.builder()
+                .userId(aliceId).planCode("PRO").provider("STRIPE")
+                .providerOrderId("cs_stripe_only")
+                .providerPaymentId("pi_stripe_only")
+                .amountPaise(29900).currency("INR").status(PaymentStatus.SUCCESS)
+                .paidAt(Instant.now()).build());
+
+        when(stripeClient.createRefund(anyString(), anyString()))
+                .thenAnswer(inv -> new StripeClient.RefundResponse(
+                        "re_stripe_only", inv.getArgument(0), 29900, "succeeded"));
+
+        mockMvc.perform(post("/api/billing/refund-requests")
+                        .header("Authorization", bearer(aliceId))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"paymentId\":\"" + stripePayment.getId() + "\",\"reason\":\"Stripe only\"}"))
+                .andExpect(status().isOk());
+
+        RefundRequest rr = refundRequestRepository.findByUserIdOrderByCreatedAtDesc(aliceId).stream()
+                .filter(r -> r.getPaymentId().equals(stripePayment.getId()))
+                .findFirst().orElseThrow();
+
+        mockMvc.perform(post("/api/admin/billing/refund-requests/" + rr.getId() + "/approve")
+                        .header("Authorization", bearer(adminId))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"adminNote\":\"Approved\"}"))
+                .andExpect(status().isOk());
+
+        // Stripe called, Razorpay NOT called.
+        org.mockito.Mockito.verify(stripeClient).createRefund(eq("pi_stripe_only"), anyString());
+    }    @Test
+    void refundRequest_razorpayPayment_mustNotCallStripe() throws Exception {
+        // Verify that approving a Razorpay refund does NOT call Stripe API.
+        activatePro(aliceId);
+        Payment payment = paymentRepository.findByUserIdOrderByCreatedAtDesc(aliceId).get(0);
+
+        when(razorpayClient.createRefund(anyString(), anyString()))
+                .thenAnswer(inv -> new RazorpayClient.RefundResponse(
+                        "rfund_rp_only", inv.getArgument(0), 29900, "processed"));
+
+        mockMvc.perform(post("/api/billing/refund-requests")
+                        .header("Authorization", bearer(aliceId))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"paymentId\":\"" + payment.getId() + "\",\"reason\":\"Razorpay only\"}"))
+                .andExpect(status().isOk());
+
+        RefundRequest rr = refundRequestRepository.findByUserIdOrderByCreatedAtDesc(aliceId).get(0);
+
+        mockMvc.perform(post("/api/admin/billing/refund-requests/" + rr.getId() + "/approve")
+                        .header("Authorization", bearer(adminId))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"adminNote\":\"Approved\"}"))
+                .andExpect(status().isOk());
+
+        // Razorpay called, Stripe NOT called.
+        org.mockito.Mockito.verify(razorpayClient).createRefund(
+                eq(payment.getProviderPaymentId()), anyString());
+    }
+
+    @Test
+    void refundRequest_unsupportedProvider_safeError() throws Exception {
+        // Create a payment with an unsupported provider string.
+        Payment unsupportedPayment = paymentRepository.save(Payment.builder()
+                .userId(aliceId).planCode("PRO")
+                .provider("BRAINTREE")
+                .providerOrderId("order_braintree")
+                .providerPaymentId("bp_braintree")
+                .amountPaise(29900).currency("INR").status(PaymentStatus.SUCCESS)
+                .paidAt(Instant.now()).build());
+
+        mockMvc.perform(post("/api/billing/refund-requests")
+                        .header("Authorization", bearer(aliceId))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"paymentId\":\"" + unsupportedPayment.getId() + "\",\"reason\":\"Unsupported\"}"))
+                .andExpect(status().isOk());
+
+        RefundRequest rr = refundRequestRepository.findByUserIdOrderByCreatedAtDesc(aliceId).get(0);
+        mockMvc.perform(post("/api/admin/billing/refund-requests/" + rr.getId() + "/approve")
+                        .header("Authorization", bearer(adminId))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"adminNote\":\"Approved\"}"))
+                .andExpect(status().is5xxServerError());
+
+        // Neither provider called.
+        org.mockito.Mockito.verifyNoInteractions(razorpayClient);
+        org.mockito.Mockito.verifyNoInteractions(stripeClient);
+    }
+
+    @Test
+    void refundRequest_missingOriginalPayment_safeError() throws Exception {
+        // Create a valid payment, submit a refund request, then delete the payment.
+        activatePro(aliceId);
+        Payment realPayment = paymentRepository.findByUserIdOrderByCreatedAtDesc(aliceId).get(0);
+
+        // Submit a valid request.
+        mockMvc.perform(post("/api/billing/refund-requests")
+                        .header("Authorization", bearer(aliceId))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"paymentId\":\"" + realPayment.getId() + "\",\"reason\":\"Test\"}"))
+                .andExpect(status().isOk());
+
+        // Now delete the payment to simulate a missing payment.
+        paymentRepository.deleteById(realPayment.getId());
+
+        RefundRequest rr = refundRequestRepository.findByUserIdOrderByCreatedAtDesc(aliceId).get(0);
+        mockMvc.perform(post("/api/admin/billing/refund-requests/" + rr.getId() + "/approve")
+                        .header("Authorization", bearer(adminId))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"adminNote\":\"Approved\"}"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void refundRequest_failedProviderCall_doesNotMarkSuccess() throws Exception {
+        activatePro(aliceId);
+        Payment payment = paymentRepository.findByUserIdOrderByCreatedAtDesc(aliceId).get(0);
+
+        when(razorpayClient.createRefund(anyString(), anyString()))
+                .thenThrow(new java.net.ConnectException("Provider down"));
+
+        mockMvc.perform(post("/api/billing/refund-requests")
+                        .header("Authorization", bearer(aliceId))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"paymentId\":\"" + payment.getId() + "\",\"reason\":\"Test\"}"))
+                .andExpect(status().isOk());
+
+        RefundRequest rr = refundRequestRepository.findByUserIdOrderByCreatedAtDesc(aliceId).get(0);
+
+        // Approve fails because the Razorpay API call fails.
+        mockMvc.perform(post("/api/admin/billing/refund-requests/" + rr.getId() + "/approve")
+                        .header("Authorization", bearer(adminId))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"adminNote\":\"Approved\"}"))
+                .andExpect(status().is5xxServerError());
+
+        // Request remains PENDING — not marked as APPROVED.
+        assertThat(refundRequestRepository.findById(rr.getId()).orElseThrow().getStatus())
+                .isEqualTo(RefundRequestStatus.PENDING);
+    }
+
+    // ── Subscription scheduler ─────────────────────────────────
+
+    @Test
+    void scheduler_processExpiredSubscriptions_expiresOverdueSubscriptions() throws Exception {
+        // Create a subscription that expired 2 days ago.
+        subscriptionRepository.save(Subscription.builder()
+                .userId(bobId).planCode("PRO").status(SubscriptionStatus.ACTIVE)
+                .currentPeriodEnd(Instant.now().minus(2, ChronoUnit.DAYS)).build());
+
+        // Run the scheduled job directly.
+        SubscriptionScheduler scheduler = new SubscriptionScheduler(
+                subscriptionRepoForScheduler,
+                planRepositoryForScheduler,
+                userRepository,
+                notificationServiceForScheduler,
+                auditLogServiceForScheduler,
+                emailServiceForScheduler);
+        scheduler.processExpiredSubscriptions();
+
+        // Subscription is now EXPIRED.
+        Subscription sub = subscriptionRepository.findByUserId(bobId).orElseThrow();
+        assertThat(sub.getStatus()).isEqualTo(SubscriptionStatus.EXPIRED);
+
+        // Plan effective = FREE.
+        assertThat(planService.getEffectivePlan(bobId).getCode()).isEqualTo("FREE");
+
+        // Email notification sent (mock).
+        org.mockito.Mockito.verify(emailServiceForScheduler)
+                .sendSubscriptionExpired(eq("bob@test.dev"), eq("Bob"));
+
+        // Audit trail.
+        assertThat(auditLogRepository.findAll().stream()
+                .anyMatch(a -> a.getAction() == AuditAction.SUBSCRIPTION_EXPIRED
+                        && bobId.equals(a.getTargetUser()))).isTrue();
+    }
+
+    @Test
+    void scheduler_processExpiredSubscriptions_alreadyExpired_notProcessedAgain() throws Exception {
+        // Create a subscription that is already EXPIRED.
+        subscriptionRepository.save(Subscription.builder()
+                .userId(bobId).planCode("PRO").status(SubscriptionStatus.EXPIRED)
+                .currentPeriodEnd(Instant.now().minus(5, ChronoUnit.DAYS)).build());
+
+        long auditCountBefore = auditLogRepository.count();
+
+        SubscriptionScheduler scheduler = new SubscriptionScheduler(
+                subscriptionRepoForScheduler,
+                planRepositoryForScheduler,
+                userRepository,
+                notificationServiceForScheduler,
+                auditLogServiceForScheduler,
+                emailServiceForScheduler);
+        scheduler.processExpiredSubscriptions();
+
+        // No new audit entries — already expired, idempotent.
+        assertThat(auditLogRepository.count()).isEqualTo(auditCountBefore);
+
+        // No email sent.
+        org.mockito.Mockito.verify(emailServiceForScheduler, org.mockito.Mockito.never())
+                .sendSubscriptionExpired(anyString(), anyString());
+    }
+
+    @Test
+    void scheduler_sendExpiryReminders_sendsReminderBeforeExpiry() throws Exception {
+        // Create a subscription expiring in 2 days (no reminder sent yet).
+        subscriptionRepository.save(Subscription.builder()
+                .userId(aliceId).planCode("PRO").status(SubscriptionStatus.ACTIVE)
+                .currentPeriodEnd(Instant.now().plus(2, ChronoUnit.DAYS))
+                .lastReminderSentAt(null).build());
+
+        SubscriptionScheduler scheduler = new SubscriptionScheduler(
+                subscriptionRepoForScheduler,
+                planRepositoryForScheduler,
+                userRepository,
+                notificationServiceForScheduler,
+                auditLogServiceForScheduler,
+                emailServiceForScheduler);
+        scheduler.sendExpiryReminders();
+
+        // Reminder email sent.
+        org.mockito.Mockito.verify(emailServiceForScheduler)
+                .sendRenewalReminder(eq("alice@test.dev"), eq("Alice"),
+                        org.mockito.ArgumentMatchers.anyString(),
+                        org.mockito.ArgumentMatchers.anyString(),
+                        org.mockito.ArgumentMatchers.anyInt());
+
+        // lastReminderSentAt is now set.
+        Subscription sub = subscriptionRepository.findByUserId(aliceId).orElseThrow();
+        assertThat(sub.getLastReminderSentAt()).isNotNull();
+    }
+
+    @Test
+    void scheduler_sendExpiryReminders_noDuplicateWithin24Hours() throws Exception {
+        // Create a subscription expiring in 2 days with a recent reminder.
+        subscriptionRepository.save(Subscription.builder()
+                .userId(aliceId).planCode("PRO").status(SubscriptionStatus.ACTIVE)
+                .currentPeriodEnd(Instant.now().plus(2, ChronoUnit.DAYS))
+                .lastReminderSentAt(Instant.now().minus(12, ChronoUnit.HOURS)).build());
+
+        SubscriptionScheduler scheduler = new SubscriptionScheduler(
+                subscriptionRepoForScheduler,
+                planRepositoryForScheduler,
+                userRepository,
+                notificationServiceForScheduler,
+                auditLogServiceForScheduler,
+                emailServiceForScheduler);
+        scheduler.sendExpiryReminders();
+
+        // No duplicate reminder sent — lastReminderSentAt was within 24 hours.
+        org.mockito.Mockito.verify(emailServiceForScheduler, org.mockito.Mockito.never())
+                .sendRenewalReminder(anyString(), anyString(), anyString(), anyString(),
+                        org.mockito.ArgumentMatchers.anyInt());
+    }
+
+    @Test
+    void scheduler_processExpiredSubscriptions_continuesOnFailure() throws Exception {
+        // Create two expired subscriptions — one valid, one for a missing user.
+        subscriptionRepository.save(Subscription.builder()
+                .userId(aliceId).planCode("PRO").status(SubscriptionStatus.ACTIVE)
+                .currentPeriodEnd(Instant.now().minus(3, ChronoUnit.DAYS)).build());
+        subscriptionRepository.save(Subscription.builder()
+                .userId("nonexistent_user").planCode("PRO").status(SubscriptionStatus.ACTIVE)
+                .currentPeriodEnd(Instant.now().minus(3, ChronoUnit.DAYS)).build());
+
+        SubscriptionScheduler scheduler = new SubscriptionScheduler(
+                subscriptionRepoForScheduler,
+                planRepositoryForScheduler,
+                userRepository,
+                notificationServiceForScheduler,
+                auditLogServiceForScheduler,
+                emailServiceForScheduler);
+
+        // Should not throw — processes both, handles errors per-subscription.
+        scheduler.processExpiredSubscriptions();
+
+        // Alice's subscription should be expired.
+        Subscription aliceSub = subscriptionRepository.findByUserId(aliceId).orElseThrow();
+        assertThat(aliceSub.getStatus()).isEqualTo(SubscriptionStatus.EXPIRED);
     }
 }

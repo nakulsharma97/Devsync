@@ -20,6 +20,8 @@ public interface PaymentRepository extends JpaRepository<Payment, String> {
 
     boolean existsByProviderPaymentId(String providerPaymentId);
 
+    Optional<Payment> findByProviderPaymentId(String providerPaymentId);
+
     Page<Payment> findAllByOrderByCreatedAtDesc(Pageable pageable);
 
     long countByStatus(PaymentStatus status);

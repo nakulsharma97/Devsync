@@ -385,12 +385,11 @@ public class BillingService {
         String paymentIntentId = charge.path("payment_intent").asText("");
         boolean isFullRefund = chargeAmount > 0 && amountRefunded >= chargeAmount;
 
-        // Find the payment by provider payment id (payment_intent)
+        // Find the payment by provider payment id (payment_intent) — direct
+        // lookup, not a filtered full-table scan with a null user id.
         Payment payment = null;
         if (!paymentIntentId.isBlank()) {
-            payment = paymentRepository.findByUserIdOrderByCreatedAtDesc(null).stream()
-                    .filter(p -> paymentIntentId.equals(p.getProviderPaymentId()))
-                    .findFirst().orElse(null);
+            payment = paymentRepository.findByProviderPaymentId(paymentIntentId).orElse(null);
         }
         // Also try matching by provider order id if we stored the session id there
         if (payment == null && !chargeId.isBlank()) {
@@ -915,16 +914,33 @@ public class BillingService {
         Payment payment = paymentRepository.findById(request.getPaymentId())
                 .orElseThrow(() -> new ResourceNotFoundException("Payment", request.getPaymentId()));
 
-        // Call Razorpay Refund API — let the resulting refund.processed webhook
-        // be the single source of truth for entitlement revocation.
+        // Route the refund to the correct payment provider based on how
+        // the original payment was made.  Let the resulting webhook be the
+        // single source of truth for entitlement revocation.
+        String provider = payment.getProvider();
+        if (provider == null || provider.isBlank()) {
+            throw new IllegalStateException(
+                    "Cannot process refund: the original payment has no provider information."
+                    + " Payment ID: " + payment.getId());
+        }
+        String refundNote = adminNote != null ? adminNote : "Refund approved by admin";
         try {
-            razorpayClient.createRefund(payment.getProviderPaymentId(),
-                    adminNote != null ? adminNote : "Refund approved by admin");
+            switch (provider.toUpperCase()) {
+                case "RAZORPAY" -> razorpayClient.createRefund(
+                        payment.getProviderPaymentId(), refundNote);
+                case "STRIPE" -> stripeClient.createRefund(
+                        payment.getProviderPaymentId(), refundNote);
+                default -> throw new IllegalStateException(
+                        "Cannot process refund: unsupported payment provider '" + provider + "'."
+                        + " Payment ID: " + payment.getId());
+            }
         } catch (PaymentNotConfiguredException e) {
             throw e;
+        } catch (IllegalStateException e) {
+            throw e;
         } catch (Exception e) {
-            log.error("Razorpay refund call failed for payment {} (request {})",
-                    payment.getId(), requestId, e);
+            log.error("Refund API call failed for payment {} (request {}, provider {})",
+                    payment.getId(), requestId, provider, e);
             throw new IllegalStateException("Failed to process refund with payment provider. Please try again.");
         }
 

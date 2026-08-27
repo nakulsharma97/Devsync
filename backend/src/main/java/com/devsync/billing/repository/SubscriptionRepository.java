@@ -39,4 +39,15 @@ public interface SubscriptionRepository extends JpaRepository<Subscription, Stri
     long countByPlanCode(String planCode);
 
     long countByStatusIn(List<SubscriptionStatus> statuses);
+
+    /**
+     * Subscriptions that will expire between {@code from} and {@code to},
+     * used by the scheduled reminder job to find users who need a renewal
+     * reminder. Only paid statuses are relevant.
+     */
+    @Query("SELECT s FROM Subscription s WHERE s.status IN :statuses " +
+            "AND s.currentPeriodEnd > :from AND s.currentPeriodEnd <= :to")
+    List<Subscription> findExpiringBetween(
+            @Param("statuses") List<SubscriptionStatus> statuses,
+            @Param("from") Instant from, @Param("to") Instant to);
 }

@@ -301,6 +301,24 @@ public class EmailService {
     }
 
     /**
+     * Send a renewal reminder before subscription expires.
+     */
+    public void sendRenewalReminder(String to, String fullName, String planName, String expiryDate, int daysLeft) {
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setFrom(fromEmail);
+        message.setTo(to);
+        message.setSubject("Your " + planName + " subscription expires in " + daysLeft + " days");
+        message.setText(
+            "Hi " + fullName + ",\n\n"
+            + "Your " + planName + " subscription will expire on " + expiryDate + ".\n\n"
+            + "Renew now to continue using premium features without interruption.\n\n"
+            + "You can renew from Settings \u2192 Billing.\n\n"
+            + "\u2014 The DevSync Team"
+        );
+        trySend(message);
+    }
+
+    /**
      * Send notification that a refund request was rejected.
      */
     public void sendRefundRequestRejected(String to, String fullName, String planName, String adminNote) {

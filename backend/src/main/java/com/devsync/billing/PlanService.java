@@ -87,7 +87,6 @@ public class PlanService {
         }
         subscription.setStatus(SubscriptionStatus.EXPIRED);
         subscriptionRepository.save(subscription);
-        planCache.clear();
         auditLogService.record(userId, userId, AuditAction.SUBSCRIPTION_EXPIRED, AuditStatus.SUCCESS,
                 "Plan " + subscription.getPlanCode() + " expired");
         try {

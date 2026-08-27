@@ -165,6 +165,48 @@ public class StripeClient {
         return null;
     }
 
+    /**
+     * POST /v1/refunds — creates a full refund via Stripe's Refund API.
+     * The resulting charge.refunded webhook will trigger entitlement revocation
+     * in BillingService (single code path for all refunds).
+     */
+    public RefundResponse createRefund(String paymentIntentId, String reason) throws Exception {
+        if (!isConfigured()) {
+            throw new PaymentNotConfiguredException(
+                    "Stripe payment is not configured. Set STRIPE_SECRET_KEY.");
+        }
+
+        String params = "payment_intent=" + paymentIntentId
+                + (reason != null && !reason.isBlank()
+                        ? "&reason=" + java.net.URLEncoder.encode(reason, StandardCharsets.UTF_8) : "");
+
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create("https://api.stripe.com/v1/refunds"))
+                .timeout(Duration.ofSeconds(15))
+                .header("Authorization", "Bearer " + secretKey)
+                .header("Content-Type", "application/x-www-form-urlencoded")
+                .POST(HttpRequest.BodyPublishers.ofString(params))
+                .build();
+
+        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+        if (response.statusCode() >= 400) {
+            log.error("Stripe createRefund failed for payment_intent {}: status={} body={}",
+                    paymentIntentId, response.statusCode(), redact(response.body()));
+            throw new IllegalStateException("Stripe refund request failed: HTTP " + response.statusCode());
+        }
+
+        com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+        com.fasterxml.jackson.databind.JsonNode node = mapper.readTree(response.body());
+        return new RefundResponse(
+                node.path("id").asText(),
+                node.path("payment_intent").asText(),
+                node.path("amount").asLong(),
+                node.path("status").asText());
+    }
+
+    /** Stripe refund response. */
+    public record RefundResponse(String refundId, String paymentIntentId, long amountPaise, String status) {}
+
     private boolean constantTimeEquals(String a, String b) {
         byte[] ba = a.getBytes(StandardCharsets.UTF_8);
         byte[] bb = b.getBytes(StandardCharsets.UTF_8);

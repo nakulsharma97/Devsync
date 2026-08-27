@@ -53,4 +53,8 @@ public class Subscription extends BaseEntity {
     @Column(name = "cancel_at_period_end", nullable = false)
     @Builder.Default
     private boolean cancelAtPeriodEnd = false;
+
+    /** Tracks when the last renewal reminder email was sent to avoid duplicates. */
+    @Column(name = "last_reminder_sent_at")
+    private Instant lastReminderSentAt;
 }
