@@ -14,6 +14,7 @@ export interface Plan {
   sso: boolean;
   auditLevel: string;
   prioritySupport: boolean;
+  billingMode?: string | null;
 }
 
 export interface SubscriptionInfo {
@@ -25,6 +26,7 @@ export interface SubscriptionInfo {
   currentPeriodStart?: string | null;
   currentPeriodEnd?: string | null;
   cancelAtPeriodEnd: boolean;
+  billingMode?: string | null;
 }
 
 export interface PaymentRecord {

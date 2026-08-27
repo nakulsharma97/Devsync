@@ -68,6 +68,13 @@ public class Plan {
     @Builder.Default
     private boolean active = true;
 
+    /** How this plan is billed. ONE_TIME = fixed-period with manual renewal;
+     *  RECURRING = automatic Stripe subscription. */
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    @Builder.Default
+    private BillingMode billingMode = BillingMode.ONE_TIME;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private java.time.Instant createdAt;
 

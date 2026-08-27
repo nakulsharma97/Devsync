@@ -105,10 +105,24 @@ public class BillingService {
         long providerAmount;
 
         if ("STRIPE".equals(providerUpper)) {
+            // Determine if the plan uses recurring subscriptions or one-time payments
+            boolean isRecurring = plan.getBillingMode() == com.devsync.billing.entity.BillingMode.RECURRING;
+
+            // For recurring plans, look up existing Stripe customer ID
+            String stripeCustomerId = null;
+            if (isRecurring && existing != null) {
+                stripeCustomerId = existing.getProviderCustomerId();
+            }
+
             StripeClient.CheckoutSession session;
             try {
-                session = stripeClient.createCheckoutSession(amountPaise, CURRENCY,
-                        planCode, userId);
+                if (isRecurring) {
+                    session = stripeClient.createSubscriptionCheckoutSession(
+                            amountPaise, CURRENCY, planCode, userId, stripeCustomerId);
+                } else {
+                    session = stripeClient.createCheckoutSession(amountPaise, CURRENCY,
+                            planCode, userId);
+                }
             } catch (PaymentNotConfiguredException e) {
                 throw e;
             } catch (Exception e) {
@@ -130,7 +144,7 @@ public class BillingService {
                     .build());
 
             auditLogService.record(userId, userId, AuditAction.CHECKOUT_CREATED, AuditStatus.SUCCESS,
-                    "Stripe checkout created for plan " + planCode + " (" + plan.getPriceInr() + " INR)");
+                    "Stripe " + (isRecurring ? "subscription" : "one-time") + " checkout created for plan " + planCode + " (" + plan.getPriceInr() + " INR)");
             return CheckoutResponse.builder()
                     .provider("STRIPE")
                     .checkoutUrl(session.checkoutUrl())
@@ -277,6 +291,8 @@ public class BillingService {
                 case "invoice.paid" -> handleStripeInvoicePaid(root, eventId);
                 case "invoice.payment_failed" -> handleStripeInvoicePaymentFailed(root, eventId);
                 case "charge.refunded" -> handleStripeChargeRefunded(root, eventId);
+                case "customer.subscription.updated" -> handleStripeSubscriptionUpdated(root, eventId);
+                case "customer.subscription.deleted" -> handleStripeSubscriptionDeleted(root, eventId);
                 default -> log.info("Stripe webhook event {} ({}) recorded, not processed", eventId, eventType);
             }
 
@@ -297,11 +313,14 @@ public class BillingService {
         JsonNode session = root.path("data").path("object");
         String sessionId = session.path("id").asText("");
         String paymentIntentId = session.path("payment_intent").asText("");
+        String stripeSubscriptionId = session.path("subscription").asText("");
+        String stripeCustomerId = session.path("customer").asText("");
         long amountTotal = session.path("amount_total").asLong(0);
         String currency = session.path("currency").asText("");
         String planCode = session.path("metadata").path("plan_code").asText("");
         String userId = session.path("client_reference_id").asText("");
         String paymentStatus = session.path("payment_status").asText("");
+        String mode = session.path("mode").asText("payment");
 
         if (sessionId.isBlank() || userId.isBlank()) {
             log.info("Stripe checkout.session.completed missing sessionId or userId, skipping");
@@ -336,49 +355,196 @@ public class BillingService {
             return;
         }
 
-        payment.setProviderPaymentId(paymentIntentId);
+        payment.setProviderPaymentId(!paymentIntentId.isBlank() ? paymentIntentId : sessionId);
         payment.setStatus(PaymentStatus.SUCCESS);
         payment.setPaidAt(Instant.now());
         paymentRepository.save(payment);
 
-        Subscription subscription = activateOrRenew(payment.getUserId(), payment.getPlanCode(), "STRIPE");
+        // For subscription mode, activate with Stripe's period timestamps
+        Subscription subscription;
+        if ("subscription".equals(mode) && !stripeSubscriptionId.isBlank()) {
+            subscription = activateOrRenew(payment.getUserId(), payment.getPlanCode(), "STRIPE");
+            // Store Stripe subscription and customer IDs
+            subscription.setProviderSubscriptionId(stripeSubscriptionId);
+            if (stripeCustomerId != null && !stripeCustomerId.isBlank()) {
+                subscription.setProviderCustomerId(stripeCustomerId);
+            }
+            // For the first invoice, Stripe provides period start/end in the session
+            // We'll rely on the invoice.paid event for authoritative period timestamps
+            subscriptionRepository.save(subscription);
+        } else {
+            // One-time payment mode
+            subscription = activateOrRenew(payment.getUserId(), payment.getPlanCode(), "STRIPE");
+        }
+
         payment.setSubscriptionId(subscription.getId());
         paymentRepository.save(payment);
 
         String resolvedPlanCode = planCode != null && !planCode.isBlank() ? planCode : payment.getPlanCode();
         String planLabel = planName(resolvedPlanCode);
+        boolean isRecurring = "subscription".equals(mode);
         auditLogService.record(payment.getUserId(), payment.getUserId(),
                 AuditAction.SUBSCRIPTION_ACTIVATED, AuditStatus.SUCCESS,
-                "Stripe checkout completed — activated " + planLabel + " plan (session " + sessionId + ")");
+                "Stripe " + (isRecurring ? "subscription" : "checkout") + " completed — activated " + planLabel + " plan (session " + sessionId + ")");
         auditLogService.record(payment.getUserId(), payment.getUserId(),
                 AuditAction.PAYMENT_SUCCESS, AuditStatus.SUCCESS,
-                "Stripe payment " + paymentIntentId + " captured for " + planLabel);
+                "Stripe payment " + payment.getProviderPaymentId() + " captured for " + planLabel);
         notify(payment.getUserId(), "PAYMENT_SUCCESS", "Welcome to " + planLabel,
                 "Your " + planLabel + " plan is now active. Enjoy the extra features!",
                 null);
         sendBillingEmail(user ->
                 emailService.sendPaymentReceipt(user.getEmail(), user.getFullName(),
-                        planLabel, payment.getAmountPaise(), payment.getCurrency(), paymentIntentId),
+                        planLabel, payment.getAmountPaise(), payment.getCurrency(), payment.getProviderPaymentId()),
                 payment.getUserId());
     }
 
     private void handleStripeInvoicePaid(JsonNode root, String eventId) {
-        // invoice.paid: similar to checkout.session.completed for renewals
         JsonNode invoice = root.path("data").path("object");
-        String sessionId = invoice.path("subscription").asText("");
+        String stripeSubId = invoice.path("subscription").asText("");
         String paymentIntentId = invoice.path("payment_intent").asText("");
         long amountPaid = invoice.path("amount_paid").asLong(0);
-        String customerEmail = invoice.path("customer_email").asText("");
+        String currency = invoice.path("currency").asText("");
 
-        // For Stripe subscriptions we'd look up by subscription id; for one-time
-        // payments, match by payment intent or session. For now, log and record.
-        log.info("Stripe invoice.paid for {}: amount={}. event={}", sessionId, amountPaid, eventId);
+        // Invoice period timestamps from Stripe — authoritative for subscription duration
+        long periodStart = invoice.path("period_start").asLong(0);
+        long periodEnd = invoice.path("period_end").asLong(0);
+
+        if (stripeSubId.isBlank()) {
+            log.info("Stripe invoice.paid has no subscription id (event {}), skipping", eventId);
+            return;
+        }
+
+        // Find the DevSync subscription by Stripe subscription ID
+        Subscription subscription = subscriptionRepository
+                .findByProviderSubscriptionId(stripeSubId)
+                .orElse(null);
+        if (subscription == null) {
+            log.info("No DevSync subscription for Stripe sub {} (event {}), skipping", stripeSubId, eventId);
+            return;
+        }
+
+        // Idempotency: if the subscription is already active and the new period end
+        // is not after the current one, this is a duplicate or stale invoice.
+        Instant newPeriodEnd = Instant.ofEpochSecond(periodEnd);
+        if (subscription.getStatus() == SubscriptionStatus.ACTIVE
+                && subscription.getCurrentPeriodEnd() != null
+                && !newPeriodEnd.isAfter(subscription.getCurrentPeriodEnd())) {
+            log.info("Stripe invoice.paid for sub {} is stale (period end {} not after current {}), ignoring",
+                    stripeSubId, newPeriodEnd, subscription.getCurrentPeriodEnd());
+            return;
+        }
+
+        // Verify payment amount matches plan
+        Plan plan = planRepository.findByCode(subscription.getPlanCode()).orElse(null);
+        if (plan != null) {
+            long expectedAmount = plan.getPriceInr() * 100L;
+            if (amountPaid != expectedAmount) {
+                log.error("Stripe invoice.paid amount mismatch for sub {}: expected {} got {}",
+                        stripeSubId, expectedAmount, amountPaid);
+                throw new IllegalArgumentException("Stripe invoice amount mismatch");
+            }
+        }
+
+        // Record the payment
+        Payment payment = paymentRepository.save(Payment.builder()
+                .userId(subscription.getUserId())
+                .planCode(subscription.getPlanCode())
+                .provider("STRIPE")
+                .providerOrderId(invoice.path("id").asText(eventId))
+                .providerPaymentId(!paymentIntentId.isBlank() ? paymentIntentId : stripeSubId)
+                .amountPaise(amountPaid)
+                .currency(currency != null ? currency : CURRENCY)
+                .status(PaymentStatus.SUCCESS)
+                .paidAt(Instant.now())
+                .subscriptionId(subscription.getId())
+                .build());
+
+        // Extend the subscription using Stripe's authoritative period timestamps
+        subscription.setStatus(SubscriptionStatus.ACTIVE);
+        subscription.setCancelAtPeriodEnd(false);
+        if (periodStart > 0) {
+            subscription.setCurrentPeriodStart(Instant.ofEpochSecond(periodStart));
+        }
+        if (periodEnd > 0) {
+            subscription.setCurrentPeriodEnd(newPeriodEnd);
+        }
+        subscriptionRepository.save(subscription);
+
+        String planLabel = planName(subscription.getPlanCode());
+        auditLogService.record(subscription.getUserId(), subscription.getUserId(),
+                AuditAction.SUBSCRIPTION_RENEWED, AuditStatus.SUCCESS,
+                "Stripe invoice paid — renewed " + planLabel + " (sub " + stripeSubId + ", period until " + newPeriodEnd + ")");
+        auditLogService.record(subscription.getUserId(), subscription.getUserId(),
+                AuditAction.PAYMENT_SUCCESS, AuditStatus.SUCCESS,
+                "Stripe renewal payment " + payment.getProviderPaymentId() + " for " + planLabel);
+        notify(subscription.getUserId(), "PAYMENT_SUCCESS", "Payment received",
+                "Your " + planLabel + " subscription has been renewed.",
+                null);
+        sendBillingEmail(user ->
+                emailService.sendSubscriptionRenewal(user.getEmail(), user.getFullName(),
+                        planLabel, amountPaid, payment.getCurrency(), payment.getProviderPaymentId()),
+                subscription.getUserId());
+        log.info("Stripe invoice.paid — subscription {} (user {}) renewed until {}",
+                subscription.getId(), subscription.getUserId(), newPeriodEnd);
     }
 
     private void handleStripeInvoicePaymentFailed(JsonNode root, String eventId) {
         JsonNode invoice = root.path("data").path("object");
-        String sessionId = invoice.path("subscription").asText("");
-        log.info("Stripe invoice.payment_failed for {}. event={}", sessionId, eventId);
+        String stripeSubId = invoice.path("subscription").asText("");
+        long amountDue = invoice.path("amount_due").asLong(0);
+
+        if (stripeSubId.isBlank()) {
+            log.info("Stripe invoice.payment_failed has no subscription id (event {}), skipping", eventId);
+            return;
+        }
+
+        Subscription subscription = subscriptionRepository
+                .findByProviderSubscriptionId(stripeSubId)
+                .orElse(null);
+        if (subscription == null) {
+            log.info("No DevSync subscription for Stripe sub {} (event {}), skipping", stripeSubId, eventId);
+            return;
+        }
+
+        // Idempotent: if already PAST_DUE or worse, skip
+        if (subscription.getStatus() == SubscriptionStatus.PAST_DUE
+                || subscription.getStatus() == SubscriptionStatus.EXPIRED
+                || subscription.getStatus() == SubscriptionStatus.CANCELLED) {
+            log.info("Subscription {} already {} — ignoring duplicate payment_failed event {}",
+                    subscription.getId(), subscription.getStatus(), eventId);
+            return;
+        }
+
+        // Record the failed payment
+        String attemptId = invoice.path("id").asText(eventId);
+        paymentRepository.save(Payment.builder()
+                .userId(subscription.getUserId())
+                .planCode(subscription.getPlanCode())
+                .provider("STRIPE")
+                .providerOrderId(attemptId)
+                .providerPaymentId(stripeSubId)
+                .amountPaise(amountDue)
+                .currency(invoice.path("currency").asText(CURRENCY))
+                .status(PaymentStatus.FAILED)
+                .build());
+
+        // Enter grace period
+        subscription.setStatus(SubscriptionStatus.PAST_DUE);
+        subscriptionRepository.save(subscription);
+
+        String planLabel = planName(subscription.getPlanCode());
+        auditLogService.record(subscription.getUserId(), subscription.getUserId(),
+                AuditAction.PAYMENT_FAILED, AuditStatus.FAILURE,
+                "Stripe invoice.payment_failed for " + planLabel + " (sub " + stripeSubId + ")");
+        notify(subscription.getUserId(), "SUBSCRIPTION_PAST_DUE", "Action needed",
+                "Your " + planLabel + " renewal payment failed. You keep access for now — "
+                        + "update your payment method to avoid interruption.",
+                null);
+        sendBillingEmail(user ->
+                emailService.sendPaymentFailed(user.getEmail(), user.getFullName(), planLabel),
+                subscription.getUserId());
+        log.info("Stripe invoice.payment_failed — subscription {} (user {}) set to PAST_DUE",
+                subscription.getId(), subscription.getUserId());
     }
 
     private void handleStripeChargeRefunded(JsonNode root, String eventId) {
@@ -428,6 +594,126 @@ public class BillingService {
             log.info("Partial Stripe refund ({} paise) on charge {} — subscription untouched",
                     amountRefunded, chargeId);
         }
+    }
+
+    /**
+     * customer.subscription.updated — Synchronize Stripe subscription status changes.
+     * Handles status transitions (active → past_due, active → canceled, etc.)
+     * and period updates from Stripe's authoritative billing timestamps.
+     */
+    private void handleStripeSubscriptionUpdated(JsonNode root, String eventId) {
+        JsonNode stripeSub = root.path("data").path("object");
+        String stripeSubId = stripeSub.path("id").asText("");
+        String stripeStatus = stripeSub.path("status").asText("");
+        boolean cancelAtEnd = stripeSub.path("cancel_at_period_end").asBoolean(false);
+        long currentPeriodEnd = stripeSub.path("current_period_end").asLong(0);
+        long currentPeriodStart = stripeSub.path("current_period_start").asLong(0);
+
+        if (stripeSubId.isBlank()) {
+            log.info("Stripe customer.subscription.updated missing subscription id (event {}), skipping", eventId);
+            return;
+        }
+
+        Subscription subscription = subscriptionRepository
+                .findByProviderSubscriptionId(stripeSubId)
+                .orElse(null);
+        if (subscription == null) {
+            log.info("No DevSync subscription for Stripe sub {} (event {}), ignoring", stripeSubId, eventId);
+            return;
+        }
+
+        // Map Stripe status to DevSync status
+        SubscriptionStatus newStatus = mapStripeSubscriptionStatus(stripeStatus);
+        if (newStatus != null && newStatus != subscription.getStatus()) {
+            SubscriptionStatus oldStatus = subscription.getStatus();
+            subscription.setStatus(newStatus);
+            log.info("Subscription {} status synced: {} → {} (Stripe sub {}, event {})",
+                    subscription.getId(), oldStatus, newStatus, stripeSubId, eventId);
+        }
+
+        // Sync cancel_at_period_end
+        if (cancelAtEnd != subscription.isCancelAtPeriodEnd()) {
+            subscription.setCancelAtPeriodEnd(cancelAtEnd);
+        }
+
+        // Update period timestamps from Stripe's authoritative data
+        if (currentPeriodEnd > 0) {
+            Instant newEnd = Instant.ofEpochSecond(currentPeriodEnd);
+            if (subscription.getCurrentPeriodEnd() == null
+                    || !newEnd.equals(subscription.getCurrentPeriodEnd())) {
+                subscription.setCurrentPeriodEnd(newEnd);
+            }
+        }
+        if (currentPeriodStart > 0) {
+            Instant newStart = Instant.ofEpochSecond(currentPeriodStart);
+            subscription.setCurrentPeriodStart(newStart);
+        }
+
+        subscriptionRepository.save(subscription);
+    }
+
+    /**
+     * customer.subscription.deleted — Stripe confirms the subscription has ended.
+     * Mark it EXPIRED and downgrade to Free.
+     */
+    private void handleStripeSubscriptionDeleted(JsonNode root, String eventId) {
+        JsonNode stripeSub = root.path("data").path("object");
+        String stripeSubId = stripeSub.path("id").asText("");
+
+        if (stripeSubId.isBlank()) {
+            log.info("Stripe customer.subscription.deleted missing id (event {}), skipping", eventId);
+            return;
+        }
+
+        Subscription subscription = subscriptionRepository
+                .findByProviderSubscriptionId(stripeSubId)
+                .orElse(null);
+        if (subscription == null) {
+            log.info("No DevSync subscription for Stripe sub {} (event {}), ignoring", stripeSubId, eventId);
+            return;
+        }
+
+        // Idempotent
+        if (subscription.getStatus() == SubscriptionStatus.EXPIRED
+                || subscription.getStatus() == SubscriptionStatus.CANCELLED) {
+            log.info("Subscription {} already {} — ignoring duplicate deleted event {}",
+                    subscription.getId(), subscription.getStatus(), eventId);
+            return;
+        }
+
+        String planLabel = planName(subscription.getPlanCode());
+        subscription.setStatus(SubscriptionStatus.EXPIRED);
+        subscription.setCancelAtPeriodEnd(false);
+        subscription.setCurrentPeriodEnd(Instant.now());
+        subscriptionRepository.save(subscription);
+
+        auditLogService.record(subscription.getUserId(), subscription.getUserId(),
+                AuditAction.SUBSCRIPTION_EXPIRED, AuditStatus.SUCCESS,
+                "Stripe subscription deleted (" + stripeSubId + ") — " + planLabel + " expired");
+        notify(subscription.getUserId(), "SUBSCRIPTION_EXPIRED", "Subscription ended",
+                "Your " + planLabel + " subscription has ended. You are now on the Free plan."
+                        + " Upgrade anytime to regain access to premium features.",
+                null);
+        sendBillingEmail(user ->
+                emailService.sendSubscriptionExpired(user.getEmail(), user.getFullName()),
+                subscription.getUserId());
+        log.info("Stripe customer.subscription.deleted — subscription {} (user {}) expired",
+                subscription.getId(), subscription.getUserId());
+    }
+
+    /** Maps Stripe subscription status to DevSync SubscriptionStatus. */
+    private SubscriptionStatus mapStripeSubscriptionStatus(String stripeStatus) {
+        return switch (stripeStatus) {
+            case "active" -> SubscriptionStatus.ACTIVE;
+            case "past_due", "unpaid" -> SubscriptionStatus.PAST_DUE;
+            case "canceled", "incomplete_expired" -> SubscriptionStatus.EXPIRED;
+            case "trialing" -> SubscriptionStatus.TRIALING;
+            case "incomplete" -> SubscriptionStatus.INCOMPLETE;
+            default -> {
+                log.info("Unknown Stripe subscription status: {}", stripeStatus);
+                yield null;
+            }
+        };
     }
 
     private void handlePaymentCaptured(JsonNode root, String eventId) {
@@ -809,14 +1095,39 @@ public class BillingService {
                         .contains(s.getStatus()))
                 .filter(s -> s.getCurrentPeriodEnd() == null || !s.getCurrentPeriodEnd().isBefore(Instant.now()))
                 .orElseThrow(() -> new IllegalArgumentException("You do not have an active paid subscription"));
+
+        // For Stripe recurring subscriptions, call the Stripe API to cancel
+        // at period end. Stripe handles the actual cancellation and sends
+        // customer.subscription.updated when it takes effect.
+        if ("STRIPE".equalsIgnoreCase(subscription.getProvider())
+                && subscription.getProviderSubscriptionId() != null) {
+            try {
+                stripeClient.cancelSubscription(subscription.getProviderSubscriptionId());
+            } catch (PaymentNotConfiguredException e) {
+                throw e;
+            } catch (Exception e) {
+                log.error("Failed to cancel Stripe subscription {} for user {}",
+                        subscription.getProviderSubscriptionId(), userId, e);
+                throw new IllegalStateException("Failed to cancel subscription with payment provider. Please try again.");
+            }
+            // Stripe cancels at period end by default via DELETE /v1/subscriptions/{id}
+            // The subscription will continue until current_period_end, then Stripe sends
+            // customer.subscription.deleted which expires the DevSync record.
+        }
+
         subscription.setCancelAtPeriodEnd(true);
         subscriptionRepository.save(subscription);
         auditLogService.record(userId, userId, AuditAction.SUBSCRIPTION_CANCELLED, AuditStatus.SUCCESS,
-                "Cancelled " + planName(subscription.getPlanCode()) + " at period end");
+                "Cancelled " + planName(subscription.getPlanCode()) + " at period end"
+                        + ("STRIPE".equalsIgnoreCase(subscription.getProvider()) ? " (via Stripe)" : ""));
         notify(userId, "SUBSCRIPTION_CANCELLED", "Subscription cancelled",
                 "Your " + planName(subscription.getPlanCode()) + " plan will end on "
                         + subscription.getCurrentPeriodEnd() + ". You keep paid features until then.",
                 null);
+        sendBillingEmail(user ->
+                emailService.sendSubscriptionCancelled(user.getEmail(), user.getFullName(),
+                        planName(subscription.getPlanCode()), subscription.getCurrentPeriodEnd().toString()),
+                userId);
         return toSubscriptionResponse(subscription);
     }
 
@@ -1249,6 +1560,7 @@ public class BillingService {
                     .priceInr(free != null ? free.getPriceInr() : 0)
                     .status("FREE")
                     .provider(null)
+                    .billingMode("ONE_TIME")
                     .build();
         }
         Plan plan = planRepository.findByCode(subscription.getPlanCode()).orElse(null);
@@ -1261,6 +1573,7 @@ public class BillingService {
                 .currentPeriodStart(subscription.getCurrentPeriodStart())
                 .currentPeriodEnd(subscription.getCurrentPeriodEnd())
                 .cancelAtPeriodEnd(subscription.isCancelAtPeriodEnd())
+                .billingMode(plan != null ? plan.getBillingMode().name() : "ONE_TIME")
                 .build();
     }
 

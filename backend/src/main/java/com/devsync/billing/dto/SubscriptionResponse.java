@@ -16,4 +16,5 @@ public class SubscriptionResponse {
     private Instant currentPeriodStart;
     private Instant currentPeriodEnd;
     private boolean cancelAtPeriodEnd;
+    private String billingMode;
 }

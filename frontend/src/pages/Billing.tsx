@@ -339,16 +339,26 @@ export default function Billing() {
               <p className="text-sm text-muted-foreground">
                 {isPaid ? (
                   <>
-                    ₹{subscription?.priceInr}/month · Valid until {formatDate(subscription?.currentPeriodEnd)}
+                    ₹{subscription?.priceInr}/month ·
+                    {subscription?.billingMode === "RECURRING" && subscription?.provider === "STRIPE" ? (
+                      <> Renews automatically {formatDate(subscription?.currentPeriodEnd)}</>
+                    ) : (
+                      <> Valid until {formatDate(subscription?.currentPeriodEnd)}</>
+                    )}
                     {subscription?.cancelAtPeriodEnd && " · Cancels at period end"}
-                    {!subscription?.cancelAtPeriodEnd && " · Renew manually before this date to keep access"}
+                    {!subscription?.cancelAtPeriodEnd && subscription?.billingMode !== "RECURRING" &&
+                      " · Renew manually before this date to keep access"}
                   </>
                 ) : (
                   "You're on the Free plan — no payment required."
                 )}
               </p>
               {periodEndsSoon && isPaid && !subscription?.cancelAtPeriodEnd && (
-                <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">Your plan expires soon — renew manually to keep access.</p>
+                <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+                  {subscription?.billingMode === "RECURRING" && subscription?.provider === "STRIPE"
+                    ? "Your plan renews automatically soon."
+                    : "Your plan expires soon — renew manually to keep access."}
+                </p>
               )}
             </div>
           </div>
@@ -449,6 +459,11 @@ export default function Billing() {
                 <span className="text-4xl font-bold">₹{plan.priceInr}</span>
                 <span className="text-sm text-muted-foreground">/month</span>
               </div>
+              {plan.billingMode === "RECURRING" && (
+                <p className="text-xs text-indigo-600 dark:text-indigo-400 -mt-4 mb-4">
+                  Auto-renewing · Cancel anytime
+                </p>
+              )}
               <ul className="space-y-2.5 mb-6 flex-1">
                 {planFeatures(plan).map((f) => (
                   <li key={f} className="flex items-start gap-2 text-sm">

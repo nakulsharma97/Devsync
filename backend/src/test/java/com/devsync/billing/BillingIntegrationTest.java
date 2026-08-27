@@ -36,6 +36,7 @@ import org.springframework.test.web.servlet.MvcResult;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.*;
@@ -1669,5 +1670,307 @@ class BillingIntegrationTest {
         // Provider should remain RAZORPAY after renewal.
         Subscription sub = subscriptionRepository.findByUserId(aliceId).orElseThrow();
         assertThat(sub.getProvider()).isEqualTo("RAZORPAY");
+    }
+
+    // ── Stripe recurring subscription tests ──────────────────────
+
+    /** Build a Stripe invoice.paid event body. */
+    private String stripeInvoicePaidPayload(String stripeSubId, String invoiceId,
+            long amountPaid, String currency, long periodStart, long periodEnd) {
+        return mapToJson(Map.of(
+                "id", "evt_inv_" + stripeSubId,
+                "type", "invoice.paid",
+                "data", Map.of("object", Map.of(
+                        "subscription", stripeSubId,
+                        "id", invoiceId,
+                        "payment_intent", "pi_inv_" + stripeSubId,
+                        "amount_paid", amountPaid,
+                        "currency", currency,
+                        "period_start", periodStart,
+                        "period_end", periodEnd))));
+    }
+
+    /** Build a Stripe invoice.payment_failed event body. */
+    private String stripeInvoiceFailedPayload(String stripeSubId, long amountDue) {
+        return mapToJson(Map.of(
+                "id", "evt_invfail_" + stripeSubId,
+                "type", "invoice.payment_failed",
+                "data", Map.of("object", Map.of(
+                        "subscription", stripeSubId,
+                        "id", "invfail_" + stripeSubId,
+                        "amount_due", amountDue,
+                        "currency", "inr"))));
+    }
+
+    /** Build a Stripe customer.subscription.updated event body. */
+    private String stripeSubUpdatedPayload(String stripeSubId, String newStatus,
+            boolean cancelAtPeriodEnd, long periodEnd) {
+        return mapToJson(Map.of(
+                "id", "evt_subupd_" + stripeSubId,
+                "type", "customer.subscription.updated",
+                "data", Map.of("object", Map.of(
+                        "id", stripeSubId,
+                        "status", newStatus,
+                        "cancel_at_period_end", cancelAtPeriodEnd,
+                        "current_period_start", periodEnd - 2592000,
+                        "current_period_end", periodEnd))));
+    }
+
+    /** Build a Stripe customer.subscription.deleted event body. */
+    private String stripeSubDeletedPayload(String stripeSubId) {
+        return mapToJson(Map.of(
+                "id", "evt_subdel_" + stripeSubId,
+                "type", "customer.subscription.deleted",
+                "data", Map.of("object", Map.of(
+                        "id", stripeSubId))));
+    }
+
+    /** Utility: serialize a nested Map to JSON using Jackson ObjectMapper. */
+    private String mapToJson(Map<String, Object> map) {
+        try {
+            return objectMapper.writeValueAsString(map);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Test
+    void stripeSubscription_checkoutCompleted_storesSubscriptionId() throws Exception {
+        setupStripeSignatureMock();
+        String sessionId = "cs_sub_alice";
+        String stripeSubId = "sub_alice_001";
+        String stripeCustomerId = "cus_alice_001";
+
+        paymentRepository.save(Payment.builder()
+                .userId(aliceId).planCode("PRO").provider("STRIPE")
+                .providerOrderId(sessionId)
+                .amountPaise(29900).currency("INR").status(PaymentStatus.PENDING).build());
+
+        // Build a subscription-mode checkout.session.completed event
+        String payload = "{" +
+                "\"id\":\"evt_cs_sub_alice\",\"type\":\"checkout.session.completed\"" +
+                ",\"data\":{\"object\":{\"id\":\"" + sessionId +
+                "\",\"payment_intent\":\"\"" +
+                ",\"subscription\":\"" + stripeSubId +
+                "\",\"customer\":\"" + stripeCustomerId +
+                "\",\"amount_total\":29900" +
+                ",\"currency\":\"inr\"" +
+                ",\"mode\":\"subscription\"" +
+                ",\"metadata\":{\"plan_code\":\"PRO\"}" +
+                ",\"client_reference_id\":\"" + aliceId +
+                "\",\"payment_status\":\"paid\"}}}";
+
+        mockMvc.perform(post("/api/billing/webhook/stripe")
+                        .header("Stripe-Signature", "t=123,v1=valid")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(payload))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.processed").value(true));
+
+        // Payment SUCCESS
+        Payment payment = paymentRepository.findTopByProviderOrderIdOrderByCreatedAtDesc(sessionId).orElseThrow();
+        assertThat(payment.getStatus()).isEqualTo(PaymentStatus.SUCCESS);
+
+        // Subscription has Stripe IDs stored
+        Subscription sub = subscriptionRepository.findByUserId(aliceId).orElseThrow();
+        assertThat(sub.getPlanCode()).isEqualTo("PRO");
+        assertThat(sub.getStatus()).isEqualTo(SubscriptionStatus.ACTIVE);
+        assertThat(sub.getProvider()).isEqualTo("STRIPE");
+        assertThat(sub.getProviderSubscriptionId()).isEqualTo(stripeSubId);
+        assertThat(sub.getProviderCustomerId()).isEqualTo(stripeCustomerId);
+    }
+
+    @Test
+    void stripeInvoicePaid_extendsSubscription() throws Exception {
+        setupStripeSignatureMock();
+        String stripeSubId = "sub_renew_001";
+
+        // Set up an active Stripe subscription with current period ending in 5 days
+        Instant periodEnd = Instant.now().plus(5, ChronoUnit.DAYS);
+        subscriptionRepository.save(Subscription.builder()
+                .userId(aliceId).planCode("PRO").provider("STRIPE")
+                .providerSubscriptionId(stripeSubId)
+                .status(SubscriptionStatus.ACTIVE)
+                .currentPeriodStart(Instant.now().minus(25, ChronoUnit.DAYS))
+                .currentPeriodEnd(periodEnd).build());
+
+        // invoice.paid with a period ending 35 days from now (30 days extension)
+        long newPeriodEnd = Instant.now().plus(35, ChronoUnit.DAYS).getEpochSecond();
+        long newPeriodStart = Instant.now().plus(5, ChronoUnit.DAYS).getEpochSecond();
+        String payload = stripeInvoicePaidPayload(stripeSubId, "inv_001",
+                29900, "inr", newPeriodStart, newPeriodEnd);
+
+        mockMvc.perform(post("/api/billing/webhook/stripe")
+                        .header("Stripe-Signature", "t=123,v1=valid")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(payload))
+                .andExpect(status().isOk());
+
+        // Subscription extended
+        Subscription sub = subscriptionRepository.findByUserId(aliceId).orElseThrow();
+        assertThat(sub.getStatus()).isEqualTo(SubscriptionStatus.ACTIVE);
+        assertThat(sub.getCurrentPeriodEnd()).isAfter(periodEnd);
+        assertThat(sub.getProvider()).isEqualTo("STRIPE");
+
+        // Payment recorded
+        assertThat(paymentRepository.findByUserIdOrderByCreatedAtDesc(aliceId)).hasSize(1);
+        Payment p = paymentRepository.findByUserIdOrderByCreatedAtDesc(aliceId).get(0);
+        assertThat(p.getStatus()).isEqualTo(PaymentStatus.SUCCESS);
+    }
+
+    @Test
+    void stripeInvoicePaid_duplicateEvent_idempotent() throws Exception {
+        setupStripeSignatureMock();
+        String stripeSubId = "sub_dup_inv";
+
+        Instant periodEnd = Instant.now().plus(5, ChronoUnit.DAYS);
+        subscriptionRepository.save(Subscription.builder()
+                .userId(aliceId).planCode("PRO").provider("STRIPE")
+                .providerSubscriptionId(stripeSubId)
+                .status(SubscriptionStatus.ACTIVE)
+                .currentPeriodStart(Instant.now().minus(25, ChronoUnit.DAYS))
+                .currentPeriodEnd(periodEnd).build());
+
+        long newPeriodEnd = Instant.now().plus(35, ChronoUnit.DAYS).getEpochSecond();
+        long newPeriodStart = newPeriodEnd - 2592000;
+        String payload = stripeInvoicePaidPayload(stripeSubId, "inv_dup",
+                29900, "inr", newPeriodStart, newPeriodEnd);
+
+        // First delivery
+        mockMvc.perform(post("/api/billing/webhook/stripe")
+                        .header("Stripe-Signature", "t=123,v1=valid")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(payload))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.processed").value(true));
+
+        // Second delivery — same event id → duplicate
+        mockMvc.perform(post("/api/billing/webhook/stripe")
+                        .header("Stripe-Signature", "t=123,v1=valid")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(payload))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.duplicate").value(true));
+
+        // Only one payment recorded
+        assertThat(paymentRepository.findByUserIdOrderByCreatedAtDesc(aliceId)).hasSize(1);
+    }
+
+    @Test
+    void stripeInvoicePaymentFailed_setsPastDue() throws Exception {
+        setupStripeSignatureMock();
+        String stripeSubId = "sub_fail_001";
+
+        subscriptionRepository.save(Subscription.builder()
+                .userId(aliceId).planCode("PRO").provider("STRIPE")
+                .providerSubscriptionId(stripeSubId)
+                .status(SubscriptionStatus.ACTIVE)
+                .currentPeriodStart(Instant.now().minus(25, ChronoUnit.DAYS))
+                .currentPeriodEnd(Instant.now().plus(5, ChronoUnit.DAYS)).build());
+
+        String payload = stripeInvoiceFailedPayload(stripeSubId, 29900);
+
+        mockMvc.perform(post("/api/billing/webhook/stripe")
+                        .header("Stripe-Signature", "t=123,v1=valid")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(payload))
+                .andExpect(status().isOk());
+
+        Subscription sub = subscriptionRepository.findByUserId(aliceId).orElseThrow();
+        assertThat(sub.getStatus()).isEqualTo(SubscriptionStatus.PAST_DUE);
+    }
+
+    @Test
+    void stripeSubUpdated_syncsStatus() throws Exception {
+        setupStripeSignatureMock();
+        String stripeSubId = "sub_upd_001";
+
+        subscriptionRepository.save(Subscription.builder()
+                .userId(aliceId).planCode("PRO").provider("STRIPE")
+                .providerSubscriptionId(stripeSubId)
+                .status(SubscriptionStatus.ACTIVE)
+                .currentPeriodStart(Instant.now().minus(25, ChronoUnit.DAYS))
+                .currentPeriodEnd(Instant.now().plus(5, ChronoUnit.DAYS)).build());
+
+        long newPeriodEnd = Instant.now().plus(35, ChronoUnit.DAYS).getEpochSecond();
+        String payload = stripeSubUpdatedPayload(stripeSubId, "active", true, newPeriodEnd);
+
+        mockMvc.perform(post("/api/billing/webhook/stripe")
+                        .header("Stripe-Signature", "t=123,v1=valid")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(payload))
+                .andExpect(status().isOk());
+
+        Subscription sub = subscriptionRepository.findByUserId(aliceId).orElseThrow();
+        assertThat(sub.isCancelAtPeriodEnd()).isTrue();
+    }
+
+    @Test
+    void stripeSubDeleted_expiresSubscription() throws Exception {
+        setupStripeSignatureMock();
+        String stripeSubId = "sub_del_001";
+
+        subscriptionRepository.save(Subscription.builder()
+                .userId(aliceId).planCode("PRO").provider("STRIPE")
+                .providerSubscriptionId(stripeSubId)
+                .status(SubscriptionStatus.ACTIVE)
+                .currentPeriodStart(Instant.now().minus(10, ChronoUnit.DAYS))
+                .currentPeriodEnd(Instant.now().plus(20, ChronoUnit.DAYS)).build());
+
+        String payload = stripeSubDeletedPayload(stripeSubId);
+
+        mockMvc.perform(post("/api/billing/webhook/stripe")
+                        .header("Stripe-Signature", "t=123,v1=valid")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(payload))
+                .andExpect(status().isOk());
+
+        Subscription sub = subscriptionRepository.findByUserId(aliceId).orElseThrow();
+        assertThat(sub.getStatus()).isEqualTo(SubscriptionStatus.EXPIRED);
+
+        // Effective plan is now FREE
+        assertThat(planService.getEffectivePlan(aliceId).getCode()).isEqualTo("FREE");
+    }
+
+    @Test
+    void stripeSubDeleted_idempotent() throws Exception {
+        setupStripeSignatureMock();
+        String stripeSubId = "sub_del_dup";
+
+        subscriptionRepository.save(Subscription.builder()
+                .userId(aliceId).planCode("PRO").provider("STRIPE")
+                .providerSubscriptionId(stripeSubId)
+                .status(SubscriptionStatus.EXPIRED)
+                .currentPeriodEnd(Instant.now().minus(5, ChronoUnit.DAYS)).build());
+
+        String payload = stripeSubDeletedPayload(stripeSubId);
+
+        // Second delivery of delete event — should be idempotent
+        mockMvc.perform(post("/api/billing/webhook/stripe")
+                        .header("Stripe-Signature", "t=123,v1=valid")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(payload))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.processed").value(true));
+    }
+
+    @Test
+    void stripeCancelSubscription_callsStripeApi() throws Exception {
+        org.mockito.Mockito.doNothing().when(stripeClient).cancelSubscription(anyString());
+
+        String stripeSubId = "sub_cancel_001";
+        subscriptionRepository.save(Subscription.builder()
+                .userId(aliceId).planCode("PRO").provider("STRIPE")
+                .providerSubscriptionId(stripeSubId)
+                .status(SubscriptionStatus.ACTIVE)
+                .currentPeriodStart(Instant.now().minus(10, ChronoUnit.DAYS))
+                .currentPeriodEnd(Instant.now().plus(20, ChronoUnit.DAYS)).build());
+
+        mockMvc.perform(post("/api/billing/cancel")
+                        .header("Authorization", bearer(aliceId)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.cancelAtPeriodEnd").value(true));
+
+        org.mockito.Mockito.verify(stripeClient).cancelSubscription(stripeSubId);
     }
 }
