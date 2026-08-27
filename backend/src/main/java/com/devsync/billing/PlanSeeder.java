@@ -1,10 +1,12 @@
 package com.devsync.billing;
 
+import com.devsync.billing.entity.BillingMode;
 import com.devsync.billing.entity.Plan;
 import com.devsync.billing.repository.PlanRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,6 +19,7 @@ import java.time.Instant;
  * existing plan's configured limits.
  */
 @Component
+@Order(1)
 @RequiredArgsConstructor
 @Slf4j
 public class PlanSeeder implements CommandLineRunner {
@@ -26,17 +29,24 @@ public class PlanSeeder implements CommandLineRunner {
     @Override
     @Transactional
     public void run(String... args) {
+        // FREE: no paid subscription required
         seed("FREE", "Free", "Start collaborating with core project tools.", 0,
-                2, 5, 1_073_741_824L, false, "BASIC", false);
+                2, 5, 1_073_741_824L, false, "BASIC", false,
+                BillingMode.ONE_TIME);
+        // PRO: Stripe recurring subscription
         seed("PRO", "Pro", "More private projects, storage and advanced analytics.", 299,
-                20, 25, 53_687_091_200L, true, "FULL", true);
+                20, 25, 53_687_091_200L, true, "FULL", true,
+                BillingMode.RECURRING);
+        // ENTERPRISE: Stripe recurring subscription
         seed("ENTERPRISE", "Enterprise", "Unlimited scale and enterprise controls.", 999,
-                null, 100, 268_435_456_000L, true, "ADVANCED", true);
+                null, 100, 268_435_456_000L, true, "ADVANCED", true,
+                BillingMode.RECURRING);
     }
 
     private void seed(String code, String name, String description, int priceInr,
                       Integer privateProjectLimit, int membersPerProject, long storageBytes,
-                      boolean advancedAnalytics, String auditLevel, boolean prioritySupport) {
+                      boolean advancedAnalytics, String auditLevel, boolean prioritySupport,
+                      BillingMode billingMode) {
         if (planRepository.existsById(code)) {
             return; // never overwrite admin-tuned limits
         }
@@ -47,8 +57,9 @@ public class PlanSeeder implements CommandLineRunner {
                 .membersPerProject(membersPerProject).storageBytes(storageBytes)
                 .advancedAnalytics(advancedAnalytics).auditLevel(auditLevel)
                 .prioritySupport(prioritySupport).active(true)
+                .billingMode(billingMode)
                 .createdAt(now).updatedAt(now)
                 .build());
-        log.info("Seeded plan {}", code);
+        log.info("Seeded plan {} (billingMode={})", code, billingMode);
     }
 }

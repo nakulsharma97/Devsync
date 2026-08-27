@@ -40,6 +40,7 @@ import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -1262,6 +1263,13 @@ class BillingIntegrationTest {
         // mock it to return true for all tests.
         org.mockito.Mockito.reset(stripeClient);
         when(stripeClient.verifyWebhookSignature(any(byte[].class), anyString())).thenReturn(true);
+        // Mock product/price creation for recurring plans (called when stripePriceId is null)
+        try {
+            doReturn("price_test_mock").when(stripeClient)
+                    .createProductAndPrice(anyString(), anyLong(), anyString());
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Test
@@ -1546,7 +1554,9 @@ class BillingIntegrationTest {
     @Test
     void expiredSubscription_stripeRenewalAllowed() throws Exception {
         setupStripeSignatureMock();
-        when(stripeClient.createCheckoutSession(anyLong(), anyString(), anyString(), anyString()))
+        when(stripeClient.createProductAndPrice(anyString(), anyLong(), anyString()))
+                .thenReturn("price_exp_renew");
+        when(stripeClient.createSubscriptionCheckoutSession(anyString(), anyString(), anyString(), any()))
                 .thenAnswer(inv -> new StripeClient.CheckoutSession("cs_exp_renew", "https://checkout.stripe.com/cs_exp_renew"));
 
         // Alice had a PRO subscription that expired 5 days ago.
