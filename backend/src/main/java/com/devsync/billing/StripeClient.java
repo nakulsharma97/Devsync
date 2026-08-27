@@ -103,25 +103,75 @@ public class StripeClient {
     }
 
     /**
-     * POST /v1/checkout/sessions — creates a redirect-based Checkout Session
-     * in subscription mode (mode=subscription). The session creates a
-     * recurring monthly subscription with automatic renewals.
+     * POST /v1/products + POST /v1/prices — creates a Stripe Product and a
+     * monthly recurring Price for the given plan. Returns the Price ID
+     * (price_xxx) which can be reused for future checkouts.
      */
-    public CheckoutSession createSubscriptionCheckoutSession(long amountPaise, String currency,
-            String planCode, String userId, String stripeCustomerId) throws Exception {
+    public String createProductAndPrice(String planCode, long amountPaise, String currency) throws Exception {
         if (!isConfigured()) {
             throw new PaymentNotConfiguredException(
                     "Stripe payment is not configured. Set STRIPE_SECRET_KEY.");
         }
 
         String curr = (currency == null ? "inr" : currency.toLowerCase());
+        com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+
+        // 1. Create a Product
+        String productParams = "name=" + java.net.URLEncoder.encode(planCode + " plan", StandardCharsets.UTF_8)
+                + "&metadata[plan_code]=" + planCode;
+        HttpRequest productReq = HttpRequest.newBuilder()
+                .uri(URI.create("https://api.stripe.com/v1/products"))
+                .timeout(Duration.ofSeconds(15))
+                .header("Authorization", "Bearer " + secretKey)
+                .header("Content-Type", "application/x-www-form-urlencoded")
+                .POST(HttpRequest.BodyPublishers.ofString(productParams))
+                .build();
+        HttpResponse<String> productResp = httpClient.send(productReq, HttpResponse.BodyHandlers.ofString());
+        if (productResp.statusCode() >= 400) {
+            log.error("Stripe createProduct failed: status={} body={}", productResp.statusCode(), redact(productResp.body()));
+            throw new IllegalStateException("Failed to create Stripe product");
+        }
+        String productId = mapper.readTree(productResp.body()).path("id").asText();
+
+        // 2. Create a monthly recurring Price for this Product
+        String priceParams = "product=" + productId
+                + "&currency=" + curr
+                + "&unit_amount=" + amountPaise
+                + "&recurring[interval]=month"
+                + "&recurring[interval_count]=1"
+                + "&metadata[plan_code]=" + planCode;
+        HttpRequest priceReq = HttpRequest.newBuilder()
+                .uri(URI.create("https://api.stripe.com/v1/prices"))
+                .timeout(Duration.ofSeconds(15))
+                .header("Authorization", "Bearer " + secretKey)
+                .header("Content-Type", "application/x-www-form-urlencoded")
+                .POST(HttpRequest.BodyPublishers.ofString(priceParams))
+                .build();
+        HttpResponse<String> priceResp = httpClient.send(priceReq, HttpResponse.BodyHandlers.ofString());
+        if (priceResp.statusCode() >= 400) {
+            log.error("Stripe createPrice failed: status={} body={}", priceResp.statusCode(), redact(priceResp.body()));
+            throw new IllegalStateException("Failed to create Stripe price");
+        }
+        String priceId = mapper.readTree(priceResp.body()).path("id").asText();
+        log.info("Created Stripe product {} and price {} for plan {}", productId, priceId, planCode);
+        return priceId;
+    }
+
+    /**
+     * POST /v1/checkout/sessions — creates a redirect-based Checkout Session
+     * in subscription mode (mode=subscription). Uses an existing Stripe Price ID
+     * (from Plan.stripePriceId) for reliable subscription creation.
+     */
+    public CheckoutSession createSubscriptionCheckoutSession(String priceId,
+            String planCode, String userId, String stripeCustomerId) throws Exception {
+        if (!isConfigured()) {
+            throw new PaymentNotConfiguredException(
+                    "Stripe payment is not configured. Set STRIPE_SECRET_KEY.");
+        }
+
         StringBuilder params = new StringBuilder();
         params.append("mode=subscription");
-        params.append("&line_items[0][price_data][currency]=").append(curr);
-        params.append("&line_items[0][price_data][product_data][name]=").append(planCode).append(" plan");
-        params.append("&line_items[0][price_data][recurring][interval]=month");
-        params.append("&line_items[0][price_data][recurring][interval_count]=1");
-        params.append("&line_items[0][price_data][unit_amount]=").append(amountPaise);
+        params.append("&line_items[0][price]=").append(priceId);
         params.append("&line_items[0][quantity]=1");
         params.append("&success_url=").append(java.net.URLEncoder.encode(successUrl, StandardCharsets.UTF_8));
         params.append("&cancel_url=").append(java.net.URLEncoder.encode(cancelUrl, StandardCharsets.UTF_8));
@@ -193,11 +243,41 @@ public class StripeClient {
     }
 
     /**
-     * DELETE /v1/subscriptions/{id} — cancels a Stripe subscription.
-     * By default Stripe cancels at period end (subscription remains active
-     * until the current billing period ends).
+     * PATCH /v1/subscriptions/{id} — schedules a Stripe subscription for
+     * cancellation at the end of the current billing period. The subscription
+     * remains active until {@code current_period_end}, then Stripe sends a
+     * {@code customer.subscription.deleted} webhook to confirm the end.
      */
     public void cancelSubscription(String stripeSubscriptionId) throws Exception {
+        if (!isConfigured()) {
+            throw new PaymentNotConfiguredException(
+                    "Stripe payment is not configured. Set STRIPE_SECRET_KEY.");
+        }
+
+        String params = "cancel_at_period_end=true";
+
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create("https://api.stripe.com/v1/subscriptions/" + stripeSubscriptionId))
+                .timeout(Duration.ofSeconds(15))
+                .header("Authorization", "Bearer " + secretKey)
+                .header("Content-Type", "application/x-www-form-urlencoded")
+                .method("PATCH", HttpRequest.BodyPublishers.ofString(params))
+                .build();
+
+        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+        if (response.statusCode() >= 400) {
+            log.error("Stripe cancelSubscription failed: status={} body={}",
+                    response.statusCode(), redact(response.body()));
+            throw new IllegalStateException("Payment provider could not cancel subscription");
+        }
+        log.info("Stripe subscription {} scheduled for cancellation at period end", stripeSubscriptionId);
+    }
+
+    /**
+     * DELETE /v1/subscriptions/{id} — immediately cancels a Stripe subscription.
+     * Used for admin-initiated immediate cancellation or refund-triggered revocation.
+     */
+    public void cancelSubscriptionImmediately(String stripeSubscriptionId) throws Exception {
         if (!isConfigured()) {
             throw new PaymentNotConfiguredException(
                     "Stripe payment is not configured. Set STRIPE_SECRET_KEY.");
@@ -212,11 +292,11 @@ public class StripeClient {
 
         HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
         if (response.statusCode() >= 400) {
-            log.error("Stripe cancelSubscription failed: status={} body={}",
+            log.error("Stripe cancelSubscriptionImmediately failed: status={} body={}",
                     response.statusCode(), redact(response.body()));
             throw new IllegalStateException("Payment provider could not cancel subscription");
         }
-        log.info("Stripe subscription {} cancelled", stripeSubscriptionId);
+        log.info("Stripe subscription {} cancelled immediately", stripeSubscriptionId);
     }
 
     /**

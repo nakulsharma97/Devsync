@@ -75,6 +75,12 @@ public class Plan {
     @Builder.Default
     private BillingMode billingMode = BillingMode.ONE_TIME;
 
+    /** Stripe Price ID for this plan (e.g. price_xxx). Used for Stripe
+     *  subscription checkouts. NULL for ONE_TIME plans or if Stripe is not
+     *  configured. */
+    @Column(name = "stripe_price_id")
+    private String stripePriceId;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private java.time.Instant createdAt;
 

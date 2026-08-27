@@ -117,8 +117,15 @@ public class BillingService {
             StripeClient.CheckoutSession session;
             try {
                 if (isRecurring) {
+                    // Ensure the plan has a Stripe Price ID. Create one if missing.
+                    String priceId = plan.getStripePriceId();
+                    if (priceId == null || priceId.isBlank()) {
+                        priceId = stripeClient.createProductAndPrice(planCode, amountPaise, CURRENCY);
+                        plan.setStripePriceId(priceId);
+                        planRepository.save(plan);
+                    }
                     session = stripeClient.createSubscriptionCheckoutSession(
-                            amountPaise, CURRENCY, planCode, userId, stripeCustomerId);
+                            priceId, planCode, userId, stripeCustomerId);
                 } else {
                     session = stripeClient.createCheckoutSession(amountPaise, CURRENCY,
                             planCode, userId);
@@ -291,6 +298,7 @@ public class BillingService {
                 case "invoice.paid" -> handleStripeInvoicePaid(root, eventId);
                 case "invoice.payment_failed" -> handleStripeInvoicePaymentFailed(root, eventId);
                 case "charge.refunded" -> handleStripeChargeRefunded(root, eventId);
+                case "customer.subscription.created" -> handleStripeSubscriptionCreated(root, eventId);
                 case "customer.subscription.updated" -> handleStripeSubscriptionUpdated(root, eventId);
                 case "customer.subscription.deleted" -> handleStripeSubscriptionDeleted(root, eventId);
                 default -> log.info("Stripe webhook event {} ({}) recorded, not processed", eventId, eventType);
@@ -366,6 +374,8 @@ public class BillingService {
             subscription = activateOrRenew(payment.getUserId(), payment.getPlanCode(), "STRIPE");
             // Store Stripe subscription and customer IDs
             subscription.setProviderSubscriptionId(stripeSubscriptionId);
+            // Always store the customer ID — Stripe creates one automatically
+            // for new customers and passes it back in the webhook.
             if (stripeCustomerId != null && !stripeCustomerId.isBlank()) {
                 subscription.setProviderCustomerId(stripeCustomerId);
             }
@@ -375,6 +385,11 @@ public class BillingService {
         } else {
             // One-time payment mode
             subscription = activateOrRenew(payment.getUserId(), payment.getPlanCode(), "STRIPE");
+            // Still store customer ID for one-time payments if present
+            if (stripeCustomerId != null && !stripeCustomerId.isBlank()) {
+                subscription.setProviderCustomerId(stripeCustomerId);
+                subscriptionRepository.save(subscription);
+            }
         }
 
         payment.setSubscriptionId(subscription.getId());
@@ -699,6 +714,69 @@ public class BillingService {
                 subscription.getUserId());
         log.info("Stripe customer.subscription.deleted — subscription {} (user {}) expired",
                 subscription.getId(), subscription.getUserId());
+    }
+
+    /**
+     * customer.subscription.created — Stripe confirms a new subscription was created.
+     * This fires when a Stripe Checkout Session in subscription mode completes.
+     * We use it to store the Stripe subscription ID and customer ID if they weren't
+     * already set by checkout.session.completed (which may fire first).
+     */
+    private void handleStripeSubscriptionCreated(JsonNode root, String eventId) {
+        JsonNode stripeSub = root.path("data").path("object");
+        String stripeSubId = stripeSub.path("id").asText("");
+        String stripeStatus = stripeSub.path("status").asText("");
+        String stripeCustomerId = stripeSub.path("customer").asText("");
+
+        if (stripeSubId.isBlank()) {
+            log.info("Stripe customer.subscription.created missing id (event {}), skipping", eventId);
+            return;
+        }
+
+        // Find the DevSync subscription by user metadata or by existing provider sub ID
+        String userId = stripeSub.path("metadata").path("user_id").asText("");
+        String planCode = stripeSub.path("metadata").path("plan_code").asText("");
+
+        Subscription subscription = null;
+        if (!stripeSubId.isBlank()) {
+            subscription = subscriptionRepository.findByProviderSubscriptionId(stripeSubId).orElse(null);
+        }
+        if (subscription == null && !userId.isBlank()) {
+            subscription = subscriptionRepository.findByUserId(userId).orElse(null);
+        }
+
+        if (subscription == null) {
+            log.info("No DevSync subscription for Stripe sub {} (user {}) (event {}), skipping",
+                    stripeSubId, userId, eventId);
+            return;
+        }
+
+        // Store Stripe subscription ID and customer ID
+        boolean changed = false;
+        if (subscription.getProviderSubscriptionId() == null
+                || subscription.getProviderSubscriptionId().isBlank()) {
+            subscription.setProviderSubscriptionId(stripeSubId);
+            changed = true;
+        }
+        if (stripeCustomerId != null && !stripeCustomerId.isBlank()
+                && (subscription.getProviderCustomerId() == null
+                    || subscription.getProviderCustomerId().isBlank())) {
+            subscription.setProviderCustomerId(stripeCustomerId);
+            changed = true;
+        }
+
+        // Sync status if needed
+        SubscriptionStatus newStatus = mapStripeSubscriptionStatus(stripeStatus);
+        if (newStatus != null && newStatus != subscription.getStatus()) {
+            subscription.setStatus(newStatus);
+            changed = true;
+        }
+
+        if (changed) {
+            subscriptionRepository.save(subscription);
+        }
+        log.info("Stripe customer.subscription.created — subscription {} (user {}) sub_id={} customer={}",
+                subscription.getId(), subscription.getUserId(), stripeSubId, stripeCustomerId);
     }
 
     /** Maps Stripe subscription status to DevSync SubscriptionStatus. */
