@@ -7,4 +7,7 @@ import lombok.Data;
 public class CheckoutRequest {
     @NotBlank(message = "planCode is required")
     private String planCode;
+
+    /** Payment provider: "RAZORPAY" or "STRIPE". Defaults to "RAZORPAY" if omitted. */
+    private String provider;
 }

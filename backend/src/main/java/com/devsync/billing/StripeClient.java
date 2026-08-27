@@ -1,0 +1,183 @@
+package com.devsync.billing;
+
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
+
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+import java.util.Base64;
+import java.util.HexFormat;
+import java.util.Map;
+
+/**
+ * Minimal Stripe API client built on the JDK HttpClient — no extra SDK
+ * dependencies, mirroring {@link RazorpayClient}'s style. Handles Checkout
+ * Session creation and webhook signature verification.
+ */
+@Component
+@Slf4j
+public class StripeClient {
+
+    private static final long SIGNATURE_TOLERANCE_SECONDS = 300;
+
+    private final HttpClient httpClient = HttpClient.newBuilder()
+            .connectTimeout(Duration.ofSeconds(10))
+            .build();
+
+    @Value("${app.billing.stripe.secret-key:}")
+    private String secretKey;
+
+    @Value("${app.billing.stripe.publishable-key:}")
+    private String publishableKey;
+
+    @Value("${app.billing.stripe.webhook-secret:}")
+    private String webhookSecret;
+
+    @Value("${app.billing.stripe.success-url:http://localhost:5173/settings/billing?payment=success}")
+    private String successUrl;
+
+    @Value("${app.billing.stripe.cancel-url:http://localhost:5173/settings/billing?payment=cancelled}")
+    private String cancelUrl;
+
+    /** A Checkout Session created at Stripe, ready for frontend redirect. */
+    public record CheckoutSession(String sessionId, String checkoutUrl) {}
+
+    public boolean isConfigured() {
+        return secretKey != null && !secretKey.isBlank();
+    }
+
+    public String getPublishableKey() {
+        return publishableKey;
+    }
+
+    /**
+     * POST /v1/checkout/sessions — creates a redirect-based Checkout Session.
+     * The frontend redirects the user to the returned {@code checkoutUrl}.
+     */
+    public CheckoutSession createCheckoutSession(long amountPaise, String currency,
+            String planCode, String userId) throws Exception {
+        if (!isConfigured()) {
+            throw new PaymentNotConfiguredException(
+                    "Stripe payment is not configured. Set STRIPE_SECRET_KEY.");
+        }
+
+        String params = "mode=payment"
+                + "&line_items[0][price_data][currency]=" + (currency == null ? "usd" : currency.toLowerCase())
+                + "&line_items[0][price_data][product_data][name]=" + planCode + " plan"
+                + "&line_items[0][price_data][unit_amount]=" + amountPaise
+                + "&line_items[0][quantity]=1"
+                + "&success_url=" + java.net.URLEncoder.encode(successUrl, StandardCharsets.UTF_8)
+                + "&cancel_url=" + java.net.URLEncoder.encode(cancelUrl, StandardCharsets.UTF_8)
+                + "&client_reference_id=" + userId
+                + "&metadata[plan_code]=" + planCode
+                + "&metadata[user_id]=" + userId;
+
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create("https://api.stripe.com/v1/checkout/sessions"))
+                .timeout(Duration.ofSeconds(15))
+                .header("Authorization", "Bearer " + secretKey)
+                .header("Content-Type", "application/x-www-form-urlencoded")
+                .POST(HttpRequest.BodyPublishers.ofString(params))
+                .build();
+
+        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+        if (response.statusCode() >= 400) {
+            log.error("Stripe createCheckoutSession failed: status={} body={}",
+                    response.statusCode(), redact(response.body()));
+            throw new IllegalStateException("Payment provider could not create the checkout session");
+        }
+
+        com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+        com.fasterxml.jackson.databind.JsonNode node = mapper.readTree(response.body());
+        return new CheckoutSession(
+                node.path("id").asText(),
+                node.path("url").asText());
+    }
+
+    /**
+     * Verifies the Stripe webhook signature. Stripe-Signature header format:
+     * {@code t=<timestamp>,v1=<signature>}
+     * <p>
+     * Verification: HMAC-SHA256(webhookSecret, "${timestamp}.${rawBody}") must
+     * match v1. The timestamp must be within {@link #SIGNATURE_TOLERANCE_SECONDS}
+     * seconds of now (replay protection).
+     */
+    public boolean verifyWebhookSignature(byte[] payload, String stripeSignatureHeader) {
+        if (payload == null || stripeSignatureHeader == null || stripeSignatureHeader.isBlank()
+                || webhookSecret == null || webhookSecret.isBlank()) {
+            return false;
+        }
+
+        try {
+            String timestamp = extractStripeHeaderValue(stripeSignatureHeader, "t");
+            String signature = extractStripeHeaderValue(stripeSignatureHeader, "v1");
+
+            if (timestamp == null || signature == null) {
+                log.warn("Stripe webhook signature header missing t or v1");
+                return false;
+            }
+
+            // Replay protection: reject if timestamp is too old
+            long sigTimestamp;
+            try {
+                sigTimestamp = Long.parseLong(timestamp);
+            } catch (NumberFormatException e) {
+                log.warn("Stripe webhook timestamp is not a valid integer: {}", timestamp);
+                return false;
+            }
+            long now = System.currentTimeMillis() / 1000;
+            if (Math.abs(now - sigTimestamp) > SIGNATURE_TOLERANCE_SECONDS) {
+                log.warn("Stripe webhook timestamp outside tolerance: {} vs now {}", sigTimestamp, now);
+                return false;
+            }
+
+            // Compute expected signature
+            String signedPayload = timestamp + "." + new String(payload, StandardCharsets.UTF_8);
+            Mac mac = Mac.getInstance("HmacSHA256");
+            mac.init(new SecretKeySpec(webhookSecret.getBytes(StandardCharsets.UTF_8), "HmacSHA256"));
+            String expected = HexFormat.of().formatHex(mac.doFinal(signedPayload.getBytes(StandardCharsets.UTF_8)));
+
+            return constantTimeEquals(expected, signature);
+        } catch (Exception e) {
+            log.warn("Stripe webhook signature verification failed", e);
+            return false;
+        }
+    }
+
+    /**
+     * Extracts a named value from Stripe's comma-separated header format.
+     * e.g. from "t=123,v1=abc" with name "v1", returns "abc".
+     */
+    private String extractStripeHeaderValue(String header, String name) {
+        for (String part : header.split(",")) {
+            String[] kv = part.split("=", 2);
+            if (kv.length == 2 && kv[0].trim().equals(name)) {
+                return kv[1].trim();
+            }
+        }
+        return null;
+    }
+
+    private boolean constantTimeEquals(String a, String b) {
+        byte[] ba = a.getBytes(StandardCharsets.UTF_8);
+        byte[] bb = b.getBytes(StandardCharsets.UTF_8);
+        if (ba.length != bb.length) return false;
+        int diff = 0;
+        for (int i = 0; i < ba.length; i++) {
+            diff |= ba[i] ^ bb[i];
+        }
+        return diff == 0;
+    }
+
+    private String redact(String body) {
+        if (body == null) return "";
+        return body.length() > 200 ? body.substring(0, 200) + "…" : body;
+    }
+}

@@ -17,6 +17,7 @@
 #   MAIL_USERNAME / MAIL_PASSWORD    (SMTP — both together or neither)
 #   GITHUB_CLIENT_ID / GITHUB_CLIENT_SECRET / GITHUB_REDIRECT_URI / GITHUB_WEBHOOK_SECRET
 #   RAZORPAY_KEY_ID / RAZORPAY_KEY_SECRET / RAZORPAY_WEBHOOK_SECRET (fail-fast below)
+#   STRIPE_SECRET_KEY / STRIPE_PUBLISHABLE_KEY / STRIPE_WEBHOOK_SECRET (optional)
 #
 # Additionally, ProductionConfigValidator (active only in this profile) aborts
 # startup when a known development fallback value (e.g. the dev JWT secret or
@@ -50,6 +51,12 @@ app:
       key-id: ${RAZORPAY_KEY_ID}
       key-secret: ${RAZORPAY_KEY_SECRET}
       webhook-secret: ${RAZORPAY_WEBHOOK_SECRET}
+    stripe:
+      # Optional: Stripe is an alternative provider. Only needed if you want
+      # to offer Stripe as a payment option alongside Razorpay.
+      secret-key: ${STRIPE_SECRET_KEY:}
+      publishable-key: ${STRIPE_PUBLISHABLE_KEY:}
+      webhook-secret: ${STRIPE_WEBHOOK_SECRET:}
   auth:
     # HTTPS terminates at the reverse proxy (nginx/cloud LB) — the refresh-token
     # cookie must be Secure so it is never sent over plain HTTP.

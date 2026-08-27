@@ -114,6 +114,7 @@ app:
 
   billing:
     currency: ${DEVSYNC_BILLING_CURRENCY:INR}
+    refund-window-days: ${DEVSYNC_REFUND_WINDOW_DAYS:7}
     razorpay:
       # Razorpay credentials come only from the environment (never committed).
       # Empty by default so local dev runs without touching payments; checkout
@@ -123,6 +124,15 @@ app:
       key-secret: ${RAZORPAY_KEY_SECRET:}
       webhook-secret: ${RAZORPAY_WEBHOOK_SECRET:}
       base-url: ${RAZORPAY_BASE_URL:https://api.razorpay.com}
+    stripe:
+      # Stripe credentials come only from the environment (never committed).
+      # Empty by default so local dev runs without touching payments; checkout
+      # returns 503 "Stripe payment is not configured" until they are set.
+      secret-key: ${STRIPE_SECRET_KEY:}
+      publishable-key: ${STRIPE_PUBLISHABLE_KEY:}
+      webhook-secret: ${STRIPE_WEBHOOK_SECRET:}
+      success-url: ${STRIPE_SUCCESS_URL:http://localhost:5173/settings/billing?payment=success}
+      cancel-url: ${STRIPE_CANCEL_URL:http://localhost:5173/settings/billing?payment=cancelled}
 
   github:
     # GitHub OAuth App used for the integration flow (same app as login is fine).

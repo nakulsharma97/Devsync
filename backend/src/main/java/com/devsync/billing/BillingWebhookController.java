@@ -19,7 +19,8 @@ public class BillingWebhookController {
     @PostMapping("/razorpay")
     public ResponseEntity<BillingService.WebhookAck> razorpay(
             @RequestBody byte[] payload,
-            @RequestHeader(value = "X-Razorpay-Signature", required = false) String signature) {
-        return ResponseEntity.ok(billingService.handleRazorpayWebhook(payload, signature));
+            @RequestHeader(value = "X-Razorpay-Signature", required = false) String signature,
+            @RequestHeader(value = "X-Razorpay-Event-Id", required = false) String eventId) {
+        return ResponseEntity.ok(billingService.handleRazorpayWebhook(payload, signature, eventId));
     }
 }

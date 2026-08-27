@@ -1,6 +1,7 @@
 package com.devsync.billing;
 
 import com.devsync.billing.dto.*;
+import com.devsync.billing.entity.RefundRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -25,7 +26,8 @@ public class BillingController {
     @PostMapping("/checkout")
     public ResponseEntity<CheckoutResponse> checkout(@Valid @RequestBody CheckoutRequest request,
                                                      @AuthenticationPrincipal UserDetails userDetails) {
-        return ResponseEntity.ok(billingService.createCheckout(userDetails.getUsername(), request.getPlanCode()));
+        return ResponseEntity.ok(billingService.createCheckout(userDetails.getUsername(),
+                request.getPlanCode(), request.getProvider()));
     }
 
     @GetMapping("/subscription")
@@ -46,5 +48,21 @@ public class BillingController {
     @PostMapping("/cancel")
     public ResponseEntity<SubscriptionResponse> cancel(@AuthenticationPrincipal UserDetails userDetails) {
         return ResponseEntity.ok(billingService.cancelSubscription(userDetails.getUsername()));
+    }
+
+    // ── Self-serve refund requests ────────────────────────────────
+
+    @PostMapping("/refund-requests")
+    public ResponseEntity<RefundRequest> submitRefundRequest(
+            @RequestBody RefundRequestDto request,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        return ResponseEntity.ok(billingService.submitRefundRequest(
+                userDetails.getUsername(), request.getPaymentId(), request.getReason()));
+    }
+
+    @GetMapping("/refund-requests")
+    public ResponseEntity<List<RefundRequest>> myRefundRequests(
+            @AuthenticationPrincipal UserDetails userDetails) {
+        return ResponseEntity.ok(billingService.getMyRefundRequests(userDetails.getUsername()));
     }
 }

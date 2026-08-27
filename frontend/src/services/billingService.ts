@@ -48,13 +48,30 @@ export interface Usage {
 }
 
 export interface CheckoutSession {
-  orderId: string;
-  amountPaise: number;
-  currency: string;
-  keyId: string;
+  provider: string;
   planCode: string;
   planName: string;
+  // Razorpay fields
+  orderId?: string;
+  amountPaise?: number;
+  currency?: string;
+  keyId?: string;
+  // Stripe fields
+  checkoutUrl?: string;
 }
+
+export interface RefundRequest {
+  id: string;
+  userId: string;
+  paymentId: string;
+  reason: string;
+  status: string;
+  adminNote?: string | null;
+  reviewedAt?: string | null;
+  createdAt: string;
+}
+
+export type RefundRequestStatus = "PENDING" | "APPROVED" | "REJECTED" | "COMPLETED";
 
 export const billingService = {
   async getPlans(): Promise<Plan[]> {
@@ -77,13 +94,23 @@ export const billingService = {
     return res.data;
   },
 
-  async createCheckout(planCode: string): Promise<CheckoutSession> {
-    const res = await api.post("/billing/checkout", { planCode });
+  async createCheckout(planCode: string, provider?: string): Promise<CheckoutSession> {
+    const res = await api.post("/billing/checkout", { planCode, provider });
     return res.data;
   },
 
   async cancelSubscription(): Promise<SubscriptionInfo> {
     const res = await api.post("/billing/cancel");
+    return res.data;
+  },
+
+  async requestRefund(paymentId: string, reason: string): Promise<RefundRequest> {
+    const res = await api.post("/billing/refund-requests", { paymentId, reason });
+    return res.data;
+  },
+
+  async getMyRefundRequests(): Promise<RefundRequest[]> {
+    const res = await api.get("/billing/refund-requests");
     return res.data;
   },
 };

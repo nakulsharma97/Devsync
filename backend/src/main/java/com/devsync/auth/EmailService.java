@@ -264,6 +264,60 @@ public class EmailService {
         trySend(message);
     }
 
+    /**
+     * Send confirmation that a refund request was received.
+     */
+    public void sendRefundRequestSubmitted(String to, String fullName, String planName, long amountPaise) {
+        String amount = String.format("%s%,.0f", currencySymbol("INR"), amountPaise / 100.0);
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setFrom(fromEmail);
+        message.setTo(to);
+        message.setSubject("Refund request received — " + planName + " plan");
+        message.setText(
+            "Hi " + fullName + ",\n\n"
+            + "We've received your refund request for the " + planName + " plan (" + amount + ").\n\n"
+            + "Our team will review your request. You'll be notified once a decision is made.\n\n"
+            + "— The DevSync Team"
+        );
+        trySend(message);
+    }
+
+    /**
+     * Send notification that a refund request was approved.
+     */
+    public void sendRefundRequestApproved(String to, String fullName, String planName, String adminNote) {
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setFrom(fromEmail);
+        message.setTo(to);
+        message.setSubject("Refund approved — " + planName + " plan");
+        message.setText(
+            "Hi " + fullName + ",\n\n"
+            + "Your refund request for the " + planName + " plan has been approved.\n\n"
+            + "The refund is being processed by the payment provider and will appear on your statement within 5-10 business days.\n\n"
+            + (adminNote != null && !adminNote.isBlank() ? "Note from our team: " + adminNote + "\n\n" : "")
+            + "— The DevSync Team"
+        );
+        trySend(message);
+    }
+
+    /**
+     * Send notification that a refund request was rejected.
+     */
+    public void sendRefundRequestRejected(String to, String fullName, String planName, String adminNote) {
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setFrom(fromEmail);
+        message.setTo(to);
+        message.setSubject("Refund request declined — " + planName + " plan");
+        message.setText(
+            "Hi " + fullName + ",\n\n"
+            + "We're sorry, but your refund request for the " + planName + " plan has been declined.\n\n"
+            + "Reason: " + adminNote + "\n\n"
+            + "If you have questions, please contact our support team.\n\n"
+            + "— The DevSync Team"
+        );
+        trySend(message);
+    }
+
     private String currencySymbol(String currency) {
         if ("INR".equalsIgnoreCase(currency)) return "₹";
         if ("USD".equalsIgnoreCase(currency)) return "$";

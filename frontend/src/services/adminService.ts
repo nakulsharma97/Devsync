@@ -726,6 +726,23 @@ export const adminService = {
     return res.data;
   },
 
+  async getRefundRequestsPage(query: {
+    page?: number;
+    size?: number;
+    status?: string;
+  } = {}): Promise<PageResponse<AdminRefundRequestListItem>> {
+    const res = await api.get("/admin/billing/refund-requests", { params: query });
+    return res.data;
+  },
+
+  async approveRefundRequest(requestId: string, adminNote: string): Promise<void> {
+    await api.post(`/admin/billing/refund-requests/${requestId}/approve`, { adminNote });
+  },
+
+  async rejectRefundRequest(requestId: string, adminNote: string): Promise<void> {
+    await api.post(`/admin/billing/refund-requests/${requestId}/reject`, { adminNote });
+  },
+
   // ---------- Support Tickets ----------
 
   async getSupportTickets(query: {
@@ -847,4 +864,22 @@ export interface SupportTicketStats {
   WAITING_USER: number;
   RESOLVED: number;
   CLOSED: number;
+}
+
+// ---------- Refund Requests ----------
+
+export interface AdminRefundRequestListItem {
+  id: string;
+  userId: string;
+  userName: string;
+  userEmail?: string | null;
+  paymentId: string;
+  planCode?: string | null;
+  amountPaise: number;
+  currency?: string | null;
+  reason: string;
+  status: string;
+  adminNote?: string | null;
+  reviewedAt?: string | null;
+  createdAt: string;
 }

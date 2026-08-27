@@ -50,6 +50,9 @@ public class RazorpayClient {
     /** Payment reference fetched from the provider (webhook cross-check). */
     public record PaymentRef(String paymentId, String orderId, String status, long amountPaise, String currency) {}
 
+    /** Refund created at Razorpay. */
+    public record RefundResponse(String refundId, String paymentId, long amountPaise, String status) {}
+
     public boolean isConfigured() {
         return keyId != null && !keyId.isBlank()
                 && keySecret != null && !keySecret.isBlank();
@@ -148,6 +151,44 @@ public class RazorpayClient {
     private String basicAuth() {
         return "Basic " + Base64.getEncoder().encodeToString(
                 (keyId + ":" + keySecret).getBytes(StandardCharsets.UTF_8));
+    }
+
+    /**
+     * POST /v1/payments/{paymentId}/refund — issues a full refund via Razorpay's
+     * Refund API. The resulting refund.processed webhook will trigger entitlement
+     * revocation in BillingService (single code path for all refunds).
+     */
+    public RefundResponse createRefund(String paymentId, String notes) throws Exception {
+        if (!isConfigured()) {
+            throw new PaymentNotConfiguredException(
+                    "Payment is not configured. Set RAZORPAY_KEY_ID / RAZORPAY_KEY_SECRET.");
+        }
+        java.util.Map<String, Object> bodyMap = new java.util.LinkedHashMap<>();
+        bodyMap.put("payment_id", paymentId);
+        bodyMap.put("amount", 0); // 0 = full refund in Razorpay API
+        if (notes != null && !notes.isBlank()) {
+            bodyMap.put("notes", java.util.Map.of("reason", notes));
+        }
+        String body = objectMapper.writeValueAsString(bodyMap);
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(baseUrl + "/v1/payments/" + paymentId + "/refund"))
+                .timeout(Duration.ofSeconds(15))
+                .header("Content-Type", "application/json")
+                .header("Authorization", basicAuth())
+                .POST(HttpRequest.BodyPublishers.ofString(body))
+                .build();
+        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+        if (response.statusCode() >= 400) {
+            log.error("Razorpay createRefund failed for payment {}: status={} body={}",
+                    paymentId, response.statusCode(), redact(response.body()));
+            throw new IllegalStateException("Razorpay refund request failed: HTTP " + response.statusCode());
+        }
+        JsonNode node = objectMapper.readTree(response.body());
+        return new RefundResponse(
+                node.path("id").asText(),
+                node.path("payment_id").asText(),
+                node.path("amount").asLong(),
+                node.path("status").asText());
     }
 
     /** Never echo full provider payloads into logs — keep only the status code. */

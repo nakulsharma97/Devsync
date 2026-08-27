@@ -15,7 +15,7 @@ import {
   Inbox,
   IndianRupee,
 } from "lucide-react";
-import { adminService, type AdminSubscriptionListItem, type AdminBillingStats } from "@/services/adminService";
+import { adminService, type AdminSubscriptionListItem, type AdminBillingStats, type AdminRefundRequestListItem } from "@/services/adminService";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -79,6 +79,15 @@ export default function AdminBilling() {
   const [cancelling, setCancelling] = useState<string | null>(null);
   const [stats, setStats] = useState<AdminBillingStats | null>(null);
   const [statsLoading, setStatsLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<"subscriptions" | "refunds">("subscriptions");
+  const [refundItems, setRefundItems] = useState<AdminRefundRequestListItem[]>([]);
+  const [refundLoading, setRefundLoading] = useState(true);
+  const [refundPage, setRefundPage] = useState(0);
+  const [refundTotalPages, setRefundTotalPages] = useState(0);
+  const [refundStatusFilter, setRefundStatusFilter] = useState("PENDING");
+  const [processingRefund, setProcessingRefund] = useState<string | null>(null);
+  const [rejectModal, setRejectModal] = useState<string | null>(null);
+  const [rejectNote, setRejectNote] = useState("");
 
   const fetchStats = useCallback(async () => {
     setStatsLoading(true);
@@ -123,6 +132,63 @@ export default function AdminBilling() {
   useEffect(() => {
     fetchPage(0);
   }, [fetchPage]);
+
+  const fetchRefundRequests = useCallback(
+    async (p: number, status?: string) => {
+      setRefundLoading(true);
+      try {
+        const res = await adminService.getRefundRequestsPage({
+          page: p,
+          size: 10,
+          status: status && status !== "all" ? status : undefined,
+        });
+        setRefundItems(res.content);
+        setRefundTotalPages(res.totalPages);
+        setRefundPage(res.page);
+      } catch {
+        toast.error("Could not load refund requests");
+      } finally {
+        setRefundLoading(false);
+      }
+    },
+    []
+  );
+
+  useEffect(() => {
+    if (activeTab === "refunds") {
+      fetchRefundRequests(0, refundStatusFilter);
+    }
+  }, [activeTab, refundStatusFilter, fetchRefundRequests]);
+
+  const approveRefund = async (id: string) => {
+    setProcessingRefund(id);
+    try {
+      await adminService.approveRefundRequest(id, "Approved");
+      toast.success("Refund approved — Razorpay refund API called");
+      fetchRefundRequests(refundPage, refundStatusFilter);
+      fetchStats();
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || "Could not approve refund");
+    } finally {
+      setProcessingRefund(null);
+    }
+  };
+
+  const rejectRefund = async (id: string) => {
+    if (!rejectNote.trim()) return;
+    setProcessingRefund(id);
+    try {
+      await adminService.rejectRefundRequest(id, rejectNote.trim());
+      toast.success("Refund request rejected");
+      setRejectModal(null);
+      setRejectNote("");
+      fetchRefundRequests(refundPage, refundStatusFilter);
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || "Could not reject refund");
+    } finally {
+      setProcessingRefund(null);
+    }
+  };
 
   const applyFilters = () => {
     setPage(0);
@@ -230,6 +296,32 @@ export default function AdminBilling() {
         ))}
       </div>
 
+      {/* Tabs */}
+      <div className="flex gap-1 border-b border-border/40">
+        <button
+          onClick={() => setActiveTab("subscriptions")}
+          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+            activeTab === "subscriptions"
+              ? "border-accent text-accent"
+              : "border-transparent text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          Subscriptions
+        </button>
+        <button
+          onClick={() => setActiveTab("refunds")}
+          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+            activeTab === "refunds"
+              ? "border-accent text-accent"
+              : "border-transparent text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          Refund Requests
+        </button>
+      </div>
+
+      {activeTab === "subscriptions" ? (
+      <>
       {/* Toolbar */}
       <div className="flex flex-col md:flex-row gap-3 flex-wrap">
         <div className="relative flex-1 min-w-[200px]">
@@ -409,6 +501,191 @@ export default function AdminBilling() {
             </Button>
           </div>
         </div>
+      )}
+      </>
+      ) : (
+      <>
+      {/* Refund requests toolbar */}
+      <div className="flex gap-3 flex-wrap">
+        <Select value={refundStatusFilter} onValueChange={setRefundStatusFilter}>
+          <SelectTrigger className="w-[150px]">
+            <SelectValue placeholder="All statuses" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All statuses</SelectItem>
+            <SelectItem value="PENDING">Pending</SelectItem>
+            <SelectItem value="APPROVED">Approved</SelectItem>
+            <SelectItem value="REJECTED">Rejected</SelectItem>
+            <SelectItem value="COMPLETED">Completed</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Refund requests table */}
+      <Card className="border-border/40 bg-card/50 backdrop-blur-sm">
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="hover:bg-transparent">
+                  <TableHead>User</TableHead>
+                  <TableHead>Plan</TableHead>
+                  <TableHead>Amount</TableHead>
+                  <TableHead>Reason</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Submitted</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {refundLoading ? (
+                  Array.from({ length: 5 }).map((_, i) => (
+                    <TableRow key={i}>
+                      {Array.from({ length: 7 }).map((__, j) => (
+                        <TableCell key={j}>
+                          <Skeleton className="h-4 w-full" />
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  ))
+                ) : refundItems.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center py-12">
+                      <div className="flex flex-col items-center gap-2">
+                        <Inbox className="w-8 h-8 text-muted-foreground" />
+                        <p className="text-sm text-muted-foreground">No refund requests found</p>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  refundItems.map((rr) => (
+                    <TableRow key={rr.id} className="hover:bg-accent/5">
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <div className="w-7 h-7 rounded-full bg-accent/10 flex items-center justify-center text-[10px] font-bold text-accent shrink-0">
+                            {rr.userName?.charAt(0) || "U"}
+                          </div>
+                          <div>
+                            <div className="text-sm font-medium truncate max-w-[140px]">{rr.userName}</div>
+                            <div className="text-[10px] text-muted-foreground truncate max-w-[140px]">{rr.userEmail}</div>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className={`text-[11px] ${PLAN_STYLES[rr.planCode ?? ""] ?? "bg-muted text-muted-foreground border-border/40"}`}>
+                          {rr.planCode ?? "—"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-sm">{formatINR(rr.amountPaise)}</TableCell>
+                      <TableCell className="text-xs text-muted-foreground max-w-[200px] truncate">{rr.reason}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className={`text-[11px] ${
+                          rr.status === "PENDING" ? "bg-amber-500/10 text-amber-500 border-amber-500/20"
+                          : rr.status === "APPROVED" || rr.status === "COMPLETED" ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
+                          : "bg-red-500/10 text-red-500 border-red-500/20"
+                        }`}>
+                          {rr.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-xs text-muted-foreground whitespace-nowrap">{formatDate(rr.createdAt)}</TableCell>
+                      <TableCell className="text-right">
+                        {rr.status === "PENDING" && (
+                          <div className="flex gap-1 justify-end">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => approveRefund(rr.id)}
+                              disabled={processingRefund === rr.id}
+                            >
+                              {processingRefund === rr.id ? (
+                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              ) : (
+                                <CheckCircle className="w-3.5 h-3.5 mr-1" />
+                              )}
+                              Approve
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setRejectModal(rr.id)}
+                              disabled={processingRefund === rr.id}
+                            >
+                              <XCircle className="w-3.5 h-3.5 mr-1" />
+                              Reject
+                            </Button>
+                          </div>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Refund requests pagination */}
+      {refundTotalPages > 1 && (
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-xs text-muted-foreground">
+            Page {refundPage + 1} of {refundTotalPages}
+          </p>
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={refundPage === 0 || refundLoading}
+              onClick={() => fetchRefundRequests(Math.max(0, refundPage - 1), refundStatusFilter)}
+            >
+              <ChevronLeft className="w-4 h-4 mr-1" /> Prev
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={refundPage >= refundTotalPages - 1 || refundLoading}
+              onClick={() => fetchRefundRequests(Math.min(refundTotalPages - 1, refundPage + 1), refundStatusFilter)}
+            >
+              Next <ChevronRight className="w-4 h-4 ml-1" />
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Reject modal */}
+      {rejectModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" role="dialog" aria-modal="true">
+          <div className="bg-card border border-border/40 rounded-2xl max-w-sm w-full p-6 space-y-4">
+            <div className="flex items-start justify-between gap-2">
+              <h2 className="font-semibold">Reject refund request</h2>
+              <button onClick={() => { setRejectModal(null); setRejectNote(""); }} className="text-muted-foreground hover:text-foreground">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <p className="text-sm text-muted-foreground">Provide a reason for rejecting this refund request (required).</p>
+            <textarea
+              value={rejectNote}
+              onChange={(e) => setRejectNote(e.target.value)}
+              placeholder="Reason for rejection"
+              rows={3}
+              className="w-full px-3 py-2 rounded-lg border border-border/50 bg-background text-sm resize-none focus:outline-none focus:ring-2 focus:ring-ring"
+            />
+            <div className="flex gap-2 justify-end">
+              <button onClick={() => { setRejectModal(null); setRejectNote(""); }} className="text-sm px-4 py-2 rounded-lg border border-border/50">
+                Cancel
+              </button>
+              <button
+                onClick={() => rejectRefund(rejectModal)}
+                disabled={!rejectNote.trim() || processingRefund === rejectModal}
+                className="text-sm px-4 py-2 rounded-lg bg-destructive text-white hover:opacity-90 transition-opacity disabled:opacity-60"
+              >
+                {processingRefund === rejectModal ? "Rejecting…" : "Reject"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      </>
       )}
     </div>
   );

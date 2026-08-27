@@ -4,9 +4,12 @@ import com.devsync.audit.entity.AuditAction;
 import com.devsync.audit.repository.AuditLogRepository;
 import com.devsync.billing.entity.Payment;
 import com.devsync.billing.entity.PaymentStatus;
+import com.devsync.billing.entity.RefundRequest;
+import com.devsync.billing.entity.RefundRequestStatus;
 import com.devsync.billing.entity.Subscription;
 import com.devsync.billing.entity.SubscriptionStatus;
 import com.devsync.billing.repository.PaymentRepository;
+import com.devsync.billing.repository.RefundRequestRepository;
 import com.devsync.billing.repository.SubscriptionRepository;
 import com.devsync.billing.repository.WebhookEventRepository;
 import com.devsync.auth.JwtTokenProvider;
@@ -58,6 +61,7 @@ class BillingIntegrationTest {
     @Autowired private SubscriptionRepository subscriptionRepository;
     @Autowired private PaymentRepository paymentRepository;
     @Autowired private WebhookEventRepository webhookEventRepository;
+    @Autowired private RefundRequestRepository refundRequestRepository;
     @Autowired private AuditLogRepository auditLogRepository;
     @Autowired private JwtTokenProvider jwtTokenProvider;
     @Autowired private EntitlementService entitlementService;
@@ -78,6 +82,7 @@ class BillingIntegrationTest {
     @BeforeEach
     void seed() throws Exception {
         webhookEventRepository.deleteAll();
+        refundRequestRepository.deleteAll();
         paymentRepository.deleteAll();
         subscriptionRepository.deleteAll();
         memberRepository.deleteAll();
@@ -132,17 +137,32 @@ class BillingIntegrationTest {
                 .amountPaise(29900).currency("INR").status(PaymentStatus.PENDING).build());
         mockMvc.perform(post("/api/billing/webhook/razorpay")
                         .header("X-Razorpay-Signature", "valid")
+                        .header("X-Razorpay-Event-Id", "evt_act_" + userId)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(webhookPayload("evt_act_" + userId, "payment.captured",
+                        .content(webhookPayload("payment.captured",
                                 orderId, "pay_" + userId, 29900)))
                 .andExpect(status().isOk());
     }
 
-    private String webhookPayload(String eventId, String event, String orderId, String paymentId, long amountPaise) {
-        return "{ \"event_id\": \"" + eventId + "\", \"event\": \"" + event + "\", "
+    /** Builds a Razorpay webhook body shaped like their real payloads. */
+    private String webhookPayload(String event, String orderId, String paymentId, long amountPaise) {
+        return "{ \"event\": \"" + event + "\", "
                 + "\"payload\": { \"payment\": { \"entity\": { \"id\": \"" + paymentId
                 + "\", \"order_id\": \"" + orderId + "\", \"amount\": " + amountPaise
                 + ", \"currency\": \"INR\", \"status\": \"captured\" } } } }";
+    }
+
+    /** Builds a refund webhook body shaped like Razorpay's real refund.processed payloads. */
+    private String refundWebhookPayload(String orderId, String paymentId, long paymentAmount,
+            long refundAmount, boolean isFullRefund) {
+        return "{ \"event\": \"refund.processed\", "
+                + "\"payload\": { "
+                + "\"payment\": { \"entity\": { \"id\": \"" + paymentId
+                + "\", \"order_id\": \"" + orderId + "\", \"amount\": " + paymentAmount
+                + ", \"currency\": \"INR\", \"status\": \"captured\" } }, "
+                + "\"refund\": { \"entity\": { \"id\": \"reஃ_" + paymentId
+                + "\", \"payment_id\": \"" + paymentId + "\", \"amount\": " + refundAmount
+                + ", \"status\": \"processed\" } } } }";
     }
 
     // ── Private project limit ─────────────────────────────────────
@@ -338,8 +358,9 @@ class BillingIntegrationTest {
 
         mockMvc.perform(post("/api/billing/webhook/razorpay")
                         .header("X-Razorpay-Signature", "sig")
+                        .header("X-Razorpay-Event-Id", "evt_1")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(webhookPayload("evt_1", "payment.captured", orderId, "pay_1", 29900)))
+                        .content(webhookPayload("payment.captured", orderId, "pay_1", 29900)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.processed").value(true))
                 .andExpect(jsonPath("$.duplicate").value(false));
@@ -371,9 +392,10 @@ class BillingIntegrationTest {
                 .userId(aliceId).planCode("PRO").providerOrderId(orderId)
                 .amountPaise(29900).currency("INR").status(PaymentStatus.PENDING).build());
 
-        String body = webhookPayload("evt_dup", "payment.captured", orderId, "pay_dup", 29900);
+        String body = webhookPayload("payment.captured", orderId, "pay_dup", 29900);
         mockMvc.perform(post("/api/billing/webhook/razorpay")
                         .header("X-Razorpay-Signature", "sig")
+                        .header("X-Razorpay-Event-Id", "evt_dup")
                         .contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isOk());
         Subscription first = subscriptionRepository.findByUserId(aliceId).orElseThrow();
@@ -382,6 +404,7 @@ class BillingIntegrationTest {
         // Same event id delivered again → acknowledged, not re-processed.
         mockMvc.perform(post("/api/billing/webhook/razorpay")
                         .header("X-Razorpay-Signature", "sig")
+                        .header("X-Razorpay-Event-Id", "evt_dup")
                         .contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.duplicate").value(true));
@@ -399,8 +422,9 @@ class BillingIntegrationTest {
 
         mockMvc.perform(post("/api/billing/webhook/razorpay")
                         .header("X-Razorpay-Signature", "bad")
+                        .header("X-Razorpay-Event-Id", "evt_x")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(webhookPayload("evt_x", "payment.captured", "order_x", "pay_x", 29900)))
+                        .content(webhookPayload("payment.captured", "order_x", "pay_x", 29900)))
                 .andExpect(status().isBadRequest());
 
         assertThat(paymentRepository.count()).isZero();
@@ -416,8 +440,9 @@ class BillingIntegrationTest {
 
         mockMvc.perform(post("/api/billing/webhook/razorpay")
                         .header("X-Razorpay-Signature", "sig")
+                        .header("X-Razorpay-Event-Id", "evt_amt")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(webhookPayload("evt_amt", "payment.captured", "order_amt", "pay_amt", 100)))
+                        .content(webhookPayload("payment.captured", "order_amt", "pay_amt", 100)))
                 .andExpect(status().isBadRequest());
 
         assertThat(subscriptionRepository.findByUserId(aliceId)).isEmpty();
@@ -429,8 +454,9 @@ class BillingIntegrationTest {
     void webhook_rejectsUnknownOrder() throws Exception {
         mockMvc.perform(post("/api/billing/webhook/razorpay")
                         .header("X-Razorpay-Signature", "sig")
+                        .header("X-Razorpay-Event-Id", "evt_unk")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(webhookPayload("evt_unk", "payment.captured", "order_ghost", "pay_ghost", 29900)))
+                        .content(webhookPayload("payment.captured", "order_ghost", "pay_ghost", 29900)))
                 .andExpect(status().isBadRequest());
     }
 
@@ -446,8 +472,9 @@ class BillingIntegrationTest {
 
         mockMvc.perform(post("/api/billing/webhook/razorpay")
                         .header("X-Razorpay-Signature", "sig")
+                        .header("X-Razorpay-Event-Id", "evt_fail")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(webhookPayload("evt_fail", "payment.failed", orderId, "pay_fail", 29900)))
+                        .content(webhookPayload("payment.failed", orderId, "pay_fail", 29900)))
                 .andExpect(status().isOk());
 
         assertThat(paymentRepository.findByUserIdOrderByCreatedAtDesc(aliceId).get(0).getStatus())
@@ -532,6 +559,119 @@ class BillingIntegrationTest {
                         && bobId.equals(a.getTargetUser()))).isTrue();
     }
 
+    // ── Refund webhook ──────────────────────────────────────────
+
+    @Test
+    void webhook_fullRefund_revokesSubscriptionImmediately() throws Exception {
+        activatePro(aliceId);
+        Subscription sub = subscriptionRepository.findByUserId(aliceId).orElseThrow();
+        assertThat(sub.getStatus()).isEqualTo(SubscriptionStatus.ACTIVE);
+        assertThat(sub.getCurrentPeriodEnd()).isAfter(Instant.now());
+
+        Payment payment = paymentRepository.findByUserIdOrderByCreatedAtDesc(aliceId).get(0);
+        String orderId = payment.getProviderOrderId();
+        String paymentId = payment.getProviderPaymentId();
+
+        mockMvc.perform(post("/api/billing/webhook/razorpay")
+                        .header("X-Razorpay-Signature", "sig")
+                        .header("X-Razorpay-Event-Id", "evt_refund_1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(refundWebhookPayload(orderId, paymentId, 29900, 29900, true)))
+                .andExpect(status().isOk());
+
+        // Subscription revoked immediately on full refund.
+        Subscription after = subscriptionRepository.findByUserId(aliceId).orElseThrow();
+        assertThat(after.getStatus()).isEqualTo(SubscriptionStatus.EXPIRED);
+        assertThat(after.getCurrentPeriodEnd()).isBeforeOrEqualTo(Instant.now());
+
+        // Plan effective = FREE.
+        assertThat(planService.getEffectivePlan(aliceId).getCode()).isEqualTo("FREE");
+
+        // Audit trail: both EXPIRED and REFUND_PROCESSED.
+        assertThat(auditLogRepository.findAll().stream()
+                .anyMatch(a -> a.getAction() == AuditAction.SUBSCRIPTION_EXPIRED)).isTrue();
+        assertThat(auditLogRepository.findAll().stream()
+                .anyMatch(a -> a.getAction() == AuditAction.REFUND_PROCESSED)).isTrue();
+    }
+
+    @Test
+    void webhook_partialRefund_doesNotRevokeSubscription() throws Exception {
+        activatePro(aliceId);
+        Subscription sub = subscriptionRepository.findByUserId(aliceId).orElseThrow();
+        assertThat(sub.getStatus()).isEqualTo(SubscriptionStatus.ACTIVE);
+        Instant periodEnd = sub.getCurrentPeriodEnd();
+
+        Payment payment = paymentRepository.findByUserIdOrderByCreatedAtDesc(aliceId).get(0);
+        String orderId = payment.getProviderOrderId();
+        String paymentId = payment.getProviderPaymentId();
+
+        mockMvc.perform(post("/api/billing/webhook/razorpay")
+                        .header("X-Razorpay-Signature", "sig")
+                        .header("X-Razorpay-Event-Id", "evt_refund_partial")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(refundWebhookPayload(orderId, paymentId, 29900, 1000, false)))
+                .andExpect(status().isOk());
+
+        // Subscription untouched on partial refund.
+        Subscription after = subscriptionRepository.findByUserId(aliceId).orElseThrow();
+        assertThat(after.getStatus()).isEqualTo(SubscriptionStatus.ACTIVE);
+        assertThat(after.getCurrentPeriodEnd()).isEqualTo(periodEnd);
+
+        // Payment marked REFUNDED.
+        assertThat(paymentRepository.findByUserIdOrderByCreatedAtDesc(aliceId).get(0).getStatus())
+                .isEqualTo(PaymentStatus.REFUNDED);
+    }
+
+    @Test
+    void webhook_fullRefund_onSupersededPayment_doesNotRevokeActiveSubscription() throws Exception {
+        activatePro(aliceId);
+
+        // First payment (will be refunded).
+        Payment first = paymentRepository.findByUserIdOrderByCreatedAtDesc(aliceId).get(0);
+        String firstOrderId = first.getProviderOrderId();
+        String firstPaymentId = first.getProviderPaymentId();
+
+        // Renew: create a second, newer SUCCESS payment for the same plan.
+        String renewOrderId = "order_renew_alice";
+        Payment renew = paymentRepository.save(Payment.builder()
+                .userId(aliceId).planCode("PRO").providerOrderId(renewOrderId)
+                .amountPaise(29900).currency("INR").status(PaymentStatus.SUCCESS)
+                .providerPaymentId("pay_renew_alice")
+                .paidAt(Instant.now())
+                .subscriptionId(subscriptionRepository.findByUserId(aliceId).orElseThrow().getId())
+                .build());
+
+        Subscription subBefore = subscriptionRepository.findByUserId(aliceId).orElseThrow();
+        Instant subEnd = subBefore.getCurrentPeriodEnd();
+
+        // Refund the OLD payment.
+        mockMvc.perform(post("/api/billing/webhook/razorpay")
+                        .header("X-Razorpay-Signature", "sig")
+                        .header("X-Razorpay-Event-Id", "evt_refund_old")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(refundWebhookPayload(firstOrderId, firstPaymentId, 29900, 29900, true)))
+                .andExpect(status().isOk());
+
+        // Subscription untouched — the newer payment supersedes the refunded one.
+        Subscription after = subscriptionRepository.findByUserId(aliceId).orElseThrow();
+        assertThat(after.getStatus()).isEqualTo(SubscriptionStatus.ACTIVE);
+        assertThat(after.getCurrentPeriodEnd()).isEqualTo(subEnd);
+    }
+
+    @Test
+    void webhook_rejectsMissingEventId() throws Exception {
+        paymentRepository.save(Payment.builder()
+                .userId(aliceId).planCode("PRO").providerOrderId("order_no_evt")
+                .amountPaise(29900).currency("INR").status(PaymentStatus.PENDING).build());
+
+        mockMvc.perform(post("/api/billing/webhook/razorpay")
+                        .header("X-Razorpay-Signature", "sig")
+                        // No X-Razorpay-Event-Id header
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(webhookPayload("payment.captured", "order_no_evt", "pay_no_evt", 29900)))
+                .andExpect(status().isBadRequest());
+    }
+
     // ── User isolation ────────────────────────────────────────────
 
     @Test
@@ -562,5 +702,178 @@ class BillingIntegrationTest {
                 .andExpect(jsonPath("$[1].priceInr").value(299))
                 .andExpect(jsonPath("$[0].privateProjectLimit").value(2))
                 .andExpect(jsonPath("$[0].priceInr").value(0));
+    }
+
+    // ── Self-serve refund requests ──────────────────────────────
+
+    @Test
+    void refundRequest_submit_andApprove_triggersRazorpayRefund() throws Exception {
+        // Activate Pro for Alice, then submit a refund request.
+        activatePro(aliceId);
+        Payment payment = paymentRepository.findByUserIdOrderByCreatedAtDesc(aliceId).get(0);
+
+        when(razorpayClient.createRefund(anyString(), anyString()))
+                .thenAnswer(inv -> new RazorpayClient.RefundResponse(
+                        "rfund_" + System.nanoTime(), inv.getArgument(0), 29900, "processed"));
+
+        // Submit refund request.
+        mockMvc.perform(post("/api/billing/refund-requests")
+                        .header("Authorization", bearer(aliceId))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"paymentId\":\"" + payment.getId() + "\",\"reason\":\"Changed my mind\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("PENDING"))
+                .andExpect(jsonPath("$.paymentId").value(payment.getId()));
+
+        assertThat(refundRequestRepository.findByUserIdOrderByCreatedAtDesc(aliceId)).hasSize(1);
+        RefundRequest rr = refundRequestRepository.findByUserIdOrderByCreatedAtDesc(aliceId).get(0);
+
+        // Admin approves — should call Razorpay createRefund.
+        mockMvc.perform(post("/api/admin/billing/refund-requests/" + rr.getId() + "/approve")
+                        .header("Authorization", bearer(adminId))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"adminNote\":\"Approved\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("APPROVED"));
+
+        // Verify Razorpay createRefund was called with the provider payment id.
+        org.mockito.Mockito.verify(razorpayClient).createRefund(
+                org.mockito.ArgumentMatchers.eq(payment.getProviderPaymentId()),
+                org.mockito.ArgumentMatchers.anyString());
+
+        // Verify the request was marked APPROVED.
+        assertThat(refundRequestRepository.findById(rr.getId()).orElseThrow().getStatus())
+                .isEqualTo(RefundRequestStatus.APPROVED);
+    }
+
+    @Test
+    void refundRequest_reject_withNote() throws Exception {
+        activatePro(aliceId);
+        Payment payment = paymentRepository.findByUserIdOrderByCreatedAtDesc(aliceId).get(0);
+
+        // Submit refund request.
+        mockMvc.perform(post("/api/billing/refund-requests")
+                        .header("Authorization", bearer(aliceId))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"paymentId\":\"" + payment.getId() + "\",\"reason\":\"Not satisfied\"}"))
+                .andExpect(status().isOk());
+
+        RefundRequest rr = refundRequestRepository.findByUserIdOrderByCreatedAtDesc(aliceId).get(0);
+
+        // Admin rejects.
+        mockMvc.perform(post("/api/admin/billing/refund-requests/" + rr.getId() + "/reject")
+                        .header("Authorization", bearer(adminId))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"adminNote\":\"Outside policy\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("REJECTED"))
+                .andExpect(jsonPath("$.adminNote").value("Outside policy"));
+    }
+
+    @Test
+    void refundRequest_cannotRequestForOthersPayment() throws Exception {
+        activatePro(bobId);
+        Payment bobPayment = paymentRepository.findByUserIdOrderByCreatedAtDesc(bobId).get(0);
+
+        // Alice tries to request refund for Bob's payment — rejected.
+        mockMvc.perform(post("/api/billing/refund-requests")
+                        .header("Authorization", bearer(aliceId))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"paymentId\":\"" + bobPayment.getId() + "\",\"reason\":\"Fraud\"}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void refundRequest_cannotDuplicatePending() throws Exception {
+        activatePro(aliceId);
+        Payment payment = paymentRepository.findByUserIdOrderByCreatedAtDesc(aliceId).get(0);
+
+        // First request succeeds.
+        mockMvc.perform(post("/api/billing/refund-requests")
+                        .header("Authorization", bearer(aliceId))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"paymentId\":\"" + payment.getId() + "\",\"reason\":\"First\"}"))
+                .andExpect(status().isOk());
+
+        // Second request for same payment is rejected.
+        mockMvc.perform(post("/api/billing/refund-requests")
+                        .header("Authorization", bearer(aliceId))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"paymentId\":\"" + payment.getId() + "\",\"reason\":\"Second\"}"))
+                .andExpect(status().isBadRequest());
+
+        assertThat(refundRequestRepository.findByUserIdOrderByCreatedAtDesc(aliceId)).hasSize(1);
+    }
+
+    @Test
+    void refundRequest_cannotRequestOnPendingPayment() throws Exception {
+        // Create a PENDING payment (no webhook confirmation).
+        String orderId = "order_pend_alice";
+        paymentRepository.save(Payment.builder()
+                .userId(aliceId).planCode("PRO").providerOrderId(orderId)
+                .amountPaise(29900).currency("INR").status(PaymentStatus.PENDING).build());
+        Payment pendingPayment = paymentRepository.findByUserIdOrderByCreatedAtDesc(aliceId).get(0);
+
+        mockMvc.perform(post("/api/billing/refund-requests")
+                        .header("Authorization", bearer(aliceId))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"paymentId\":\"" + pendingPayment.getId() + "\",\"reason\":\"Nope\"}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void adminCannotRejectWithoutNote() throws Exception {
+        activatePro(aliceId);
+        Payment payment = paymentRepository.findByUserIdOrderByCreatedAtDesc(aliceId).get(0);
+
+        mockMvc.perform(post("/api/billing/refund-requests")
+                        .header("Authorization", bearer(aliceId))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"paymentId\":\"" + payment.getId() + "\",\"reason\":\"Test\"}"))
+                .andExpect(status().isOk());
+
+        RefundRequest rr = refundRequestRepository.findByUserIdOrderByCreatedAtDesc(aliceId).get(0);
+
+        // Reject without note — should fail.
+        mockMvc.perform(post("/api/admin/billing/refund-requests/" + rr.getId() + "/reject")
+                        .header("Authorization", bearer(adminId))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void userCannotSeeOtherUsersRefundRequests() throws Exception {
+        activatePro(aliceId);
+        Payment alicePayment = paymentRepository.findByUserIdOrderByCreatedAtDesc(aliceId).get(0);
+
+        mockMvc.perform(post("/api/billing/refund-requests")
+                        .header("Authorization", bearer(aliceId))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"paymentId\":\"" + alicePayment.getId() + "\",\"reason\":\"Test\"}"))
+                .andExpect(status().isOk());
+
+        // Alice sees her request.
+        mockMvc.perform(get("/api/billing/refund-requests")
+                        .header("Authorization", bearer(aliceId)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1));
+
+        // Bob sees none.
+        mockMvc.perform(get("/api/billing/refund-requests")
+                        .header("Authorization", bearer(bobId)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(0));
+    }
+
+    @Test
+    void adminBillingRefundRequests_requiresAdminRole() throws Exception {
+        mockMvc.perform(get("/api/admin/billing/refund-requests")
+                        .header("Authorization", bearer(aliceId)))
+                .andExpect(status().isForbidden());
+
+        mockMvc.perform(get("/api/admin/billing/refund-requests")
+                        .header("Authorization", bearer(adminId)))
+                .andExpect(status().isOk());
     }
 }

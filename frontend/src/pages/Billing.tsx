@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Check, Crown, Loader2, PartyPopper, RefreshCw, X } from "lucide-react";
-import { billingService, type Plan, type Usage, type PaymentRecord } from "@/services/billingService";
+import { billingService, type Plan, type Usage, type PaymentRecord, type RefundRequest } from "@/services/billingService";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { Skeleton } from "@/components/Skeletons";
 import api from "@/services/api";
@@ -67,18 +67,24 @@ export default function Billing() {
   const [loading, setLoading] = useState(true);
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
   const [cancelOpen, setCancelOpen] = useState(false);
+  const [refundRequests, setRefundRequests] = useState<RefundRequest[]>([]);
+  const [refundModalOpen, setRefundModalOpen] = useState<string | null>(null);
+  const [refundReason, setRefundReason] = useState("");
+  const [refundSubmitting, setRefundSubmitting] = useState(false);
 
   const refresh = useCallback(async () => {
     try {
-      const [usg, pays, planList] = await Promise.allSettled([
+      const [usg, pays, planList, refundReqs] = await Promise.allSettled([
         billingService.getUsage(),
         billingService.getPayments(),
         billingService.getPlans(),
+        billingService.getMyRefundRequests(),
       ]);
       await refreshSubscription();
       if (usg.status === "fulfilled") setUsage(usg.value);
       if (pays.status === "fulfilled") setPayments(pays.value);
       if (planList.status === "fulfilled") setPlans(planList.value);
+      if (refundReqs.status === "fulfilled") setRefundRequests(refundReqs.value);
     } catch {
       toast.error("Could not load billing information");
     } finally {
@@ -100,12 +106,21 @@ export default function Billing() {
     subscription?.currentPeriodEnd && new Date(subscription.currentPeriodEnd).getTime() - Date.now() < 7 * 86400_000;
 
   const upgrade = useCallback(
-    async (plan: Plan) => {
+    async (plan: Plan, provider?: string) => {
       if (plan.code === currentPlanCode) return;
 
       setCheckoutLoading(plan.code);
       try {
-        const session = await billingService.createCheckout(plan.code);
+        const session = await billingService.createCheckout(plan.code, provider);
+
+        if (session.provider === "STRIPE" && session.checkoutUrl) {
+          // Stripe: redirect to hosted Checkout page.
+          // The user will be redirected back to success/cancel URL after payment.
+          window.location.href = session.checkoutUrl;
+          return;
+        }
+
+        // Razorpay: open the inline Checkout modal.
         const Razorpay = await loadRazorpay();
         const rzp = new Razorpay({
           key: session.keyId,
@@ -117,8 +132,6 @@ export default function Billing() {
           theme: { color: "#0f766e" },
           handler: async () => {
             toast.success("Payment received — activating your plan");
-            // The backend webhook verifies the payment and activates the plan.
-            // Poll with retries to wait for the webhook to process.
             const currentPlan = subscription?.planCode;
             for (let attempt = 0; attempt < 3; attempt++) {
               await new Promise((r) => setTimeout(r, 2000 + attempt * 2000));
@@ -168,6 +181,40 @@ export default function Billing() {
       toast.error(err?.response?.data?.message || "Could not cancel the subscription");
     }
   }, [refreshSubscription]);
+
+  const submitRefund = useCallback(async (paymentId: string) => {
+    if (!refundReason.trim()) return;
+    setRefundSubmitting(true);
+    try {
+      await billingService.requestRefund(paymentId, refundReason.trim());
+      toast.success("Refund request submitted — our team will review it");
+      setRefundModalOpen(null);
+      setRefundReason("");
+      // Refresh refund requests.
+      const reqs = await billingService.getMyRefundRequests();
+      setRefundRequests(reqs);
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || "Could not submit refund request");
+    } finally {
+      setRefundSubmitting(false);
+    }
+  }, [refundReason]);
+
+  const REFUND_WINDOW_MS = 7 * 86400_000; // matches backend default
+
+  const isRefundEligible = useCallback((p: PaymentRecord) => {
+    if (p.status !== "SUCCESS") return false;
+    const paidAt = p.paidAt ? new Date(p.paidAt).getTime() : new Date(p.createdAt).getTime();
+    return Date.now() - paidAt < REFUND_WINDOW_MS;
+  }, []);
+
+  const hasPendingRefund = useCallback((paymentId: string) => {
+    return refundRequests.some((r) => r.paymentId === paymentId && r.status === "PENDING");
+  }, [refundRequests]);
+
+  const getRefundStatus = useCallback((paymentId: string) => {
+    return refundRequests.find((r) => r.paymentId === paymentId);
+  }, [refundRequests]);
 
   const planFeatures = useMemo(
     () => (plan: Plan) => {
@@ -294,15 +341,16 @@ export default function Billing() {
               <p className="text-sm text-muted-foreground">
                 {isPaid ? (
                   <>
-                    ₹{subscription?.priceInr}/month · Renews {formatDate(subscription?.currentPeriodEnd)}
+                    ₹{subscription?.priceInr}/month · Valid until {formatDate(subscription?.currentPeriodEnd)}
                     {subscription?.cancelAtPeriodEnd && " · Cancels at period end"}
+                    {!subscription?.cancelAtPeriodEnd && " · Renew manually before this date to keep access"}
                   </>
                 ) : (
                   "You're on the Free plan — no payment required."
                 )}
               </p>
               {periodEndsSoon && isPaid && !subscription?.cancelAtPeriodEnd && (
-                <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">Your plan renews soon.</p>
+                <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">Your plan expires soon — renew manually to keep access.</p>
               )}
             </div>
           </div>
@@ -416,23 +464,38 @@ export default function Billing() {
                   Current plan
                 </span>
               ) : (
-                <button
-                  onClick={() => upgrade(plan)}
-                  disabled={checkoutLoading !== null}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all disabled:opacity-60 ${
-                    popular
-                      ? "bg-gradient-to-r from-indigo-500 to-purple-600 text-white hover:opacity-90"
-                      : "border border-border/50 hover:border-indigo-500/30"
-                  }`}
-                >
-                  {checkoutLoading === plan.code ? (
-                    <span className="inline-flex items-center gap-2">
-                      <Loader2 className="w-4 h-4 animate-spin" /> Creating checkout…
-                    </span>
-                  ) : (
-                    `Upgrade to ${plan.name}`
-                  )}
-                </button>
+                <div className="flex flex-col gap-2">
+                  <button
+                    onClick={() => upgrade(plan, "RAZORPAY")}
+                    disabled={checkoutLoading !== null}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all disabled:opacity-60 ${
+                      popular
+                        ? "bg-gradient-to-r from-indigo-500 to-purple-600 text-white hover:opacity-90"
+                        : "border border-border/50 hover:border-indigo-500/30"
+                    }`}
+                  >
+                    {checkoutLoading === plan.code ? (
+                      <span className="inline-flex items-center gap-2">
+                        <Loader2 className="w-4 h-4 animate-spin" /> Creating checkout…
+                      </span>
+                    ) : (
+                      `Pay with Razorpay`
+                    )}
+                  </button>
+                  <button
+                    onClick={() => upgrade(plan, "STRIPE")}
+                    disabled={checkoutLoading !== null}
+                    className="px-4 py-2 rounded-lg text-sm font-medium border border-border/50 hover:border-indigo-500/30 transition-all disabled:opacity-60"
+                  >
+                    {checkoutLoading === plan.code ? (
+                      <span className="inline-flex items-center gap-2">
+                        <Loader2 className="w-4 h-4 animate-spin" /> Creating checkout…
+                      </span>
+                    ) : (
+                      `Pay with Stripe`
+                    )}
+                  </button>
+                </div>
               )}
             </div>
           );
@@ -452,39 +515,110 @@ export default function Billing() {
                   <th className="py-2 pr-4 font-medium">Date</th>
                   <th className="py-2 pr-4 font-medium">Plan</th>
                   <th className="py-2 pr-4 font-medium">Amount</th>
-                  <th className="py-2 font-medium">Status</th>
+                  <th className="py-2 pr-4 font-medium">Status</th>
+                  <th className="py-2 font-medium">Refund</th>
                 </tr>
               </thead>
               <tbody>
-                {payments.map((p) => (
-                  <tr key={p.id} className="border-b border-border/20 last:border-0">
-                    <td className="py-2.5 pr-4">{formatDate(p.createdAt)}</td>
-                    <td className="py-2.5 pr-4">{p.planCode}</td>
-                    <td className="py-2.5 pr-4">
-                      {formatINR(p.amountPaise)} <span className="text-muted-foreground text-xs">{p.currency}</span>
-                    </td>
-                    <td className="py-2.5">
-                      <span
-                        className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide ${
-                          p.status === "SUCCESS"
-                            ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
-                            : p.status === "FAILED"
-                              ? "bg-red-500/15 text-red-600 dark:text-red-400"
-                              : p.status === "REFUNDED"
-                                ? "bg-amber-500/15 text-amber-600 dark:text-amber-400"
-                                : "bg-muted text-muted-foreground"
-                        }`}
-                      >
-                        {p.status}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
+                {payments.map((p) => {
+                  const refundStatus = getRefundStatus(p.id);
+                  const eligible = isRefundEligible(p);
+                  const pending = hasPendingRefund(p.id);
+                  return (
+                    <tr key={p.id} className="border-b border-border/20 last:border-0">
+                      <td className="py-2.5 pr-4">{formatDate(p.createdAt)}</td>
+                      <td className="py-2.5 pr-4">{p.planCode}</td>
+                      <td className="py-2.5 pr-4">
+                        {formatINR(p.amountPaise)} <span className="text-muted-foreground text-xs">{p.currency}</span>
+                      </td>
+                      <td className="py-2.5 pr-4">
+                        <span
+                          className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide ${
+                            p.status === "SUCCESS"
+                              ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
+                              : p.status === "FAILED"
+                                ? "bg-red-500/15 text-red-600 dark:text-red-400"
+                                : p.status === "REFUNDED"
+                                  ? "bg-amber-500/15 text-amber-600 dark:text-amber-400"
+                                  : "bg-muted text-muted-foreground"
+                          }`}
+                        >
+                          {p.status}
+                        </span>
+                      </td>
+                      <td className="py-2.5">
+                        {refundStatus ? (
+                          <span
+                            className={`text-[10px] font-bold uppercase tracking-wide ${
+                              refundStatus.status === "PENDING"
+                                ? "text-amber-600 dark:text-amber-400"
+                                : refundStatus.status === "APPROVED" || refundStatus.status === "COMPLETED"
+                                  ? "text-emerald-600 dark:text-emerald-400"
+                                  : "text-red-600 dark:text-red-400"
+                            }`}
+                          >
+                            {refundStatus.status === "REJECTED" ? "Refund declined" : `Refund ${refundStatus.status.toLowerCase()}`}
+                          </span>
+                        ) : eligible && !pending ? (
+                          <button
+                            onClick={() => setRefundModalOpen(p.id)}
+                            className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2 transition-colors"
+                          >
+                            Request refund
+                          </button>
+                        ) : p.status === "SUCCESS" && !eligible ? (
+                          <span className="text-[10px] text-muted-foreground" title="Refund window (7 days) has passed">
+                            Window passed
+                          </span>
+                        ) : null}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
         )}
       </section>
+
+      {/* Refund request modal */}
+      {refundModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" role="dialog" aria-modal="true">
+          <div className="bg-card border border-border/40 rounded-2xl max-w-sm w-full p-6 space-y-4">
+            <div className="flex items-start justify-between gap-2">
+              <h2 className="font-semibold">Request refund</h2>
+              <button onClick={() => { setRefundModalOpen(null); setRefundReason(""); }} aria-label="Close" className="text-muted-foreground hover:text-foreground">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Please provide a reason for your refund request. Our team will review it within 1-2 business days.
+            </p>
+            <textarea
+              value={refundReason}
+              onChange={(e) => setRefundReason(e.target.value)}
+              placeholder="Why are you requesting a refund?"
+              rows={3}
+              className="w-full px-3 py-2 rounded-lg border border-border/50 bg-background text-sm resize-none focus:outline-none focus:ring-2 focus:ring-ring"
+            />
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={() => { setRefundModalOpen(null); setRefundReason(""); }}
+                className="text-sm px-4 py-2 rounded-lg border border-border/50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => submitRefund(refundModalOpen)}
+                disabled={!refundReason.trim() || refundSubmitting}
+                className="text-sm px-4 py-2 rounded-lg bg-amber-600 text-white hover:opacity-90 transition-opacity disabled:opacity-60"
+              >
+                {refundSubmitting ? "Submitting…" : "Submit request"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <footer className="text-xs text-muted-foreground flex items-center gap-2">
         <RefreshCw className="w-3.5 h-3.5" />
