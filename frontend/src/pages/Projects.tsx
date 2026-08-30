@@ -78,6 +78,7 @@ export default function Projects() {
   const [description, setDescription] = useState("");
   const [visibility, setVisibility] = useState<Visibility>("PRIVATE");
   const [template, setTemplate] = useState<Template>("");
+  const [repositoryUrl, setRepositoryUrl] = useState("");
   const [creating, setCreating] = useState(false);
   const [respondingInviteId, setRespondingInviteId] = useState<string | null>(null);
 
@@ -86,11 +87,22 @@ export default function Projects() {
     if (!name.trim()) return;
     setCreating(true);
     try {
+      // Validate URL format only if a value is provided
+      if (repositoryUrl.trim()) {
+        try {
+          new URL(repositoryUrl.trim());
+        } catch {
+          toast.error("Please enter a valid URL (e.g. https://github.com/user/repo)");
+          setCreating(false);
+          return;
+        }
+      }
       const created = await projectService.createProject({
         name: name.trim(),
         description: description.trim() || undefined,
         visibility,
         template: template || undefined,
+        repositoryUrl: repositoryUrl.trim() || undefined,
       });
       toast("Project created!");
       setOpen(false);
@@ -98,6 +110,7 @@ export default function Projects() {
       setDescription("");
       setVisibility("PRIVATE");
       setTemplate("");
+      setRepositoryUrl("");
       refetch();
       // Open the new project workspace.
       navigate(`/projects/${created.id}`);
@@ -219,6 +232,18 @@ export default function Projects() {
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   className="min-h-[84px] w-full resize-none text-sm bg-transparent border border-border/40 rounded-lg p-3 focus:outline-none focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20 placeholder:text-muted-foreground/50 transition-all"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="project-repo" className="text-xs">
+                  Repository URL (optional)
+                </Label>
+                <Input
+                  id="project-repo"
+                  type="url"
+                  placeholder="https://github.com/username/repository"
+                  value={repositoryUrl}
+                  onChange={(e) => setRepositoryUrl(e.target.value)}
                 />
               </div>
               <div className="space-y-1.5">
