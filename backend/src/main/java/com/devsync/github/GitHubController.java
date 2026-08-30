@@ -1,6 +1,7 @@
 package com.devsync.github;
 
 import com.devsync.github.dto.GitHubAuthUrlResponse;
+import com.devsync.github.dto.GitHubBranchDto;
 import com.devsync.github.dto.GitHubCommitDto;
 import com.devsync.github.dto.GitHubConnectionResponse;
 import com.devsync.github.dto.GitHubIssueDto;
@@ -81,6 +82,13 @@ public class GitHubController {
     }
 
     // ── repository data (project members) ────────────────────
+
+    @GetMapping("/projects/{projectId}/branches")
+    public ResponseEntity<List<GitHubBranchDto>> branches(@PathVariable String projectId,
+                                                          @RequestParam(required = false) Integer perPage,
+                                                          @AuthenticationPrincipal UserDetails userDetails) {
+        return ResponseEntity.ok(projectService.getBranches(projectId, userDetails.getUsername(), perPage));
+    }
 
     @GetMapping("/projects/{projectId}/commits")
     public ResponseEntity<List<GitHubCommitDto>> commits(@PathVariable String projectId,

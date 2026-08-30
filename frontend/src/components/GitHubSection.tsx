@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   githubService,
+  type GitHubBranch,
   type GitHubCommit,
   type GitHubIssue,
   type GitHubLink,
@@ -41,6 +42,8 @@ export function GitHubSection({ projectId }: { projectId: string }) {
   const [issues, setIssues] = useState<GitHubIssue[]>([]);
   const [pulls, setPulls] = useState<GitHubPullRequest[]>([]);
   const [tabLoading, setTabLoading] = useState(false);
+  const [branches, setBranches] = useState<GitHubBranch[]>([]);
+  const [selectedBranch, setSelectedBranch] = useState("");
 
   const loadBasics = useCallback(async () => {
     setInitializing(true);
@@ -140,11 +143,30 @@ export function GitHubSection({ projectId }: { projectId: string }) {
     setTab(next);
     setTabLoading(true);
     try {
-      if (next === "commits") setCommits(await githubService.getCommits(projectId));
+      if (next === "commits") {
+        // Load branches first, then commits for the selected/default branch
+        const branchList = await githubService.getBranches(projectId);
+        setBranches(branchList);
+        const defaultBranch = link?.repoDefaultBranch || "";
+        setSelectedBranch(defaultBranch);
+        setCommits(await githubService.getCommits(projectId, defaultBranch || undefined));
+      }
       if (next === "issues") setIssues(await githubService.getIssues(projectId, "open"));
       if (next === "pulls") setPulls(await githubService.getPullRequests(projectId, "open"));
     } catch (e) {
       setError(getErrorMessage(e, "Failed to load GitHub data"));
+    } finally {
+      setTabLoading(false);
+    }
+  };
+
+  const handleBranchChange = async (branch: string) => {
+    setSelectedBranch(branch);
+    setTabLoading(true);
+    try {
+      setCommits(await githubService.getCommits(projectId, branch || undefined));
+    } catch (e) {
+      setError(getErrorMessage(e, "Failed to load commits"));
     } finally {
       setTabLoading(false);
     }
@@ -260,6 +282,27 @@ export function GitHubSection({ projectId }: { projectId: string }) {
           </div>
 
           {tabLoading && <div className="flex items-center gap-2 text-sm text-muted-foreground py-4"><Loader2 className="w-4 h-4 animate-spin" /> Loading…</div>}
+
+          {!tabLoading && tab === "commits" && (
+            <>
+              {branches.length > 0 && (
+                <div className="flex items-center gap-2 px-1 py-2">
+                  <GitBranch className="w-3.5 h-3.5 text-muted-foreground" />
+                  <select
+                    value={selectedBranch}
+                    onChange={(e) => handleBranchChange(e.target.value)}
+                    className="text-xs bg-background border border-border/50 rounded-lg px-2.5 py-1.5 max-w-[220px]"
+                  >
+                    {branches.map((b) => (
+                      <option key={b.name} value={b.name}>
+                        {b.name}{b.protected ? " 🔒" : ""}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </>
+          )}
 
           {!tabLoading && tab === "commits" && (
             <ul className="divide-y divide-border/40 border border-border/40 rounded-xl">

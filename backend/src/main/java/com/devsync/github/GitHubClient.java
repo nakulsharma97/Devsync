@@ -1,5 +1,6 @@
 package com.devsync.github;
 
+import com.devsync.github.dto.GitHubBranchDto;
 import com.devsync.github.dto.GitHubCommitDto;
 import com.devsync.github.dto.GitHubIssueDto;
 import com.devsync.github.dto.GitHubPullRequestDto;
@@ -133,6 +134,22 @@ public class GitHubClient {
             }
         }
         return issues;
+    }
+
+    /** Lists branches for a repository. Calls GET /repos/{owner}/{repo}/branches. */
+    public List<GitHubBranchDto> fetchBranches(String token, String owner, String repo, int perPage) {
+        JsonNode arr = get("/repos/" + owner + "/" + repo + "/branches?per_page=" + perPage,
+                token, JsonNode.class);
+        List<GitHubBranchDto> branches = new ArrayList<>();
+        if (arr != null && arr.isArray()) {
+            for (JsonNode b : arr) {
+                branches.add(GitHubBranchDto.builder()
+                        .name(b.path("name").asText(null))
+                        .isProtected(b.path("protected").asBoolean(false))
+                        .build());
+            }
+        }
+        return branches;
     }
 
     public List<GitHubPullRequestDto> fetchPullRequests(String token, String owner, String repo, String state, int perPage) {

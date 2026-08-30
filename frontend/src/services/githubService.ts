@@ -53,6 +53,11 @@ export interface GitHubIssue {
   createdAt: string | null;
 }
 
+export interface GitHubBranch {
+  name: string;
+  protected: boolean;
+}
+
 export interface GitHubPullRequest {
   number: number;
   title: string;
@@ -96,6 +101,11 @@ export const githubService = {
 
   async unlinkRepo(projectId: string): Promise<void> {
     await api.delete(`/github/projects/${projectId}/link`);
+  },
+
+  async getBranches(projectId: string): Promise<GitHubBranch[]> {
+    const res = await api.get(`/github/projects/${projectId}/branches`);
+    return res.data;
   },
 
   async getCommits(projectId: string, branch?: string): Promise<GitHubCommit[]> {

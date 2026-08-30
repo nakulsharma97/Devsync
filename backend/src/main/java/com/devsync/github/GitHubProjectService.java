@@ -6,6 +6,7 @@ import com.devsync.audit.AuditLogService;
 import com.devsync.audit.entity.AuditAction;
 import com.devsync.audit.entity.AuditStatus;
 import com.devsync.common.ResourceNotFoundException;
+import com.devsync.github.dto.GitHubBranchDto;
 import com.devsync.github.dto.GitHubCommitDto;
 import com.devsync.github.dto.GitHubIssueDto;
 import com.devsync.github.dto.GitHubLinkRequest;
@@ -139,6 +140,13 @@ public class GitHubProjectService {
         String token = integrationService.tokenFor(userId);
         return githubClient.fetchIssues(token, ownerOf(link), nameOf(link),
                 "closed".equalsIgnoreCase(state) ? "closed" : "open", pageSize(perPage));
+    }
+
+    @Transactional(readOnly = true)
+    public List<GitHubBranchDto> getBranches(String projectId, String userId, Integer perPage) {
+        ProjectGitHubLink link = linkedRepoForMember(projectId, userId);
+        String token = integrationService.tokenFor(userId);
+        return githubClient.fetchBranches(token, ownerOf(link), nameOf(link), pageSize(perPage));
     }
 
     @Transactional(readOnly = true)
