@@ -186,7 +186,7 @@ describe("Dashboard", () => {
 
     // Member count + relative update time (fixtures use 2025 dates)
     expect(screen.getByText("3 members")).toBeInTheDocument();
-    expect(screen.getByText(/over 1 year ago/)).toBeInTheDocument();
+    expect(screen.getAllByText(/over 1 year ago/).length).toBeGreaterThanOrEqual(1);
 
     // "View all" appears when projects exist
     expect(screen.getByRole("button", { name: /View all/i })).toBeInTheDocument();
