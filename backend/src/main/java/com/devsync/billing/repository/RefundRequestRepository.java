@@ -17,6 +17,8 @@ public interface RefundRequestRepository extends JpaRepository<RefundRequest, St
 
     Page<RefundRequest> findAllByOrderByCreatedAtDesc(Pageable pageable);
 
+    Optional<RefundRequest> findByPaymentId(String paymentId);
+
     Optional<RefundRequest> findByPaymentIdAndStatus(String paymentId, RefundRequestStatus status);
 
     boolean existsByPaymentIdAndStatus(String paymentId, RefundRequestStatus status);

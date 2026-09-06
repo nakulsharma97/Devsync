@@ -2256,4 +2256,235 @@ class BillingIntegrationTest {
         Subscription sub = subscriptionRepository.findByUserId(aliceId).orElseThrow();
         assertThat(sub.getStatus()).isEqualTo(SubscriptionStatus.EXPIRED);
     }
+
+    // ── Refund completion: APPROVED → COMPLETED via webhook ──────
+
+    @Test
+    void razorpayRefundWebhook_transitionsApprovedRefundRequestToCompleted() throws Exception {
+        // 1. Activate Pro subscription for Alice.
+        activatePro(aliceId);
+        Payment payment = paymentRepository.findByUserIdOrderByCreatedAtDesc(aliceId).get(0);
+
+        // 2. Submit a refund request.
+        mockMvc.perform(post("/api/billing/refund-requests")
+                        .header("Authorization", bearer(aliceId))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"paymentId\":\"" + payment.getId() + "\",\"reason\":\"Test refund\"}"))
+                .andExpect(status().isOk());
+
+        RefundRequest rr = refundRequestRepository.findByPaymentId(payment.getId()).orElseThrow();
+        assertThat(rr.getStatus()).isEqualTo(RefundRequestStatus.PENDING);
+
+        // 3. Admin approves.
+        mockMvc.perform(post("/api/admin/billing/refund-requests/" + rr.getId() + "/approve")
+                        .header("Authorization", bearer(adminId))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"adminNote\":\"Approved\"}"))
+                .andExpect(status().isOk());
+
+        rr = refundRequestRepository.findById(rr.getId()).orElseThrow();
+        assertThat(rr.getStatus()).isEqualTo(RefundRequestStatus.APPROVED);
+
+        // 4. Razorpay refund.processed webhook fires.
+        mockMvc.perform(post("/api/billing/webhook/razorpay")
+                        .header("X-Razorpay-Signature", "sig")
+                        .header("X-Razorpay-Event-Id", "evt_rr_complete_1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(refundWebhookPayload(
+                                payment.getProviderOrderId(), payment.getProviderPaymentId(),
+                                29900, 29900, true)))
+                .andExpect(status().isOk());
+
+        // 5. RefundRequest must be COMPLETED.
+        rr = refundRequestRepository.findById(rr.getId()).orElseThrow();
+        assertThat(rr.getStatus()).isEqualTo(RefundRequestStatus.COMPLETED);
+
+        // 6. Payment must be REFUNDED.
+        Payment after = paymentRepository.findById(payment.getId()).orElseThrow();
+        assertThat(after.getStatus()).isEqualTo(PaymentStatus.REFUNDED);
+    }
+
+    @Test
+    void razorpayRefundWebhook_duplicateWebhook_isIdempotent() throws Exception {
+        activatePro(aliceId);
+        Payment payment = paymentRepository.findByUserIdOrderByCreatedAtDesc(aliceId).get(0);
+
+        // Create an APPROVED refund request.
+        RefundRequest rr = refundRequestRepository.save(RefundRequest.builder()
+                .userId(aliceId).paymentId(payment.getId()).reason("Dup test")
+                .status(RefundRequestStatus.APPROVED).build());
+
+        // First webhook → COMPLETED.
+        mockMvc.perform(post("/api/billing/webhook/razorpay")
+                        .header("X-Razorpay-Signature", "sig")
+                        .header("X-Razorpay-Event-Id", "evt_rr_dup_1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(refundWebhookPayload(
+                                payment.getProviderOrderId(), payment.getProviderPaymentId(),
+                                29900, 29900, true)))
+                .andExpect(status().isOk());
+
+        assertThat(refundRequestRepository.findById(rr.getId()).orElseThrow().getStatus())
+                .isEqualTo(RefundRequestStatus.COMPLETED);
+
+        // Second webhook → still COMPLETED, no error.
+        mockMvc.perform(post("/api/billing/webhook/razorpay")
+                        .header("X-Razorpay-Signature", "sig")
+                        .header("X-Razorpay-Event-Id", "evt_rr_dup_2")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(refundWebhookPayload(
+                                payment.getProviderOrderId(), payment.getProviderPaymentId(),
+                                29900, 29900, true)))
+                .andExpect(status().isOk());
+
+        assertThat(refundRequestRepository.findById(rr.getId()).orElseThrow().getStatus())
+                .isEqualTo(RefundRequestStatus.COMPLETED);
+    }
+
+    @Test
+    void razorpayRefundWebhook_rejectedRefundRequest_staysRejected() throws Exception {
+        activatePro(aliceId);
+        Payment payment = paymentRepository.findByUserIdOrderByCreatedAtDesc(aliceId).get(0);
+
+        // Create a REJECTED refund request.
+        RefundRequest rr = refundRequestRepository.save(RefundRequest.builder()
+                .userId(aliceId).paymentId(payment.getId()).reason("Rejected test")
+                .status(RefundRequestStatus.REJECTED).build());
+
+        // Webhook fires — should not change REJECTED status.
+        mockMvc.perform(post("/api/billing/webhook/razorpay")
+                        .header("X-Razorpay-Signature", "sig")
+                        .header("X-Razorpay-Event-Id", "evt_rr_reject_1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(refundWebhookPayload(
+                                payment.getProviderOrderId(), payment.getProviderPaymentId(),
+                                29900, 29900, true)))
+                .andExpect(status().isOk());
+
+        assertThat(refundRequestRepository.findById(rr.getId()).orElseThrow().getStatus())
+                .isEqualTo(RefundRequestStatus.REJECTED);
+    }
+
+    @Test
+    void adminApproval_doesNotMarkRefundRequestAsCompleted() throws Exception {
+        activatePro(aliceId);
+        Payment payment = paymentRepository.findByUserIdOrderByCreatedAtDesc(aliceId).get(0);
+
+        // Submit refund request.
+        mockMvc.perform(post("/api/billing/refund-requests")
+                        .header("Authorization", bearer(aliceId))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"paymentId\":\"" + payment.getId() + "\",\"reason\":\"Test\"}"))
+                .andExpect(status().isOk());
+
+        RefundRequest rr = refundRequestRepository.findByPaymentId(payment.getId()).orElseThrow();
+
+        // Admin approves.
+        mockMvc.perform(post("/api/admin/billing/refund-requests/" + rr.getId() + "/approve")
+                        .header("Authorization", bearer(adminId))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"adminNote\":\"Approved\"}"))
+                .andExpect(status().isOk());
+
+        // Must be APPROVED, not COMPLETED.
+        rr = refundRequestRepository.findById(rr.getId()).orElseThrow();
+        assertThat(rr.getStatus()).isEqualTo(RefundRequestStatus.APPROVED);
+        assertThat(rr.getStatus()).isNotEqualTo(RefundRequestStatus.COMPLETED);
+    }
+
+    @Test
+    void stripeRefundWebhook_transitionsApprovedRefundRequestToCompleted() throws Exception {
+        setupStripeSignatureMock();
+
+        // 1. Set up a Stripe payment with an active subscription.
+        String stripeSubId = "sub_refund_complete_stripe";
+        subscriptionRepository.save(Subscription.builder()
+                .userId(aliceId).planCode("PRO").provider("STRIPE")
+                .providerSubscriptionId(stripeSubId)
+                .status(SubscriptionStatus.ACTIVE)
+                .currentPeriodStart(Instant.now().minus(10, ChronoUnit.DAYS))
+                .currentPeriodEnd(Instant.now().plus(20, ChronoUnit.DAYS)).build());
+
+        Payment stripePayment = paymentRepository.save(Payment.builder()
+                .userId(aliceId).planCode("PRO").provider("STRIPE")
+                .providerOrderId("cs_refund_complete")
+                .providerPaymentId("pi_refund_complete")
+                .amountPaise(29900).currency("INR").status(PaymentStatus.SUCCESS)
+                .subscriptionId(subscriptionRepository.findByUserId(aliceId).orElseThrow().getId())
+                .paidAt(Instant.now()).build());
+
+        // 2. Create an APPROVED refund request.
+        RefundRequest rr = refundRequestRepository.save(RefundRequest.builder()
+                .userId(aliceId).paymentId(stripePayment.getId()).reason("Stripe refund test")
+                .status(RefundRequestStatus.APPROVED).build());
+
+        // 3. Stripe charge.refunded webhook fires.
+        String payload = mapToJson(Map.of(
+                "id", "evt_stripe_rr_complete",
+                "type", "charge.refunded",
+                "data", Map.of("object", Map.of(
+                        "id", "ch_refund_complete",
+                        "payment_intent", "pi_refund_complete",
+                        "amount", 29900,
+                        "amount_refunded", 29900))));
+
+        mockMvc.perform(post("/api/billing/webhook/stripe")
+                        .header("Stripe-Signature", "t=123,v1=valid")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(payload))
+                .andExpect(status().isOk());
+
+        // 4. RefundRequest must be COMPLETED.
+        rr = refundRequestRepository.findById(rr.getId()).orElseThrow();
+        assertThat(rr.getStatus()).isEqualTo(RefundRequestStatus.COMPLETED);
+
+        // 5. Payment must be REFUNDED.
+        Payment after = paymentRepository.findById(stripePayment.getId()).orElseThrow();
+        assertThat(after.getStatus()).isEqualTo(PaymentStatus.REFUNDED);
+    }
+
+    @Test
+    void stripeRefundWebhook_duplicateWebhook_isIdempotent() throws Exception {
+        setupStripeSignatureMock();
+
+        Payment stripePayment = paymentRepository.save(Payment.builder()
+                .userId(aliceId).planCode("PRO").provider("STRIPE")
+                .providerOrderId("cs_dup_refund")
+                .providerPaymentId("pi_dup_refund")
+                .amountPaise(29900).currency("INR").status(PaymentStatus.SUCCESS)
+                .paidAt(Instant.now()).build());
+
+        RefundRequest rr = refundRequestRepository.save(RefundRequest.builder()
+                .userId(aliceId).paymentId(stripePayment.getId()).reason("Dup Stripe test")
+                .status(RefundRequestStatus.APPROVED).build());
+
+        String payload = mapToJson(Map.of(
+                "id", "evt_stripe_dup_rr",
+                "type", "charge.refunded",
+                "data", Map.of("object", Map.of(
+                        "id", "ch_dup_refund",
+                        "payment_intent", "pi_dup_refund",
+                        "amount", 29900,
+                        "amount_refunded", 29900))));
+
+        // First webhook → COMPLETED.
+        mockMvc.perform(post("/api/billing/webhook/stripe")
+                        .header("Stripe-Signature", "t=123,v1=valid")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(payload))
+                .andExpect(status().isOk());
+
+        assertThat(refundRequestRepository.findById(rr.getId()).orElseThrow().getStatus())
+                .isEqualTo(RefundRequestStatus.COMPLETED);
+
+        // Second webhook → still COMPLETED.
+        mockMvc.perform(post("/api/billing/webhook/stripe")
+                        .header("Stripe-Signature", "t=123,v1=valid")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(payload))
+                .andExpect(status().isOk());
+
+        assertThat(refundRequestRepository.findById(rr.getId()).orElseThrow().getStatus())
+                .isEqualTo(RefundRequestStatus.COMPLETED);
+    }
 }

@@ -603,6 +603,9 @@ public class BillingService {
                         planName(refundPayment.getPlanCode())),
                 refundPayment.getUserId());
 
+        // Transition RefundRequest APPROVED → COMPLETED if one exists.
+        completeRefundRequestIfApproved(refundPayment.getId());
+
         if (isFullRefund && refundPayment.getSubscriptionId() != null) {
             revokeSubscriptionOnRefund(refundPayment);
         } else if (!isFullRefund) {
@@ -909,6 +912,9 @@ public class BillingService {
                             planName(payment.getPlanCode())),
                     payment.getUserId());
 
+            // Transition RefundRequest APPROVED → COMPLETED if one exists.
+            completeRefundRequestIfApproved(payment.getId());
+
             // Full refund revocation: immediately revoke subscription access.
             if (isFullRefund && payment.getSubscriptionId() != null) {
                 revokeSubscriptionOnRefund(payment);
@@ -1004,6 +1010,21 @@ public class BillingService {
                 userId);
         log.info("Subscription {} revoked (EXPIRED) due to full refund of payment {}",
                 subscription.getId(), payment.getId());
+    }
+
+    /**
+     * Transition the RefundRequest from APPROVED → COMPLETED when the payment
+     * provider confirms the refund via webhook. Only acts if a RefundRequest
+     * exists in APPROVED state for this payment; idempotent on repeated webhooks.
+     */
+    private void completeRefundRequestIfApproved(String paymentId) {
+        refundRequestRepository.findByPaymentIdAndStatus(paymentId, RefundRequestStatus.APPROVED)
+                .ifPresent(request -> {
+                    request.setStatus(RefundRequestStatus.COMPLETED);
+                    refundRequestRepository.save(request);
+                    log.info("RefundRequest {} transitioned APPROVED → COMPLETED for payment {}",
+                            request.getId(), paymentId);
+                });
     }
 
     private void handleSubscriptionCancelled(JsonNode root, String eventId) {
