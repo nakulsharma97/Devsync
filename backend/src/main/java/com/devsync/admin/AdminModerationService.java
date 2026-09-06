@@ -7,6 +7,7 @@ import com.devsync.audit.entity.AuditAction;
 import com.devsync.audit.entity.AuditStatus;
 import com.devsync.common.PageResponse;
 import com.devsync.common.ResourceNotFoundException;
+import static com.devsync.common.StringUtils.blankToNull;
 import com.devsync.feedback.entity.Feedback;
 import com.devsync.feedback.entity.FeedbackCategory;
 import com.devsync.feedback.entity.FeedbackStatus;
@@ -248,9 +249,5 @@ public class AdminModerationService {
         }
     }
 
-    private String blankToNull(String value) {
-        if (value == null) return null;
-        String trimmed = value.trim();
-        return trimmed.isEmpty() ? null : trimmed;
-    }
+
 }

@@ -7,6 +7,8 @@ import com.devsync.activity.entity.Activity;
 import com.devsync.activity.entity.ActivityType;
 import com.devsync.activity.repository.ActivityRepository;
 import com.devsync.common.PageResponse;
+import static com.devsync.common.DateTimeUtils.parseInstant;
+import static com.devsync.common.StringUtils.blankToNull;
 import com.devsync.user.entity.User;
 import com.devsync.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -205,16 +207,5 @@ public class ActivityService {
         }
     }
 
-    private Instant parseInstant(String raw, String message) {
-        if (raw == null || raw.isBlank()) return null;
-        try {
-            return Instant.parse(raw);
-        } catch (Exception e) {
-            throw new IllegalArgumentException(message + ": " + raw);
-        }
-    }
 
-    private String blankToNull(String value) {
-        return (value == null || value.isBlank()) ? null : value.trim();
-    }
 }

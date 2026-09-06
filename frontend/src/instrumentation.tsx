@@ -177,7 +177,6 @@ export function InstrumentationProvider({
   useEffect(() => {
     const handleError = async (event: ErrorEvent) => {
       try {
-        console.log(event);
         event.preventDefault();
         setError({
           error: event.message,

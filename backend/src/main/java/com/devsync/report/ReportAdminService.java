@@ -8,6 +8,7 @@ import com.devsync.audit.entity.AuditAction;
 import com.devsync.audit.entity.AuditStatus;
 import com.devsync.common.PageResponse;
 import com.devsync.common.ResourceNotFoundException;
+import static com.devsync.common.StringUtils.snippet;
 import com.devsync.feed.entity.Comment;
 import com.devsync.feed.entity.Post;
 import com.devsync.feed.repository.CommentRepository;
@@ -340,15 +341,15 @@ public class ReportAdminService {
         }
         if (!postIds.isEmpty()) {
             postRepository.findAllById(postIds)
-                    .forEach(p -> titles.put(p.getId(), snippet(p.getContent())));
+                    .forEach(p -> titles.put(p.getId(), snippet(p.getContent(), 60)));
         }
         if (!commentIds.isEmpty()) {
             commentRepository.findAllById(commentIds)
-                    .forEach(c -> titles.put(c.getId(), snippet(c.getContent())));
+                    .forEach(c -> titles.put(c.getId(), snippet(c.getContent(), 60)));
         }
         if (!messageIds.isEmpty()) {
             messageRepository.findAllById(messageIds)
-                    .forEach(m -> titles.put(m.getId(), snippet(m.getContent())));
+                    .forEach(m -> titles.put(m.getId(), snippet(m.getContent(), 60)));
         }
         return titles;
     }
@@ -357,9 +358,9 @@ public class ReportAdminService {
         return switch (type) {
             case USER -> userRepository.findById(entityId).map(User::getFullName).orElse("Unknown user");
             case PROJECT -> projectRepository.findById(entityId).map(Project::getName).orElse("Unknown project");
-            case POST -> postRepository.findById(entityId).map(p -> snippet(p.getContent())).orElse("Unknown post");
-            case COMMENT -> commentRepository.findById(entityId).map(c -> snippet(c.getContent())).orElse("Unknown comment");
-            case MESSAGE -> messageRepository.findById(entityId).map(m -> snippet(m.getContent())).orElse("Unknown message");
+            case POST -> postRepository.findById(entityId).map(p -> snippet(p.getContent(), 60)).orElse("Unknown post");
+            case COMMENT -> commentRepository.findById(entityId).map(c -> snippet(c.getContent(), 60)).orElse("Unknown comment");
+            case MESSAGE -> messageRepository.findById(entityId).map(m -> snippet(m.getContent(), 60)).orElse("Unknown message");
         };
     }
 
@@ -433,11 +434,7 @@ public class ReportAdminService {
                 .build();
     }
 
-    private String snippet(String content) {
-        if (content == null) return "";
-        String trimmed = content.trim().replaceAll("\\s+", " ");
-        return trimmed.length() > 60 ? trimmed.substring(0, 60) + "..." : trimmed;
-    }
+
 
     private String label(ReportEntityType type) {
         return switch (type) {

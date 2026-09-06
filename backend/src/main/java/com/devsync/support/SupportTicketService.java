@@ -5,6 +5,8 @@ import com.devsync.audit.entity.AuditAction;
 import com.devsync.audit.entity.AuditStatus;
 import com.devsync.common.PageResponse;
 import com.devsync.common.ResourceNotFoundException;
+import static com.devsync.common.DateTimeUtils.parseInstant;
+import static com.devsync.common.StringUtils.blankToNull;
 import com.devsync.notification.NotificationService;
 import com.devsync.support.dto.*;
 import com.devsync.support.entity.SupportTicket;
@@ -468,18 +470,5 @@ public class SupportTicketService {
         } catch (IllegalArgumentException e) {
             throw new IllegalArgumentException("Invalid status: " + raw);
         }
-    }
-
-    private Instant parseInstant(String raw) {
-        if (raw == null || raw.isBlank()) return null;
-        try {
-            return Instant.parse(raw);
-        } catch (Exception e) {
-            throw new IllegalArgumentException("Invalid date: " + raw);
-        }
-    }
-
-    private String blankToNull(String value) {
-        return (value == null || value.isBlank()) ? null : value.trim();
     }
 }

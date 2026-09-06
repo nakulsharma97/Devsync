@@ -10,6 +10,7 @@ import com.devsync.review.entity.Review;
 import com.devsync.review.entity.ReviewCategory;
 import com.devsync.review.entity.ReviewStatus;
 import com.devsync.review.repository.ReviewRepository;
+import static com.devsync.common.StringUtils.blankToNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -122,9 +123,5 @@ public class ReviewService {
         }
     }
 
-    private String blankToNull(String value) {
-        if (value == null) return null;
-        String trimmed = value.trim();
-        return trimmed.isEmpty() ? null : trimmed;
-    }
+
 }

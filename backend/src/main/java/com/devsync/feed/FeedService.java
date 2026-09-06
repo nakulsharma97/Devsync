@@ -7,6 +7,7 @@ import com.devsync.attachment.entity.AttachmentContext;
 import com.devsync.attachment.repository.FileAttachmentRepository;
 import com.devsync.common.ForbiddenException;
 import com.devsync.common.ResourceNotFoundException;
+import static com.devsync.common.StringUtils.snippet;
 import com.devsync.feed.dto.CommentRequest;
 import com.devsync.feed.dto.CommentResponse;
 import com.devsync.feed.dto.PostRequest;
@@ -314,11 +315,7 @@ public class FeedService {
                 commentCounts.getOrDefault(post.getId(), 0L));
     }
 
-    private String snippet(String content) {
-        if (content == null) return "";
-        String trimmed = content.trim().replaceAll("\\s+", " ");
-        return trimmed.length() > 80 ? trimmed.substring(0, 80) + "..." : trimmed;
-    }
+
 
     private CommentResponse toCommentResponse(Comment comment, User user) {
         PostResponse.UserInfo userInfo = user != null

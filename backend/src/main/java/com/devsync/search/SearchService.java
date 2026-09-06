@@ -2,6 +2,7 @@ package com.devsync.search;
 
 import com.devsync.feed.entity.Post;
 import com.devsync.feed.repository.PostRepository;
+import static com.devsync.common.StringUtils.snippet;
 import com.devsync.kanban.entity.Task;
 import com.devsync.kanban.repository.TaskRepository;
 import com.devsync.message.entity.Message;
@@ -134,9 +135,5 @@ public class SearchService {
         recentSearchRepository.deleteByUserId(userId);
     }
 
-    private String snippet(String content) {
-        if (content == null) return "";
-        String t = content.trim().replaceAll("\\s+", " ");
-        return t.length() > 80 ? t.substring(0, 80) + "..." : t;
-    }
+
 }

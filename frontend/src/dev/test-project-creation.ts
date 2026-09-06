@@ -7,7 +7,9 @@ import { projectService } from "@/services/projectService";
 
 export default function registerTest() {
   (window as unknown as Record<string, unknown>).testProjectCrud = testProjectCrud;
-  console.log("🧪 Dev test loaded. Run: await testProjectCrud()");
+  if (import.meta.env.DEV) {
+    console.log("Dev test loaded. Run: await testProjectCrud()");
+  }
 }
 
 async function testProjectCrud(): Promise<void> {
@@ -77,11 +79,13 @@ async function testProjectCrud(): Promise<void> {
 }
 
 function printResults(results: string[]) {
-  console.log("\n" + "=".repeat(50));
-  console.log("📋 PROJECT CRUD TEST RESULTS");
-  console.log("=".repeat(50));
-  for (const line of results) {
-    console.log(line);
+  if (import.meta.env.DEV) {
+    console.log("\n" + "=".repeat(50));
+    console.log("PROJECT CRUD TEST RESULTS");
+    console.log("=".repeat(50));
+    for (const line of results) {
+      console.log(line);
+    }
+    console.log("=".repeat(50) + "\n");
   }
-  console.log("=".repeat(50) + "\n");
 }

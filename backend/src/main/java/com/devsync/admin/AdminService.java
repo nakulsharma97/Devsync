@@ -25,6 +25,7 @@ import com.devsync.admin.dto.PlatformStatsResponse;
 import com.devsync.admin.dto.UserStatus;
 import com.devsync.common.PageResponse;
 import com.devsync.common.ResourceNotFoundException;
+import static com.devsync.common.StringUtils.snippet;
 import com.devsync.feed.entity.Post;
 import com.devsync.feed.repository.CommentRepository;
 import com.devsync.feed.repository.PostLikeRepository;
@@ -674,7 +675,7 @@ public class AdminService {
             messageRepository.findTop5ByRoomIdInOrderByCreatedAtDesc(roomIds).forEach(m ->
                     items.add(AdminActivityItem.builder()
                             .type("MESSAGE")
-                            .title("New message: " + snippet(m.getContent()))
+                            .title("New message: " + snippet(m.getContent(), 60))
                             .timestamp(m.getCreatedAt())
                             .build()));
         }
@@ -687,11 +688,7 @@ public class AdminService {
         return items.stream().limit(10).toList();
     }
 
-    private String snippet(String content) {
-        if (content == null) return "";
-        String trimmed = content.trim().replaceAll("\\s+", " ");
-        return trimmed.length() > 60 ? trimmed.substring(0, 60) + "..." : trimmed;
-    }
+
 
     private Project.ProjectVisibility parseVisibility(String visibility) {
         if (visibility == null || visibility.isBlank()) {

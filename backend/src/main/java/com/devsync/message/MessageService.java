@@ -5,6 +5,7 @@ import com.devsync.activity.entity.ActivityType;
 import com.devsync.attachment.AttachmentService;
 import com.devsync.attachment.dto.AttachmentResponse;
 import com.devsync.common.ResourceNotFoundException;
+import static com.devsync.common.StringUtils.snippet;
 import com.devsync.presence.PresenceService;
 import com.devsync.message.dto.ConversationResponse;
 import com.devsync.message.dto.MessageResponse;
@@ -509,11 +510,7 @@ public class MessageService {
         return conversations;
     }
 
-    private String snippet(String content) {
-        if (content == null) return "";
-        String trimmed = content.trim().replaceAll("\\s+", " ");
-        return trimmed.length() > 80 ? trimmed.substring(0, 80) + "..." : trimmed;
-    }
+
 
     /**
      * Batch-load senders, attachments, reactions and reply counts, then map all

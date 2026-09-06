@@ -7,6 +7,8 @@ import com.devsync.audit.entity.AuditStatus;
 import com.devsync.audit.repository.AuditLogRepository;
 import com.devsync.common.PageResponse;
 import com.devsync.common.ResourceNotFoundException;
+import static com.devsync.common.DateTimeUtils.parseInstant;
+import static com.devsync.common.StringUtils.blankToNull;
 import com.devsync.user.entity.User;
 import com.devsync.user.repository.UserRepository;
 import jakarta.servlet.http.HttpServletRequest;
@@ -265,18 +267,7 @@ public class AuditLogService {
         }
     }
 
-    private Instant parseInstant(String raw, String message) {
-        if (raw == null || raw.isBlank()) return null;
-        try {
-            return Instant.parse(raw);
-        } catch (Exception e) {
-            throw new IllegalArgumentException(message + ": " + raw);
-        }
-    }
 
-    private String blankToNull(String value) {
-        return (value == null || value.isBlank()) ? null : value.trim();
-    }
 
     private String normalizeSortField(String sortBy) {
         if (sortBy == null || sortBy.isBlank()) return "createdAt";

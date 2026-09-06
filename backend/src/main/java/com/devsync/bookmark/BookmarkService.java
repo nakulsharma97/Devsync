@@ -4,6 +4,7 @@ import com.devsync.bookmark.dto.BookmarkResponse;
 import com.devsync.bookmark.entity.Bookmark;
 import com.devsync.bookmark.repository.BookmarkRepository;
 import com.devsync.common.ResourceNotFoundException;
+import static com.devsync.common.StringUtils.snippet;
 import com.devsync.feed.entity.Post;
 import com.devsync.feed.repository.PostRepository;
 import com.devsync.kanban.entity.Task;
@@ -96,7 +97,7 @@ public class BookmarkService {
         }
         if (!postIds.isEmpty()) {
             postRepository.findAllById(postIds)
-                    .forEach(p -> titles.put(p.getId(), snippet(p.getContent())));
+                    .forEach(p -> titles.put(p.getId(), snippet(p.getContent(), 60)));
         }
         if (!userIds.isEmpty()) {
             userRepository.findAllById(userIds)
@@ -115,7 +116,7 @@ public class BookmarkService {
                     .orElseThrow(() -> new ResourceNotFoundException("Task", entityId));
         }
         if (entityType.equals("POST")) {
-            return postRepository.findById(entityId).map(p -> snippet(p.getContent()))
+            return postRepository.findById(entityId).map(p -> snippet(p.getContent(), 60))
                     .orElseThrow(() -> new ResourceNotFoundException("Post", entityId));
         }
         if (entityType.equals("USER")) {
@@ -147,11 +148,7 @@ public class BookmarkService {
         };
     }
 
-    private String snippet(String content) {
-        if (content == null) return "";
-        String t = content.trim().replaceAll("\\s+", " ");
-        return t.length() > 60 ? t.substring(0, 60) + "..." : t;
-    }
+
 
     private String normalizeType(String entityType) {
         if (entityType == null || !VALID_TYPES.contains(entityType.toUpperCase())) {
