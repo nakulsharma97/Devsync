@@ -2487,4 +2487,87 @@ class BillingIntegrationTest {
         assertThat(refundRequestRepository.findById(rr.getId()).orElseThrow().getStatus())
                 .isEqualTo(RefundRequestStatus.COMPLETED);
     }
+
+    // ── Webhook concurrency safety ─────────────────────────────────
+
+    /**
+     * Verifies that two concurrent webhook deliveries for the same payment
+     * do not both transition the payment to SUCCESS. The pessimistic write
+     * lock on findByProviderPaymentIdWithLock / findByOrderIdWithLock ensures
+     * the second thread blocks until the first finishes, then sees the
+     * already-applied status and short-circuits.
+     */
+    @Test
+    void concurrentWebhooks_paymentTransitionsExactlyOnce() throws Exception {
+        // Setup: create a PENDING payment for alice.
+        String orderId = "order_concurrent_" + System.nanoTime();
+        String paymentId = "pay_concurrent_" + System.nanoTime();
+        Payment pending = paymentRepository.save(Payment.builder()
+                .userId(aliceId).planCode("PRO").providerOrderId(orderId)
+                .providerPaymentId(paymentId)
+                .amountPaise(29900).currency("INR").status(PaymentStatus.PENDING).build());
+
+        String payload = webhookPayload("payment.captured", orderId, paymentId, 29900);
+        String eventId1 = "evt_concurrent_1_" + System.nanoTime();
+        String eventId2 = "evt_concurrent_2_" + System.nanoTime();
+
+        // Use a CountDownLatch so both threads start processing at the same instant.
+        var startGate = new java.util.concurrent.CountDownLatch(1);
+        var errors = new java.util.concurrent.ConcurrentLinkedQueue<String>();
+
+        java.util.concurrent.ExecutorService executor =
+                java.util.concurrent.Executors.newFixedThreadPool(2);
+
+        java.util.concurrent.Future<?> f1 = executor.submit(() -> {
+            try {
+                startGate.await();
+                mockMvc.perform(post("/api/billing/webhook/razorpay")
+                                .header("X-Razorpay-Signature", "valid")
+                                .header("X-Razorpay-Event-Id", eventId1)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(payload))
+                        .andExpect(status().isOk());
+            } catch (Exception e) {
+                errors.add("Thread-1: " + e.getMessage());
+            }
+        });
+
+        java.util.concurrent.Future<?> f2 = executor.submit(() -> {
+            try {
+                startGate.await();
+                mockMvc.perform(post("/api/billing/webhook/razorpay")
+                                .header("X-Razorpay-Signature", "valid")
+                                .header("X-Razorpay-Event-Id", eventId2)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(payload))
+                        .andExpect(status().isOk());
+            } catch (Exception e) {
+                errors.add("Thread-2: " + e.getMessage());
+            }
+        });
+
+        // Release both threads simultaneously.
+        startGate.countDown();
+        f1.get(30, java.util.concurrent.TimeUnit.SECONDS);
+        f2.get(30, java.util.concurrent.TimeUnit.SECONDS);
+        executor.shutdown();
+
+        assertThat(errors).isEmpty();
+
+        // The payment must have transitioned to SUCCESS exactly once.
+        Payment finalPayment = paymentRepository.findById(pending.getId()).orElseThrow();
+        assertThat(finalPayment.getStatus()).isEqualTo(PaymentStatus.SUCCESS);
+
+        // Subscription must have been created exactly once for this user+plan.
+        long subCount = subscriptionRepository.findAll().stream()
+                .filter(s -> s.getUserId().equals(aliceId) && "PRO".equals(s.getPlanCode()))
+                .count();
+        assertThat(subCount).isEqualTo(1);
+
+        // Exactly 2 webhook events recorded (one per event id).
+        assertThat(webhookEventRepository
+                .existsByProviderAndProviderEventId("RAZORPAY", eventId1)).isTrue();
+        assertThat(webhookEventRepository
+                .existsByProviderAndProviderEventId("RAZORPAY", eventId2)).isTrue();
+    }
 }

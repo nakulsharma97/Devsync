@@ -335,7 +335,7 @@ public class BillingService {
             return;
         }
 
-        Payment payment = paymentRepository.findTopByProviderOrderIdOrderByCreatedAtDesc(sessionId)
+        Payment payment = paymentRepository.findTopByProviderOrderIdOrderByCreatedAtDescWithLock(sessionId)
                 .orElse(null);
         if (payment == null) {
             log.info("No pending payment for Stripe session {} (event {}), skipping", sessionId, eventId);
@@ -575,11 +575,11 @@ public class BillingService {
         // lookup, not a filtered full-table scan with a null user id.
         Payment payment = null;
         if (!paymentIntentId.isBlank()) {
-            payment = paymentRepository.findByProviderPaymentId(paymentIntentId).orElse(null);
+            payment = paymentRepository.findByProviderPaymentIdWithLock(paymentIntentId).orElse(null);
         }
         // Also try matching by provider order id if we stored the session id there
         if (payment == null && !chargeId.isBlank()) {
-            payment = paymentRepository.findTopByProviderOrderIdOrderByCreatedAtDesc(chargeId)
+            payment = paymentRepository.findTopByProviderOrderIdOrderByCreatedAtDescWithLock(chargeId)
                     .orElse(null);
         }
         if (payment == null) {
@@ -800,7 +800,7 @@ public class BillingService {
     private void handlePaymentCaptured(JsonNode root, String eventId) {
         RazorpayClient.PaymentRef ref = extractPaymentRef(root);
         if (ref == null) return;
-        Payment payment = paymentRepository.findTopByProviderOrderIdOrderByCreatedAtDesc(ref.orderId())
+        Payment payment = paymentRepository.findTopByProviderOrderIdOrderByCreatedAtDescWithLock(ref.orderId())
                 .orElseThrow(() -> new IllegalArgumentException("Unknown order " + ref.orderId()));
         if (payment.getAmountPaise() != ref.amountPaise() || !CURRENCY.equals(ref.currency())) {
             log.error("Webhook amount/currency mismatch for event {}", eventId);
@@ -851,7 +851,7 @@ public class BillingService {
         String paymentId = entity.path("id").asText("");
         String orderId = entity.path("order_id").asText("");
         if (orderId.isBlank()) return;
-        paymentRepository.findTopByProviderOrderIdOrderByCreatedAtDesc(orderId).ifPresent(payment -> {
+        paymentRepository.findTopByProviderOrderIdOrderByCreatedAtDescWithLock(orderId).ifPresent(payment -> {
             payment.setProviderPaymentId(paymentId);
             payment.setStatus(PaymentStatus.FAILED);
             paymentRepository.save(payment);
@@ -896,7 +896,7 @@ public class BillingService {
                 && entity.path("amount").asLong(0) > 0
                 && refundAmount >= entity.path("amount").asLong(0);
 
-        paymentRepository.findTopByProviderOrderIdOrderByCreatedAtDesc(orderId).ifPresent(payment -> {
+        paymentRepository.findTopByProviderOrderIdOrderByCreatedAtDescWithLock(orderId).ifPresent(payment -> {
             payment.setStatus(PaymentStatus.REFUNDED);
             paymentRepository.save(payment);
             auditLogService.record(payment.getUserId(), payment.getUserId(),
