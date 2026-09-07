@@ -120,20 +120,6 @@ export function SkeletonMessageBubble() {
   );
 }
 
-/** Skeleton for a notification item */
-export function SkeletonNotification() {
-  return (
-    <div className="flex items-start gap-3 p-3 border-b border-border/20">
-      <Skeleton className="w-8 h-8 rounded-full shrink-0" />
-      <div className="space-y-1.5 flex-1">
-        <Skeleton className="h-3 w-48" />
-        <Skeleton className="h-2.5 w-32" />
-        <Skeleton className="h-2 w-16" />
-      </div>
-    </div>
-  );
-}
-
 /**
  * Content-area skeleton shown while a lazy page chunk loads. Shapes itself
  * roughly like the destination page (using the pathname) so navigation feels
