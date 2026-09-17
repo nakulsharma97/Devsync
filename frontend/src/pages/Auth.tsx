@@ -350,17 +350,16 @@ export default function AuthPage() {
 
       {/* Background effects */}
       <div className="fixed inset-0 pointer-events-none">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-background to-accent/10" />
-        <div className="absolute top-1/3 -left-48 w-[600px] h-[600px] bg-primary/10 rounded-full blur-3xl" />
-        <div className="absolute bottom-1/3 -right-48 w-[500px] h-[500px] bg-accent/10 rounded-full blur-3xl" />
-        <div className="absolute top-1/2 left-1/3 w-[400px] h-[400px] bg-cyan-500/5 rounded-full blur-3xl" />
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5 pointer-events-none" />
+        <div className="absolute top-1/3 -left-48 w-[600px] h-[600px] bg-primary/5 rounded-full blur-3xl" />
+        <div className="absolute bottom-1/3 -right-48 w-[500px] h-[500px] bg-accent/5 rounded-full blur-3xl" />
       </div>
 
       {/* ─── SPLIT LAYOUT ─── */}
       <div className="relative z-10 min-h-screen flex">
         {/* ─── LEFT: Product Showcase ─── */}
-        <div className="hidden lg:flex lg:w-1/2 flex-col justify-start p-8 xl:p-12 relative overflow-hidden text-white">
-          <div className="absolute inset-0 bg-gradient-to-br from-primary/15 via-transparent to-accent/10 pointer-events-none" />
+        <div className="hidden lg:flex lg:w-1/2 flex-col justify-start p-8 xl:p-12 relative overflow-hidden text-white" style={{ background: "linear-gradient(135deg, oklch(0.13 0.006 260) 0%, oklch(0.16 0.005 260) 100%)" }}>
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-accent/5 pointer-events-none" />
 
           {/* Back to home */}
           <div className="relative z-10">
@@ -446,7 +445,12 @@ export default function AuthPage() {
         </div>
 
         {/* ─── RIGHT: Auth Form ─── */}
-        <div className="w-full lg:w-1/2 flex items-center justify-center p-4 sm:p-8 relative bg-background">
+        <div className="w-full lg:w-1/2 flex items-center justify-center p-4 sm:p-8 lg:p-12 relative bg-background">
+          {/* Subtle background pattern */}
+          <div className="absolute inset-0 pointer-events-none opacity-[0.03]">
+            <div className="absolute inset-0" style={{ backgroundImage: "radial-gradient(circle at 1px 1px, currentColor 1px, transparent 0)", backgroundSize: "24px 24px" }} />
+          </div>
+
           {/* Mobile back button */}
           <button
             onClick={() => navigate("/")}
@@ -456,11 +460,11 @@ export default function AuthPage() {
             <span className="text-xs font-semibold">DevSync</span>
           </button>
 
-          <div className="w-full max-w-sm mt-12 lg:mt-0 animate-fade-in-up">
+          <div className="w-full max-w-md mt-12 lg:mt-0 animate-fade-in-up">
             {/* Header */}
             <div className="text-center mb-8">
               <div className="flex justify-center mb-4">
-                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center ring-1 ring-primary/25">
+                <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center ring-1 ring-primary/20 shadow-sm">
                   {useOtp ? (
                     <Mail className="w-8 h-8 text-primary" />
                   ) : mode === "login" ? (
@@ -496,7 +500,7 @@ export default function AuthPage() {
                 href={`${
                   import.meta.env.VITE_API_URL || "/api"
                 }/../oauth2/authorization/github`}
-                className="flex-1 flex items-center justify-center gap-2 h-10 rounded-xl border border-border bg-muted/50 hover:bg-muted hover:border-border transition-all text-sm text-foreground/70 hover:text-foreground"
+                className="flex-1 flex items-center justify-center gap-2 h-11 rounded-xl border border-border bg-card hover:bg-muted/80 hover:border-border/80 transition-all text-sm font-medium text-foreground/80 hover:text-foreground shadow-sm"
               >
                 <Github className="w-4 h-4" />
                 <span className="hidden sm:inline">GitHub</span>
@@ -505,7 +509,7 @@ export default function AuthPage() {
                 href={`${
                   import.meta.env.VITE_API_URL || "/api"
                 }/../oauth2/authorization/google`}
-                className="flex-1 flex items-center justify-center gap-2 h-10 rounded-xl border border-border bg-muted/50 hover:bg-muted hover:border-border transition-all text-sm text-foreground/70 hover:text-foreground"
+                className="flex-1 flex items-center justify-center gap-2 h-11 rounded-xl border border-border bg-card hover:bg-muted/80 hover:border-border/80 transition-all text-sm font-medium text-foreground/80 hover:text-foreground shadow-sm"
               >
                 <svg className="w-4 h-4" viewBox="0 0 24 24">
                   <path
@@ -530,12 +534,12 @@ export default function AuthPage() {
             </div>
 
             {/* Divider */}
-            <div className="relative mb-6">
+            <div className="relative mb-6 mt-8">
               <div className="absolute inset-0 flex items-center">
                 <div className="w-full border-t border-border" />
               </div>
               <div className="relative flex justify-center text-xs">
-                <span className="bg-background px-3 text-muted-foreground">
+                <span className="bg-background px-3 text-muted-foreground/70">
                   or continue with email
                 </span>
               </div>
@@ -555,7 +559,7 @@ export default function AuthPage() {
                       placeholder="John Doe"
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
-                      className="h-11 text-sm bg-muted/50 border-border text-foreground placeholder:text-muted-foreground/60 focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all"
+                      className="h-11 text-sm bg-card border-border text-foreground placeholder:text-muted-foreground/50 focus:border-primary focus:ring-2 focus:ring-primary/20 shadow-sm transition-all"
                       required
                     />
                   </div>
@@ -568,7 +572,7 @@ export default function AuthPage() {
                       placeholder="johndoe"
                       value={username}
                       onChange={(e) => setUsername(e.target.value)}
-                      className="h-11 text-sm bg-muted/50 border-border text-foreground placeholder:text-muted-foreground/60 focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all"
+                      className="h-11 text-sm bg-card border-border text-foreground placeholder:text-muted-foreground/50 focus:border-primary focus:ring-2 focus:ring-primary/20 shadow-sm transition-all"
                     />
                   </div>
                 </>
@@ -611,7 +615,7 @@ export default function AuthPage() {
                       }
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className="h-11 text-sm bg-muted/50 border-border text-foreground placeholder:text-muted-foreground/60 focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all"
+                      className="h-11 text-sm bg-card border-border text-foreground placeholder:text-muted-foreground/50 focus:border-primary focus:ring-2 focus:ring-primary/20 shadow-sm transition-all"
                       required
                     />
                   </div>
@@ -628,7 +632,7 @@ export default function AuthPage() {
                       }
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="h-11 text-sm bg-muted/50 border-border text-foreground placeholder:text-muted-foreground/60 focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all"
+                      className="h-11 text-sm bg-card border-border text-foreground placeholder:text-muted-foreground/50 focus:border-primary focus:ring-2 focus:ring-primary/20 shadow-sm transition-all"
                       required
                       minLength={mode === "register" ? 8 : 1}
                     />
@@ -677,7 +681,7 @@ export default function AuthPage() {
               {/* Submit */}
               <Button
                 type="submit"
-                className="w-full h-11 text-sm font-semibold shadow-lg bg-primary text-white hover:from-primary hover:to-primary disabled:opacity-50"
+                className="w-full h-12 text-sm font-semibold shadow-md bg-primary text-white hover:bg-primary/90 disabled:opacity-50 mt-2"
                 disabled={localLoading || !isValid}
               >
                 {localLoading ? (
