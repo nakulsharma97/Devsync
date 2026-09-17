@@ -68,17 +68,17 @@ export default function GlassCodeEditor() {
     ? "linear-gradient(135deg, rgba(15, 15, 35, 0.85) 0%, rgba(10, 10, 30, 0.9) 100%)"
     : "linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 249, 252, 0.98) 100%)";
 
-  const borderColor = dark ? "rgba(99, 102, 241, 0.25)" : "rgba(99, 102, 241, 0.15)";
-  const textColor = dark ? "rgba(214, 222, 255, 0.92)" : "rgba(15, 23, 42, 0.95)";
-  const textDim = dark ? "rgba(200, 210, 250, 0.62)" : "rgba(71, 85, 105, 0.75)";
-  const textMuted = dark ? "rgba(200, 210, 250, 0.18)" : "rgba(148, 163, 184, 0.45)";
-  const lineNumColor = dark ? "rgba(129, 140, 248, 0.6)" : "rgba(99, 102, 241, 0.45)";
-  const activeBg = dark ? "rgba(99, 102, 241, 0.08)" : "rgba(99, 102, 241, 0.05)";
-  const statusColor = dark ? "rgba(165, 180, 252, 0.65)" : "rgba(71, 85, 105, 0.75)";
-  const statusBorder = dark ? "rgba(99, 102, 241, 0.1)" : "rgba(99, 102, 241, 0.08)";
-  const keywordColor = dark ? "rgba(147, 197, 253, 0.95)" : "rgba(99, 102, 241, 0.9)";
-  const stringColor = dark ? "rgba(52, 211, 153, 0.9)" : "rgba(4, 120, 87, 0.9)";
-  const commentColor = dark ? "rgba(52, 211, 153, 0.55)" : "rgba(4, 120, 87, 0.55)";
+  const borderColor = dark ? "rgba(100, 110, 180, 0.2)" : "rgba(100, 110, 180, 0.12)";
+  const textColor = dark ? "rgba(210, 218, 240, 0.92)" : "rgba(15, 23, 42, 0.95)";
+  const textDim = dark ? "rgba(190, 200, 230, 0.60)" : "rgba(71, 85, 105, 0.75)";
+  const textMuted = dark ? "rgba(190, 200, 230, 0.18)" : "rgba(148, 163, 184, 0.45)";
+  const lineNumColor = dark ? "rgba(120, 130, 200, 0.55)" : "rgba(100, 110, 180, 0.40)";
+  const activeBg = dark ? "rgba(100, 110, 180, 0.08)" : "rgba(100, 110, 180, 0.05)";
+  const statusColor = dark ? "rgba(160, 170, 220, 0.60)" : "rgba(71, 85, 105, 0.75)";
+  const statusBorder = dark ? "rgba(100, 110, 180, 0.1)" : "rgba(100, 110, 180, 0.08)";
+  const keywordColor = dark ? "rgba(140, 180, 230, 0.90)" : "rgba(100, 110, 180, 0.85)";
+  const stringColor = dark ? "rgba(120, 190, 150, 0.85)" : "rgba(4, 120, 87, 0.90)";
+  const commentColor = dark ? "rgba(120, 190, 150, 0.50)" : "rgba(4, 120, 87, 0.55)";
 
   // Entrance animation is a plain CSS keyframe (see .animate-hero-editor-in)
   // so the hero does not pull the ~127 kB framer-motion runtime into the
@@ -102,8 +102,8 @@ export default function GlassCodeEditor() {
           borderColor,
           background: bgColor,
           boxShadow: dark
-            ? "0 0 40px rgba(99, 102, 241, 0.08), inset 0 1px 0 rgba(255,255,255,0.05)"
-            : "0 0 40px rgba(99, 102, 241, 0.06), inset 0 1px 0 rgba(255,255,255,0.8)",
+            ? "0 0 40px rgba(100, 110, 180, 0.06), inset 0 1px 0 rgba(255,255,255,0.04)"
+            : "0 0 40px rgba(100, 110, 180, 0.04), inset 0 1px 0 rgba(255,255,255,0.8)",
         }}
       >
         {/* Neon edge glow */}
@@ -111,15 +111,15 @@ export default function GlassCodeEditor() {
           className="absolute inset-0 rounded-2xl pointer-events-none opacity-50"
           style={{
             boxShadow: dark
-              ? "inset 0 0 30px rgba(99, 102, 241, 0.08)"
-              : "inset 0 0 30px rgba(99, 102, 241, 0.04)",
+              ? "inset 0 0 30px rgba(100, 110, 180, 0.06)"
+              : "inset 0 0 30px rgba(100, 110, 180, 0.03)",
           }}
         />
 
         {/* Title bar */}
         <div
           className="flex items-center gap-2 px-4 py-3.5 border-b transition-colors duration-300"
-          style={{ borderColor: dark ? "rgba(99, 102, 241, 0.12)" : "rgba(99, 102, 241, 0.1)" }}
+          style={{ borderColor: dark ? "rgba(100, 110, 180, 0.10)" : "rgba(100, 110, 180, 0.08)" }}
         >
           <div className="flex items-center gap-1.5">
             <div className="w-2.5 h-2.5 rounded-full bg-red-500/80" />
@@ -129,8 +129,8 @@ export default function GlassCodeEditor() {
           <div
             className="flex items-center gap-1.5 ml-3 text-[10px] px-2.5 py-1 rounded-md font-mono transition-colors duration-300"
             style={{
-              color: dark ? "rgba(165, 180, 252, 0.6)" : "rgba(99, 102, 241, 0.7)",
-              background: dark ? "rgba(99, 102, 241, 0.08)" : "rgba(99, 102, 241, 0.06)",
+              color: dark ? "rgba(150, 160, 210, 0.6)" : "rgba(100, 110, 180, 0.65)",
+              background: dark ? "rgba(100, 110, 180, 0.06)" : "rgba(100, 110, 180, 0.05)",
             }}
           >
             <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -208,7 +208,7 @@ export default function GlassCodeEditor() {
                     {isActive && (
                       <span
                         className="inline-block w-[2px] h-[18px] animate-caret-blink"
-                        style={{ background: dark ? "rgba(129, 140, 248, 0.9)" : "rgba(99, 102, 241, 0.8)" }}
+                        style={{ background: dark ? "rgba(120, 130, 200, 0.85)" : "rgba(100, 110, 180, 0.80)" }}
                       />
                     )}
                   </div>
@@ -223,7 +223,7 @@ export default function GlassCodeEditor() {
           className="flex items-center justify-between px-4 py-2 border-t text-[10px] font-mono transition-colors duration-300"
           style={{
             borderColor: statusBorder,
-            background: dark ? "rgba(99, 102, 241, 0.03)" : "rgba(99, 102, 241, 0.02)",
+            background: dark ? "rgba(100, 110, 180, 0.03)" : "rgba(100, 110, 180, 0.02)",
             color: statusColor,
           }}
         >

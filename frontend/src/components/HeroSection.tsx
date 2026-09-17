@@ -55,7 +55,7 @@ export default function HeroSection({ stats }: { stats: PublicStats | null }) {
           className="absolute inset-0"
           style={{
             backgroundImage:
-              "linear-gradient(oklch(0.50 0.14 255) 1px, transparent 1px), linear-gradient(90deg, oklch(0.50 0.14 255) 1px, transparent 1px)",
+              "linear-gradient(oklch(0.58 0.10 255) 1px, transparent 1px), linear-gradient(90deg, oklch(0.58 0.10 255) 1px, transparent 1px)",
             backgroundSize: "72px 72px",
           }}
         />

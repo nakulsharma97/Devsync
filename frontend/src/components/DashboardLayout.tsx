@@ -274,7 +274,7 @@ export default function DashboardLayout() {
       {/* Sidebar */}
       <aside
         aria-label="Main navigation"
-        className={`fixed top-0 left-0 z-50 flex h-full w-64 flex-col border-r border-border/40 bg-card/80 backdrop-blur-xl transform transition-transform duration-200 md:translate-x-0 ${
+        className={`fixed top-0 left-0 z-50 flex h-full w-64 flex-col border-r border-border bg-card transform transition-transform duration-200 md:translate-x-0 ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
@@ -344,7 +344,7 @@ export default function DashboardLayout() {
         </nav>
 
         {/* User card */}
-        <div className="shrink-0 p-3 border-t border-border/40 bg-background/60 backdrop-blur-xl">
+        <div className="shrink-0 p-3 border-t border-border bg-background">
           <div className="flex items-center gap-3 px-2 py-2 mb-1">
             <div className="relative shrink-0">
               <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
@@ -392,7 +392,7 @@ export default function DashboardLayout() {
 
       {/* Main content */}
       <div className="md:ml-64">
-        <header className="sticky top-0 z-30 h-14 border-b border-border bg-background/90 backdrop-blur-sm">
+        <header className="sticky top-0 z-30 h-14 border-b border-border bg-background">
           <div className="flex items-center justify-between h-full px-4 lg:px-6">
             <div className="flex items-center gap-3">
               <button
