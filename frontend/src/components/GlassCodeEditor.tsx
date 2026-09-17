@@ -3,63 +3,63 @@ import { useEffect, useState, useRef } from "react";
 const codeLines = [
   'import { createWorkspace } from "./devsync";',
   "",
-  "const workspace = await createWorkspace({",
+  'const ws = await createWorkspace({',
   '  name: "DevSync",',
   '  project: "collaboration-platform",',
-  "});",
+  '});',
   "",
-  "const task = await workspace.tasks.create({",
+  'const task = await ws.tasks.create({',
   '  title: "Build real-time chat",',
   '  status: "in-progress",',
   '  assignee: "Nakul",',
-  "});",
+  '});',
   "",
-  "await workspace.deploy({",
-  '  environment: "production",',
-  "});",
+  'await ws.deploy({ environment: "production" });',
   "",
-  'console.log("Workspace deployed successfully", task.id);',
+  'console.log("Deployed", task.id);',
 ];
 
-// Syntax highlighting colors
-const syntaxColors = {
-  keyword: "#F59A45",
-  function: "#7DD3FC",
-  string: "#86EFAC",
-  variable: "#F8FAFC",
-  comment: "#737B87",
-  number: "#C4B5FD",
-  punctuation: "#CBD5E1",
-};
+// Theme-aware syntax colors
+function getSyntaxColors(isDark: boolean) {
+  return {
+    keyword: isDark ? "#F59A45" : "#A6532D",
+    function: isDark ? "#7DD3FC" : "#0369A1",
+    string: isDark ? "#86EFAC" : "#047857",
+    variable: isDark ? "#F8FAFC" : "#111827",
+    comment: isDark ? "#737B87" : "#6B7280",
+    number: isDark ? "#C4B5FD" : "#7C3AED",
+    punctuation: isDark ? "#CBD5E1" : "#475569",
+  };
+}
 
 const keywords = ["import", "from", "const", "let", "var", "new", "await", "function", "return", "if", "else", "true", "false"];
 
-function highlightCode(code: string, isTyped: boolean, isActive: boolean) {
+function highlightCode(code: string, isTyped: boolean, isActive: boolean, isDark: boolean) {
   if (!isTyped && !isActive) return null;
   if (!code) return <span>{code}</span>;
-
+  const colors = getSyntaxColors(isDark);
   const parts = code.split(/("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|`(?:[^`\\]|\\.)*`|\b\w+\b)/);
   return parts.map((part, j) => {
     if (!part) return null;
     if (part.startsWith('"') || part.startsWith("'") || part.startsWith("`")) {
-      return <span key={j} style={{ color: syntaxColors.string }}>{part}</span>;
+      return <span key={j} style={{ color: colors.string }}>{part}</span>;
     }
     if (keywords.includes(part)) {
-      return <span key={j} style={{ color: syntaxColors.keyword }}>{part}</span>;
+      return <span key={j} style={{ color: colors.keyword }}>{part}</span>;
     }
     if (part.startsWith("//")) {
-      return <span key={j} style={{ color: syntaxColors.comment }}>{part}</span>;
+      return <span key={j} style={{ color: colors.comment }}>{part}</span>;
     }
     if (/^\d+$/.test(part)) {
-      return <span key={j} style={{ color: syntaxColors.number }}>{part}</span>;
+      return <span key={j} style={{ color: colors.number }}>{part}</span>;
     }
     if (part === "." || part === "," || part === "(" || part === ")" || part === "{" || part === "}" || part === ";" || part === ":") {
-      return <span key={j} style={{ color: syntaxColors.punctuation }}>{part}</span>;
+      return <span key={j} style={{ color: colors.punctuation }}>{part}</span>;
     }
     if (/^[A-Z]/.test(part)) {
-      return <span key={j} style={{ color: syntaxColors.function }}>{part}</span>;
+      return <span key={j} style={{ color: colors.function }}>{part}</span>;
     }
-    return <span key={j} style={{ color: syntaxColors.variable }}>{part}</span>;
+    return <span key={j} style={{ color: colors.variable }}>{part}</span>;
   });
 }
 
@@ -233,7 +233,7 @@ export default function GlassCodeEditor() {
                           : dark ? "rgba(167, 176, 190, 0.15)" : "rgba(148, 163, 184, 0.30)",
                       }}
                     >
-                      {highlightCode(content, isTyped, isActive)}
+                      {highlightCode(content, isTyped, isActive, dark)}
                     </span>
 
                     {isActive && (
