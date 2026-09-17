@@ -1,16 +1,67 @@
 import { useEffect, useState, useRef } from "react";
 
 const codeLines = [
-  'import { createApp } from "./app";',
+  'import { createWorkspace } from "./devsync";',
   "",
-  "const app = createApp();",
+  "const workspace = await createWorkspace({",
+  '  name: "DevSync",',
+  '  project: "collaboration-platform",',
+  "});",
   "",
-  "app.start();",
+  "const task = await workspace.tasks.create({",
+  '  title: "Build real-time chat",',
+  '  status: "in-progress",',
+  '  assignee: "Nakul",',
+  "});",
   "",
-  'console.log("DevSync ready");',
+  "await workspace.deploy({",
+  '  environment: "production",',
+  "});",
   "",
-  "export default app;",
+  'console.log("Workspace deployed successfully", task.id);',
 ];
+
+// Syntax highlighting colors
+const syntaxColors = {
+  keyword: "#F59A45",
+  function: "#7DD3FC",
+  string: "#86EFAC",
+  variable: "#F8FAFC",
+  comment: "#737B87",
+  number: "#C4B5FD",
+  punctuation: "#CBD5E1",
+};
+
+const keywords = ["import", "from", "const", "let", "var", "new", "await", "function", "return", "if", "else", "true", "false"];
+
+function highlightCode(code: string, isTyped: boolean, isActive: boolean) {
+  if (!isTyped && !isActive) return null;
+  if (!code) return <span>{code}</span>;
+
+  const parts = code.split(/("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|`(?:[^`\\]|\\.)*`|\b\w+\b)/);
+  return parts.map((part, j) => {
+    if (!part) return null;
+    if (part.startsWith('"') || part.startsWith("'") || part.startsWith("`")) {
+      return <span key={j} style={{ color: syntaxColors.string }}>{part}</span>;
+    }
+    if (keywords.includes(part)) {
+      return <span key={j} style={{ color: syntaxColors.keyword }}>{part}</span>;
+    }
+    if (part.startsWith("//")) {
+      return <span key={j} style={{ color: syntaxColors.comment }}>{part}</span>;
+    }
+    if (/^\d+$/.test(part)) {
+      return <span key={j} style={{ color: syntaxColors.number }}>{part}</span>;
+    }
+    if (part === "." || part === "," || part === "(" || part === ")" || part === "{" || part === "}" || part === ";" || part === ":") {
+      return <span key={j} style={{ color: syntaxColors.punctuation }}>{part}</span>;
+    }
+    if (/^[A-Z]/.test(part)) {
+      return <span key={j} style={{ color: syntaxColors.function }}>{part}</span>;
+    }
+    return <span key={j} style={{ color: syntaxColors.variable }}>{part}</span>;
+  });
+}
 
 export default function GlassCodeEditor() {
   const [currentLine, setCurrentLine] = useState(0);
@@ -37,99 +88,86 @@ export default function GlassCodeEditor() {
       const line = codeLines[currentLine];
       if (currentChar < line.length) {
         setCurrentChar((c) => c + 1);
-        timeout = setTimeout(typeNext, 20 + Math.random() * 30);
+        timeout = setTimeout(typeNext, 18 + Math.random() * 25);
       } else {
         setCurrentChar(0);
         setCurrentLine((l) => l + 1);
-        timeout = setTimeout(typeNext, 200 + Math.random() * 150);
+        timeout = setTimeout(typeNext, 180 + Math.random() * 120);
       }
     };
-    const startTimeout = setTimeout(typeNext, 500);
+    const startTimeout = setTimeout(typeNext, 400);
     return () => {
       clearTimeout(timeout);
       clearTimeout(startTimeout);
     };
   }, [currentLine, currentChar]);
 
-  // NOTE: the editor must always open showing line 1. There is intentionally
-  // NO auto-scroll here — the snippet is short enough to fit the container, so
-  // the initial scroll position stays at scrollTop = 0 and never jumps away
-  // from the first line unless the user scrolls manually.
   const getLineContent = (index: number): string => {
     if (index < currentLine) return codeLines[index];
     if (index === currentLine) return codeLines[index].slice(0, currentChar);
     return "";
   };
 
-  // Theme-aware colors
   const dark = isDark;
 
-  const bgColor = dark
-    ? "linear-gradient(135deg, rgba(15, 15, 35, 0.85) 0%, rgba(10, 10, 30, 0.9) 100%)"
-    : "linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 249, 252, 0.98) 100%)";
+  // Charcoal-black editor background
+  const editorBg = dark
+    ? "linear-gradient(145deg, #0B0D0F 0%, #111315 100%)"
+    : "linear-gradient(145deg, #F8FAFC 0%, #F1F5F9 100%)";
 
-  const borderColor = dark ? "rgba(166, 83, 45, 0.25)" : "rgba(166, 83, 45, 0.15)";
-  const textColor = dark ? "rgba(210, 218, 240, 0.92)" : "rgba(15, 23, 42, 0.95)";
-  const textDim = dark ? "rgba(190, 200, 230, 0.60)" : "rgba(71, 85, 105, 0.75)";
-  const textMuted = dark ? "rgba(190, 200, 230, 0.18)" : "rgba(148, 163, 184, 0.45)";
-  const lineNumColor = dark ? "rgba(180, 120, 70, 0.50)" : "rgba(166, 83, 45, 0.40)";
-  const activeBg = dark ? "rgba(245, 154, 69, 0.08)" : "rgba(245, 154, 69, 0.05)";
-  const statusColor = dark ? "rgba(160, 170, 220, 0.60)" : "rgba(71, 85, 105, 0.75)";
-  const statusBorder = dark ? "rgba(166, 83, 45, 0.12)" : "rgba(166, 83, 45, 0.08)";
-  const keywordColor = dark ? "rgba(245, 154, 69, 0.90)" : "rgba(166, 83, 45, 0.85)";
-  const stringColor = dark ? "rgba(53, 201, 130, 0.85)" : "rgba(4, 120, 87, 0.90)";
-  const commentColor = dark ? "rgba(53, 201, 130, 0.50)" : "rgba(4, 120, 87, 0.55)";
+  const editorBorder = dark
+    ? "rgba(245, 154, 69, 0.28)"
+    : "rgba(166, 83, 45, 0.18)";
 
-  // Entrance animation is a plain CSS keyframe (see .animate-hero-editor-in)
-  // so the hero does not pull the ~127 kB framer-motion runtime into the
-  // public landing bundle for a single one-shot reveal.
+  const editorShadow = dark
+    ? "0 0 0 1px rgba(255, 255, 255, 0.03), 0 20px 80px rgba(0, 0, 0, 0.45), 0 0 45px rgba(166, 83, 45, 0.12)"
+    : "0 0 0 1px rgba(0, 0, 0, 0.03), 0 20px 80px rgba(0, 0, 0, 0.10), 0 0 45px rgba(166, 83, 45, 0.06)";
+
+  const lineNumColor = dark ? "rgba(166, 123, 74, 0.40)" : "rgba(166, 83, 45, 0.35)";
+  const activeLineBg = dark ? "rgba(245, 154, 69, 0.06)" : "rgba(245, 154, 69, 0.04)";
+  const statusBarBg = dark ? "rgba(255, 255, 255, 0.02)" : "rgba(0, 0, 0, 0.02)";
+  const statusBarBorder = dark ? "rgba(255, 255, 255, 0.06)" : "rgba(0, 0, 0, 0.06)";
+  const statusText = dark ? "rgba(167, 176, 190, 0.60)" : "rgba(71, 85, 105, 0.75)";
+  const readyColor = dark ? "#35C982" : "#059669";
+  const readyBg = dark ? "rgba(53, 201, 130, 0.10)" : "rgba(5, 150, 105, 0.06)";
+
   return (
     <div className="relative group animate-hero-editor-in">
-      {/* Glow behind editor */}
+      {/* Subtle glow behind editor */}
       <div
-        className="absolute -inset-4 rounded-2xl opacity-40 group-hover:opacity-60 transition-opacity duration-700"
+        className="absolute -inset-6 rounded-3xl opacity-30 group-hover:opacity-50 transition-opacity duration-700 pointer-events-none"
         style={{
-          background:
-            "radial-gradient(circle at 50% 50%, rgba(99,102,241,0.15) 0%, transparent 70%)",
-          filter: "blur(20px)",
+          background: "radial-gradient(ellipse at 50% 40%, rgba(166, 83, 45, 0.18) 0%, transparent 70%)",
+          filter: "blur(30px)",
         }}
       />
 
-      {/* Editor */}
+      {/* Editor container */}
       <div
-        className="relative rounded-2xl border overflow-hidden shadow-2xl backdrop-blur-xl transition-colors duration-300"
+        className="relative rounded-[20px] border overflow-hidden transition-colors duration-300"
         style={{
-          borderColor,
-          background: bgColor,
-          boxShadow: dark
-            ? "0 0 40px rgba(166, 83, 45, 0.08), inset 0 1px 0 rgba(255,255,255,0.04)"
-            : "0 0 40px rgba(166, 83, 45, 0.05), inset 0 1px 0 rgba(255,255,255,0.8)",
+          background: editorBg,
+          borderColor: editorBorder,
+          boxShadow: editorShadow,
         }}
       >
-        {/* Neon edge glow */}
-        <div
-          className="absolute inset-0 rounded-2xl pointer-events-none opacity-50"
-          style={{
-            boxShadow: dark
-              ? "inset 0 0 30px rgba(166, 83, 45, 0.06)"
-              : "inset 0 0 30px rgba(166, 83, 45, 0.03)",
-          }}
-        />
-
         {/* Title bar */}
         <div
-          className="flex items-center gap-2 px-4 py-3.5 border-b transition-colors duration-300"
-          style={{ borderColor: dark ? "rgba(166, 83, 45, 0.12)" : "rgba(166, 83, 45, 0.08)" }}
+          className="flex items-center gap-2 px-4 py-3 border-b"
+          style={{ borderColor: dark ? "rgba(255, 255, 255, 0.06)" : "rgba(0, 0, 0, 0.06)" }}
         >
+          {/* Window buttons */}
           <div className="flex items-center gap-1.5">
-            <div className="w-2.5 h-2.5 rounded-full bg-red-500/80" />
-            <div className="w-2.5 h-2.5 rounded-full bg-primary/80" />
-            <div className="w-2.5 h-2.5 rounded-full bg-emerald-500/80" />
+            <div className="w-2.5 h-2.5 rounded-full bg-[#EF6B73]/80 hover:bg-[#EF6B73] transition-colors" />
+            <div className="w-2.5 h-2.5 rounded-full bg-[#F4B740]/80 hover:bg-[#F4B740] transition-colors" />
+            <div className="w-2.5 h-2.5 rounded-full bg-[#35C982]/80 hover:bg-[#35C982] transition-colors" />
           </div>
+
+          {/* File tab */}
           <div
-            className="flex items-center gap-1.5 ml-3 text-[10px] px-2.5 py-1 rounded-md font-mono transition-colors duration-300"
+            className="flex items-center gap-1.5 ml-3 text-[11px] px-3 py-1.5 rounded-lg font-mono transition-colors"
             style={{
-              color: dark ? "rgba(245, 154, 69, 0.70)" : "rgba(166, 83, 45, 0.70)",
+              color: dark ? "rgba(245, 154, 69, 0.80)" : "rgba(166, 83, 45, 0.80)",
               background: dark ? "rgba(245, 154, 69, 0.08)" : "rgba(245, 154, 69, 0.05)",
             }}
           >
@@ -137,17 +175,17 @@ export default function GlassCodeEditor() {
               <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
               <polyline points="14,2 14,8 20,8" />
             </svg>
-            <span>app.ts</span>
+            <span>app.js</span>
           </div>
+
           <div className="flex-1" />
+
+          {/* Ready badge */}
           <div
-            className="flex items-center gap-1 text-[10px] font-mono px-2 py-1 rounded-full transition-colors duration-300"
-            style={{
-              color: dark ? "rgba(52, 211, 153, 0.7)" : "rgba(5, 150, 105, 0.8)",
-              background: dark ? "rgba(52, 211, 153, 0.08)" : "rgba(5, 150, 105, 0.06)",
-            }}
+            className="flex items-center gap-1.5 text-[10px] font-mono px-2.5 py-1 rounded-full"
+            style={{ color: readyColor, background: readyBg }}
           >
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: readyColor }} />
             <span>Ready</span>
           </div>
         </div>
@@ -155,22 +193,21 @@ export default function GlassCodeEditor() {
         {/* Code area */}
         <div
           ref={containerRef}
-          className="p-6 md:p-8 font-mono text-[13px] md:text-[14px] leading-[1.8] overflow-y-auto scrollbar-thin transition-colors duration-300"
-          style={{
-            scrollbarWidth: "thin",
-            scrollbarColor: dark ? "rgba(99,102,241,0.2) transparent" : "rgba(99,102,241,0.15) transparent",
-          }}
+          className="p-5 md:p-7 font-mono text-[13px] md:text-[14px] leading-[1.9] overflow-y-auto"
+          style={{ scrollbarWidth: "thin", scrollbarColor: dark ? "rgba(166, 83, 45, 0.15) transparent" : "rgba(166, 83, 45, 0.10) transparent" }}
         >
           <div className="flex">
+            {/* Line numbers */}
             <div
-              className="text-right pr-5 select-none space-y-[5px] font-mono text-[13px] md:text-[15px]"
-              style={{ color: lineNumColor, minWidth: "36px" }}
+              className="text-right pr-5 select-none space-y-[5px] font-mono text-[12px] md:text-[13px]"
+              style={{ color: lineNumColor, minWidth: "32px" }}
             >
               {codeLines.map((_, i) => (
                 <div key={i}>{i + 1}</div>
               ))}
             </div>
 
+            {/* Code content */}
             <div className="space-y-[5px] flex-1">
               {codeLines.map((_, i) => {
                 const content = getLineContent(i);
@@ -180,29 +217,23 @@ export default function GlassCodeEditor() {
                 return (
                   <div
                     key={i}
-                    className="flex items-center gap-2 relative transition-colors duration-300"
+                    className="flex items-center gap-2 relative"
                     style={{
-                      background: isActive ? activeBg : "transparent",
+                      background: isActive ? activeLineBg : "transparent",
                       borderRadius: isActive ? "4px" : "0",
                       paddingLeft: isActive ? "8px" : "0",
                       marginLeft: isActive ? "-8px" : "0",
                     }}
                   >
                     <span
-                      className="transition-colors duration-300"
+                      className="transition-colors"
                       style={{
-                        color: isTyped ? textColor : isActive ? textDim : textMuted,
+                        color: isTyped || isActive
+                          ? dark ? "rgba(210, 218, 240, 0.90)" : "rgba(15, 23, 42, 0.90)"
+                          : dark ? "rgba(167, 176, 190, 0.15)" : "rgba(148, 163, 184, 0.30)",
                       }}
                     >
-                      {content.split(/(\b(?:import|from|const|let|var|new|await|function|return|if|else|true|false)\b|"[^"]*"|'[^']*')/).map((part, j) => {
-                        if (part.startsWith('"') || part.startsWith("'"))
-                          return <span key={j} style={{ color: stringColor }}>{part}</span>;
-                        if (["import","from","const","let","var","new","await","function","return","if","else","true","false"].includes(part))
-                          return <span key={j} style={{ color: keywordColor }}>{part}</span>;
-                        if (part.startsWith("//"))
-                          return <span key={j} style={{ color: commentColor }}>{part}</span>;
-                        return <span key={j}>{part}</span>;
-                      })}
+                      {highlightCode(content, isTyped, isActive)}
                     </span>
 
                     {isActive && (
@@ -220,23 +251,18 @@ export default function GlassCodeEditor() {
 
         {/* Status bar */}
         <div
-          className="flex items-center justify-between px-4 py-2 border-t text-[10px] font-mono transition-colors duration-300"
-          style={{
-            borderColor: statusBorder,
-            background: dark ? "rgba(100, 110, 180, 0.03)" : "rgba(100, 110, 180, 0.02)",
-            color: statusColor,
-          }}
+          className="flex items-center justify-between px-4 py-2 border-t text-[10px] font-mono"
+          style={{ borderColor: statusBarBorder, background: statusBarBg, color: statusText }}
         >
           <div className="flex items-center gap-3">
-            <span>TypeScript</span>
-            <span style={{ color: dark ? "rgba(52, 211, 153, 0.6)" : "rgba(5, 150, 105, 0.7)" }}>
-              ● 0 errors
-            </span>
+            <span>JavaScript</span>
+            <span style={{ color: readyColor }}>● 0 errors</span>
             <span>UTF-8</span>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <span>Ln {Math.min(currentLine + 1, codeLines.length)}</span>
             <span>Col {currentChar + 1}</span>
+            <span>Spaces: 2</span>
           </div>
         </div>
       </div>
