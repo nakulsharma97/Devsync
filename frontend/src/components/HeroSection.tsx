@@ -55,7 +55,7 @@ export default function HeroSection({ stats }: { stats: PublicStats | null }) {
           className="absolute inset-0"
           style={{
             backgroundImage:
-              "linear-gradient(oklch(0.58 0.10 255) 1px, transparent 1px), linear-gradient(90deg, oklch(0.58 0.10 255) 1px, transparent 1px)",
+              "linear-gradient(rgba(166, 83, 45, 0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(166, 83, 45, 0.3) 1px, transparent 1px)",
             backgroundSize: "72px 72px",
           }}
         />
@@ -107,7 +107,7 @@ export default function HeroSection({ stats }: { stats: PublicStats | null }) {
             >
               <Button
                 size="lg"
-                onClick={() => navigate("/auth")}
+                onClick={() => navigate("/auth?mode=register")}
                 className="w-full sm:w-auto text-sm px-8 h-11 font-medium"
               >
                 <span className="flex items-center">
