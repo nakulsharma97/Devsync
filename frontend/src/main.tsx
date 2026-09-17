@@ -75,7 +75,7 @@ const Bookmarks = lazy(() => import("./pages/Bookmarks"));
 
 function App() {
   return (
-    <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+    <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
       <BrowserRouter>
         <ScrollToTop />
         <AuthProvider>
