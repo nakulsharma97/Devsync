@@ -108,7 +108,8 @@ export default function HeroSection({ stats }: { stats: PublicStats | null }) {
               <Button
                 size="lg"
                 onClick={() => navigate("/auth?mode=register")}
-                className="w-full sm:w-auto text-sm px-8 h-11 font-medium"
+                className="w-full sm:w-auto text-sm px-8 h-11 font-medium bg-primary text-primary-foreground hover:bg-[#fb923c]"
+                style={{ boxShadow: "0 0 24px rgba(249, 115, 22, 0.25)" }}
               >
                 <span className="flex items-center">
                   Start Free

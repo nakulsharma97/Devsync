@@ -75,9 +75,9 @@ export default function Navbar() {
           <Button variant="ghost" onClick={() => navigate("/auth")} className={`transition-all duration-300 font-medium ${
             scrolled ? "text-xs h-7 px-2.5" : "text-sm h-9 px-4"
           }`}>Sign in</Button>
-          <Button onClick={() => navigate("/auth?mode=register")} className={`transition-all duration-300 bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg hover:shadow-xl font-medium ${
+          <Button onClick={() => navigate("/auth?mode=register")} className={`transition-all duration-300 bg-primary text-primary-foreground hover:bg-[#fb923c] font-medium ${
             scrolled ? "text-xs h-7 px-3" : "text-sm h-9 px-4"
-          }`}>
+          }`} style={{ boxShadow: "0 0 24px rgba(249, 115, 22, 0.25)" }}>
             Start Free<ArrowRight className={`ml-1.5 transition-all duration-300 ${scrolled ? "w-3 h-3" : "w-3.5 h-3.5"}`} />
           </Button>
         </nav>
