@@ -345,7 +345,7 @@ export default function AuthPage() {
         : email && password.length >= 8 && fullName;
 
   return (
-    <div className="min-h-screen bg-background text-white overflow-hidden">
+    <div className="min-h-screen bg-background overflow-hidden">
       <style>{keyframesStyle}</style>
 
       {/* Background effects */}
@@ -359,14 +359,14 @@ export default function AuthPage() {
       {/* ─── SPLIT LAYOUT ─── */}
       <div className="relative z-10 min-h-screen flex">
         {/* ─── LEFT: Product Showcase ─── */}
-        <div className="hidden lg:flex lg:w-1/2 flex-col justify-start p-8 xl:p-12 relative overflow-hidden">
+        <div className="hidden lg:flex lg:w-1/2 flex-col justify-start p-8 xl:p-12 relative overflow-hidden text-white">
           <div className="absolute inset-0 bg-gradient-to-br from-primary/15 via-transparent to-accent/10 pointer-events-none" />
 
           {/* Back to home */}
           <div className="relative z-10">
             <button
               onClick={() => navigate("/")}
-              className="flex items-center gap-2 text-white/50 hover:text-white transition-colors group"
+              className="flex items-center gap-2 text-white/60 hover:text-white transition-colors group"
             >
               <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center transition-transform group-hover:scale-105">
                 <Code2 className="w-4 h-4 text-white" />
@@ -391,7 +391,7 @@ export default function AuthPage() {
                   built for collaboration.
                 </span>
               </h2>
-              <p className="text-sm text-white/50 mt-3 max-w-md leading-relaxed">
+              <p className="text-sm text-white/60 mt-3 max-w-md leading-relaxed">
                 Projects, Kanban boards, real-time team chat, file sharing and
                 GitHub integration — one workspace for your whole team.
               </p>
@@ -402,8 +402,7 @@ export default function AuthPage() {
               <CodePreview />
             </div>
 
-            {/* Features */}
-            <div className="grid grid-cols-2 gap-4 animate-fade-in-up delay-3 max-w-lg">
+            {/* Features */}              <div className="grid grid-cols-2 gap-4 animate-fade-in-up delay-3 max-w-lg text-white">
               <FeatureCard
                 icon={Zap}
                 title="Project Workspaces"
@@ -432,7 +431,7 @@ export default function AuthPage() {
 
             {/* Stats — real server-computed aggregates */}
             {stats && (
-              <div className="grid grid-cols-3 gap-6 pt-4 border-t border-white/10 animate-fade-in-up delay-4 max-w-lg">
+              <div className="grid grid-cols-3 gap-6 pt-4 border-t border-white/15 animate-fade-in-up delay-4 max-w-lg">
                 <AnimatedStat value={stats.users} label="Developers" />
                 <AnimatedStat value={stats.projects} label="Projects" />
                 <AnimatedStat value={stats.tasksCompleted} label="Tasks Done" />
@@ -441,17 +440,17 @@ export default function AuthPage() {
           </div>
 
           {/* Footer */}
-          <div className="relative z-10 mt-auto pt-8 text-xs text-white/30">
+          <div className="relative z-10 mt-auto pt-8 text-xs text-white/40">
             &copy; {new Date().getFullYear()} DevSync. All rights reserved.
           </div>
         </div>
 
         {/* ─── RIGHT: Auth Form ─── */}
-        <div className="w-full lg:w-1/2 flex items-center justify-center p-4 sm:p-8 relative">
+        <div className="w-full lg:w-1/2 flex items-center justify-center p-4 sm:p-8 relative bg-background">
           {/* Mobile back button */}
           <button
             onClick={() => navigate("/")}
-            className="lg:hidden absolute top-4 left-4 flex items-center gap-2 text-white/50 hover:text-white transition-colors"
+            className="lg:hidden absolute top-4 left-4 flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
           >
             <Code2 className="w-5 h-5" />
             <span className="text-xs font-semibold">DevSync</span>
@@ -480,7 +479,7 @@ export default function AuthPage() {
                       ? "Welcome back"
                       : "Join DevSync"}
               </h1>
-              <p className="text-sm text-white/50 mt-1">
+              <p className="text-sm text-muted-foreground mt-1">
                 {useOtp
                   ? "We sent a code to your email"
                   : mode === "register" && registrationStep === "verify"
@@ -497,7 +496,7 @@ export default function AuthPage() {
                 href={`${
                   import.meta.env.VITE_API_URL || "/api"
                 }/../oauth2/authorization/github`}
-                className="flex-1 flex items-center justify-center gap-2 h-10 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20 transition-all text-sm text-white/70 hover:text-white"
+                className="flex-1 flex items-center justify-center gap-2 h-10 rounded-xl border border-border bg-muted/50 hover:bg-muted hover:border-border transition-all text-sm text-foreground/70 hover:text-foreground"
               >
                 <Github className="w-4 h-4" />
                 <span className="hidden sm:inline">GitHub</span>
@@ -506,7 +505,7 @@ export default function AuthPage() {
                 href={`${
                   import.meta.env.VITE_API_URL || "/api"
                 }/../oauth2/authorization/google`}
-                className="flex-1 flex items-center justify-center gap-2 h-10 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20 transition-all text-sm text-white/70 hover:text-white"
+                className="flex-1 flex items-center justify-center gap-2 h-10 rounded-xl border border-border bg-muted/50 hover:bg-muted hover:border-border transition-all text-sm text-foreground/70 hover:text-foreground"
               >
                 <svg className="w-4 h-4" viewBox="0 0 24 24">
                   <path
@@ -533,10 +532,10 @@ export default function AuthPage() {
             {/* Divider */}
             <div className="relative mb-6">
               <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-white/10" />
+                <div className="w-full border-t border-border" />
               </div>
               <div className="relative flex justify-center text-xs">
-                <span className="bg-background px-3 text-white/30">
+                <span className="bg-background px-3 text-muted-foreground">
                   or continue with email
                 </span>
               </div>
@@ -548,7 +547,7 @@ export default function AuthPage() {
               {mode === "register" && registrationStep === "form" && !useOtp && (
                 <>
                   <div>
-                    <label className="block text-xs font-medium text-white/60 mb-1.5">
+                    <label className="block text-xs font-medium text-muted-foreground mb-1.5">
                       Full name
                     </label>
                     <Input
@@ -556,12 +555,12 @@ export default function AuthPage() {
                       placeholder="John Doe"
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
-                      className="h-11 text-sm bg-white/5 border-white/10 text-white placeholder:text-white/30 focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all"
+                      className="h-11 text-sm bg-muted/50 border-border text-foreground placeholder:text-muted-foreground/60 focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all"
                       required
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-white/60 mb-1.5">
+                    <label className="block text-xs font-medium text-muted-foreground mb-1.5">
                       Username
                     </label>
                     <Input
@@ -569,7 +568,7 @@ export default function AuthPage() {
                       placeholder="johndoe"
                       value={username}
                       onChange={(e) => setUsername(e.target.value)}
-                      className="h-11 text-sm bg-white/5 border-white/10 text-white placeholder:text-white/30 focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all"
+                      className="h-11 text-sm bg-muted/50 border-border text-foreground placeholder:text-muted-foreground/60 focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all"
                     />
                   </div>
                 </>
@@ -577,11 +576,11 @@ export default function AuthPage() {
 
               {useOtp || (mode === "register" && registrationStep === "verify") ? (
                 <div>
-                  <label className="block text-xs font-medium text-white/60 mb-1.5">
+                  <label className="block text-xs font-medium text-muted-foreground mb-1.5">
                     Enter verification code
                   </label>
                   <OtpInput value={otpCode} onChange={setOtpCode} />
-                  <p className="text-xs text-white/40 mt-2 text-center">
+                  <p className="text-xs text-muted-foreground mt-2 text-center">
                     Sent to{" "}
                     <span className="text-primary">{email || "your email"}</span>
                   </p>
@@ -591,7 +590,7 @@ export default function AuthPage() {
                       type="button"
                       onClick={handleResendOtp}
                       disabled={resendCooldown > 0 || localLoading}
-                      className="text-xs text-white/40 hover:text-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="text-xs text-muted-foreground hover:text-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {resendCooldown > 0
                         ? `Resend code in ${resendCooldown}s`
@@ -602,7 +601,7 @@ export default function AuthPage() {
               ) : (
                 <>
                   <div>
-                    <label className="block text-xs font-medium text-white/60 mb-1.5">
+                    <label className="block text-xs font-medium text-muted-foreground mb-1.5">
                       {mode === "login" ? "Email or username" : "Email address"}
                     </label>
                     <Input
@@ -612,12 +611,12 @@ export default function AuthPage() {
                       }
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className="h-11 text-sm bg-white/5 border-white/10 text-white placeholder:text-white/30 focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all"
+                      className="h-11 text-sm bg-muted/50 border-border text-foreground placeholder:text-muted-foreground/60 focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all"
                       required
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-white/60 mb-1.5">
+                    <label className="block text-xs font-medium text-muted-foreground mb-1.5">
                       Password
                     </label>
                     <Input
@@ -629,7 +628,7 @@ export default function AuthPage() {
                       }
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="h-11 text-sm bg-white/5 border-white/10 text-white placeholder:text-white/30 focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all"
+                      className="h-11 text-sm bg-muted/50 border-border text-foreground placeholder:text-muted-foreground/60 focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all"
                       required
                       minLength={mode === "register" ? 8 : 1}
                     />
@@ -637,7 +636,7 @@ export default function AuthPage() {
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        className="text-xs text-white/40 hover:text-white/60 transition-colors"
+                        className="text-xs text-muted-foreground hover:text-foreground transition-colors"
                       >
                         {showPassword ? "Hide" : "Show"} password
                       </button>
@@ -662,9 +661,9 @@ export default function AuthPage() {
                     type="checkbox"
                     checked={rememberMe}
                     onChange={(e) => setRememberMe(e.target.checked)}
-                    className="w-4 h-4 rounded border-white/20 bg-white/5 checked:bg-primary checked:border-primary focus:ring-primary/20 focus:ring-2 accent-primary"
+                    className="w-4 h-4 rounded border-border bg-muted checked:bg-primary checked:border-primary focus:ring-primary/20 focus:ring-2 accent-primary"
                   />
-                  <span className="text-xs text-white/50">Remember me</span>
+                  <span className="text-xs text-muted-foreground">Remember me</span>
                 </label>
               )}
 
@@ -700,7 +699,7 @@ export default function AuthPage() {
                 <button
                   type="button"
                   onClick={handleBackToForm}
-                  className="w-full mt-2 text-xs text-white/40 hover:text-primary transition-colors"
+                  className="w-full mt-2 text-xs text-muted-foreground hover:text-primary transition-colors"
                 >
                   Back to registration form
                 </button>
@@ -712,7 +711,7 @@ export default function AuthPage() {
               <button
                 type="button"
                 onClick={() => setUseOtp(true)}
-                className="w-full mt-3 text-xs text-white/40 hover:text-primary transition-colors flex items-center justify-center gap-1"
+                className="w-full mt-3 text-xs text-muted-foreground hover:text-primary transition-colors flex items-center justify-center gap-1"
               >
                 <Mail className="w-3 h-3" />
                 Sign in with a magic code instead
@@ -722,7 +721,7 @@ export default function AuthPage() {
               <button
                 type="button"
                 onClick={() => setUseOtp(false)}
-                className="w-full mt-3 text-xs text-white/40 hover:text-primary transition-colors"
+                className="w-full mt-3 text-xs text-muted-foreground hover:text-primary transition-colors"
               >
                 Back to password sign in
               </button>
@@ -731,7 +730,7 @@ export default function AuthPage() {
             {/* Divider */}
             <div className="relative mt-6 mb-4">
               <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-white/10" />
+                <div className="w-full border-t border-border" />
               </div>
             </div>
 
@@ -739,7 +738,7 @@ export default function AuthPage() {
             <div className="text-center">
               <button
                 type="button"
-                className="text-sm text-white/50 hover:text-white transition-colors"
+                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
                 onClick={() => {
                   setMode(mode === "login" ? "register" : "login");
                   setError(null);
@@ -767,10 +766,10 @@ export default function AuthPage() {
             </div>
 
             {/* Footer links */}
-            <div className="flex items-center justify-center gap-4 mt-8 text-xs text-white/30">
-              <button className="hover:text-white/50 transition-colors">Privacy</button>
-              <button className="hover:text-white/50 transition-colors">Terms</button>
-              <button className="hover:text-white/50 transition-colors">Support</button>
+            <div className="flex items-center justify-center gap-4 mt-8 text-xs text-muted-foreground/60">
+              <button className="hover:text-muted-foreground transition-colors">Privacy</button>
+              <button className="hover:text-muted-foreground transition-colors">Terms</button>
+              <button className="hover:text-muted-foreground transition-colors">Support</button>
             </div>
           </div>
         </div>
