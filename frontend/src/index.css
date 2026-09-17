@@ -49,6 +49,16 @@
   --color-success: var(--success);
   --color-warning: var(--warning);
   --color-danger: var(--danger);
+  --color-bg-primary: var(--bg-primary);
+  --color-bg-secondary: var(--bg-secondary);
+  --color-bg-card: var(--bg-card);
+  --color-bg-card-hover: var(--bg-card-hover);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-muted: var(--text-muted);
+  --color-border-custom: var(--border-color);
+  --color-accent: var(--accent-color);
+  --color-accent-soft: var(--accent-soft);
   --color-copper: #A6532D;
   --color-copper-light: #F59A45;
   --color-navy: #080B10;
@@ -67,25 +77,39 @@
 :root {
   --radius: 0.625rem;
 
-  --background: #F5F7FA;
-  --background-secondary: #FFFFFF;
-  --foreground: #172033;
-  --card: #FFFFFF;
-  --card-foreground: #172033;
-  --popover: #FFFFFF;
-  --popover-foreground: #172033;
-  --primary: #C76532;
+  /* User-requested design tokens */
+  --bg-primary: #f5f7fa;
+  --bg-secondary: #ffffff;
+  --bg-card: #ffffff;
+  --bg-card-hover: #fff7f1;
+  --text-primary: #172033;
+  --text-secondary: #475569;
+  --text-muted: #64748b;
+  --border-color: #dce2e8;
+  --accent-color: #c76532;
+  --accent-soft: #fff0e7;
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+
+  /* shadcn/ui aliases */
+  --background: var(--bg-primary);
+  --background-secondary: var(--bg-secondary);
+  --foreground: var(--text-primary);
+  --card: var(--bg-card);
+  --card-foreground: var(--text-primary);
+  --popover: var(--bg-card);
+  --popover-foreground: var(--text-primary);
+  --primary: var(--accent-color);
   --primary-foreground: #FFFFFF;
   --secondary: #EEF1F5;
   --secondary-foreground: #374151;
   --muted: #F1F3F7;
-  --muted-foreground: #64748B;
+  --muted-foreground: var(--text-muted);
   --accent: #D9773F;
-  --accent-foreground: #172033;
+  --accent-foreground: var(--text-primary);
   --destructive: #EF6B73;
-  --border: #DCE2E8;
-  --input: #DCE2E8;
-  --ring: #C76532;
+  --border: var(--border-color);
+  --input: var(--border-color);
+  --ring: var(--accent-color);
   --info: #5B9CF6;
   --success: #35C982;
   --warning: #F4B740;
@@ -97,14 +121,14 @@
   --chart-4: #5B9CF6;
   --chart-5: #F4B740;
 
-  --sidebar: #FFFFFF;
-  --sidebar-foreground: #475569;
-  --sidebar-primary: #C76532;
+  --sidebar: var(--bg-card);
+  --sidebar-foreground: var(--text-secondary);
+  --sidebar-primary: var(--accent-color);
   --sidebar-primary-foreground: #FFFFFF;
-  --sidebar-accent: #FFF0E7;
-  --sidebar-accent-foreground: #C76532;
-  --sidebar-border: #DCE2E8;
-  --sidebar-ring: #C76532;
+  --sidebar-accent: var(--accent-soft);
+  --sidebar-accent-foreground: var(--accent-color);
+  --sidebar-border: var(--border-color);
+  --sidebar-ring: var(--accent-color);
 
   --scrollbar-thumb: #D1D5DB;
   --scrollbar-thumb-hover: #9CA3AF;
@@ -115,25 +139,39 @@
    DARK MODE — Deep charcoal + copper/orange accents
    ═══════════════════════════════════════════════════ */
 .dark {
-  --background: #080a0d;
-  --background-secondary: #0f141b;
-  --foreground: #F8FAFC;
-  --card: #11161c;
-  --card-foreground: #F8FAFC;
-  --popover: #11161c;
-  --popover-foreground: #F8FAFC;
+  /* User-requested design tokens */
+  --bg-primary: #0f141b;
+  --bg-secondary: #151c25;
+  --bg-card: #1b2430;
+  --bg-card-hover: #222d3a;
+  --text-primary: #f8fafc;
+  --text-secondary: #cbd5e1;
+  --text-muted: #94a3b8;
+  --border-color: #334155;
+  --accent-color: #d9773f;
+  --accent-soft: rgba(217, 119, 63, 0.16);
+  --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.25), 0 0 1px rgba(0, 0, 0, 0.3);
+
+  /* shadcn/ui aliases */
+  --background: var(--bg-primary);
+  --background-secondary: var(--bg-secondary);
+  --foreground: var(--text-primary);
+  --card: var(--bg-card);
+  --card-foreground: var(--text-primary);
+  --popover: var(--bg-card);
+  --popover-foreground: var(--text-primary);
   --primary: #f97316;
   --primary-foreground: #0b0d10;
-  --secondary: #11161c;
-  --secondary-foreground: #CBD5E1;
+  --secondary: var(--bg-card);
+  --secondary-foreground: var(--text-secondary);
   --muted: #1a1f28;
-  --muted-foreground: #94A3B8;
-  --accent: #f97316;
+  --muted-foreground: var(--text-muted);
+  --accent: var(--accent-color);
   --accent-foreground: #0b0d10;
   --destructive: #EF6B73;
-  --border: #2a3040;
+  --border: var(--border-color);
   --input: #1a1f28;
-  --ring: #f97316;
+  --ring: var(--accent-color);
   --info: #5B9CF6;
   --success: #35C982;
   --warning: #F4B740;
@@ -145,14 +183,14 @@
   --chart-4: #5B9CF6;
   --chart-5: #F4B740;
 
-  --sidebar: #0c1017;
-  --sidebar-foreground: #CBD5E1;
-  --sidebar-primary: #f97316;
-  --sidebar-primary-foreground: #0b0d10;
-  --sidebar-accent: rgba(249, 115, 22, 0.16);
-  --sidebar-accent-foreground: #f97316;
-  --sidebar-border: #2a3040;
-  --sidebar-ring: #f97316;
+  --sidebar: var(--bg-secondary);
+  --sidebar-foreground: var(--text-secondary);
+  --sidebar-primary: var(--accent-color);
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: var(--accent-soft);
+  --sidebar-accent-foreground: var(--accent-color);
+  --sidebar-border: var(--border-color);
+  --sidebar-ring: var(--accent-color);
 
   --scrollbar-thumb: #2A3444;
   --scrollbar-thumb-hover: #3A4454;
