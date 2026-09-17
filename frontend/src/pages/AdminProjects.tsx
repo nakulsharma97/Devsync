@@ -87,14 +87,14 @@ import { toast } from "sonner";
 const PAGE_SIZE = 10;
 
 const statusStyles: Record<string, string> = {
-  ACTIVE: "bg-accent/10 text-emerald-500 border-accent/20",
+  ACTIVE: "bg-accent/10 text-success border-accent/20",
   ARCHIVED: "bg-primary/10 text-primary border-primary/20",
-  COMPLETED: "bg-blue-500/10 text-blue-500 border-blue-500/20",
+  COMPLETED: "bg-info/10 text-info border-info/20",
   DELETED: "bg-muted text-muted-foreground border-border/50",
 };
 
 const visibilityStyles: Record<string, string> = {
-  PUBLIC: "bg-blue-500/10 text-blue-500 border-blue-500/20",
+  PUBLIC: "bg-info/10 text-info border-info/20",
   PRIVATE: "bg-accent/10 text-accent border-accent/20",
 };
 
@@ -281,9 +281,9 @@ export default function AdminProjects() {
 
   const statCards = [
     { label: "Total Projects", value: stats?.total ?? 0, icon: FolderGit2, color: "text-accent" },
-    { label: "Active", value: stats?.active ?? 0, icon: CircleCheck, color: "text-emerald-500" },
+    { label: "Active", value: stats?.active ?? 0, icon: CircleCheck, color: "text-success" },
     { label: "Archived", value: stats?.archived ?? 0, icon: Archive, color: "text-primary" },
-    { label: "Public", value: stats?.publicCount ?? 0, icon: Globe, color: "text-blue-500" },
+    { label: "Public", value: stats?.publicCount ?? 0, icon: Globe, color: "text-info" },
     { label: "Private", value: stats?.privateCount ?? 0, icon: Lock, color: "text-accent" },
   ];
 
@@ -521,7 +521,7 @@ export default function AdminProjects() {
                                   <DropdownMenuItem
                                     onClick={() => handleRestore(p)}
                                     disabled={busyId === p.id || isDeleted}
-                                    className="text-emerald-500 focus:text-emerald-500"
+                                    className="text-success focus:text-success"
                                   >
                                     <ArchiveRestore className="w-3.5 h-3.5 mr-2" /> Restore
                                   </DropdownMenuItem>
@@ -727,7 +727,7 @@ export default function AdminProjects() {
                     <p className="text-[11px] text-muted-foreground">Total Tasks</p>
                   </div>
                   <div className="border border-border/50 rounded-lg p-3">
-                    <CircleCheck className="w-4 h-4 text-emerald-500 mb-1" />
+                    <CircleCheck className="w-4 h-4 text-success mb-1" />
                     <p className="text-lg font-bold">{detail.kanbanStats.completedTasks}</p>
                     <p className="text-[11px] text-muted-foreground">Completed</p>
                   </div>
@@ -796,8 +796,8 @@ export default function AdminProjects() {
                           variant="outline"
                           className={
                             a.type === "TASK"
-                              ? "bg-blue-500/10 text-blue-500 border-blue-500/20 text-[10px]"
-                              : "bg-cyan-500/10 text-cyan-500 border-cyan-500/20 text-[10px]"
+                              ? "bg-info/10 text-info border-info/20 text-[10px]"
+                              : "bg-info/10 text-info border-info/20 text-[10px]"
                           }
                         >
                           {a.type}

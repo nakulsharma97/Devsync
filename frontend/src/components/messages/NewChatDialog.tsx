@@ -14,7 +14,7 @@ interface NewChatDialogProps {
 function presenceColor(status: string | null | undefined): string {
   switch (status) {
     case "ONLINE":
-      return "bg-emerald-500";
+      return "bg-success";
     case "AWAY":
       return "bg-primary";
     default:
@@ -108,7 +108,7 @@ export function NewChatDialog({ open, onOpenChange, onSelectUser }: NewChatDialo
                     className="w-full text-left flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-accent/5 transition-colors"
                   >
                     <span className="relative shrink-0">
-                      <span className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/20 to-blue-500/20 text-primary flex items-center justify-center overflow-hidden text-sm font-bold">
+                      <span className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/20 to-info/20 text-primary flex items-center justify-center overflow-hidden text-sm font-bold">
                         {u.avatarUrl ? (
                           <img src={u.avatarUrl} alt={u.fullName} className="w-full h-full object-cover" />
                         ) : (

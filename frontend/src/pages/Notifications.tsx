@@ -611,7 +611,7 @@ function SummaryCard({ total, unread, read }: { total: number; unread: number; r
   const rows = [
     { icon: Bell, label: "Total notifications", value: total, color: "text-primary bg-primary/10" },
     { icon: Circle, label: "Unread", value: unread, color: "text-red-500 bg-red-500/10" },
-    { icon: CheckCheck, label: "Read", value: read, color: "text-emerald-500 bg-accent/10" },
+    { icon: CheckCheck, label: "Read", value: read, color: "text-success bg-accent/10" },
   ];
   return (
     <section className="rounded-2xl border border-border/40 bg-card/60 p-5">
@@ -643,13 +643,13 @@ function QuickTipsCard() {
       icon: Bell,
       title: "Stay updated",
       body: "Never miss an important project update.",
-      color: "text-blue-500 bg-blue-500/10",
+      color: "text-info bg-info/10",
     },
     {
       icon: CheckCheck,
       title: "Mark as read",
       body: "Keep your notification center clean.",
-      color: "text-emerald-500 bg-accent/10",
+      color: "text-success bg-accent/10",
     },
   ];
   return (

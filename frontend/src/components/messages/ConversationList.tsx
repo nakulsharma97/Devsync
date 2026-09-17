@@ -21,7 +21,7 @@ interface ConversationListProps {
 function presenceColor(status: string | null | undefined): string {
   switch (status) {
     case "ONLINE":
-      return "bg-emerald-500";
+      return "bg-success";
     case "AWAY":
       return "bg-primary";
     default:
@@ -69,7 +69,7 @@ function ConversationRow({
             "w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold",
             isRoom
               ? "bg-gradient-to-br from-accent/20 to-pink-500/20 text-accent"
-              : "bg-gradient-to-br from-primary/20 to-blue-500/20 text-primary"
+              : "bg-gradient-to-br from-primary/20 to-info/20 text-primary"
           )}
         >
           {conv.avatarUrl ? (
@@ -140,7 +140,7 @@ function PeopleResult({ user, onClick }: { user: PublicUserDto; onClick: () => v
       className="w-full text-left flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-accent/5 transition-colors"
     >
       <span className="relative shrink-0">
-        <span className="w-9 h-9 rounded-full bg-gradient-to-br from-primary/20 to-blue-500/20 text-primary flex items-center justify-center overflow-hidden text-sm font-bold">
+        <span className="w-9 h-9 rounded-full bg-gradient-to-br from-primary/20 to-info/20 text-primary flex items-center justify-center overflow-hidden text-sm font-bold">
           {user.avatarUrl ? (
             <img src={user.avatarUrl} alt={user.fullName} className="w-full h-full object-cover" />
           ) : (

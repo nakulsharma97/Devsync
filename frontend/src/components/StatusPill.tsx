@@ -1,6 +1,6 @@
 const statusStyles: Record<string, string> = {
   ACTIVE: "bg-accent/10 text-accent dark:text-accent border-accent/20",
-  COMPLETED: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20",
+  COMPLETED: "bg-info/10 text-info dark:text-blue-400 border-info/20",
   ARCHIVED: "bg-primary/10 text-primary dark:text-primary border-primary/20",
   DELETED: "bg-muted text-muted-foreground border-border/50",
 };

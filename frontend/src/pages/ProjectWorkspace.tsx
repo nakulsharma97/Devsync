@@ -521,7 +521,7 @@ function JoinFeature({ icon, label }: { icon: React.ReactNode; label: string }) 
         {icon}
       </span>
       {label}
-      <Check className="w-3.5 h-3.5 ml-auto text-emerald-500" />
+      <Check className="w-3.5 h-3.5 ml-auto text-success" />
     </div>
   );
 }
@@ -1509,25 +1509,25 @@ function MembersTab({
 // ── Activity ───────────────────────────────────────────────
 
 const ACTIVITY_LABELS: Record<string, { label: string; tone: string }> = {
-  PROJECT_CREATED: { label: "Project created", tone: "text-emerald-500" },
-  PROJECT_UPDATED: { label: "Project updated", tone: "text-blue-500" },
+  PROJECT_CREATED: { label: "Project created", tone: "text-success" },
+  PROJECT_UPDATED: { label: "Project updated", tone: "text-info" },
   PROJECT_ARCHIVED: { label: "Project archived", tone: "text-primary" },
-  PROJECT_RESTORED: { label: "Project restored", tone: "text-emerald-500" },
+  PROJECT_RESTORED: { label: "Project restored", tone: "text-success" },
   PROJECT_VISIBILITY_CHANGED: { label: "Visibility changed", tone: "text-primary" },
-  TASK_CREATED: { label: "Task created", tone: "text-blue-500" },
-  TASK_UPDATED: { label: "Task updated", tone: "text-blue-500" },
+  TASK_CREATED: { label: "Task created", tone: "text-info" },
+  TASK_UPDATED: { label: "Task updated", tone: "text-info" },
   TASK_MOVED: { label: "Task moved", tone: "text-primary" },
-  TASK_COMPLETED: { label: "Task completed", tone: "text-emerald-500" },
+  TASK_COMPLETED: { label: "Task completed", tone: "text-success" },
   TASK_ASSIGNED: { label: "Task assigned", tone: "text-accent" },
-  USER_JOINED_PROJECT: { label: "Member joined", tone: "text-emerald-500" },
+  USER_JOINED_PROJECT: { label: "Member joined", tone: "text-success" },
   USER_LEFT_PROJECT: { label: "Member removed", tone: "text-red-500" },
   INVITATION_SENT: { label: "Invitation sent", tone: "text-primary" },
-  INVITATION_ACCEPTED: { label: "Invitation accepted", tone: "text-emerald-500" },
+  INVITATION_ACCEPTED: { label: "Invitation accepted", tone: "text-success" },
   MEMBER_ROLE_CHANGED: { label: "Role changed", tone: "text-primary" },
   OWNERSHIP_TRANSFERRED: { label: "Ownership transferred", tone: "text-primary" },
-  MESSAGE_SENT: { label: "Message sent", tone: "text-blue-500" },
+  MESSAGE_SENT: { label: "Message sent", tone: "text-info" },
   FILE_UPLOADED: { label: "File uploaded", tone: "text-accent" },
-  REPORT_RESOLVED: { label: "Report resolved", tone: "text-emerald-500" },
+  REPORT_RESOLVED: { label: "Report resolved", tone: "text-success" },
 };
 
 function ActivityTab({ projectId }: { projectId: string }) {

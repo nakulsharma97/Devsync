@@ -46,14 +46,14 @@ const FEEDBACK_CATEGORIES = [
 
 const REVIEW_STATUS_STYLES: Record<string, string> = {
   PENDING: "bg-primary/10 text-primary border-primary/20",
-  APPROVED: "bg-accent/10 text-emerald-500 border-accent/20",
+  APPROVED: "bg-accent/10 text-success border-accent/20",
   REJECTED: "bg-red-500/10 text-red-500 border-red-500/20",
 };
 
 const FEEDBACK_STATUS_STYLES: Record<string, string> = {
-  OPEN: "bg-blue-500/10 text-blue-500 border-blue-500/20",
+  OPEN: "bg-info/10 text-info border-info/20",
   IN_REVIEW: "bg-primary/10 text-primary border-primary/20",
-  RESOLVED: "bg-accent/10 text-emerald-500 border-accent/20",
+  RESOLVED: "bg-accent/10 text-success border-accent/20",
   CLOSED: "bg-muted text-muted-foreground border-border/50",
 };
 

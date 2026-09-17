@@ -46,7 +46,7 @@ import { getErrorMessage } from "@/lib/utils";
 import { toast } from "sonner";
 
 const STATUS_META: Record<string, { label: string; badge: string }> = {
-  OPEN: { label: "Open", badge: "bg-blue-500/10 text-blue-600 dark:text-blue-400" },
+  OPEN: { label: "Open", badge: "bg-info/10 text-info dark:text-blue-400" },
   IN_PROGRESS: { label: "In Progress", badge: "bg-primary/10 text-primary dark:text-primary" },
   WAITING_USER: { label: "Waiting for You", badge: "bg-accent/10 text-accent dark:text-accent" },
   RESOLVED: { label: "Resolved", badge: "bg-accent/10 text-accent dark:text-accent" },
@@ -55,7 +55,7 @@ const STATUS_META: Record<string, { label: string; badge: string }> = {
 
 const PRIORITY_META: Record<string, { label: string; badge: string }> = {
   LOW: { label: "Low", badge: "bg-slate-500/10 text-slate-600 dark:text-slate-400" },
-  MEDIUM: { label: "Medium", badge: "bg-blue-500/10 text-blue-600 dark:text-blue-400" },
+  MEDIUM: { label: "Medium", badge: "bg-info/10 text-info dark:text-blue-400" },
   HIGH: { label: "High", badge: "bg-accent/10 text-accent dark:text-accent" },
   URGENT: { label: "Urgent", badge: "bg-red-500/10 text-red-600 dark:text-red-400" },
 };

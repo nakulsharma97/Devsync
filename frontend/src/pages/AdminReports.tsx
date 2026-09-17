@@ -92,8 +92,8 @@ const ENTITY_TYPES: ReportEntityType[] = ["USER", "PROJECT", "POST", "COMMENT", 
 
 const statusStyles: Record<ReportStatus, string> = {
   PENDING: "bg-primary/10 text-primary border-primary/20",
-  UNDER_REVIEW: "bg-blue-500/10 text-blue-500 border-blue-500/20",
-  RESOLVED: "bg-accent/10 text-emerald-500 border-accent/20",
+  UNDER_REVIEW: "bg-info/10 text-info border-info/20",
+  RESOLVED: "bg-accent/10 text-success border-accent/20",
   REJECTED: "bg-red-500/10 text-red-500 border-red-500/20",
 };
 
@@ -222,8 +222,8 @@ export default function AdminReports() {
   const statCards = [
     { label: "Total Reports", value: stats?.total ?? 0, icon: Flag, color: "text-accent" },
     { label: "Pending", value: stats?.pending ?? 0, icon: Clock, color: "text-primary" },
-    { label: "Under Review", value: stats?.underReview ?? 0, icon: Eye, color: "text-blue-500" },
-    { label: "Resolved", value: stats?.resolved ?? 0, icon: CheckCircle2, color: "text-emerald-500" },
+    { label: "Under Review", value: stats?.underReview ?? 0, icon: Eye, color: "text-info" },
+    { label: "Resolved", value: stats?.resolved ?? 0, icon: CheckCircle2, color: "text-success" },
     { label: "Rejected", value: stats?.rejected ?? 0, icon: XCircle, color: "text-red-500" },
   ];
 
@@ -563,7 +563,7 @@ export default function AdminReports() {
                         </Button>
                       )}
                       <Button size="sm" variant="outline" disabled={actionLoading} onClick={() => setStatus("RESOLVED")}>
-                        <CheckCircle2 className="w-3.5 h-3.5 mr-1 text-emerald-500" /> Resolve
+                        <CheckCircle2 className="w-3.5 h-3.5 mr-1 text-success" /> Resolve
                       </Button>
                       <Button size="sm" variant="outline" disabled={actionLoading} onClick={() => setStatus("REJECTED")}>
                         <XCircle className="w-3.5 h-3.5 mr-1 text-red-500" /> Reject

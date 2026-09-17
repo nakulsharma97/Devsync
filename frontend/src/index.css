@@ -43,6 +43,18 @@
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
 
+  /* ── Extended palette ───────────────────────────── */
+  --color-info: var(--info);
+  --color-info-foreground: #FFFFFF;
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --color-copper: #A6532D;
+  --color-copper-light: #F59A45;
+  --color-navy: #080B10;
+  --color-navy-secondary: #10151D;
+  --color-navy-card: #151B24;
+
   /* ── Typography ───────────────────────────────── */
   --font-display: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
@@ -74,6 +86,10 @@
   --border: #E5E7EB;
   --input: #E5E7EB;
   --ring: #A6532D;
+  --info: #5B9CF6;
+  --success: #35C982;
+  --warning: #F4B740;
+  --danger: #EF6B73;
 
   --chart-1: #A6532D;
   --chart-2: #F59A45;
@@ -118,6 +134,10 @@
   --border: rgba(255, 255, 255, 0.08);
   --input: #1A2030;
   --ring: #F59A45;
+  --info: #5B9CF6;
+  --success: #35C982;
+  --warning: #F4B740;
+  --danger: #EF6B73;
 
   --chart-1: #F59A45;
   --chart-2: #A6532D;

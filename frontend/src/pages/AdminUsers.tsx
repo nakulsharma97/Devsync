@@ -79,14 +79,14 @@ import { toast } from "sonner";
 const PAGE_SIZE = 10;
 
 const statusStyles: Record<string, string> = {
-  ACTIVE: "bg-accent/10 text-emerald-500 border-accent/20",
+  ACTIVE: "bg-accent/10 text-success border-accent/20",
   BLOCKED: "bg-red-500/10 text-red-500 border-red-500/20",
   DELETED: "bg-muted text-muted-foreground border-border/50",
 };
 
 const roleStyles: Record<string, string> = {
   ADMIN: "bg-accent/10 text-accent border-accent/20",
-  USER: "bg-blue-500/10 text-blue-500 border-blue-500/20",
+  USER: "bg-info/10 text-info border-info/20",
 };
 
 function fmtDate(value?: string | null): string {
@@ -511,7 +511,7 @@ export default function AdminUsers() {
                                 <DropdownMenuItem
                                   onClick={() => confirmUnblock(u)}
                                   disabled={busyId === u.id || isSelf(u.id)}
-                                  className="text-emerald-500 focus:text-emerald-500"
+                                  className="text-success focus:text-success"
                                 >
                                   <ShieldCheck className="w-3.5 h-3.5 mr-2" /> Unblock
                                 </DropdownMenuItem>
@@ -683,7 +683,7 @@ export default function AdminUsers() {
                     {detail.status}
                   </Badge>
                   {detail.emailVerified ? (
-                    <Badge variant="outline" className="bg-accent/10 text-emerald-500 border-accent/20">
+                    <Badge variant="outline" className="bg-accent/10 text-success border-accent/20">
                       Verified
                     </Badge>
                   ) : (

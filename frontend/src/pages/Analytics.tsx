@@ -98,9 +98,9 @@ export default function Analytics() {
       {/* Summary Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
         {[
-          { icon: Rss, label: "Total Posts", value: postStats?.totalPosts ?? 0, color: "text-blue-500" },
+          { icon: Rss, label: "Total Posts", value: postStats?.totalPosts ?? 0, color: "text-info" },
           { icon: Heart, label: "Total Likes", value: postStats?.totalLikes ?? 0, color: "text-red-500" },
-          { icon: MessageCircle, label: "Comments", value: postStats?.totalComments ?? 0, color: "text-cyan-500" },
+          { icon: MessageCircle, label: "Comments", value: postStats?.totalComments ?? 0, color: "text-info" },
           { icon: Users, label: "Followers", value: followerGrowth?.totalFollowers ?? 0, color: "text-green-500" },
         ].map((stat, i) => (
           <motion.div

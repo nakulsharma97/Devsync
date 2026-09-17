@@ -40,8 +40,8 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 
 const STATUS_STYLES: Record<string, string> = {
-  ACTIVE: "bg-accent/10 text-emerald-500 border-accent/20",
-  TRIALING: "bg-blue-500/10 text-blue-500 border-blue-500/20",
+  ACTIVE: "bg-accent/10 text-success border-accent/20",
+  TRIALING: "bg-info/10 text-info border-info/20",
   PAST_DUE: "bg-primary/10 text-primary border-primary/20",
   CANCELLED: "bg-red-500/10 text-red-500 border-red-500/20",
   EXPIRED: "bg-muted text-muted-foreground border-border/40",
@@ -49,8 +49,8 @@ const STATUS_STYLES: Record<string, string> = {
 };
 
 const PLAN_STYLES: Record<string, string> = {
-  PRO: "bg-violet-500/10 text-violet-500 border-violet-500/20",
-  ENTERPRISE: "bg-blue-500/10 text-blue-500 border-blue-500/20",
+  PRO: "bg-info/10 text-info border-info/20",
+  ENTERPRISE: "bg-info/10 text-info border-info/20",
   FREE: "bg-muted text-muted-foreground border-border/40",
 };
 
@@ -226,21 +226,21 @@ export default function AdminBilling() {
       label: "Total Revenue",
       value: stats ? formatINR(stats.totalRevenuePaise) : "—",
       icon: IndianRupee,
-      color: "text-emerald-500",
+      color: "text-success",
       sub: stats ? `${formatINR(stats.revenueThisMonthPaise)} this month` : undefined,
     },
     {
       label: "Active Subscriptions",
       value: stats ? String(stats.activeSubscriptions) : "0",
       icon: CheckCircle,
-      color: "text-blue-500",
+      color: "text-info",
       sub: stats ? `${stats.proUsers} Pro · ${stats.enterpriseUsers} Enterprise` : undefined,
     },
     {
       label: "Free Users",
       value: stats ? String(stats.freeUsers) : "0",
       icon: Users,
-      color: "text-violet-500",
+      color: "text-info",
       sub: stats ? `${stats.totalSubscriptions} total subs` : undefined,
     },
     {
@@ -582,7 +582,7 @@ export default function AdminBilling() {
                       <TableCell>
                         <Badge variant="outline" className={`text-[11px] ${
                           rr.status === "PENDING" ? "bg-primary/10 text-primary border-primary/20"
-                          : rr.status === "APPROVED" || rr.status === "COMPLETED" ? "bg-accent/10 text-emerald-500 border-accent/20"
+                          : rr.status === "APPROVED" || rr.status === "COMPLETED" ? "bg-accent/10 text-success border-accent/20"
                           : "bg-red-500/10 text-red-500 border-red-500/20"
                         }`}>
                           {rr.status}

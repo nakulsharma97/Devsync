@@ -37,7 +37,7 @@ import { cn } from "@/lib/utils";
 const PRIORITY_STYLES: Record<string, { label: string; cls: string }> = {
   CRITICAL: { label: "Critical", cls: "text-red-600 dark:text-red-400 bg-red-500/10 border-red-500/25" },
   HIGH: { label: "High", cls: "text-primary dark:text-primary bg-primary/10 border-primary/25" },
-  MEDIUM: { label: "Medium", cls: "text-blue-600 dark:text-blue-400 bg-blue-500/10 border-blue-500/25" },
+  MEDIUM: { label: "Medium", cls: "text-info dark:text-blue-400 bg-info/10 border-info/25" },
   LOW: { label: "Low", cls: "text-muted-foreground bg-muted/60 border-border/30" },
 };
 
@@ -46,15 +46,15 @@ const PRIORITIES = ["LOW", "MEDIUM", "HIGH", "CRITICAL"];
 const PRIORITY_DOTS: Record<string, string> = {
   CRITICAL: "bg-red-500",
   HIGH: "bg-primary",
-  MEDIUM: "bg-blue-500",
+  MEDIUM: "bg-info",
   LOW: "bg-muted-foreground/50",
 };
 
 function getColumnColor(name: string): string {
   const lower = name.toLowerCase();
   if (lower.includes("todo") || lower.includes("to do") || lower.includes("backlog")) return "bg-accent";
-  if (lower.includes("progress") || lower.includes("doing")) return "bg-blue-500";
-  if (lower.includes("done") || lower.includes("complete")) return "bg-emerald-500";
+  if (lower.includes("progress") || lower.includes("doing")) return "bg-info";
+  if (lower.includes("done") || lower.includes("complete")) return "bg-success";
   return "bg-slate-400";
 }
 
@@ -64,7 +64,7 @@ function isOverdue(task: TaskDto): boolean {
 }
 
 const PR_STATE_STYLES: Record<string, string> = {
-  OPEN: "text-blue-600 dark:text-blue-400 bg-blue-500/10 border-blue-500/25",
+  OPEN: "text-info dark:text-blue-400 bg-info/10 border-info/25",
   CHANGES_REQUESTED: "text-primary dark:text-primary bg-primary/10 border-primary/25",
   APPROVED: "text-accent dark:text-accent bg-accent/10 border-accent/25",
   MERGED: "text-accent dark:text-accent bg-accent/10 border-accent/25",
@@ -484,7 +484,7 @@ function TaskDetailDialog({
         {/* GitHub development workflow */}
         <div className="border-t border-border/40 pt-4 space-y-3">
           <h4 className="text-sm font-semibold flex items-center gap-2">
-            <GitBranch className="w-4 h-4 text-emerald-500" />
+            <GitBranch className="w-4 h-4 text-success" />
             GitHub Workflow
           </h4>
 
@@ -495,8 +495,8 @@ function TaskDetailDialog({
           ) : (
             <div className="space-y-2 text-sm">
               {task.branchName && (
-                <div className="flex items-center gap-2 bg-emerald-500/5 border border-accent/20 rounded-lg px-3 py-2">
-                  <GitBranch className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                <div className="flex items-center gap-2 bg-success/5 border border-accent/20 rounded-lg px-3 py-2">
+                  <GitBranch className="w-3.5 h-3.5 text-success shrink-0" />
                   <span className="font-mono text-xs truncate">{task.branchName}</span>
                 </div>
               )}
@@ -591,7 +591,7 @@ function TaskDetailDialog({
             <div className="flex flex-wrap items-center gap-2 border-t border-border/40 pt-3">
               <Button
                 size="sm"
-                className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                className="bg-success hover:bg-emerald-700 text-white"
                 disabled={wfBusy !== null}
                 onClick={() => runWorkflow("approve", () => boardService.approvePullRequest(task.id), "Pull request approved")}
               >
@@ -1003,7 +1003,7 @@ export default function BoardPage() {
           </div>
           <div className="bg-card border border-border/50 rounded-2xl p-5 flex items-center gap-4">
             <div className="w-12 h-12 rounded-xl bg-accent/10 flex items-center justify-center shrink-0">
-              <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+              <CheckCircle2 className="w-5 h-5 text-success" />
             </div>
             <div>
               <p className="text-2xl font-bold text-foreground">{doneTasks}</p>
