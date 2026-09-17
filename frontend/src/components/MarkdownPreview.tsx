@@ -27,7 +27,7 @@ function renderInline(text: string, keyPrefix: string): ReactNode[] {
       if (linkMatch) {
         const href = /^(https?:\/\/|\/)/.test(linkMatch[2]) ? linkMatch[2] : "#";
         nodes.push(
-          <a key={`${keyPrefix}-l${i++}`} href={href} target="_blank" rel="noopener noreferrer" className="text-indigo-500 underline">
+          <a key={`${keyPrefix}-l${i++}`} href={href} target="_blank" rel="noopener noreferrer" className="text-primary underline">
             {linkMatch[1]}
           </a>
         );
@@ -56,7 +56,7 @@ function renderBlock(block: string, idx: number): ReactNode {
   }
   if (trimmed.startsWith("> ")) {
     return (
-      <blockquote key={idx} className="border-l-2 border-indigo-500/40 pl-3 my-2 text-muted-foreground italic">
+      <blockquote key={idx} className="border-l-2 border-primary/40 pl-3 my-2 text-muted-foreground italic">
         {renderInline(trimmed.slice(2), `q${idx}`)}
       </blockquote>
     );

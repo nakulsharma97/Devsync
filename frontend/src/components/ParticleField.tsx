@@ -3,6 +3,17 @@ import { prefersReducedMotion } from "@/lib/utils";
 
 // ─── Canvas particle system ──────────────────────────────
 
+const PARTICLE_COUNT = 48;
+const STAR_COUNT = 40;
+const GRID_SIZE = 60;
+/** ~30fps. A subtle ambient backdrop does not need 60fps, and halving the
+ *  frame rate halves the main-thread cost while looking identical. */
+const FRAME_INTERVAL_MS = 1000 / 30;
+/** Stop animating once the hero is well out of view. The field is a fixed
+ *  page backdrop, so without this the loop would burn frames for the entire
+ *  time a visitor reads the pricing/footer sections. */
+const HERO_VIEWPORTS = 1.5;
+
 function ParticleCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const mouseRef = useRef({ x: 0.5, y: 0.5 });
@@ -31,8 +42,18 @@ function ParticleCanvas() {
     });
     observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
 
+    // ── Precomputed grid line positions (rebuilt on resize, never per frame) ──
+    let gridXs: number[] = [];
+    let gridYs: number[] = [];
+    const rebuildGrid = () => {
+      gridXs = [];
+      gridYs = [];
+      for (let x = GRID_SIZE; x < w; x += GRID_SIZE) gridXs.push(x);
+      for (let y = GRID_SIZE; y < h; y += GRID_SIZE) gridYs.push(y);
+    };
+    rebuildGrid();
+
     // ── Particles (kept modest to avoid scroll jank on low-end devices) ──
-    const PARTICLE_COUNT = 48;
     const particles: {
       x: number;
       y: number;
@@ -56,7 +77,6 @@ function ParticleCanvas() {
     }
 
     // ── Stars ──
-    const STAR_COUNT = 40;
     const stars: { x: number; y: number; r: number; twinkle: number; phase: number }[] = [];
     for (let i = 0; i < STAR_COUNT; i++) {
       stars.push({
@@ -68,24 +88,59 @@ function ParticleCanvas() {
       });
     }
 
+    // ── Ambient glow gradient cache ──
+    // Creating six radial gradients per frame was the largest allocation in
+    // this loop. The radius is quantised to whole pixels so a handful of
+    // cached gradients cover every frame.
+    const glowCache = new Map<string, CanvasGradient>();
+    const getGlow = (r: number, dark: boolean): CanvasGradient => {
+      const key = `${dark ? "d" : "l"}:${r}`;
+      let g = glowCache.get(key);
+      if (!g) {
+        g = ctx.createRadialGradient(0, 0, 0, 0, 0, r);
+        g.addColorStop(0, dark ? "rgba(99, 102, 241, 0.04)" : "rgba(99, 102, 241, 0.06)");
+        g.addColorStop(0.5, dark ? "rgba(99, 102, 241, 0.02)" : "rgba(99, 102, 241, 0.03)");
+        g.addColorStop(1, "rgba(99, 102, 241, 0)");
+        glowCache.set(key, g);
+      }
+      return g;
+    };
+
     const handleMouse = (e: MouseEvent) => {
       mouseRef.current = { x: e.clientX / w, y: e.clientY / h };
     };
-    window.addEventListener("mousemove", handleMouse);
+    window.addEventListener("mousemove", handleMouse, { passive: true });
 
     const handleResize = () => {
       w = window.innerWidth;
       h = window.innerHeight;
       canvas.width = w;
       canvas.height = h;
+      rebuildGrid();
     };
     window.addEventListener("resize", handleResize);
 
-    let animId: number;
+    let animId = 0;
     let running = true;
     let frameCount = 0;
+    let lastDraw = 0;
+    // `inHero` — the field only animates while the hero area is on screen.
+    let inHero = window.scrollY < window.innerHeight * HERO_VIEWPORTS;
 
-    const draw = () => {
+    const shouldRun = () =>
+      !prefersReducedMotion && !document.hidden && running && inHero;
+
+    const schedule = () => {
+      if (shouldRun()) animId = requestAnimationFrame(draw);
+    };
+
+    const draw = (now: number) => {
+      // Frame-rate cap — skip this frame and keep the loop alive.
+      if (now - lastDraw < FRAME_INTERVAL_MS) {
+        animId = requestAnimationFrame(draw);
+        return;
+      }
+      lastDraw = now;
       frameCount++;
       ctx.clearRect(0, 0, w, h);
 
@@ -94,24 +149,21 @@ function ParticleCanvas() {
       const my = mouseRef.current.y;
 
       // ── Grid lines (subtle in dark, very subtle in light) ──
-      const gridSize = 60;
       const offsetX = (mx - 0.5) * 6;
       const offsetY = (my - 0.5) * 6;
 
       ctx.strokeStyle = dark ? "rgba(99, 102, 241, 0.04)" : "rgba(99, 102, 241, 0.05)";
       ctx.lineWidth = 0.5;
-      for (let x = gridSize; x < w; x += gridSize) {
-        ctx.beginPath();
-        ctx.moveTo(x + offsetX, 0);
-        ctx.lineTo(x + offsetX, h);
-        ctx.stroke();
+      ctx.beginPath();
+      for (const gx of gridXs) {
+        ctx.moveTo(gx + offsetX, 0);
+        ctx.lineTo(gx + offsetX, h);
       }
-      for (let y = gridSize; y < h; y += gridSize) {
-        ctx.beginPath();
-        ctx.moveTo(0, y + offsetY);
-        ctx.lineTo(w, y + offsetY);
-        ctx.stroke();
+      for (const gy of gridYs) {
+        ctx.moveTo(0, gy + offsetY);
+        ctx.lineTo(w, gy + offsetY);
       }
+      ctx.stroke();
 
       // ── Light beams ──
       const beamAlpha = dark
@@ -132,18 +184,18 @@ function ParticleCanvas() {
       for (let i = 0; i < 6; i++) {
         const cx = (w * (i + 0.5)) / 6 + Math.sin(frameCount * 0.005 + i) * 40;
         const cy = (h * ((i % 3) + 1)) / 4 + Math.cos(frameCount * 0.007 + i * 2) * 30;
-        const cr = 20 + Math.sin(frameCount * 0.01 + i) * 10;
-        const gradient = ctx.createRadialGradient(cx, cy, 0, cx, cy, cr);
-        gradient.addColorStop(0, dark ? "rgba(99, 102, 241, 0.04)" : "rgba(99, 102, 241, 0.06)");
-        gradient.addColorStop(0.5, dark ? "rgba(99, 102, 241, 0.02)" : "rgba(99, 102, 241, 0.03)");
-        gradient.addColorStop(1, "rgba(99, 102, 241, 0)");
-        ctx.fillStyle = gradient;
+        const cr = Math.round(20 + Math.sin(frameCount * 0.01 + i) * 10);
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.fillStyle = getGlow(cr, dark);
         ctx.beginPath();
-        ctx.arc(cx, cy, cr, 0, Math.PI * 2);
+        ctx.arc(0, 0, cr, 0, Math.PI * 2);
         ctx.fill();
+        ctx.restore();
       }
 
       // ── Particles ──
+      ctx.fillStyle = "";
       for (const p of particles) {
         p.vx += (mx - 0.5) * 0.0003;
         p.vy += (my - 0.5) * 0.0003;
@@ -174,29 +226,28 @@ function ParticleCanvas() {
       }
 
       // ── Particle connections ──
+      ctx.lineWidth = 0.5;
       for (let i = 0; i < particles.length; i++) {
+        const a = particles[i];
         for (let j = i + 1; j < particles.length; j++) {
-          const dx = particles[i].x - particles[j].x;
-          const dy = particles[i].y - particles[j].y;
+          const b = particles[j];
+          const dx = a.x - b.x;
+          // Cheap axis rejection before the square root.
+          if (dx > 120 || dx < -120) continue;
+          const dy = a.y - b.y;
+          if (dy > 120 || dy < -120) continue;
           const dist = Math.sqrt(dx * dx + dy * dy);
           if (dist < 120) {
-            const alpha = (1 - dist / 120) * 0.08;
             ctx.beginPath();
-            ctx.moveTo(particles[i].x, particles[i].y);
-            ctx.lineTo(particles[j].x, particles[j].y);
-            ctx.strokeStyle = `rgba(99, 102, 241, ${alpha})`;
-            ctx.lineWidth = 0.5;
+            ctx.moveTo(a.x, a.y);
+            ctx.lineTo(b.x, b.y);
+            ctx.strokeStyle = `rgba(99, 102, 241, ${(1 - dist / 120) * 0.08})`;
             ctx.stroke();
           }
         }
       }
 
-      // Keep animating only while the tab is visible and the user allows motion.
-      // Pausing when hidden saves CPU/battery and prevents scroll jank when the
-      // user returns and scrolls while the loop was still burning frames.
-      if (!prefersReducedMotion && !document.hidden && running) {
-        animId = requestAnimationFrame(draw);
-      }
+      schedule();
     };
 
     // Pause the animation loop while the tab is hidden; resume on visibility.
@@ -204,16 +255,25 @@ function ParticleCanvas() {
       if (document.hidden) {
         running = false;
         cancelAnimationFrame(animId);
-      } else if (!running && !prefersReducedMotion) {
+      } else if (!running) {
         running = true;
-        animId = requestAnimationFrame(draw);
+        schedule();
       }
     };
     document.addEventListener("visibilitychange", handleVisibility);
 
+    // Pause once the hero has been scrolled past — the backdrop is static-looking
+    // anyway, so there is no reason to keep repainting it further down the page.
+    const handleScroll = () => {
+      const wasInHero = inHero;
+      inHero = window.scrollY < window.innerHeight * HERO_VIEWPORTS;
+      if (!wasInHero && inHero) schedule();
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
+
     if (prefersReducedMotion) {
       // Reduced motion: draw a single static frame (grid + particles) and stop.
-      draw();
+      draw(FRAME_INTERVAL_MS);
     } else {
       animId = requestAnimationFrame(draw);
     }
@@ -222,6 +282,7 @@ function ParticleCanvas() {
       cancelAnimationFrame(animId);
       observer.disconnect();
       document.removeEventListener("visibilitychange", handleVisibility);
+      window.removeEventListener("scroll", handleScroll);
       window.removeEventListener("mousemove", handleMouse);
       window.removeEventListener("resize", handleResize);
     };
@@ -244,13 +305,14 @@ export default function ParticleField() {
       {/* Theme-aware background (uses the app's --background token in both themes) */}
       <div className="absolute inset-0 bg-background" />
 
-      {/* Blue ambient gradients — stronger in dark mode */}
+      {/* Ambient glows. These are already soft radial gradients, so the old
+          `filter: blur(60px)` bought nothing visually while forcing the
+          compositor to rasterise an 800px layer on every theme change. */}
       <div
         className="absolute top-1/3 left-1/4 w-[800px] h-[800px] pointer-events-none dark:opacity-100 opacity-0"
         style={{
           background:
             "radial-gradient(circle at center, rgba(99,102,241,0.06) 0%, transparent 70%)",
-          filter: "blur(60px)",
         }}
       />
       <div
@@ -258,14 +320,11 @@ export default function ParticleField() {
         style={{
           background:
             "radial-gradient(circle at center, rgba(129,140,248,0.04) 0%, transparent 70%)",
-          filter: "blur(50px)",
         }}
       />
 
       {/* Light mode ambient glow */}
-      <div
-        className="absolute inset-0 pointer-events-none dark:opacity-0 opacity-100 bg-gradient-to-b from-indigo-50/40 via-background to-background"
-      />
+      <div className="absolute inset-0 pointer-events-none dark:opacity-0 opacity-100 bg-gradient-to-b from-primary/5 via-background to-background" />
 
       {/* Canvas particles + grid */}
       <ParticleCanvas />

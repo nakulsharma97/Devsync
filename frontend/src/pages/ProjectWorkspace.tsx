@@ -146,7 +146,7 @@ export default function ProjectWorkspace() {
         <div
           className={cn(
             "w-14 h-14 rounded-2xl flex items-center justify-center mb-4",
-            isForbidden ? "bg-amber-500/10 text-amber-500" : "bg-muted/50 text-muted-foreground"
+            isForbidden ? "bg-primary/10 text-primary" : "bg-muted/50 text-muted-foreground"
           )}
         >
           {isForbidden ? <Lock className="w-6 h-6" /> : <FolderKanban className="w-6 h-6" />}
@@ -185,7 +185,7 @@ export default function ProjectWorkspace() {
     <div className="space-y-5 max-w-6xl">
       {/* Header */}
       <div className="rounded-2xl border border-border/40 bg-card p-5 relative overflow-hidden">
-        <div className="absolute -top-16 -right-16 w-56 h-56 bg-gradient-to-bl from-indigo-500/[0.07] to-transparent rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -top-16 -right-16 w-56 h-56 bg-gradient-to-bl from-primary/[0.07] to-transparent rounded-full blur-3xl pointer-events-none" />
         <button
           onClick={() => navigate("/projects")}
           className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors mb-3"
@@ -203,8 +203,8 @@ export default function ProjectWorkspace() {
                 className={cn(
                   "inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full border",
                   project.visibility === "PUBLIC"
-                    ? "text-emerald-600 dark:text-emerald-400 border-emerald-500/25 bg-emerald-500/[0.07]"
-                    : "text-amber-600 dark:text-amber-400 border-amber-500/25 bg-amber-500/[0.07]"
+                    ? "text-accent dark:text-accent border-accent/25 bg-accent/[0.07]"
+                    : "text-primary dark:text-primary border-primary/25 bg-primary/[0.07]"
                 )}
               >
                 {project.visibility === "PUBLIC" ? (
@@ -281,7 +281,7 @@ export default function ProjectWorkspace() {
             className={cn(
               "shrink-0 inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all",
               tab === id
-                ? "bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-sm"
+                ? "bg-primary text-white shadow-sm"
                 : "text-muted-foreground hover:text-foreground hover:bg-accent/5"
             )}
           >
@@ -422,15 +422,15 @@ function PublicProjectJoinView({
       </button>
 
       <div className="rounded-2xl border border-border/40 bg-card p-6 relative overflow-hidden">
-        <div className="absolute -top-16 -right-16 w-56 h-56 bg-gradient-to-bl from-indigo-500/[0.07] to-transparent rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -top-16 -right-16 w-56 h-56 bg-gradient-to-bl from-primary/[0.07] to-transparent rounded-full blur-3xl pointer-events-none" />
 
         <div className="flex items-center gap-2.5 flex-wrap relative">
-          <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-md shadow-indigo-500/20 shrink-0">
+          <div className="w-11 h-11 rounded-xl bg-primary flex items-center justify-center shadow-md shadow-primary/20 shrink-0">
             <FolderKanban className="w-5 h-5 text-white" />
           </div>
           <h1 className="text-xl font-bold tracking-tight">{project.name}</h1>
           <StatusPill status={project.status} />
-          <span className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full border border-emerald-500/25 bg-emerald-500/[0.07] text-emerald-600 dark:text-emerald-400">
+          <span className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full border border-accent/25 bg-accent/[0.07] text-accent dark:text-accent">
             <Globe className="w-2.5 h-2.5" />
             Public
           </span>
@@ -463,7 +463,7 @@ function PublicProjectJoinView({
             <>
               <Button
                 disabled
-                className="inline-flex items-center gap-2 text-xs border border-amber-500/30 bg-amber-500/[0.08] text-amber-600 dark:text-amber-400 shadow-sm"
+                className="inline-flex items-center gap-2 text-xs border border-primary/30 bg-primary/[0.08] text-primary dark:text-primary shadow-sm"
               >
                 <Clock className="w-4 h-4" />
                 Request Pending
@@ -487,7 +487,7 @@ function PublicProjectJoinView({
               <Button
                 onClick={handleRequestJoin}
                 disabled={busy}
-                className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white hover:from-indigo-600 hover:to-purple-700 shadow-lg shadow-indigo-500/20"
+                className="bg-primary text-white hover:from-primary hover:to-primary shadow-lg shadow-primary/20"
               >
                 {busy ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -517,7 +517,7 @@ function PublicProjectJoinView({
 function JoinFeature({ icon, label }: { icon: React.ReactNode; label: string }) {
   return (
     <div className="flex items-center gap-2 rounded-xl border border-border/40 bg-card px-3.5 py-3 text-sm font-medium text-muted-foreground">
-      <span className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500/15 to-purple-500/10 flex items-center justify-center text-indigo-400 shrink-0">
+      <span className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary/15 to-primary/10 flex items-center justify-center text-primary shrink-0">
         {icon}
       </span>
       {label}
@@ -571,7 +571,7 @@ function OverviewTab({
         {/* Task summary */}
         <div className="rounded-xl border border-border/40 bg-card p-4">
           <h3 className="text-sm font-semibold flex items-center gap-2 mb-3">
-            <ClipboardList className="w-4 h-4 text-indigo-400" />
+            <ClipboardList className="w-4 h-4 text-primary" />
             Task Summary
           </h3>
           {!board ? (
@@ -597,17 +597,17 @@ function OverviewTab({
         {/* Members preview */}
         <div className="rounded-xl border border-border/40 bg-card p-4">
           <h3 className="text-sm font-semibold flex items-center gap-2 mb-3">
-            <Users className="w-4 h-4 text-indigo-400" />
+            <Users className="w-4 h-4 text-primary" />
             Members ({project.memberCount})
           </h3>
           <div className="space-y-2">
             {project.members.slice(0, 6).map((m) => (
               <div key={m.userId} className="flex items-center gap-2.5">
-                <div className="w-7 h-7 rounded-full bg-gradient-to-br from-indigo-500/20 to-purple-500/20 flex items-center justify-center shrink-0 overflow-hidden">
+                <div className="w-7 h-7 rounded-full bg-gradient-to-br from-primary/20 to-primary/20 flex items-center justify-center shrink-0 overflow-hidden">
                   {m.avatarUrl ? (
                     <img src={m.avatarUrl} alt="" className="w-full h-full object-cover" />
                   ) : (
-                    <span className="text-[10px] font-bold text-indigo-400">
+                    <span className="text-[10px] font-bold text-primary">
                       {m.fullName?.charAt(0) || "?"}
                     </span>
                   )}
@@ -615,11 +615,11 @@ function OverviewTab({
                 <span className="text-sm font-medium truncate flex-1">{m.fullName}</span>
                 <span
                   className={cn(
-                    "text-[9px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded-full",
+                    "text-[9px] font-medium px-1.5 py-0.5 rounded-full",
                     m.role === "OWNER"
-                      ? "bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                      ? "bg-primary/10 text-primary dark:text-primary"
                       : m.role === "ADMIN"
-                        ? "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400"
+                        ? "bg-primary/10 text-primary dark:text-primary"
                         : "bg-muted/60 text-muted-foreground"
                   )}
                 >
@@ -633,7 +633,7 @@ function OverviewTab({
         {/* Recent activity */}
         <div className="rounded-xl border border-border/40 bg-card p-4">
           <h3 className="text-sm font-semibold flex items-center gap-2 mb-3">
-            <ActivityIcon className="w-4 h-4 text-indigo-400" />
+            <ActivityIcon className="w-4 h-4 text-primary" />
             Recent Activity
           </h3>
           {!activityPage?.content || activityPage.content.length === 0 ? (
@@ -642,7 +642,7 @@ function OverviewTab({
             <div className="space-y-2.5">
               {activityPage.content.slice(0, 5).map((a) => (
                 <div key={a.id} className="flex gap-2.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 mt-1.5 shrink-0" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-primary mt-1.5 shrink-0" />
                   <div className="min-w-0">
                     <p className="text-xs truncate">{a.title}</p>
                     <p className="text-[10px] text-muted-foreground/70">
@@ -663,13 +663,13 @@ function QuickAction({ icon, label, onClick }: { icon: React.ReactNode; label: s
   return (
     <button
       onClick={onClick}
-      className="flex items-center gap-2.5 rounded-xl border border-border/40 bg-card p-3.5 text-sm font-medium hover:border-indigo-500/30 hover:bg-indigo-500/[0.03] transition-all text-left group"
+      className="flex items-center gap-2.5 rounded-xl border border-border/40 bg-card p-3.5 text-sm font-medium hover:border-primary/30 hover:bg-primary/[0.03] transition-all text-left group"
     >
-      <span className="w-9 h-9 rounded-lg bg-gradient-to-br from-indigo-500/15 to-purple-500/10 flex items-center justify-center text-indigo-400 group-hover:scale-105 transition-transform">
+      <span className="w-9 h-9 rounded-lg bg-gradient-to-br from-primary/15 to-primary/10 flex items-center justify-center text-primary group-hover:scale-105 transition-transform">
         {icon}
       </span>
       {label}
-      <ArrowUpRight className="w-3.5 h-3.5 ml-auto text-muted-foreground/40 group-hover:text-indigo-400 transition-colors" />
+      <ArrowUpRight className="w-3.5 h-3.5 ml-auto text-muted-foreground/40 group-hover:text-primary transition-colors" />
     </button>
   );
 }
@@ -733,9 +733,9 @@ function TasksTab({ projectId }: { projectId: string }) {
                   className={cn(
                     "text-[9px] font-semibold uppercase px-1.5 py-0.5 rounded-full",
                     /done|completed/i.test(t.columnName)
-                      ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                      ? "bg-accent/10 text-accent dark:text-accent"
                       : /progress/i.test(t.columnName)
-                        ? "bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                        ? "bg-primary/10 text-primary dark:text-primary"
                         : "bg-muted/60 text-muted-foreground"
                   )}
                 >
@@ -778,7 +778,7 @@ function ChatTab({ project }: { project: ProjectDto }) {
   if (loading) {
     return (
       <div className="h-[360px] rounded-xl border border-border/40 bg-card flex items-center justify-center">
-        <Loader2 className="w-5 h-5 animate-spin text-indigo-500" />
+        <Loader2 className="w-5 h-5 animate-spin text-primary" />
       </div>
     );
   }
@@ -841,7 +841,7 @@ function FilesTab({ projectId }: { projectId: string }) {
     <div className="rounded-xl border border-border/40 bg-card">
       <div className="flex items-center justify-between p-4 border-b border-border/40">
         <h3 className="text-sm font-semibold flex items-center gap-2">
-          <FolderKanban className="w-4 h-4 text-indigo-400" />
+          <FolderKanban className="w-4 h-4 text-primary" />
           Project Files
         </h3>
         <label className="cursor-pointer">
@@ -921,8 +921,8 @@ function FileRow({ file }: { file: AttachmentDto }) {
 
   return (
     <div className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-accent/5 transition-colors">
-      <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-indigo-500/15 to-purple-500/10 flex items-center justify-center shrink-0">
-        <FileText className="w-4 h-4 text-indigo-400" />
+      <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-primary/15 to-primary/10 flex items-center justify-center shrink-0">
+        <FileText className="w-4 h-4 text-primary" />
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium truncate">{file.fileName}</p>
@@ -1038,7 +1038,7 @@ function DocsTab({ projectId }: { projectId: string }) {
   if (loading) {
     return (
       <div className="rounded-xl border border-border/40 bg-card h-[420px] flex items-center justify-center">
-        <Loader2 className="w-5 h-5 animate-spin text-indigo-500" />
+        <Loader2 className="w-5 h-5 animate-spin text-primary" />
       </div>
     );
   }
@@ -1047,7 +1047,7 @@ function DocsTab({ projectId }: { projectId: string }) {
     <div className="rounded-xl border border-border/40 bg-card overflow-hidden">
       {/* Toolbar */}
       <div className="flex items-center gap-2 px-4 py-2.5 border-b border-border/40">
-        <BookOpen className="w-4 h-4 text-indigo-400" />
+        <BookOpen className="w-4 h-4 text-primary" />
         <span className="text-sm font-semibold flex-1">Project Docs</span>
         <span className="hidden sm:inline text-[11px] text-muted-foreground">
           {dirty ? "Unsaved changes" : "Saved"}
@@ -1056,7 +1056,7 @@ function DocsTab({ projectId }: { projectId: string }) {
         {remoteChanged && !dirty && (
           <button
             onClick={load}
-            className="text-[11px] font-medium text-indigo-500 hover:underline"
+            className="text-[11px] font-medium text-primary hover:underline"
             title="A teammate saved a newer version"
           >
             New version available — refresh
@@ -1069,7 +1069,7 @@ function DocsTab({ projectId }: { projectId: string }) {
             className={cn(
               "text-xs px-2.5 py-1.5 rounded-md transition-all",
               mode === "edit"
-                ? "bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-sm"
+                ? "bg-primary text-white shadow-sm"
                 : "text-muted-foreground hover:text-foreground"
             )}
           >
@@ -1081,7 +1081,7 @@ function DocsTab({ projectId }: { projectId: string }) {
             className={cn(
               "text-xs px-2.5 py-1.5 rounded-md transition-all",
               mode === "preview"
-                ? "bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-sm"
+                ? "bg-primary text-white shadow-sm"
                 : "text-muted-foreground hover:text-foreground"
             )}
           >
@@ -1235,10 +1235,10 @@ function MembersTab({
         <div className="rounded-xl border border-border/40 bg-card">
           <div className="p-4 border-b border-border/40">
             <h3 className="text-sm font-semibold flex items-center gap-2">
-              <UserPlus className="w-4 h-4 text-indigo-400" />
+              <UserPlus className="w-4 h-4 text-primary" />
               Pending Join Requests
               {!requestsLoading && pendingRequests.length > 0 && (
-                <span className="text-[10px] font-medium text-indigo-500 bg-indigo-500/10 rounded-full px-1.5 py-0.5">
+                <span className="text-[10px] font-medium text-primary bg-primary/10 rounded-full px-1.5 py-0.5">
                   {pendingRequests.length}
                 </span>
               )}
@@ -1262,11 +1262,11 @@ function MembersTab({
                     key={req.id}
                     className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-accent/5"
                   >
-                    <div className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-500/20 to-purple-500/20 flex items-center justify-center shrink-0 overflow-hidden">
+                    <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary/20 to-primary/20 flex items-center justify-center shrink-0 overflow-hidden">
                       {req.userAvatar ? (
                         <img src={req.userAvatar} alt="" className="w-full h-full object-cover" />
                       ) : (
-                        <span className="text-xs font-bold text-indigo-400">
+                        <span className="text-xs font-bold text-primary">
                           {req.userName?.charAt(0) || "?"}
                         </span>
                       )}
@@ -1315,7 +1315,7 @@ function MembersTab({
       <div className="rounded-xl border border-border/40 bg-card">
         <div className="flex items-center justify-between p-4 border-b border-border/40">
           <h3 className="text-sm font-semibold flex items-center gap-2">
-            <Users className="w-4 h-4 text-indigo-400" />
+            <Users className="w-4 h-4 text-primary" />
             Members ({project.memberCount})
           </h3>
           {canManage && (
@@ -1331,11 +1331,11 @@ function MembersTab({
             const isOwnerRow = m.role === "OWNER";
             return (
               <div key={m.userId} className="flex items-center gap-3 p-3.5">
-                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-500/20 to-purple-500/20 flex items-center justify-center shrink-0 overflow-hidden">
+                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary/20 to-primary/20 flex items-center justify-center shrink-0 overflow-hidden">
                   {m.avatarUrl ? (
                     <img src={m.avatarUrl} alt="" className="w-full h-full object-cover" />
                   ) : (
-                    <span className="text-xs font-bold text-indigo-400">
+                    <span className="text-xs font-bold text-primary">
                       {m.fullName?.charAt(0) || "?"}
                     </span>
                   )}
@@ -1355,11 +1355,11 @@ function MembersTab({
                 {/* Role badge — always shown */}
                 <span
                   className={cn(
-                    "text-[9px] font-semibold uppercase tracking-wide px-2 py-1 rounded-full shrink-0",
+                    "text-[9px] font-medium px-2 py-1 rounded-full shrink-0",
                     isOwnerRow
-                      ? "bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                      ? "bg-primary/10 text-primary dark:text-primary"
                       : m.role === "ADMIN"
-                        ? "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400"
+                        ? "bg-primary/10 text-primary dark:text-primary"
                         : "bg-muted/60 text-muted-foreground"
                   )}
                 >
@@ -1415,7 +1415,7 @@ function MembersTab({
         <div className="rounded-xl border border-border/40 bg-card self-start">
           <div className="p-4 border-b border-border/40">
             <h3 className="text-sm font-semibold flex items-center gap-2">
-              <UserPlus className="w-4 h-4 text-indigo-400" />
+              <UserPlus className="w-4 h-4 text-primary" />
               Pending Invitations
             </h3>
           </div>
@@ -1434,11 +1434,11 @@ function MembersTab({
               <div className="space-y-1">
                 {pendingInvites.map((inv) => (
                   <div key={inv.id} className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-accent/5">
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500/20 to-purple-500/20 flex items-center justify-center shrink-0 overflow-hidden">
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary/20 to-primary/20 flex items-center justify-center shrink-0 overflow-hidden">
                       {inv.receiverAvatar ? (
                         <img src={inv.receiverAvatar} alt="" className="w-full h-full object-cover" />
                       ) : (
-                        <span className="text-[10px] font-bold text-indigo-400">
+                        <span className="text-[10px] font-bold text-primary">
                           {inv.receiverName?.charAt(0) || "?"}
                         </span>
                       )}
@@ -1494,7 +1494,7 @@ function MembersTab({
             <AlertDialogAction
               onClick={handleTransfer}
               disabled={transferBusy || !transferTargetId}
-              className="bg-amber-600 hover:bg-amber-700 text-white"
+              className="bg-primary hover:bg-primary text-white"
             >
               {transferBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : "Transfer Ownership"}
             </AlertDialogAction>
@@ -1511,22 +1511,22 @@ function MembersTab({
 const ACTIVITY_LABELS: Record<string, { label: string; tone: string }> = {
   PROJECT_CREATED: { label: "Project created", tone: "text-emerald-500" },
   PROJECT_UPDATED: { label: "Project updated", tone: "text-blue-500" },
-  PROJECT_ARCHIVED: { label: "Project archived", tone: "text-amber-500" },
+  PROJECT_ARCHIVED: { label: "Project archived", tone: "text-primary" },
   PROJECT_RESTORED: { label: "Project restored", tone: "text-emerald-500" },
-  PROJECT_VISIBILITY_CHANGED: { label: "Visibility changed", tone: "text-indigo-500" },
+  PROJECT_VISIBILITY_CHANGED: { label: "Visibility changed", tone: "text-primary" },
   TASK_CREATED: { label: "Task created", tone: "text-blue-500" },
   TASK_UPDATED: { label: "Task updated", tone: "text-blue-500" },
-  TASK_MOVED: { label: "Task moved", tone: "text-indigo-500" },
+  TASK_MOVED: { label: "Task moved", tone: "text-primary" },
   TASK_COMPLETED: { label: "Task completed", tone: "text-emerald-500" },
-  TASK_ASSIGNED: { label: "Task assigned", tone: "text-purple-500" },
+  TASK_ASSIGNED: { label: "Task assigned", tone: "text-accent" },
   USER_JOINED_PROJECT: { label: "Member joined", tone: "text-emerald-500" },
   USER_LEFT_PROJECT: { label: "Member removed", tone: "text-red-500" },
-  INVITATION_SENT: { label: "Invitation sent", tone: "text-indigo-500" },
+  INVITATION_SENT: { label: "Invitation sent", tone: "text-primary" },
   INVITATION_ACCEPTED: { label: "Invitation accepted", tone: "text-emerald-500" },
-  MEMBER_ROLE_CHANGED: { label: "Role changed", tone: "text-amber-500" },
-  OWNERSHIP_TRANSFERRED: { label: "Ownership transferred", tone: "text-amber-500" },
+  MEMBER_ROLE_CHANGED: { label: "Role changed", tone: "text-primary" },
+  OWNERSHIP_TRANSFERRED: { label: "Ownership transferred", tone: "text-primary" },
   MESSAGE_SENT: { label: "Message sent", tone: "text-blue-500" },
-  FILE_UPLOADED: { label: "File uploaded", tone: "text-purple-500" },
+  FILE_UPLOADED: { label: "File uploaded", tone: "text-accent" },
   REPORT_RESOLVED: { label: "Report resolved", tone: "text-emerald-500" },
 };
 
@@ -1549,7 +1549,7 @@ function ActivityTab({ projectId }: { projectId: string }) {
   if (error || !page) {
     return (
       <div className="text-center py-12 rounded-xl border border-border/40 bg-card">
-        <AlertTriangle className="w-8 h-8 text-amber-500/60 mx-auto mb-3" />
+        <AlertTriangle className="w-8 h-8 text-primary/60 mx-auto mb-3" />
         <p className="text-sm text-muted-foreground">{error || "Failed to load activity"}</p>
       </div>
     );
@@ -1680,7 +1680,7 @@ function SettingsTab({
             id="ws-name"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="h-9 w-full text-sm bg-muted/30 border border-border/40 rounded-lg px-3 focus:outline-none focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20"
+            className="h-9 w-full text-sm bg-muted/30 border border-border/40 rounded-lg px-3 focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20"
           />
         </div>
         <div className="space-y-1.5">
@@ -1690,7 +1690,7 @@ function SettingsTab({
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             rows={3}
-            className="w-full text-sm bg-muted/30 border border-border/40 rounded-lg p-3 resize-none focus:outline-none focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20"
+            className="w-full text-sm bg-muted/30 border border-border/40 rounded-lg p-3 resize-none focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20"
           />
         </div>
         <Button type="submit" size="sm" disabled={saving || !name.trim()}>
@@ -1731,7 +1731,7 @@ function SettingsTab({
           These actions cannot be undone.
         </p>
         <div className="flex items-center gap-2">
-          <Button size="sm" variant="outline" className="text-amber-600 dark:text-amber-400 border-amber-500/30" onClick={() => setConfirmOpen("archive")}>
+          <Button size="sm" variant="outline" className="text-primary dark:text-primary border-primary/30" onClick={() => setConfirmOpen("archive")}>
             <Archive className="w-3.5 h-3.5 mr-1.5" /> Archive Project
           </Button>
           <Button size="sm" variant="outline" className="text-red-600 dark:text-red-400 border-red-500/30" onClick={() => setConfirmOpen("delete")}>

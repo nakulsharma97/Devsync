@@ -47,16 +47,16 @@ import { toast } from "sonner";
 
 const STATUS_META: Record<string, { label: string; badge: string }> = {
   OPEN: { label: "Open", badge: "bg-blue-500/10 text-blue-600" },
-  IN_PROGRESS: { label: "In Progress", badge: "bg-amber-500/10 text-amber-600" },
-  WAITING_USER: { label: "Waiting", badge: "bg-orange-500/10 text-orange-600" },
-  RESOLVED: { label: "Resolved", badge: "bg-emerald-500/10 text-emerald-600" },
+  IN_PROGRESS: { label: "In Progress", badge: "bg-primary/10 text-primary" },
+  WAITING_USER: { label: "Waiting", badge: "bg-accent/10 text-accent" },
+  RESOLVED: { label: "Resolved", badge: "bg-accent/10 text-accent" },
   CLOSED: { label: "Closed", badge: "bg-slate-500/10 text-slate-600" },
 };
 
 const PRIORITY_META: Record<string, { label: string; badge: string }> = {
   LOW: { label: "Low", badge: "bg-slate-500/10 text-slate-600" },
   MEDIUM: { label: "Medium", badge: "bg-blue-500/10 text-blue-600" },
-  HIGH: { label: "High", badge: "bg-orange-500/10 text-orange-600" },
+  HIGH: { label: "High", badge: "bg-accent/10 text-accent" },
   URGENT: { label: "Urgent", badge: "bg-red-500/10 text-red-600" },
 };
 
@@ -388,7 +388,7 @@ export default function AdminSupport() {
                   key={reply.id}
                   className={`p-3 rounded-lg border ${
                     reply.internalNote
-                      ? "bg-amber-500/5 border-amber-500/20"
+                      ? "bg-primary/5 border-primary/20"
                       : reply.adminReply
                         ? "bg-accent/5 border-accent/20"
                         : "bg-muted/30"
@@ -397,7 +397,7 @@ export default function AdminSupport() {
                   <div className="flex items-center gap-2 mb-1">
                     <span className="text-sm font-medium">{reply.userName ?? "Unknown"}</span>
                     {reply.internalNote && (
-                      <Badge variant="secondary" className="text-xs bg-amber-500/10 text-amber-600">
+                      <Badge variant="secondary" className="text-xs bg-primary/10 text-primary">
                         Internal Note
                       </Badge>
                     )}

@@ -87,10 +87,10 @@ function ContributionHeatmap({ counts }: { counts: Map<string, number> }) {
               className={cn(
                 "w-3 h-3 rounded-[3px]",
                 intensity === 0 && "bg-muted/50",
-                intensity === 1 && "bg-indigo-500/30",
-                intensity === 2 && "bg-indigo-500/50",
-                intensity === 3 && "bg-indigo-500/75",
-                intensity === 4 && "bg-indigo-500"
+                intensity === 1 && "bg-primary/30",
+                intensity === 2 && "bg-primary/50",
+                intensity === 3 && "bg-primary/75",
+                intensity === 4 && "bg-primary"
               )}
             />
           );
@@ -102,10 +102,10 @@ function ContributionHeatmap({ counts }: { counts: Map<string, number> }) {
 
 function StatCard({ icon, label, value }: { icon: React.ReactNode; label: string; value: number }) {
   return (
-    <div className="rounded-xl border border-border/40 bg-muted/20 p-4 hover:border-indigo-500/20 hover:bg-indigo-500/5 transition-all">
+    <div className="rounded-xl border border-border/40 bg-muted/20 p-4 hover:border-primary/20 hover:bg-primary/5 transition-all">
       <div className="flex items-center gap-2 text-muted-foreground mb-1.5">
         {icon}
-        <span className="text-[11px] font-medium uppercase tracking-wide">{label}</span>
+        <span className="text-[11px] font-medium">{label}</span>
       </div>
       <p className="text-2xl font-bold text-foreground">{value.toLocaleString()}</p>
     </div>
@@ -142,7 +142,7 @@ function FollowListDialog({
         <div className="overflow-y-auto pr-1 -mr-1 space-y-1">
           {loading ? (
             <div className="flex justify-center py-8">
-              <Loader2 className="h-5 w-5 animate-spin text-indigo-500" />
+              <Loader2 className="h-5 w-5 animate-spin text-primary" />
             </div>
           ) : users.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-8">
@@ -159,9 +159,9 @@ function FollowListDialog({
                   onClick={() => u.username && onUserClick(u.username)}
                   className="flex items-center gap-3 flex-1 min-w-0 text-left"
                 >
-                  <Avatar className="w-9 h-9 shrink-0 ring-1 ring-indigo-500/10">
+                  <Avatar className="w-9 h-9 shrink-0 ring-1 ring-primary/10">
                     <AvatarImage src={u.avatarUrl || undefined} />
-                    <AvatarFallback className="text-[10px] font-bold bg-gradient-to-br from-indigo-500/20 to-purple-500/20 text-indigo-500 dark:text-indigo-400">
+                    <AvatarFallback className="text-[10px] font-bold bg-gradient-to-br from-primary/20 to-primary/20 text-primary dark:text-primary">
                       {u.fullName?.charAt(0) || "?"}
                     </AvatarFallback>
                   </Avatar>
@@ -169,7 +169,7 @@ function FollowListDialog({
                     <p className="text-sm font-semibold truncate">{u.fullName}</p>
                     <p className="text-xs text-muted-foreground truncate">
                       @{u.username}
-                      {u.isSelf && <span className="text-indigo-500"> · You</span>}
+                      {u.isSelf && <span className="text-primary"> · You</span>}
                       {u.followsYou && !u.isSelf && (
                         <span className="text-green-600 dark:text-green-400"> · Follows you</span>
                       )}
@@ -186,7 +186,7 @@ function FollowListDialog({
                       "text-xs shrink-0",
                       u.isFollowing
                         ? "border-border/60 text-foreground hover:border-red-500/50 hover:text-red-600 hover:bg-red-500/5 dark:hover:border-red-400/50 dark:hover:text-red-400 dark:hover:bg-red-500/10"
-                        : "border-indigo-500/30 bg-indigo-500 text-white hover:bg-indigo-600 dark:bg-indigo-600 dark:hover:bg-indigo-700"
+                        : "border-primary/30 bg-primary text-white hover:bg-primary dark:bg-primary dark:hover:bg-accent"
                     )}
                   >
                     {togglingIds.has(u.id) ? (
@@ -411,17 +411,17 @@ export default function UserProfilePage() {
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-card border border-border/50 rounded-2xl p-6 mb-6 relative overflow-hidden hover:border-indigo-500/20 hover:shadow-lg hover:shadow-indigo-500/5 transition-all duration-300"
+        className="bg-card border border-border/50 rounded-2xl p-6 mb-6 relative overflow-hidden hover:border-primary/20 hover:shadow-lg hover:shadow-primary/5 transition-all duration-300"
       >
-        <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/[0.03] to-purple-500/[0.02] pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/[0.03] to-primary/[0.02] pointer-events-none" />
 
         <div className="flex items-start gap-5 relative flex-wrap">
           {/* Avatar */}
-          <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-indigo-500/20 to-purple-500/10 flex items-center justify-center ring-2 ring-indigo-500/20 shrink-0 overflow-hidden shadow-md shadow-indigo-500/10">
+          <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center ring-2 ring-primary/20 shrink-0 overflow-hidden shadow-md shadow-primary/10">
             {profile.avatarUrl ? (
               <img src={profile.avatarUrl} alt="" className="w-full h-full object-cover" />
             ) : (
-              <User className="w-8 h-8 text-indigo-500" />
+              <User className="w-8 h-8 text-primary" />
             )}
           </div>
 
@@ -467,7 +467,7 @@ export default function UserProfilePage() {
                 {badges.map((b) => (
                   <span
                     key={b}
-                    className="text-[10px] px-2 py-1 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 font-medium"
+                    className="text-[10px] px-2 py-1 rounded-full bg-primary/10 text-primary dark:text-primary border border-primary/20 font-medium"
                   >
                     {b}
                   </span>
@@ -482,7 +482,7 @@ export default function UserProfilePage() {
                 </span>
               )}
               {c.currentStreak > 0 && (
-                <span className="inline-flex items-center gap-1 text-orange-500">
+                <span className="inline-flex items-center gap-1 text-accent">
                   <Flame className="w-3.5 h-3.5" /> {c.currentStreak} day streak
                 </span>
               )}
@@ -505,7 +505,7 @@ export default function UserProfilePage() {
                 <Button
                   size="sm"
                   onClick={() => navigate("/profile/posts")}
-                  className="text-xs gap-1.5 bg-gradient-to-r from-indigo-500 to-purple-600 text-white hover:from-indigo-600 hover:to-purple-700"
+                  className="text-xs gap-1.5 bg-primary text-white hover:from-primary hover:to-primary"
                 >
                   <FileText className="w-3.5 h-3.5" />
                   My Posts
@@ -521,7 +521,7 @@ export default function UserProfilePage() {
                   "text-xs gap-1.5 min-w-[100px] justify-center",
                   social.isFollowing
                     ? "border-border/60 text-foreground hover:border-red-500/50 hover:text-red-600 hover:bg-red-500/5 dark:hover:border-red-400/50 dark:hover:text-red-400 dark:hover:bg-red-500/10"
-                    : "border-indigo-500/30 bg-indigo-500 text-white hover:bg-indigo-600 dark:bg-indigo-600 dark:hover:bg-indigo-700"
+                    : "border-primary/30 bg-primary text-white hover:bg-primary dark:bg-primary dark:hover:bg-accent"
                 )}
               >
                 {followBusy ? (
@@ -573,32 +573,32 @@ export default function UserProfilePage() {
           <button
             type="button"
             onClick={() => document.getElementById("user-posts")?.scrollIntoView({ behavior: "smooth" })}
-            className="rounded-xl border border-border/40 bg-muted/20 p-4 text-left hover:border-indigo-500/20 hover:bg-indigo-500/5 transition-all"
+            className="rounded-xl border border-border/40 bg-muted/20 p-4 text-left hover:border-primary/20 hover:bg-primary/5 transition-all"
           >
             <p className="text-2xl font-bold text-foreground">{postsCount.toLocaleString()}</p>
-            <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+            <p className="text-[11px] font-medium text-muted-foreground">
               Posts
             </p>
           </button>
           <button
             type="button"
             onClick={() => openList("followers")}
-            className="rounded-xl border border-border/40 bg-muted/20 p-4 text-left hover:border-indigo-500/20 hover:bg-indigo-500/5 transition-all"
+            className="rounded-xl border border-border/40 bg-muted/20 p-4 text-left hover:border-primary/20 hover:bg-primary/5 transition-all"
             aria-label={`View followers (${followerCount})`}
           >
             <p className="text-2xl font-bold text-foreground">{followerCount.toLocaleString()}</p>
-            <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+            <p className="text-[11px] font-medium text-muted-foreground">
               Followers
             </p>
           </button>
           <button
             type="button"
             onClick={() => openList("following")}
-            className="rounded-xl border border-border/40 bg-muted/20 p-4 text-left hover:border-indigo-500/20 hover:bg-indigo-500/5 transition-all"
+            className="rounded-xl border border-border/40 bg-muted/20 p-4 text-left hover:border-primary/20 hover:bg-primary/5 transition-all"
             aria-label={`View following (${followingCount})`}
           >
             <p className="text-2xl font-bold text-foreground">{followingCount.toLocaleString()}</p>
-            <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+            <p className="text-[11px] font-medium text-muted-foreground">
               Following
             </p>
           </button>
@@ -618,7 +618,7 @@ export default function UserProfilePage() {
       <div className="rounded-2xl border border-border/50 bg-card p-5 mb-6">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-            <Flame className="w-4 h-4 text-orange-500" />
+            <Flame className="w-4 h-4 text-accent" />
             Contribution activity
           </h3>
           <span className="text-[11px] text-muted-foreground">Last {HEATMAP_DAYS} days</span>
@@ -656,8 +656,8 @@ export default function UserProfilePage() {
           </div>
         ) : userPosts.length === 0 ? (
           <div className="bg-card border border-border/50 rounded-2xl text-center py-12 px-6">
-            <div className="w-12 h-12 mx-auto mb-3 rounded-2xl bg-gradient-to-br from-indigo-500/15 to-purple-500/10 flex items-center justify-center ring-1 ring-indigo-500/20">
-              <FileText className="w-5 h-5 text-indigo-400" />
+            <div className="w-12 h-12 mx-auto mb-3 rounded-2xl bg-gradient-to-br from-primary/15 to-primary/10 flex items-center justify-center ring-1 ring-primary/20">
+              <FileText className="w-5 h-5 text-primary" />
             </div>
             <p className="text-sm font-medium text-foreground mb-1">No posts yet</p>
             <p className="text-xs text-muted-foreground">
@@ -688,7 +688,7 @@ export default function UserProfilePage() {
                   size="sm"
                   onClick={() => fetchPosts(postsPage + 1, true)}
                   disabled={loadingMorePosts}
-                  className="text-xs gap-1 rounded-full text-muted-foreground hover:text-indigo-500 hover:border-indigo-500/30"
+                  className="text-xs gap-1 rounded-full text-muted-foreground hover:text-primary hover:border-primary/30"
                 >
                   {loadingMorePosts ? (
                     <Loader2 className="h-3.5 w-3.5 animate-spin" />

@@ -47,16 +47,16 @@ import { toast } from "sonner";
 
 const STATUS_META: Record<string, { label: string; badge: string }> = {
   OPEN: { label: "Open", badge: "bg-blue-500/10 text-blue-600 dark:text-blue-400" },
-  IN_PROGRESS: { label: "In Progress", badge: "bg-amber-500/10 text-amber-600 dark:text-amber-400" },
-  WAITING_USER: { label: "Waiting for You", badge: "bg-orange-500/10 text-orange-600 dark:text-orange-400" },
-  RESOLVED: { label: "Resolved", badge: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" },
+  IN_PROGRESS: { label: "In Progress", badge: "bg-primary/10 text-primary dark:text-primary" },
+  WAITING_USER: { label: "Waiting for You", badge: "bg-accent/10 text-accent dark:text-accent" },
+  RESOLVED: { label: "Resolved", badge: "bg-accent/10 text-accent dark:text-accent" },
   CLOSED: { label: "Closed", badge: "bg-slate-500/10 text-slate-600 dark:text-slate-400" },
 };
 
 const PRIORITY_META: Record<string, { label: string; badge: string }> = {
   LOW: { label: "Low", badge: "bg-slate-500/10 text-slate-600 dark:text-slate-400" },
   MEDIUM: { label: "Medium", badge: "bg-blue-500/10 text-blue-600 dark:text-blue-400" },
-  HIGH: { label: "High", badge: "bg-orange-500/10 text-orange-600 dark:text-orange-400" },
+  HIGH: { label: "High", badge: "bg-accent/10 text-accent dark:text-accent" },
   URGENT: { label: "Urgent", badge: "bg-red-500/10 text-red-600 dark:text-red-400" },
 };
 
@@ -228,8 +228,8 @@ export default function Support() {
       <div className="flex items-start justify-between gap-4">
         <div>
           <div className="flex items-center gap-2.5 mb-1">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500/15 to-purple-500/10 flex items-center justify-center ring-1 ring-indigo-500/20">
-              <Headphones className="w-4.5 h-4.5 text-indigo-500" />
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary/15 to-primary/10 flex items-center justify-center ring-1 ring-primary/20">
+              <Headphones className="w-4.5 h-4.5 text-primary" />
             </div>
             <div>
               <h1 className="text-2xl font-bold tracking-tight">Support</h1>
@@ -241,7 +241,7 @@ export default function Support() {
         </div>
         <Button
           onClick={() => setCreateOpen(true)}
-          className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white hover:from-indigo-600 hover:to-purple-700 shrink-0"
+          className="bg-primary text-white hover:from-primary hover:to-primary shrink-0"
         >
           <Plus className="w-4 h-4 mr-2" /> New Ticket
         </Button>
@@ -251,7 +251,7 @@ export default function Support() {
       <div className="bg-card border border-border/50 rounded-2xl overflow-hidden">
         <div className="px-6 py-4 border-b border-border/40">
           <div className="flex items-center gap-2">
-            <HelpCircle className="w-4 h-4 text-indigo-500" />
+            <HelpCircle className="w-4 h-4 text-primary" />
             <h3 className="text-sm font-semibold text-foreground">Quick Help</h3>
           </div>
         </div>
@@ -261,11 +261,11 @@ export default function Support() {
             return (
               <div
                 key={i}
-                className="p-3 rounded-xl bg-muted/20 border border-border/30 hover:border-indigo-500/20 hover:bg-indigo-500/5 transition-all cursor-default"
+                className="p-3 rounded-xl bg-muted/20 border border-border/30 hover:border-primary/20 hover:bg-primary/5 transition-all cursor-default"
               >
                 <div className="flex items-start gap-2.5">
-                  <div className="w-7 h-7 rounded-lg bg-indigo-500/10 flex items-center justify-center shrink-0 mt-0.5">
-                    <Icon className="w-3.5 h-3.5 text-indigo-500" />
+                  <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
+                    <Icon className="w-3.5 h-3.5 text-primary" />
                   </div>
                   <div className="min-w-0">
                     <p className="text-xs font-medium text-foreground leading-snug">
@@ -287,7 +287,7 @@ export default function Support() {
         <div className="px-6 py-4 border-b border-border/40">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-2">
-              <Ticket className="w-4 h-4 text-indigo-500" />
+              <Ticket className="w-4 h-4 text-primary" />
               <h3 className="text-sm font-semibold text-foreground">
                 My Tickets
               </h3>
@@ -355,10 +355,10 @@ export default function Support() {
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-                          <span className="text-xs font-mono text-indigo-500 dark:text-indigo-400 font-medium">
+                          <span className="text-xs font-mono text-primary dark:text-primary font-medium">
                             {ticket.ticketNumber}
                           </span>
-                          <h3 className="font-medium text-sm text-foreground group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors truncate">
+                          <h3 className="font-medium text-sm text-foreground group-hover:text-primary dark:group-hover:text-primary transition-colors truncate">
                             {ticket.subject}
                           </h3>
                         </div>
@@ -391,7 +391,7 @@ export default function Support() {
                         <span className="text-[11px] text-muted-foreground">
                           {timeAgo(ticket.createdAt)}
                         </span>
-                        <ChevronRight className="w-4 h-4 text-muted-foreground/50 group-hover:text-indigo-500 transition-colors" />
+                        <ChevronRight className="w-4 h-4 text-muted-foreground/50 group-hover:text-primary transition-colors" />
                       </div>
                     </div>
                   </div>
@@ -569,7 +569,7 @@ export default function Support() {
           </div>
           <div className="border-t px-6 py-4">
             <Button
-              className="w-full h-10 bg-gradient-to-r from-indigo-500 to-purple-600 text-white hover:from-indigo-600 hover:to-purple-700"
+              className="w-full h-10 bg-primary text-white hover:from-primary hover:to-primary"
               onClick={handleCreate}
               disabled={creating}
             >
@@ -597,8 +597,8 @@ export default function Support() {
             <SheetHeader className="text-left">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Ticket className="w-4 h-4 text-indigo-500 shrink-0" />
-                  <span className="text-xs font-mono text-indigo-500 dark:text-indigo-400 font-medium">
+                  <Ticket className="w-4 h-4 text-primary shrink-0" />
+                  <span className="text-xs font-mono text-primary dark:text-primary font-medium">
                     {selected?.ticketNumber}
                   </span>
                 </div>
@@ -654,8 +654,8 @@ export default function Support() {
               </div>
             ) : replies.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full min-h-[180px] text-center">
-                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500/15 to-purple-500/10 flex items-center justify-center ring-1 ring-indigo-500/20 mb-4">
-                  <MessageSquare className="w-5 h-5 text-indigo-400" />
+                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary/15 to-primary/10 flex items-center justify-center ring-1 ring-primary/20 mb-4">
+                  <MessageSquare className="w-5 h-5 text-primary" />
                 </div>
                 <p className="text-sm font-medium text-foreground mb-1">
                   No replies yet
@@ -672,7 +672,7 @@ export default function Support() {
                     key={reply.id}
                     className={`rounded-xl border p-4 transition-colors ${
                       reply.adminReply
-                        ? "bg-gradient-to-br from-indigo-500/5 to-purple-500/5 border-indigo-500/15"
+                        ? "bg-gradient-to-br from-primary/5 to-primary/5 border-primary/15"
                         : "bg-muted/30 border-border/40"
                     }`}
                   >
@@ -680,7 +680,7 @@ export default function Support() {
                       <div
                         className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold ${
                           reply.adminReply
-                            ? "bg-gradient-to-br from-indigo-500 to-purple-600 text-white"
+                            ? "bg-primary text-white"
                             : "bg-muted text-muted-foreground"
                         }`}
                       >
@@ -692,7 +692,7 @@ export default function Support() {
                       {reply.adminReply && (
                         <Badge
                           variant="secondary"
-                          className="text-[10px] bg-indigo-500/10 text-indigo-600 dark:text-indigo-400"
+                          className="text-[10px] bg-primary/10 text-primary dark:text-primary"
                         >
                           Support
                         </Badge>
@@ -731,7 +731,7 @@ export default function Support() {
                   size="icon"
                   onClick={handleReply}
                   disabled={!replyText.trim() || sendingReply}
-                  className="h-10 w-10 shrink-0 bg-gradient-to-r from-indigo-500 to-purple-600 text-white hover:from-indigo-600 hover:to-purple-700"
+                  className="h-10 w-10 shrink-0 bg-primary text-white hover:from-primary hover:to-primary"
                 >
                   {sendingReply ? (
                     <Loader2 className="w-4 h-4 animate-spin" />

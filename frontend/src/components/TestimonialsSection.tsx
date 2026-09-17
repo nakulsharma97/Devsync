@@ -15,7 +15,7 @@ function Stars({ rating, className = "w-4 h-4" }: { rating: number; className?: 
           aria-hidden
           className={`${className} ${
             i <= rating
-              ? "fill-amber-500 text-amber-500 dark:fill-amber-400 dark:text-amber-400"
+              ? "fill-primary text-primary dark:fill-primary dark:text-primary"
               : "text-muted-foreground/30"
           }`}
         />
@@ -40,13 +40,18 @@ function initials(name: string): string {
  */
 export default function TestimonialsSection({
   reviews,
+  settled,
 }: {
   reviews: PublicReviewsResponse | null;
+  settled: boolean;
 }) {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
 
-  const loading = reviews === null;
+  // Only skeleton while the request is genuinely in flight. Once it settles
+  // without data we fall through to the honest empty state instead of leaving
+  // placeholder cards pulsing forever.
+  const loading = reviews === null && !settled;
   const all = reviews ? [...reviews.featured, ...reviews.reviews] : [];
   const deduped = all.filter(
     (review, index) => all.findIndex((r) => r.id === review.id) === index
@@ -63,14 +68,14 @@ export default function TestimonialsSection({
   };
 
   return (
-    <section className="relative z-10 py-16 md:py-24 px-4 sm:px-6 overflow-hidden">
+    <section className="relative z-10 py-20 md:py-32 px-6 sm:px-8 overflow-hidden">
       <div className="absolute inset-0 bg-gradient-to-b from-accent/[0.02] to-transparent pointer-events-none" />
       <div className="mx-auto max-w-7xl relative">
-        <ScrollReveal className="text-center mb-10">
-          <span className="text-xs font-semibold tracking-[0.2em] uppercase bg-gradient-to-r from-amber-600 via-orange-600 to-red-600 dark:from-amber-400 dark:via-orange-400 dark:to-red-400 bg-clip-text text-transparent mb-4 block">
+        <ScrollReveal className="text-center mb-12">
+          <span className="text-xs font-semibold tracking-[0.2em] uppercase bg-gradient-to-r from-primary via-accent to-red-600 dark:from-primary dark:via-accent dark:to-red-400 bg-clip-text text-transparent mb-6 block">
             Reviews
           </span>
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight">
+          <h2 className="text-4xl sm:text-5xl md:text-6xl font-black tracking-tight">
             What developers are saying
           </h2>
 
@@ -132,10 +137,10 @@ export default function TestimonialsSection({
                   delay={index * 0.1}
                   className="h-full"
                 >
-                  <div className="relative h-full bg-card/70 backdrop-blur-sm border border-border/40 rounded-2xl p-6 md:p-8 transition-all duration-300 hover:border-indigo-500/30 hover:shadow-xl hover:shadow-indigo-500/10 hover:-translate-y-1 group">
+                  <div className="relative h-full bg-card/70 backdrop-blur-sm border border-border/40 rounded-2xl p-6 md:p-8 transition-all duration-300 hover:border-primary/30 hover:shadow-xl hover:shadow-primary/10 hover:-translate-y-1 group">
                     <Quote
                       aria-hidden
-                      className="absolute top-5 right-5 w-8 h-8 text-indigo-500/10 dark:text-indigo-400/10 group-hover:text-indigo-500/25 dark:group-hover:text-indigo-400/25 transition-colors duration-300"
+                      className="absolute top-5 right-5 w-8 h-8 text-primary/10 dark:text-primary/10 group-hover:text-primary/25 dark:group-hover:text-primary/25 transition-colors duration-300"
                     />
 
                     <Stars rating={review.rating} />
@@ -187,11 +192,11 @@ export default function TestimonialsSection({
                   return (
                     <div key={star} className="flex items-center gap-3 text-xs">
                       <span className="w-6 shrink-0 text-muted-foreground flex items-center gap-1">
-                        {star} <Star className="w-3 h-3 fill-amber-500 text-amber-500" />
+                        {star} <Star className="w-3 h-3 fill-primary text-primary" />
                       </span>
                       <div className="flex-1 h-2 rounded-full bg-muted/40 overflow-hidden">
                         <div
-                          className="h-full rounded-full bg-amber-500/80"
+                          className="h-full rounded-full bg-primary/80"
                           style={{ width: `${pct}%` }}
                         />
                       </div>

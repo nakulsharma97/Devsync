@@ -46,8 +46,8 @@ const PAGE_SIZE = 10;
 
 const statusStyles: Record<string, string> = {
   OPEN: "bg-blue-500/10 text-blue-500 border-blue-500/20",
-  IN_REVIEW: "bg-amber-500/10 text-amber-500 border-amber-500/20",
-  RESOLVED: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20",
+  IN_REVIEW: "bg-primary/10 text-primary border-primary/20",
+  RESOLVED: "bg-accent/10 text-emerald-500 border-accent/20",
   CLOSED: "bg-muted text-muted-foreground border-border/50",
 };
 

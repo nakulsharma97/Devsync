@@ -60,8 +60,8 @@ import { toast } from "sonner";
 const PAGE_SIZE = 10;
 
 const statusStyles: Record<string, string> = {
-  PENDING: "bg-amber-500/10 text-amber-500 border-amber-500/20",
-  APPROVED: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20",
+  PENDING: "bg-primary/10 text-primary border-primary/20",
+  APPROVED: "bg-accent/10 text-emerald-500 border-accent/20",
   REJECTED: "bg-red-500/10 text-red-500 border-red-500/20",
 };
 
@@ -74,7 +74,7 @@ function Stars({ rating }: { rating: number }) {
           aria-hidden
           className={`w-3.5 h-3.5 ${
             i <= rating
-              ? "fill-amber-500 text-amber-500"
+              ? "fill-primary text-primary"
               : "text-muted-foreground/30"
           }`}
         />
@@ -359,7 +359,7 @@ export default function AdminReviews() {
                         <Badge variant="outline" className={statusStyles[r.status] || ""}>
                           {r.status}
                           {r.featured && (
-                            <Sparkles className="w-3 h-3 ml-1 text-amber-500" aria-label="Featured" />
+                            <Sparkles className="w-3 h-3 ml-1 text-primary" aria-label="Featured" />
                           )}
                         </Badge>
                       </TableCell>
@@ -370,7 +370,7 @@ export default function AdminReviews() {
                               <Button
                                 size="sm"
                                 variant="outline"
-                                className="text-emerald-500 hover:text-emerald-600"
+                                className="text-emerald-500 hover:text-accent"
                                 onClick={() => handleApprove(r)}
                                 disabled={busyId === r.id}
                               >
@@ -395,7 +395,7 @@ export default function AdminReviews() {
                               variant="outline"
                               onClick={() => handleFeature(r)}
                               disabled={busyId === r.id}
-                              className={r.featured ? "text-amber-500 border-amber-500/40" : "text-muted-foreground"}
+                              className={r.featured ? "text-primary border-primary/40" : "text-muted-foreground"}
                               title={r.featured ? "Unfeature" : "Feature on landing page"}
                             >
                               <Sparkles className="w-3.5 h-3.5" />

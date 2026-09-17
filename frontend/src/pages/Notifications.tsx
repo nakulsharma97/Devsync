@@ -259,7 +259,7 @@ export default function Notifications() {
                 variant="outline"
                 size="sm"
                 onClick={markAllRead}
-                className="border-indigo-500/40 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-500/5 hover:border-indigo-500/60"
+                className="border-primary/40 text-primary dark:text-primary hover:bg-primary/5 hover:border-primary/60"
               >
                 <CheckCheck className="w-4 h-4 mr-1.5" />
                 Mark all as read
@@ -280,9 +280,9 @@ export default function Notifications() {
                 aria-selected={filter === f.id}
                 onClick={() => selectFilter(f.id)}
                 className={cn(
-                  "flex items-center gap-1.5 px-4 py-2.5 rounded-full text-xs font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50",
+                  "flex items-center gap-1.5 px-4 py-2.5 rounded-full text-xs font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50",
                   filter === f.id
-                    ? "bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-sm"
+                    ? "bg-primary text-white shadow-sm"
                     : "text-muted-foreground hover:text-foreground hover:bg-accent/40"
                 )}
               >
@@ -329,8 +329,8 @@ export default function Notifications() {
             </div>
           ) : visible.length === 0 ? (
             <div className="flex flex-col items-center justify-center text-center py-20 rounded-2xl border border-border/40 bg-card/50">
-              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-indigo-500/15 to-purple-500/10 flex items-center justify-center ring-1 ring-indigo-500/20 mb-5">
-                <Inbox className="w-7 h-7 text-indigo-400" />
+              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary/15 to-primary/10 flex items-center justify-center ring-1 ring-primary/20 mb-5">
+                <Inbox className="w-7 h-7 text-primary" />
               </div>
               <h3 className="text-lg font-semibold mb-1.5">
                 {totalElements === 0
@@ -419,24 +419,24 @@ function NotificationCard({
         "group rounded-2xl border transition-colors overflow-hidden",
         n.read
           ? "border-border/30 bg-card/50 hover:border-border/60 hover:bg-card/80"
-          : "border-indigo-500/25 bg-indigo-500/[0.04] hover:border-indigo-500/40 hover:bg-indigo-500/[0.07]"
+          : "border-primary/25 bg-primary/[0.04] hover:border-primary/40 hover:bg-primary/[0.07]"
       )}
     >
       <button
         onClick={onOpen}
-        className="w-full text-left flex items-start gap-3.5 p-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 rounded-t-2xl"
+        className="w-full text-left flex items-start gap-3.5 p-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 rounded-t-2xl"
       >
         {/* Icon chip */}
         <span className={cn("relative w-10 h-10 rounded-full shrink-0 flex items-center justify-center", meta.colorClass)}>
           <Icon className="w-[18px] h-[18px]" />
           {!n.read && (
-            <span className="absolute -top-0.5 -right-0.5 w-3 h-3 rounded-full bg-indigo-500 ring-2 ring-background" />
+            <span className="absolute -top-0.5 -right-0.5 w-3 h-3 rounded-full bg-primary ring-2 ring-background" />
           )}
         </span>
 
         {/* Content */}
         <span className="flex-1 min-w-0">
-          <span className="block text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/60 mb-0.5">
+          <span className="block text-[10px] font-medium text-muted-foreground/50 mb-0.5">
             {meta.label}
           </span>
           <span className={cn("block text-sm leading-snug", n.read ? "text-muted-foreground" : "text-foreground font-medium")}>
@@ -459,12 +459,12 @@ function NotificationCard({
               "inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full border",
               n.read
                 ? "text-muted-foreground border-border/40 bg-muted/40"
-                : "text-indigo-500 dark:text-indigo-400 border-indigo-500/25 bg-indigo-500/10"
+                : "text-primary dark:text-primary border-primary/25 bg-primary/10"
             )}
           >
             {n.read ? "Read" : "New"}
           </span>
-          <ChevronRight className="w-4 h-4 text-muted-foreground/40 group-hover:text-indigo-400 transition-colors" />
+          <ChevronRight className="w-4 h-4 text-muted-foreground/40 group-hover:text-primary transition-colors" />
         </span>
       </button>
 
@@ -475,7 +475,7 @@ function NotificationCard({
             size="sm"
             disabled={responding}
             onClick={() => onRespond(true)}
-            className="text-xs bg-gradient-to-r from-indigo-500 to-purple-600 text-white hover:from-indigo-600 hover:to-purple-700 shadow-sm"
+            className="text-xs bg-primary text-white hover:from-primary hover:to-primary shadow-sm"
           >
             {responding ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5 mr-1" />}
             Accept
@@ -546,7 +546,7 @@ function PaginationBar({
           onClick={() => onPageChange(page - 1)}
           disabled={page === 0}
           aria-label="Previous page"
-          className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent/50 disabled:opacity-35 disabled:pointer-events-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 transition-colors"
+          className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent/50 disabled:opacity-35 disabled:pointer-events-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 transition-colors"
         >
           <ChevronLeft className="w-4 h-4" />
         </button>
@@ -564,9 +564,9 @@ function PaginationBar({
               aria-label={`Page ${p + 1}`}
               aria-current={p === page ? "page" : undefined}
               className={cn(
-                "inline-flex items-center justify-center w-8 h-8 rounded-lg text-xs font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 transition-colors",
+                "inline-flex items-center justify-center w-8 h-8 rounded-lg text-xs font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 transition-colors",
                 p === page
-                  ? "bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-sm"
+                  ? "bg-primary text-white shadow-sm"
                   : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
               )}
             >
@@ -580,7 +580,7 @@ function PaginationBar({
           onClick={() => onPageChange(page + 1)}
           disabled={page >= totalPages - 1}
           aria-label="Next page"
-          className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent/50 disabled:opacity-35 disabled:pointer-events-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 transition-colors"
+          className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent/50 disabled:opacity-35 disabled:pointer-events-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 transition-colors"
         >
           <ChevronRight className="w-4 h-4" />
         </button>
@@ -591,7 +591,7 @@ function PaginationBar({
         <select
           value={size}
           onChange={(e) => onSizeChange(Number(e.target.value))}
-          className="h-8 rounded-lg border border-border/40 bg-card px-2 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50"
+          className="h-8 rounded-lg border border-border/40 bg-card px-2 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
         >
           {SIZE_OPTIONS.map((s) => (
             <option key={s} value={s}>
@@ -609,9 +609,9 @@ function PaginationBar({
 
 function SummaryCard({ total, unread, read }: { total: number; unread: number; read: number }) {
   const rows = [
-    { icon: Bell, label: "Total notifications", value: total, color: "text-indigo-500 bg-indigo-500/10" },
+    { icon: Bell, label: "Total notifications", value: total, color: "text-primary bg-primary/10" },
     { icon: Circle, label: "Unread", value: unread, color: "text-red-500 bg-red-500/10" },
-    { icon: CheckCheck, label: "Read", value: read, color: "text-emerald-500 bg-emerald-500/10" },
+    { icon: CheckCheck, label: "Read", value: read, color: "text-emerald-500 bg-accent/10" },
   ];
   return (
     <section className="rounded-2xl border border-border/40 bg-card/60 p-5">
@@ -637,7 +637,7 @@ function QuickTipsCard() {
       icon: UserPlus,
       title: "Accept project invitations",
       body: "Collaborate with your team and get more done.",
-      color: "text-purple-500 bg-purple-500/10",
+      color: "text-accent bg-accent/10",
     },
     {
       icon: Bell,
@@ -649,7 +649,7 @@ function QuickTipsCard() {
       icon: CheckCheck,
       title: "Mark as read",
       body: "Keep your notification center clean.",
-      color: "text-emerald-500 bg-emerald-500/10",
+      color: "text-emerald-500 bg-accent/10",
     },
   ];
   return (
@@ -675,9 +675,9 @@ function QuickTipsCard() {
 
 function CaughtUpCard() {
   return (
-    <section className="rounded-2xl border border-border/40 bg-gradient-to-b from-indigo-500/[0.04] to-transparent p-5 text-center">
-      <div className="w-14 h-14 mx-auto rounded-full bg-gradient-to-br from-indigo-500/15 to-purple-500/10 flex items-center justify-center ring-1 ring-indigo-500/20 mb-4">
-        <Sparkles className="w-6 h-6 text-indigo-400" />
+    <section className="rounded-2xl border border-border/40 bg-gradient-to-b from-primary/[0.04] to-transparent p-5 text-center">
+      <div className="w-14 h-14 mx-auto rounded-full bg-gradient-to-br from-primary/15 to-primary/10 flex items-center justify-center ring-1 ring-primary/20 mb-4">
+        <Sparkles className="w-6 h-6 text-primary" />
       </div>
       <h2 className="text-sm font-semibold">You&apos;re all caught up!</h2>
       <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">

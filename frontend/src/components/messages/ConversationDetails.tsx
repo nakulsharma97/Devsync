@@ -85,14 +85,14 @@ export function ConversationDetails({
           <p className="text-xs text-muted-foreground text-center py-10">Select a conversation</p>
         ) : loading ? (
           <div className="flex items-center justify-center py-10">
-            <Loader2 className="h-4 w-4 animate-spin text-indigo-500" />
+            <Loader2 className="h-4 w-4 animate-spin text-primary" />
           </div>
         ) : (
           <div className="space-y-5 px-4 py-4">
             {/* Identity */}
             <div className="flex flex-col items-center text-center">
               <span className="relative">
-                <span className="w-20 h-20 rounded-full bg-gradient-to-br from-indigo-500/20 to-purple-500/20 flex items-center justify-center text-2xl font-bold text-indigo-400 overflow-hidden">
+                <span className="w-20 h-20 rounded-full bg-gradient-to-br from-primary/20 to-primary/20 flex items-center justify-center text-2xl font-bold text-primary overflow-hidden">
                   {isRoom ? (
                     <Users className="w-8 h-8" />
                   ) : avatarUrl ? (
@@ -108,7 +108,7 @@ export function ConversationDetails({
                       onlineStatus === "ONLINE"
                         ? "bg-emerald-500"
                         : onlineStatus === "AWAY"
-                          ? "bg-amber-500"
+                          ? "bg-primary"
                           : "bg-muted-foreground/40"
                     )}
                   />
@@ -124,7 +124,7 @@ export function ConversationDetails({
                       onlineStatus === "ONLINE"
                         ? "text-emerald-500"
                         : onlineStatus === "AWAY"
-                          ? "text-amber-500"
+                          ? "text-primary"
                           : ""
                     }
                   >
@@ -142,7 +142,7 @@ export function ConversationDetails({
               profile &&
               (profile.bio || profile.jobTitle || profile.company || profile.location) && (
                 <section className="rounded-xl border border-border/40 p-3.5">
-                  <h5 className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/60 mb-2">
+                  <h5 className="text-[10px] font-medium text-muted-foreground/50 mb-2">
                     About
                   </h5>
                   <div className="space-y-1 text-sm">
@@ -162,7 +162,7 @@ export function ConversationDetails({
             {/* Room description */}
             {isRoom && room?.description && (
               <section className="rounded-xl border border-border/40 p-3.5">
-                <h5 className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/60 mb-1.5">
+                <h5 className="text-[10px] font-medium text-muted-foreground/50 mb-1.5">
                   About
                 </h5>
                 <p className="text-sm text-foreground/90 leading-relaxed">{room.description}</p>
@@ -172,7 +172,7 @@ export function ConversationDetails({
             {/* Members (rooms) */}
             {isRoom && room && room.participants.length > 0 && (
               <section>
-                <h5 className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/60 mb-2">
+                <h5 className="text-[10px] font-medium text-muted-foreground/50 mb-2">
                   Members · {room.participants.length}
                 </h5>
                 <div className="flex -space-x-2">
@@ -180,7 +180,7 @@ export function ConversationDetails({
                     <span
                       key={p.userId}
                       title={p.fullName}
-                      className="w-8 h-8 rounded-full ring-2 ring-background bg-gradient-to-br from-indigo-500/20 to-purple-500/20 text-indigo-400 flex items-center justify-center text-[10px] font-bold overflow-hidden"
+                      className="w-8 h-8 rounded-full ring-2 ring-background bg-gradient-to-br from-primary/20 to-primary/20 text-primary flex items-center justify-center text-[10px] font-bold overflow-hidden"
                     >
                       {p.avatarUrl ? (
                         <img src={p.avatarUrl} alt={p.fullName} className="w-full h-full object-cover" />
@@ -201,21 +201,21 @@ export function ConversationDetails({
             {/* Project (rooms) */}
             {isRoom && room?.projectId && (
               <section className="rounded-xl border border-border/40 p-3.5">
-                <h5 className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/60 mb-2">
+                <h5 className="text-[10px] font-medium text-muted-foreground/50 mb-2">
                   Project
                 </h5>
                 <button
                   onClick={() => navigate(`/board/${room.projectId}`)}
                   className="flex items-center gap-2.5 w-full text-left group"
                 >
-                  <span className="w-9 h-9 rounded-lg bg-indigo-500/10 text-indigo-500 dark:text-indigo-400 flex items-center justify-center shrink-0">
+                  <span className="w-9 h-9 rounded-lg bg-primary/10 text-primary dark:text-primary flex items-center justify-center shrink-0">
                     <FolderKanban className="w-4 h-4" />
                   </span>
                   <span className="flex-1 min-w-0">
                     <span className="block text-sm font-medium truncate">
                       {room.projectName || "Project"}
                     </span>
-                    <span className="block text-[11px] text-indigo-500 group-hover:underline">
+                    <span className="block text-[11px] text-primary group-hover:underline">
                       View Project <ChevronRight className="w-3 h-3 inline" />
                     </span>
                   </span>
@@ -226,7 +226,7 @@ export function ConversationDetails({
             {/* Shared media */}
             {media.length > 0 && (
               <section>
-                <h5 className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/60 mb-2">
+                <h5 className="text-[10px] font-medium text-muted-foreground/50 mb-2">
                   Shared media
                 </h5>
                 <div className="grid grid-cols-3 gap-1.5">
@@ -242,7 +242,7 @@ export function ConversationDetails({
                 {media.length > 9 && (
                   <button
                     onClick={() => setShowAllMedia((v) => !v)}
-                    className="mt-2 text-[11px] text-indigo-500 hover:underline"
+                    className="mt-2 text-[11px] text-primary hover:underline"
                   >
                     {showAllMedia ? "Show less" : `View all (${media.length})`}
                   </button>
@@ -253,7 +253,7 @@ export function ConversationDetails({
             {/* Shared files */}
             {files.length > 0 && (
               <section>
-                <h5 className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/60 mb-2">
+                <h5 className="text-[10px] font-medium text-muted-foreground/50 mb-2">
                   Shared files
                 </h5>
                 <div className="space-y-1.5">
@@ -264,7 +264,7 @@ export function ConversationDetails({
                 {files.length > 5 && (
                   <button
                     onClick={() => setShowAllFiles((v) => !v)}
-                    className="mt-2 text-[11px] text-indigo-500 hover:underline"
+                    className="mt-2 text-[11px] text-primary hover:underline"
                   >
                     {showAllFiles ? "Show less" : `View all (${files.length})`}
                   </button>

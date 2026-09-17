@@ -8,7 +8,7 @@ export default function FooterSection() {
         <div className="grid sm:grid-cols-2 md:grid-cols-5 gap-8 md:gap-12">
           <div className="sm:col-span-2">
             <div className="flex items-center gap-2 mb-4">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg">
+              <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center shadow-lg">
                 <Code2 className="w-4 h-4 text-white" />
               </div>
               <span className="text-base font-bold">DevSync</span>
@@ -22,7 +22,7 @@ export default function FooterSection() {
                 { icon: Twitter, href: "https://twitter.com/devsync", label: "Twitter" },
                 { icon: MessageCircle, href: "https://discord.gg/devsync", label: "Discord" },
               ].map(({ icon: Icon, href, label }) => (
-                <a key={label} href={href} target="_blank" rel="noopener noreferrer" aria-label={label} className="w-9 h-9 rounded-xl bg-muted/50 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-indigo-500/10 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all duration-200">
+                <a key={label} href={href} target="_blank" rel="noopener noreferrer" aria-label={label} className="w-9 h-9 rounded-xl bg-muted/50 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-primary/10 hover:text-primary dark:hover:text-primary transition-all duration-200">
                   <Icon className="w-4 h-4" />
                 </a>
               ))}
@@ -31,7 +31,7 @@ export default function FooterSection() {
 
           {footerColumns.map((col) => (
             <div key={col.title}>
-              <h4 className="text-xs font-bold uppercase tracking-wider text-foreground mb-4">{col.title}</h4>
+              <h4 className="text-xs font-semibold text-foreground mb-4">{col.title}</h4>
               <ul className="space-y-3">
                 {col.links.map((link) => (
                   <li key={link.name}>

@@ -621,9 +621,9 @@ export default function Messages() {
 
               {/* Avatar + identity */}
               <div className="relative shrink-0">
-                <span className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-500/20 to-purple-500/20 flex items-center justify-center text-sm font-bold text-indigo-400 overflow-hidden">
+                <span className="w-9 h-9 rounded-full bg-gradient-to-br from-primary/20 to-primary/20 flex items-center justify-center text-sm font-bold text-primary overflow-hidden">
                   {isRoom ? (
-                    <span className="text-purple-400">
+                    <span className="text-accent">
                       <MessageSquare className="w-4 h-4" />
                     </span>
                   ) : currentConv?.avatarUrl ? (
@@ -639,7 +639,7 @@ export default function Messages() {
                       (presence[currentConv.otherUserId] ?? currentConv.otherUserPresence ?? "OFFLINE") === "ONLINE"
                         ? "bg-emerald-500"
                         : (presence[currentConv.otherUserId] ?? currentConv.otherUserPresence ?? "OFFLINE") === "AWAY"
-                          ? "bg-amber-500"
+                          ? "bg-primary"
                           : "bg-muted-foreground/40"
                     )}
                   />
@@ -656,7 +656,7 @@ export default function Messages() {
                 <span
                   className={cn(
                     "hidden sm:inline-flex items-center gap-1 text-[10px] mr-1",
-                    wsConnected ? "text-emerald-500" : "text-amber-500"
+                    wsConnected ? "text-emerald-500" : "text-primary"
                   )}
                   title={wsConnected ? "Connected" : "Reconnecting…"}
                 >
@@ -728,7 +728,7 @@ export default function Messages() {
             {/* Replying-to bar */}
             {replyingTo && (
               <div className="shrink-0 flex items-center gap-2 px-3 py-1.5 border-t border-border/40 bg-muted/40">
-                <CornerUpLeft className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+                <CornerUpLeft className="w-3.5 h-3.5 text-primary shrink-0" />
                 <span className="text-[11px] text-muted-foreground truncate flex-1">
                   Replying to <span className="font-medium text-foreground">{replyingTo.senderName}</span>:{" "}
                   <span className="truncate">{replyingTo.content}</span>
@@ -750,7 +750,7 @@ export default function Messages() {
             {editing && (
               <div className="shrink-0 border-t border-border/40 bg-muted/40 px-3 py-2 space-y-2">
                 <div className="flex items-center gap-2">
-                  <Pencil className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+                  <Pencil className="w-3.5 h-3.5 text-primary shrink-0" />
                   <span className="text-[11px] text-muted-foreground flex-1 truncate">Editing message</span>
                   <button
                     onClick={() => setEditing(null)}
@@ -771,7 +771,7 @@ export default function Messages() {
                   }}
                   rows={2}
                   aria-label="Edit message text"
-                  className="w-full text-sm bg-background/60 border border-border/40 rounded-lg p-2.5 resize-none focus:outline-none focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20"
+                  className="w-full text-sm bg-background/60 border border-border/40 rounded-lg p-2.5 resize-none focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20"
                 />
                 <div className="flex items-center justify-end gap-1.5">
                   <button
@@ -783,7 +783,7 @@ export default function Messages() {
                   <button
                     onClick={saveEdit}
                     disabled={editSaving || !editText.trim()}
-                    className="inline-flex items-center gap-1.5 text-xs font-medium text-white bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 rounded-lg px-3 py-1.5 transition-all disabled:opacity-40"
+                    className="inline-flex items-center gap-1.5 text-xs font-medium text-white bg-primary hover:from-primary hover:to-primary rounded-lg px-3 py-1.5 transition-all disabled:opacity-40"
                   >
                     {editSaving ? <Spinner className="w-3 h-3 animate-spin" /> : "Save"}
                   </button>
@@ -802,8 +802,8 @@ export default function Messages() {
         ) : (
           <div className="flex-1 flex items-center justify-center">
             <div className="text-center px-6">
-              <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-indigo-500/15 to-purple-500/15 flex items-center justify-center">
-                <MessageSquare className="w-7 h-7 text-indigo-500/70" />
+              <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-primary/15 to-primary/15 flex items-center justify-center">
+                <MessageSquare className="w-7 h-7 text-primary/70" />
               </div>
               <h3 className="text-base font-semibold mb-1.5">Select a conversation</h3>
               <p className="text-sm text-muted-foreground max-w-[260px]">
@@ -811,7 +811,7 @@ export default function Messages() {
               </p>
               <button
                 onClick={() => setNewChatOpen(true)}
-                className="mt-4 inline-flex items-center gap-1.5 text-xs font-medium text-white bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 rounded-lg px-3.5 py-2 shadow-sm shadow-indigo-500/20 transition-all"
+                className="mt-4 inline-flex items-center gap-1.5 text-xs font-medium text-white bg-primary hover:from-primary hover:to-primary rounded-lg px-3.5 py-2 shadow-sm shadow-primary/20 transition-all"
               >
                 New Chat
               </button>

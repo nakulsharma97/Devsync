@@ -89,15 +89,15 @@ export default function Admin() {
 
   const roleBadge = (role: string) =>
     role === "ADMIN" ? (
-      <Badge variant="outline" className="bg-purple-500/10 text-purple-500 border-purple-500/20">ADMIN</Badge>
+      <Badge variant="outline" className="bg-accent/10 text-accent border-accent/20">ADMIN</Badge>
     ) : (
       <Badge variant="outline" className="bg-blue-500/10 text-blue-500 border-blue-500/20">USER</Badge>
     );
 
   const statusBadge = (status: string) => {
     const styles: Record<string, string> = {
-      ACTIVE: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20",
-      ARCHIVED: "bg-amber-500/10 text-amber-500 border-amber-500/20",
+      ACTIVE: "bg-accent/10 text-emerald-500 border-accent/20",
+      ARCHIVED: "bg-primary/10 text-primary border-primary/20",
       COMPLETED: "bg-blue-500/10 text-blue-500 border-blue-500/20",
     };
     return (
@@ -110,10 +110,10 @@ export default function Admin() {
         { icon: Users, label: "Total Users", value: dashboard.totalUsers, color: "text-blue-500" },
         { icon: Activity, label: "Active Users", value: dashboard.activeUsers, color: "text-emerald-500" },
         { icon: Ban, label: "Blocked Users", value: dashboard.blockedUsers, color: "text-red-500" },
-        { icon: FolderGit2, label: "Projects", value: dashboard.totalProjects, color: "text-indigo-500" },
-        { icon: UserPlus, label: "Teams", value: dashboard.totalTeams, color: "text-amber-500" },
+        { icon: FolderGit2, label: "Projects", value: dashboard.totalProjects, color: "text-primary" },
+        { icon: UserPlus, label: "Teams", value: dashboard.totalTeams, color: "text-primary" },
         { icon: ListTodo, label: "Tasks", value: dashboard.totalTasks, color: "text-violet-500" },
-        { icon: Rss, label: "Posts", value: dashboard.totalPosts, color: "text-purple-500" },
+        { icon: Rss, label: "Posts", value: dashboard.totalPosts, color: "text-accent" },
         { icon: MessagesSquare, label: "Messages", value: dashboard.totalMessages, color: "text-cyan-500" },
       ]
     : [];
@@ -235,8 +235,8 @@ export default function Admin() {
                   <TableRow key={p.id}>
                     <TableCell>
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500/20 to-purple-500/20 flex items-center justify-center shrink-0">
-                          <FolderGit2 className="w-4 h-4 text-indigo-400" />
+                        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary/20 to-primary/20 flex items-center justify-center shrink-0">
+                          <FolderGit2 className="w-4 h-4 text-primary" />
                         </div>
                         <p className="text-sm font-medium text-foreground truncate">{p.name}</p>
                       </div>
@@ -356,7 +356,7 @@ export default function Admin() {
                   <Button
                     size="sm"
                     variant="ghost"
-                    className={user.blocked ? "text-emerald-500 hover:text-emerald-600" : "text-muted-foreground hover:text-destructive"}
+                    className={user.blocked ? "text-emerald-500 hover:text-accent" : "text-muted-foreground hover:text-destructive"}
                     onClick={() => handleToggleBlock(user)}
                     disabled={togglingBlock === user.id}
                   >

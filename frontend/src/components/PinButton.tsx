@@ -51,11 +51,11 @@ export function PinButton({
       aria-pressed={pinned}
       title={pinned ? "Unpin project" : "Pin project"}
       className={cn(
-        "inline-flex items-center justify-center rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40",
+        "inline-flex items-center justify-center rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
         size === "sm" ? "h-6 w-6" : "h-7 w-7",
         pinned
-          ? "text-indigo-500 bg-indigo-500/10 hover:bg-indigo-500/20"
-          : "text-muted-foreground/40 hover:text-indigo-500 hover:bg-indigo-500/5",
+          ? "text-primary bg-primary/10 hover:bg-primary/20"
+          : "text-muted-foreground/40 hover:text-primary hover:bg-primary/5",
         className
       )}
     >

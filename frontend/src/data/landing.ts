@@ -30,15 +30,15 @@ export interface Feature {
 }
 
 export const features: Feature[] = [
-  { icon: FolderGit2, title: "Project Management", description: "Create public or private projects, invite your team, and manage the full project lifecycle — active, completed or archived.", iconBg: "from-indigo-500 to-purple-600" },
+  { icon: FolderGit2, title: "Project Management", description: "Create public or private projects, invite your team, and manage the full project lifecycle — active, completed or archived.", iconBg: "from-primary to-primary" },
   { icon: Kanban, title: "Kanban Boards", description: "Plan work on boards with columns, priorities, labels and due dates. Drag tasks through your workflow and track completion.", iconBg: "from-blue-500 to-cyan-600" },
-  { icon: MessageCircle, title: "Team Chat", description: "Real-time project rooms and direct messages with typing indicators and presence — one WebSocket connection for everything.", iconBg: "from-emerald-500 to-teal-600" },
-  { icon: GitBranch, title: "GitHub Integration", description: "Connect your GitHub account, link a repository to a project, and follow commits, issues and pull requests from DevSync.", iconBg: "from-orange-500 to-amber-600" },
+  { icon: MessageCircle, title: "Team Chat", description: "Real-time project rooms and direct messages with typing indicators and presence — one WebSocket connection for everything.", iconBg: "from-accent" },
+  { icon: GitBranch, title: "GitHub Integration", description: "Connect your GitHub account, link a repository to a project, and follow commits, issues and pull requests from DevSync.", iconBg: "from-accent to-primary" },
   { icon: Paperclip, title: "File Sharing", description: "Share files in conversations with server-side validation of size, type and content. Downloads stay private to authorized members.", iconBg: "from-violet-500 to-fuchsia-600" },
   { icon: Bell, title: "Notifications", description: "Get notified about invitations, member events, task assignments and messages — with unread counts that stay in sync.", iconBg: "from-red-500 to-rose-600" },
-  { icon: Users, title: "Team Collaboration", description: "Invite members by search, approve join requests for public projects, and manage roles with server-enforced permissions.", iconBg: "from-sky-500 to-indigo-600" },
+  { icon: Users, title: "Team Collaboration", description: "Invite members by search, approve join requests for public projects, and manage roles with server-enforced permissions.", iconBg: "from-sky-500 to-primary" },
   { icon: TrendingUp, title: "Analytics", description: "Task completion rates, member contributions and activity trends — computed with efficient database aggregation, never fake numbers.", iconBg: "from-teal-500 to-emerald-600" },
-  { icon: Shield, title: "Secure by Default", description: "JWT authentication, BCrypt passwords, server-side authorization on every resource, audit logging and rate-limited endpoints.", iconBg: "from-amber-500 to-orange-600" },
+  { icon: Shield, title: "Secure by Default", description: "JWT authentication, BCrypt passwords, server-side authorization on every resource, audit logging and rate-limited endpoints.", iconBg: "from-primary to-primary" },
 ];
 
 // ─── Capability chips (replaces the fake "trusted by" logo strip) ──
@@ -87,9 +87,9 @@ export interface HowItWorksStep {
 }
 
 export const howItWorksSteps: HowItWorksStep[] = [
-  { step: "01", icon: FolderGit2, title: "Create your project", description: "Give your project a name, describe it, and choose who can see it — public and discoverable, or private and invite-only.", gradient: "from-indigo-500 to-purple-600" },
-  { step: "02", icon: Users, title: "Invite your team", description: "Search for people by name or email and send invitations. Members accept right from their notifications and join your workspace.", gradient: "from-emerald-500 to-teal-600" },
-  { step: "03", icon: Rocket, title: "Collaborate and ship", description: "Plan on Kanban boards, chat in real time, share files, and link GitHub repositories — all from one project workspace.", gradient: "from-orange-500 to-amber-600" },
+  { step: "01", icon: FolderGit2, title: "Create your project", description: "Give your project a name, describe it, and choose who can see it — public and discoverable, or private and invite-only.", gradient: "from-primary to-primary" },
+  { step: "02", icon: Users, title: "Invite your team", description: "Search for people by name or email and send invitations. Members accept right from their notifications and join your workspace.", gradient: "from-accent" },
+  { step: "03", icon: Rocket, title: "Collaborate and ship", description: "Plan on Kanban boards, chat in real time, share files, and link GitHub repositories — all from one project workspace.", gradient: "from-accent to-primary" },
 ];
 
 // ─── Footer Links ───────────────────────────────────────────────

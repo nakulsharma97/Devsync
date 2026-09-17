@@ -23,7 +23,7 @@ function presenceColor(status: string | null | undefined): string {
     case "ONLINE":
       return "bg-emerald-500";
     case "AWAY":
-      return "bg-amber-500";
+      return "bg-primary";
     default:
       return "bg-muted-foreground/40";
   }
@@ -52,14 +52,14 @@ function ConversationRow({
       className={cn(
         "group relative w-full text-left flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-150",
         active
-          ? "bg-gradient-to-r from-indigo-500/15 to-purple-500/5 border border-indigo-500/20"
+          ? "bg-gradient-to-r from-primary/15 to-primary/5 border border-primary/20"
           : "border border-transparent hover:bg-accent/5"
       )}
     >
       {active && (
         <span
           aria-hidden
-          className="absolute left-0 top-1/2 -translate-y-1/2 h-6 w-[3px] rounded-full bg-gradient-to-b from-indigo-500 to-purple-500"
+          className="absolute left-0 top-1/2 -translate-y-1/2 h-6 w-[3px] rounded-full bg-gradient-to-b from-primary to-primary"
         />
       )}
       {/* Avatar */}
@@ -68,8 +68,8 @@ function ConversationRow({
           className={cn(
             "w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold",
             isRoom
-              ? "bg-gradient-to-br from-purple-500/20 to-pink-500/20 text-purple-400"
-              : "bg-gradient-to-br from-indigo-500/20 to-blue-500/20 text-indigo-400"
+              ? "bg-gradient-to-br from-accent/20 to-pink-500/20 text-accent"
+              : "bg-gradient-to-br from-primary/20 to-blue-500/20 text-primary"
           )}
         >
           {conv.avatarUrl ? (
@@ -123,7 +123,7 @@ function ConversationRow({
             {conv.lastMessage || "No messages yet"}
           </span>
           {unread > 0 && (
-            <span className="shrink-0 min-w-[18px] h-[18px] px-1 rounded-full bg-gradient-to-r from-indigo-500 to-purple-600 text-white text-[10px] font-bold flex items-center justify-center">
+            <span className="shrink-0 min-w-[18px] h-[18px] px-1 rounded-full bg-primary text-white text-[10px] font-bold flex items-center justify-center">
               {unread > 99 ? "99+" : unread}
             </span>
           )}
@@ -140,7 +140,7 @@ function PeopleResult({ user, onClick }: { user: PublicUserDto; onClick: () => v
       className="w-full text-left flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-accent/5 transition-colors"
     >
       <span className="relative shrink-0">
-        <span className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-500/20 to-blue-500/20 text-indigo-400 flex items-center justify-center overflow-hidden text-sm font-bold">
+        <span className="w-9 h-9 rounded-full bg-gradient-to-br from-primary/20 to-blue-500/20 text-primary flex items-center justify-center overflow-hidden text-sm font-bold">
           {user.avatarUrl ? (
             <img src={user.avatarUrl} alt={user.fullName} className="w-full h-full object-cover" />
           ) : (
@@ -216,7 +216,7 @@ export function ConversationList({
           <h2 className="text-sm font-semibold tracking-tight">Messages</h2>
           <button
             onClick={onNewChat}
-            className="inline-flex items-center gap-1 text-[11px] font-medium text-white bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 rounded-lg px-2.5 py-1.5 shadow-sm shadow-indigo-500/20 transition-all"
+            className="inline-flex items-center gap-1 text-[11px] font-medium text-white bg-primary hover:from-primary hover:to-primary rounded-lg px-2.5 py-1.5 shadow-sm shadow-primary/20 transition-all"
             title="New chat"
           >
             <Plus className="w-3.5 h-3.5" /> New Chat
@@ -231,7 +231,7 @@ export function ConversationList({
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search people or messages..."
             aria-label="Search conversations"
-            className="w-full h-9 pl-8 pr-3 rounded-lg text-xs bg-muted/40 border border-border/50 focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all placeholder:text-muted-foreground/60"
+            className="w-full h-9 pl-8 pr-3 rounded-lg text-xs bg-muted/40 border border-border/50 focus:border-primary/50 focus:ring-2 focus:ring-primary/20 outline-none transition-all placeholder:text-muted-foreground/60"
           />
         </div>
 
@@ -245,7 +245,7 @@ export function ConversationList({
                 className={cn(
                   "px-2.5 py-1 rounded-md text-[11px] font-medium capitalize transition-colors",
                   tab === t
-                    ? "bg-indigo-500/10 text-indigo-500 dark:text-indigo-400"
+                    ? "bg-primary/10 text-primary dark:text-primary"
                     : "text-muted-foreground hover:text-foreground"
                 )}
               >
@@ -262,7 +262,7 @@ export function ConversationList({
           <div className="space-y-0.5">
             {peopleLoading ? (
               <div className="flex items-center justify-center py-8">
-                <Loader2 className="h-4 w-4 animate-spin text-indigo-500" />
+                <Loader2 className="h-4 w-4 animate-spin text-primary" />
               </div>
             ) : peopleError ? (
               <p className="text-xs text-muted-foreground text-center py-8">Couldn&apos;t search people</p>
@@ -312,7 +312,7 @@ export function ConversationList({
           </div>
         ) : loading ? (
           <div className="flex items-center justify-center py-10">
-            <Loader2 className="h-4 w-4 animate-spin text-indigo-500" />
+            <Loader2 className="h-4 w-4 animate-spin text-primary" />
           </div>
         ) : conversations === null || conversations.length === 0 ? (
           <div className="flex flex-col items-center gap-2 py-10 text-center px-4">
@@ -323,7 +323,7 @@ export function ConversationList({
             </p>
             <button
               onClick={onNewChat}
-              className="mt-1 inline-flex items-center gap-1 text-[11px] font-medium text-white bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg px-3 py-1.5 shadow-sm shadow-indigo-500/20 transition-all hover:from-indigo-600 hover:to-purple-700"
+              className="mt-1 inline-flex items-center gap-1 text-[11px] font-medium text-white bg-primary rounded-lg px-3 py-1.5 shadow-sm shadow-primary/20 transition-all hover:from-primary hover:to-primary"
             >
               <Plus className="w-3.5 h-3.5" /> New Chat
             </button>
@@ -332,7 +332,7 @@ export function ConversationList({
           <div className="space-y-0.5">
             {direct.length > 0 && (
               <>
-                <p className="px-3 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/50">
+                <p className="px-3 pt-2 pb-1 text-[10px] font-medium text-muted-foreground/50">
                   Direct Messages
                 </p>
                 {direct.map((c) => (
@@ -348,7 +348,7 @@ export function ConversationList({
             )}
             {rooms.length > 0 && (
               <>
-                <p className="px-3 pt-3 pb-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/50">
+                <p className="px-3 pt-3 pb-1 text-[10px] font-medium text-muted-foreground/50">
                   Team Chats
                 </p>
                 {rooms.map((c) => (

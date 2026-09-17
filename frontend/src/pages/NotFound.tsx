@@ -6,7 +6,7 @@ export default function NotFound() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">
       <div className="text-center">
-        <h1 className="text-6xl font-bold text-indigo-500">404</h1>
+        <h1 className="text-6xl font-bold text-primary">404</h1>
         <p className="text-muted-foreground mt-4 mb-6">Page not found</p>
         <Button onClick={() => navigate("/")}>Go Home</Button>
       </div>

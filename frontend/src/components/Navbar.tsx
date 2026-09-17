@@ -41,11 +41,11 @@ export default function Navbar() {
         ? "bg-background/90 backdrop-blur-xl border-b border-border shadow-md shadow-black/5 dark:shadow-black/20"
         : "bg-background/40 backdrop-blur-sm border-b border-border/10"
     }`}>
-      <div className={`mx-auto max-w-7xl px-4 sm:px-6 flex items-center justify-between transition-all duration-300 ${
+      <div className={`mx-auto max-w-7xl px-6 sm:px-8 flex items-center justify-between transition-all duration-300 ${
         scrolled ? "py-2" : "py-3"
       }`}>
         <button onClick={() => navigate("/")} className="flex items-center gap-2.5 group">
-          <div className={`rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/20 transition-all duration-300 group-hover:scale-105 group-hover:shadow-indigo-500/30 ${
+          <div className={`rounded-lg bg-primary flex items-center justify-center shadow-lg shadow-primary/20 transition-all duration-300 group-hover:scale-105 group-hover:shadow-primary/30 ${
             scrolled ? "w-6 h-6" : "w-8 h-8"
           }`}>
             <Code2 className={`text-white transition-all duration-300 ${
@@ -75,7 +75,7 @@ export default function Navbar() {
           <Button variant="ghost" onClick={() => navigate("/auth")} className={`transition-all duration-300 font-medium ${
             scrolled ? "text-xs h-7 px-2.5" : "text-sm h-9 px-4"
           }`}>Sign in</Button>
-          <Button onClick={() => navigate("/auth")} className={`transition-all duration-300 bg-gradient-to-r from-indigo-500 to-purple-600 text-white hover:from-indigo-600 hover:to-purple-700 shadow-lg hover:shadow-xl font-medium ${
+          <Button onClick={() => navigate("/auth")} className={`transition-all duration-300 bg-primary text-white hover:bg-primary/90 shadow-lg hover:shadow-xl font-medium ${
             scrolled ? "text-xs h-7 px-3" : "text-sm h-9 px-4"
           }`}>
             Start Free<ArrowRight className={`ml-1.5 transition-all duration-300 ${scrolled ? "w-3 h-3" : "w-3.5 h-3.5"}`} />
@@ -89,7 +89,7 @@ export default function Navbar() {
 
       {/* Mobile menu */}
       <div className={`md:hidden overflow-hidden transition-all duration-300 ${mobileOpen ? "max-h-96 border-b border-border/30 bg-background/95 backdrop-blur-xl" : "max-h-0"}`}>
-        <div className="px-4 py-4 space-y-2">
+        <div className="px-6 py-4 space-y-2">
           {navLinks.map((item) => (
             <a key={item.label} href={item.href} onClick={() => setMobileOpen(false)} className="block px-3 py-2.5 text-sm text-foreground rounded-lg hover:bg-accent/5 transition-colors">
               {item.label}
@@ -97,7 +97,7 @@ export default function Navbar() {
           ))}
           <div className="pt-2 space-y-2">
             <Button variant="outline" className="w-full" onClick={() => navigate("/auth")}>Sign in</Button>
-            <Button className="w-full bg-gradient-to-r from-indigo-500 to-purple-600 text-white" onClick={() => navigate("/auth")}>Start Free</Button>
+            <Button className="w-full bg-primary text-white" onClick={() => navigate("/auth")}>Start Free</Button>
           </div>
         </div>
       </div>

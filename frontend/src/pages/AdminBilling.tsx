@@ -40,9 +40,9 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 
 const STATUS_STYLES: Record<string, string> = {
-  ACTIVE: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20",
+  ACTIVE: "bg-accent/10 text-emerald-500 border-accent/20",
   TRIALING: "bg-blue-500/10 text-blue-500 border-blue-500/20",
-  PAST_DUE: "bg-amber-500/10 text-amber-500 border-amber-500/20",
+  PAST_DUE: "bg-primary/10 text-primary border-primary/20",
   CANCELLED: "bg-red-500/10 text-red-500 border-red-500/20",
   EXPIRED: "bg-muted text-muted-foreground border-border/40",
   INCOMPLETE: "bg-red-500/10 text-red-500 border-red-500/20",
@@ -254,7 +254,7 @@ export default function AdminBilling() {
       label: "Past Due",
       value: stats ? String(stats.pastDueSubscriptions) : "0",
       icon: AlertTriangle,
-      color: "text-amber-500",
+      color: "text-primary",
       sub: stats ? `${stats.cancelledSubscriptions} cancelled` : undefined,
     },
   ];
@@ -269,7 +269,7 @@ export default function AdminBilling() {
           <div className="w-5 h-5 rounded-md bg-accent/10 flex items-center justify-center">
             <CreditCard className="w-3 h-3 text-accent" />
           </div>
-          <span className="text-xs font-medium uppercase tracking-wider text-accent">Billing</span>
+          <span className="text-xs font-medium text-accent">Billing</span>
         </div>
         <h1 className="text-2xl font-bold tracking-tight">Billing Management</h1>
         <p className="text-sm text-muted-foreground mt-1">
@@ -444,7 +444,7 @@ export default function AdminBilling() {
                       </TableCell>
                       <TableCell>
                         {s.cancelAtPeriodEnd ? (
-                          <Badge variant="outline" className="text-[10px] bg-amber-500/10 text-amber-500 border-amber-500/20">
+                          <Badge variant="outline" className="text-[10px] bg-primary/10 text-primary border-primary/20">
                             Yes
                           </Badge>
                         ) : (
@@ -581,8 +581,8 @@ export default function AdminBilling() {
                       <TableCell className="text-xs text-muted-foreground max-w-[200px] truncate">{rr.reason}</TableCell>
                       <TableCell>
                         <Badge variant="outline" className={`text-[11px] ${
-                          rr.status === "PENDING" ? "bg-amber-500/10 text-amber-500 border-amber-500/20"
-                          : rr.status === "APPROVED" || rr.status === "COMPLETED" ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
+                          rr.status === "PENDING" ? "bg-primary/10 text-primary border-primary/20"
+                          : rr.status === "APPROVED" || rr.status === "COMPLETED" ? "bg-accent/10 text-emerald-500 border-accent/20"
                           : "bg-red-500/10 text-red-500 border-red-500/20"
                         }`}>
                           {rr.status}

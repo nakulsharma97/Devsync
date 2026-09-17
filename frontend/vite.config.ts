@@ -17,58 +17,27 @@ export default defineConfig({
     emptyOutDir: true,
     // Enable source maps for better debugging (disable in production if needed)
     sourcemap: false,
-    // Stop Vite from auto-preloading chunks that are only needed by specific
-    // lazy pages.  The charts chunk (recharts ~113 KB gzip) is only required
-    // by Analytics/AdminActivity which are already React.lazy()-loaded, so
-    // eager-preloading it on every page is wasted bandwidth.
-    modulePreload: {
-      resolveDependencies: (_filename, deps) => {
-        return deps.filter(dep => !dep.includes('charts'));
-      },
-    },
     // Optimize chunk splitting
     rollupOptions: {
       output: {
-        // Manual chunk splitting for better caching and lazy loading
+        // Deliberately minimal manual chunking.
+        //
+        // An earlier config grouped recharts ('charts') and framer-motion
+        // ('framer-motion') into their own vendor chunks. That backfired: Rollup
+        // places modules shared between a manual chunk and the rest of the app
+        // *inside* the manual chunk, which created reverse dependencies. Because
+        // framer-motion pulls in react/jsx-runtime, the 127 kB framer-motion
+        // chunk became a static dependency of every JSX-rendering module —
+        // including the public landing page, which never uses it. The same
+        // happened to recharts' shared helpers in the charts chunk. Both had to
+        // be downloaded before the app could start.
+        //
+        // Letting Rollup split automatically means each heavy library lands with
+        // the lazily-loaded page that actually imports it, and genuinely shared
+        // code gets hoisted into small common chunks instead.
         manualChunks: {
-          // Vendor chunks for large libraries
-          'react-vendor': ['react', 'react-dom', 'react-router'],
-          // Large UI library chunks
-          'radix-ui': [
-            '@radix-ui/react-accordion',
-            '@radix-ui/react-alert-dialog',
-            '@radix-ui/react-avatar',
-            '@radix-ui/react-checkbox',
-            '@radix-ui/react-collapsible',
-            '@radix-ui/react-context-menu',
-            '@radix-ui/react-dialog',
-            '@radix-ui/react-dropdown-menu',
-            '@radix-ui/react-hover-card',
-            '@radix-ui/react-label',
-            '@radix-ui/react-menubar',
-            '@radix-ui/react-navigation-menu',
-            '@radix-ui/react-popover',
-            '@radix-ui/react-progress',
-            '@radix-ui/react-radio-group',
-            '@radix-ui/react-scroll-area',
-            '@radix-ui/react-select',
-            '@radix-ui/react-separator',
-            '@radix-ui/react-slider',
-            '@radix-ui/react-switch',
-            '@radix-ui/react-tabs',
-            '@radix-ui/react-toggle',
-            '@radix-ui/react-toggle-group',
-            '@radix-ui/react-tooltip',
-          ],
-          // Heavy optional libraries - separate chunks for better lazy loading
-          'framer-motion': ['framer-motion'],
-          'charts': ['recharts'],
-          // Shared utility libs used by nearly every component (cn helper).
-          // Must be in their own chunk so they don't get absorbed into the
-          // charts chunk via chart.tsx → cn → clsx, which would create a
-          // static dependency from the entry bundle to the charts chunk.
+          'react-vendor': ['react', 'react-dom', 'react/jsx-runtime', 'react-router'],
           'core-utils': ['clsx', 'tailwind-merge'],
-          'forms': ['react-hook-form', '@hookform/resolvers', 'zod'],
         },
         // Optimize chunk size
         chunkFileNames: 'assets/[name]-[hash].js',
@@ -115,6 +84,24 @@ export default defineConfig({
       '@radix-ui/react-toggle-group',
       '@radix-ui/react-tooltip',
     ],
+  },
+  // Serve the production build with the same /api + /ws proxying as the dev
+  // server, so `npm run preview` is a usable end-to-end local environment
+  // (and not just a static file server that 404s every backend call).
+  preview: {
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+        secure: false,
+      },
+      '/ws': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+        secure: false,
+        ws: true,
+      },
+    },
   },
   // Performance hints
   server: {

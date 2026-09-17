@@ -79,13 +79,13 @@ import { toast } from "sonner";
 const PAGE_SIZE = 10;
 
 const statusStyles: Record<string, string> = {
-  ACTIVE: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20",
+  ACTIVE: "bg-accent/10 text-emerald-500 border-accent/20",
   BLOCKED: "bg-red-500/10 text-red-500 border-red-500/20",
   DELETED: "bg-muted text-muted-foreground border-border/50",
 };
 
 const roleStyles: Record<string, string> = {
-  ADMIN: "bg-purple-500/10 text-purple-500 border-purple-500/20",
+  ADMIN: "bg-accent/10 text-accent border-accent/20",
   USER: "bg-blue-500/10 text-blue-500 border-blue-500/20",
 };
 
@@ -519,7 +519,7 @@ export default function AdminUsers() {
                                 <DropdownMenuItem
                                   onClick={() => { setBlockTarget(u); setBlockReason(""); }}
                                   disabled={busyId === u.id || isSelf(u.id) || u.status === "DELETED"}
-                                  className="text-amber-500 focus:text-amber-500"
+                                  className="text-primary focus:text-primary"
                                 >
                                   <Ban className="w-3.5 h-3.5 mr-2" /> Block User
                                 </DropdownMenuItem>
@@ -577,7 +577,7 @@ export default function AdminUsers() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
-              <Ban className="w-4 h-4 text-amber-500" /> Block {blockTarget?.fullName}?
+              <Ban className="w-4 h-4 text-primary" /> Block {blockTarget?.fullName}?
             </AlertDialogTitle>
             <AlertDialogDescription>
               Blocked users can no longer log in, refresh tokens or access any secured API. Their data is preserved.
@@ -597,7 +597,7 @@ export default function AdminUsers() {
             <AlertDialogAction
               onClick={confirmBlock}
               disabled={busyId === blockTarget?.id}
-              className="bg-amber-500 hover:bg-amber-600 text-white"
+              className="bg-primary hover:bg-primary text-white"
             >
               {busyId === blockTarget?.id ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
               Block User
@@ -683,7 +683,7 @@ export default function AdminUsers() {
                     {detail.status}
                   </Badge>
                   {detail.emailVerified ? (
-                    <Badge variant="outline" className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20">
+                    <Badge variant="outline" className="bg-accent/10 text-emerald-500 border-accent/20">
                       Verified
                     </Badge>
                   ) : (
@@ -717,10 +717,10 @@ export default function AdminUsers() {
                 {/* Stats grid */}
                 <div className="grid grid-cols-2 gap-3">
                   {[
-                    { icon: FolderGit2, label: "Projects Owned", value: detail.projectsOwned.length, color: "text-indigo-400" },
+                    { icon: FolderGit2, label: "Projects Owned", value: detail.projectsOwned.length, color: "text-primary" },
                     { icon: UserCog, label: "Projects Joined", value: detail.projectsJoined.length, color: "text-blue-400" },
-                    { icon: Users, label: "Teams", value: detail.teams.length, color: "text-amber-400" },
-                    { icon: Rss, label: "Posts", value: detail.postsCount, color: "text-purple-400" },
+                    { icon: Users, label: "Teams", value: detail.teams.length, color: "text-primary" },
+                    { icon: Rss, label: "Posts", value: detail.postsCount, color: "text-accent" },
                     { icon: MessagesSquare, label: "Messages", value: detail.messagesCount, color: "text-cyan-400" },
                   ].map((s) => (
                     <div key={s.label} className="border border-border/50 rounded-xl p-4 bg-card/50">
@@ -738,7 +738,7 @@ export default function AdminUsers() {
 
                 {/* Account information */}
                 <div className="border-t border-border/40 pt-5">
-                  <p className="text-xs font-semibold text-foreground uppercase tracking-wider mb-3">Account Information</p>
+                  <p className="text-xs font-medium text-foreground mb-3">Account Information</p>
                   <div className="space-y-0 divide-y divide-border/30">
                     <div className="flex items-center justify-between py-2.5 text-sm">
                       <span className="text-muted-foreground">Created</span>
@@ -758,7 +758,7 @@ export default function AdminUsers() {
                 {/* Owned projects */}
                 {detail.projectsOwned.length > 0 && (
                   <div className="border-t border-border/40 pt-5">
-                    <p className="text-xs font-semibold text-foreground uppercase tracking-wider mb-3">Owned Projects</p>
+                    <p className="text-xs font-medium text-foreground mb-3">Owned Projects</p>
                     <div className="flex flex-wrap gap-1.5">
                       {detail.projectsOwned.map((p) => (
                         <Badge key={p.id} variant="secondary" className="text-xs">
@@ -772,7 +772,7 @@ export default function AdminUsers() {
                 {/* Joined projects */}
                 {detail.projectsJoined.length > 0 && (
                   <div className="border-t border-border/40 pt-5">
-                    <p className="text-xs font-semibold text-foreground uppercase tracking-wider mb-3">Joined Projects</p>
+                    <p className="text-xs font-medium text-foreground mb-3">Joined Projects</p>
                     <div className="flex flex-wrap gap-1.5">
                       {detail.projectsJoined.map((p) => (
                         <Badge key={p.id} variant="secondary" className="text-xs">
@@ -786,7 +786,7 @@ export default function AdminUsers() {
                 {/* Teams */}
                 {detail.teams.length > 0 && (
                   <div className="border-t border-border/40 pt-5">
-                    <p className="text-xs font-semibold text-foreground uppercase tracking-wider mb-3">Teams</p>
+                    <p className="text-xs font-medium text-foreground mb-3">Teams</p>
                     <div className="flex flex-wrap gap-1.5">
                       {detail.teams.map((t) => (
                         <Badge key={t.id} variant="secondary" className="text-xs">

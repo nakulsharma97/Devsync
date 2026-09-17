@@ -56,9 +56,9 @@ const ACTIVITY_TYPES = [
 const typeBadge = (type: string) => {
   if (type.startsWith("PROJECT")) return "border-accent/30 bg-accent/10 text-accent";
   if (type.startsWith("TASK")) return "border-blue-500/30 bg-blue-500/10 text-blue-500";
-  if (type === "MESSAGE_SENT") return "border-emerald-500/30 bg-emerald-500/10 text-emerald-500";
+  if (type === "MESSAGE_SENT") return "border-emerald-500/30 bg-accent/10 text-emerald-500";
   if (type === "POST_CREATED" || type === "COMMENT_ADDED")
-    return "border-purple-500/30 bg-purple-500/10 text-purple-500";
+    return "border-accent/30 bg-accent/10 text-accent";
   return "border-border/40 bg-muted/40 text-muted-foreground";
 };
 
@@ -66,7 +66,7 @@ const typeDot = (type: string) => {
   if (type.startsWith("PROJECT")) return "bg-accent";
   if (type.startsWith("TASK")) return "bg-blue-500";
   if (type === "MESSAGE_SENT") return "bg-emerald-500";
-  if (type === "POST_CREATED" || type === "COMMENT_ADDED") return "bg-purple-500";
+  if (type === "POST_CREATED" || type === "COMMENT_ADDED") return "bg-accent";
   return "bg-muted-foreground";
 };
 
@@ -152,7 +152,7 @@ export default function AdminActivity() {
     { label: "Today's Activities", value: stats?.todayCount ?? 0, icon: ActivityIcon, color: "text-accent" },
     { label: "Projects", value: stats?.projects ?? 0, icon: FolderGit2, color: "text-blue-500" },
     { label: "Tasks", value: stats?.tasks ?? 0, icon: ListTodo, color: "text-emerald-500" },
-    { label: "Messages", value: stats?.messages ?? 0, icon: MessageSquare, color: "text-purple-500" },
+    { label: "Messages", value: stats?.messages ?? 0, icon: MessageSquare, color: "text-accent" },
   ];
 
   return (

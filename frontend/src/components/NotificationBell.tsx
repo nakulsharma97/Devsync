@@ -133,7 +133,7 @@ export function NotificationBell({
           {unreadCount > 0 && (
             <button
               onClick={markAllRead}
-              className="inline-flex items-center gap-1 text-[11px] font-medium text-indigo-500 dark:text-indigo-400 hover:text-indigo-600 dark:hover:text-indigo-300 transition-colors"
+              className="inline-flex items-center gap-1 text-[11px] font-medium text-primary dark:text-primary hover:text-primary dark:hover:text-primary transition-colors"
             >
               <CheckCheck className="w-3.5 h-3.5" /> Mark all read
             </button>
@@ -144,7 +144,7 @@ export function NotificationBell({
         <ScrollArea className="max-h-[min(420px,60vh)]">
           {loading ? (
             <div className="flex items-center justify-center py-10">
-              <Loader2 className="h-5 w-5 animate-spin text-indigo-500" />
+              <Loader2 className="h-5 w-5 animate-spin text-primary" />
             </div>
           ) : loadError ? (
             <div className="flex flex-col items-center gap-2 py-10 text-center px-6">
@@ -156,7 +156,7 @@ export function NotificationBell({
                   setLoadError(false);
                   loadNotifications();
                 }}
-                className="text-[11px] text-indigo-500 hover:underline"
+                className="text-[11px] text-primary hover:underline"
               >
                 Try again
               </button>
@@ -186,7 +186,7 @@ export function NotificationBell({
                       >
                         <Icon className="w-4 h-4" />
                         {!n.read && (
-                          <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-indigo-500 ring-2 ring-background" />
+                          <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-primary ring-2 ring-background" />
                         )}
                       </span>
                       <span className="flex-1 min-w-0">

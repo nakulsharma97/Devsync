@@ -72,7 +72,7 @@ export default function MyPosts() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-            <FileText className="w-5 h-5 text-indigo-400" />
+            <FileText className="w-5 h-5 text-primary" />
             My Posts
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
@@ -82,7 +82,7 @@ export default function MyPosts() {
         <Button
           size="sm"
           onClick={() => navigate("/feed")}
-          className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white text-xs hover:from-indigo-600 hover:to-purple-700 shadow-md"
+          className="bg-primary text-white text-xs hover:from-primary hover:to-primary shadow-md"
         >
           <PenLine className="w-3.5 h-3.5 mr-1.5" />
           Create Post
@@ -94,8 +94,8 @@ export default function MyPosts() {
         <SkeletonCardList count={3} />
       ) : posts.length === 0 ? (
         <div className="bg-card border border-border/50 rounded-2xl text-center py-16 px-6 animate-fade-in-up">
-          <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-indigo-500/15 to-purple-500/10 flex items-center justify-center ring-1 ring-indigo-500/20 shadow-md shadow-indigo-500/10">
-            <FileText className="w-7 h-7 text-indigo-400" />
+          <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-primary/15 to-primary/10 flex items-center justify-center ring-1 ring-primary/20 shadow-md shadow-primary/10">
+            <FileText className="w-7 h-7 text-primary" />
           </div>
           <h3 className="text-base font-semibold text-foreground mb-1.5">No posts yet</h3>
           <p className="text-sm text-muted-foreground max-w-xs mx-auto mb-5">
@@ -124,7 +124,7 @@ export default function MyPosts() {
                 variant="outline"
                 onClick={loadMore}
                 disabled={loadingMore}
-                className="text-xs gap-1 rounded-full text-muted-foreground hover:text-indigo-500 hover:border-indigo-500/30 transition-colors"
+                className="text-xs gap-1 rounded-full text-muted-foreground hover:text-primary hover:border-primary/30 transition-colors"
               >
                 {loadingMore ? (
                   <Loader2 className="h-4 w-4 animate-spin" />

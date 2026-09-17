@@ -16,7 +16,7 @@ function presenceColor(status: string | null | undefined): string {
     case "ONLINE":
       return "bg-emerald-500";
     case "AWAY":
-      return "bg-amber-500";
+      return "bg-primary";
     default:
       return "bg-muted-foreground/40";
   }
@@ -70,7 +70,7 @@ export function NewChatDialog({ open, onOpenChange, onSelectUser }: NewChatDialo
       <DialogContent className="sm:max-w-md gap-0 p-0 overflow-hidden">
         <DialogHeader className="px-5 pt-5 pb-3 border-b border-border/40">
           <DialogTitle className="flex items-center gap-2 text-base">
-            <MessageSquarePlus className="w-4 h-4 text-indigo-500" /> New Message
+            <MessageSquarePlus className="w-4 h-4 text-primary" /> New Message
           </DialogTitle>
         </DialogHeader>
 
@@ -82,14 +82,14 @@ export function NewChatDialog({ open, onOpenChange, onSelectUser }: NewChatDialo
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search people..."
             aria-label="Search people"
-            className="w-full h-10 pl-9 pr-3 rounded-lg text-sm bg-muted/40 border border-border/50 focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20 outline-none transition-all placeholder:text-muted-foreground/60"
+            className="w-full h-10 pl-9 pr-3 rounded-lg text-sm bg-muted/40 border border-border/50 focus:border-primary/50 focus:ring-2 focus:ring-primary/20 outline-none transition-all placeholder:text-muted-foreground/60"
           />
         </div>
 
         <div className="max-h-[320px] overflow-y-auto px-3 py-3 min-h-[120px]">
           {loading ? (
             <div className="flex items-center justify-center py-10">
-              <Loader2 className="h-5 w-5 animate-spin text-indigo-500" />
+              <Loader2 className="h-5 w-5 animate-spin text-primary" />
             </div>
           ) : error ? (
             <p className="text-sm text-muted-foreground text-center py-10">Couldn&apos;t search people</p>
@@ -108,7 +108,7 @@ export function NewChatDialog({ open, onOpenChange, onSelectUser }: NewChatDialo
                     className="w-full text-left flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-accent/5 transition-colors"
                   >
                     <span className="relative shrink-0">
-                      <span className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500/20 to-blue-500/20 text-indigo-400 flex items-center justify-center overflow-hidden text-sm font-bold">
+                      <span className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/20 to-blue-500/20 text-primary flex items-center justify-center overflow-hidden text-sm font-bold">
                         {u.avatarUrl ? (
                           <img src={u.avatarUrl} alt={u.fullName} className="w-full h-full object-cover" />
                         ) : (

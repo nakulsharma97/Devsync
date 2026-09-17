@@ -42,11 +42,11 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 const projectGradients = [
-  "from-indigo-500 to-purple-600",
-  "from-blue-500 to-cyan-600",
-  "from-emerald-500 to-teal-600",
-  "from-orange-500 to-amber-600",
-  "from-pink-500 to-rose-600",
+  "from-primary to-primary",
+  "from-primary to-primary",
+  "from-accent to-primary",
+  "from-primary to-primary",
+  "from-accent to-primary",
 ];
 
 type Visibility = "PRIVATE" | "PUBLIC";
@@ -164,14 +164,14 @@ export default function Projects() {
   return (
     <div className="relative w-full min-w-0 max-w-6xl space-y-6 overflow-hidden">
       {/* Decorative glows (clipped to the page so they never create a scrollbar) */}
-      <div className="absolute -top-24 -right-24 w-80 h-80 bg-gradient-to-bl from-indigo-500/[0.06] to-transparent rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute -bottom-24 -left-24 w-80 h-80 bg-gradient-to-tr from-purple-500/[0.05] to-transparent rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute -top-24 -right-24 w-80 h-80 bg-gradient-to-bl from-primary/[0.06] to-transparent rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute -bottom-24 -left-24 w-80 h-80 bg-gradient-to-tr from-accent/[0.05] to-transparent rounded-full blur-3xl pointer-events-none" />
 
       {/* Header */}
       <div className="relative flex items-center justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-            <FolderKanban className="w-5 h-5 text-indigo-400" />
+            <FolderKanban className="w-5 h-5 text-primary" />
             Projects
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
@@ -179,7 +179,7 @@ export default function Projects() {
           </p>
           {projects && (
             <p className="text-xs text-muted-foreground/70 mt-2 inline-flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-indigo-400" />
+              <span className="w-1.5 h-1.5 rounded-full bg-primary" />
               {projects.length} total
               <span className="text-muted-foreground/40">·</span>
               {projects.filter((p) => p.status === "ACTIVE").length} active
@@ -188,19 +188,19 @@ export default function Projects() {
         </div>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
-            <Button className="relative overflow-hidden group bg-gradient-to-r from-indigo-500 to-purple-600 text-white hover:from-indigo-600 hover:to-purple-700 shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200">
+            <Button className="relative overflow-hidden group bg-primary text-white hover:bg-primary/90 shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200">
               <Plus className="w-4 h-4 mr-1.5" />
               New Project
               <span
                 aria-hidden
-                className="animate-shine-sweep absolute top-0 bottom-0 left-0 w-1/3 bg-gradient-to-r from-transparent via-white/15 to-transparent pointer-events-none"
+                className=""
               />
             </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-md">
             {/* sticky header: stays visible while the form scrolls inside the dialog */}
             <DialogHeader className="sticky top-0 z-10 bg-background -mb-4 pb-4">
-              <div className="mx-auto w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/20 mb-3">
+              <div className="mx-auto w-12 h-12 rounded-2xl bg-primary flex items-center justify-center shadow-lg shadow-primary/20 mb-3">
                 <FolderKanban className="w-6 h-6 text-white" />
               </div>
               <DialogTitle className="text-center">Create a new project</DialogTitle>
@@ -231,7 +231,7 @@ export default function Projects() {
                   placeholder="What is this project about?"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  className="min-h-[84px] w-full resize-none text-sm bg-transparent border border-border/40 rounded-lg p-3 focus:outline-none focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20 placeholder:text-muted-foreground/50 transition-all"
+                  className="min-h-[84px] w-full resize-none text-sm bg-transparent border border-border/40 rounded-lg p-3 focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 placeholder:text-muted-foreground/50 transition-all"
                 />
               </div>
               <div className="space-y-1.5">
@@ -277,14 +277,14 @@ export default function Projects() {
                       className={cn(
                         "text-left rounded-xl border p-3 transition-all",
                         template === t.code
-                          ? "border-indigo-500/50 bg-indigo-500/[0.08] ring-2 ring-indigo-500/20"
+                          ? "border-primary/50 bg-primary/[0.08] ring-2 ring-primary/20"
                           : "border-border/40 hover:border-border/70 bg-transparent"
                       )}
                     >
                       <span
                         className={cn(
                           "text-sm font-medium",
-                          template === t.code ? "text-indigo-600 dark:text-indigo-300" : "text-foreground"
+                          template === t.code ? "text-primary dark:text-primary" : "text-foreground"
                         )}
                       >
                         {t.label}
@@ -297,7 +297,7 @@ export default function Projects() {
               <Button
                 type="submit"
                 disabled={creating || !name.trim()}
-                className="w-full bg-gradient-to-r from-indigo-500 to-purple-600 text-white hover:from-indigo-600 hover:to-purple-700"
+                className="w-full bg-primary text-white hover:from-primary hover:to-primary"
               >
                 {creating ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -315,9 +315,9 @@ export default function Projects() {
 
       {/* Pending invitations */}
       {!invitesLoading && pendingInvitations.length > 0 && (
-        <div className="relative rounded-2xl border border-indigo-500/25 bg-gradient-to-br from-indigo-500/[0.07] to-purple-500/[0.04] p-4">
+        <div className="relative rounded-2xl border border-primary/25 bg-gradient-to-br from-primary/[0.07] to-primary/[0.04] p-4">
           <h3 className="text-sm font-semibold flex items-center gap-2 mb-3">
-            <UserPlus className="w-4 h-4 text-indigo-400" />
+            <UserPlus className="w-4 h-4 text-primary" />
             Project invitations
           </h3>
           <div className="space-y-2">
@@ -326,11 +326,11 @@ export default function Projects() {
                 key={inv.id}
                 className="flex items-center gap-3 bg-card/70 border border-border/40 rounded-xl p-3"
               >
-                <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-indigo-500/20 to-purple-500/20 flex items-center justify-center shrink-0 overflow-hidden">
+                <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-primary/20 to-primary/20 flex items-center justify-center shrink-0 overflow-hidden">
                   {inv.senderAvatar ? (
                     <img src={inv.senderAvatar} alt="" className="w-full h-full object-cover" />
                   ) : (
-                    <span className="text-xs font-bold text-indigo-400">
+                    <span className="text-xs font-bold text-primary">
                       {inv.senderName?.charAt(0) || "?"}
                     </span>
                   )}
@@ -338,7 +338,7 @@ export default function Projects() {
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium truncate">
                     {inv.senderName} invited you to{" "}
-                    <span className="text-indigo-400">{inv.projectName}</span>
+                    <span className="text-primary">{inv.projectName}</span>
                   </p>
                   <p className="text-xs text-muted-foreground truncate">
                     {inv.message || "Join this project and start collaborating"}
@@ -399,8 +399,8 @@ export default function Projects() {
         </div>
       ) : (
         <div className="relative text-center py-16 bg-card rounded-2xl border border-border/40">
-          <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-indigo-500/15 to-purple-500/10 flex items-center justify-center ring-1 ring-indigo-500/20">
-            <FolderKanban className="w-7 h-7 text-indigo-400" />
+          <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-primary/15 to-primary/10 flex items-center justify-center ring-1 ring-primary/20">
+            <FolderKanban className="w-7 h-7 text-primary" />
           </div>
           <h3 className="text-lg font-semibold mb-2">No projects yet</h3>
           <p className="text-sm text-muted-foreground max-w-xs mx-auto mb-5">
@@ -408,7 +408,7 @@ export default function Projects() {
           </p>
           <Button
             onClick={() => setOpen(true)}
-            className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white hover:from-indigo-600 hover:to-purple-700"
+            className="bg-primary text-white hover:from-primary hover:to-primary"
           >
             <Plus className="w-4 h-4 mr-1.5" />
             Create your first project
@@ -440,15 +440,15 @@ function VisibilityOption({
       className={cn(
         "text-left rounded-xl border p-3 transition-all",
         active
-          ? "border-indigo-500/50 bg-indigo-500/[0.08] ring-2 ring-indigo-500/20"
+          ? "border-primary/50 bg-primary/[0.08] ring-2 ring-primary/20"
           : "border-border/40 hover:border-border/70 bg-transparent"
       )}
     >
       <div className="flex items-center gap-2">
-        <span className={cn("w-8 h-8 rounded-lg flex items-center justify-center", active ? "bg-indigo-500/15 text-indigo-500" : "bg-muted/60 text-muted-foreground")}>
+        <span className={cn("w-8 h-8 rounded-lg flex items-center justify-center", active ? "bg-primary/15 text-primary" : "bg-muted/60 text-muted-foreground")}>
           {icon}
         </span>
-        <span className={cn("text-sm font-medium", active ? "text-indigo-600 dark:text-indigo-300" : "text-foreground")}>
+        <span className={cn("text-sm font-medium", active ? "text-primary dark:text-primary" : "text-foreground")}>
           {title}
         </span>
       </div>
@@ -480,11 +480,11 @@ function ProjectCard({
   return (
     <Card
       onClick={onOpen}
-      className="group @container relative min-w-0 overflow-hidden border-border/40 hover:border-indigo-500/30 hover:-translate-y-1 hover:shadow-xl hover:shadow-indigo-500/10 transition-all duration-300 cursor-pointer animate-fade-in-up"
+      className="group @container relative min-w-0 overflow-hidden border-border/40 hover:border-primary/30 hover:-translate-y-1 hover:shadow-xl hover:shadow-primary/10 transition-all duration-300 cursor-pointer animate-fade-in-up"
       style={{ animationDelay: `${index * 0.05}s` }}
     >
       {/* Hover tint */}
-      <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/[0.04] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/[0.04] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
 
       <CardHeader className="pb-2 relative">
         <div className="flex items-start justify-between gap-2">
@@ -497,7 +497,7 @@ function ProjectCard({
               <FolderKanban className="w-5 h-5 text-white" />
             </div>
             <div className="min-w-0">
-              <CardTitle className="text-sm font-semibold truncate group-hover:text-indigo-600 dark:group-hover:text-indigo-300 transition-colors">
+              <CardTitle className="text-sm font-semibold truncate group-hover:text-primary dark:group-hover:text-primary transition-colors">
                 {project.name}
               </CardTitle>
               <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-0.5">
@@ -517,8 +517,8 @@ function ProjectCard({
               className={cn(
                 "inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-full border",
                 isPublic
-                  ? "text-emerald-600 dark:text-emerald-400 border-emerald-500/25 bg-emerald-500/[0.07]"
-                  : "text-amber-600 dark:text-amber-400 border-amber-500/25 bg-amber-500/[0.07]"
+                  ? "text-accent dark:text-accent border-accent/25 bg-accent/[0.07]"
+                  : "text-primary dark:text-primary border-primary/25 bg-primary/[0.07]"
               )}
             >
               {isPublic ? <Globe className="w-2.5 h-2.5" /> : <Lock className="w-2.5 h-2.5" />}
@@ -551,7 +551,7 @@ function ProjectCard({
             e.stopPropagation();
             onOpen();
           }}
-          className="w-full text-xs bg-gradient-to-r from-indigo-500 to-purple-600 text-white hover:from-indigo-600 hover:to-purple-700 shadow-sm @min-[22.5rem]:flex-1 @min-[22.5rem]:min-w-[7rem]"
+          className="w-full text-xs bg-primary text-white hover:from-primary hover:to-primary shadow-sm @min-[22.5rem]:flex-1 @min-[22.5rem]:min-w-[7rem]"
         >
           <ArrowUpRight className="w-3 h-3" />
           Open Project

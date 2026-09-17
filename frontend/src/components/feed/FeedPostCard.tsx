@@ -390,7 +390,7 @@ export default function FeedPostCard({
   };
 
   return (
-    <Card className="group border-border/40 hover:border-indigo-500/25 hover:shadow-lg hover:shadow-indigo-500/5 transition-all duration-300">
+    <Card className="group border-border/40 hover:border-primary/25 hover:shadow-lg hover:shadow-primary/5 transition-all duration-300">
       <div className="p-5 md:p-6 space-y-4">
         {/* Header */}
         <div className="flex items-start justify-between">
@@ -402,9 +402,9 @@ export default function FeedPostCard({
               aria-label={post.user.username ? `View ${post.user.fullName}'s profile` : undefined}
               className={`shrink-0 ${post.user.username ? "cursor-pointer" : "cursor-default"}`}
             >
-              <Avatar className="w-10 h-10 ring-2 ring-indigo-500/10">
+              <Avatar className="w-10 h-10 ring-2 ring-primary/10">
                 <AvatarImage src={post.user.avatarUrl || undefined} />
-                <AvatarFallback className="bg-gradient-to-br from-indigo-500/20 to-purple-500/20 text-indigo-500 dark:text-indigo-400 text-xs font-bold">
+                <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/20 text-primary dark:text-primary text-xs font-bold">
                   {post.user.fullName?.charAt(0) || "?"}
                 </AvatarFallback>
               </Avatar>
@@ -417,7 +417,7 @@ export default function FeedPostCard({
                   disabled={!post.user.username}
                   className={`text-sm font-semibold text-left ${
                     post.user.username
-                      ? "hover:text-indigo-500 dark:hover:text-indigo-400 transition-colors"
+                      ? "hover:text-primary dark:hover:text-primary transition-colors"
                       : "cursor-default"
                   }`}
                 >
@@ -429,7 +429,7 @@ export default function FeedPostCard({
                   </span>
                 )}
                 {isOwnPost && (
-                  <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-indigo-500/10 text-indigo-500 dark:text-indigo-400 border border-indigo-500/20">
+                  <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-primary/10 text-primary dark:text-primary border border-primary/20">
                     You
                   </span>
                 )}
@@ -486,7 +486,7 @@ export default function FeedPostCard({
           <button
             onClick={handleLike}
             aria-label={isLiked ? "Unlike post" : "Like post"}
-            className={`flex items-center gap-1.5 text-xs rounded-full px-3 py-1.5 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40 ${
+            className={`flex items-center gap-1.5 text-xs rounded-full px-3 py-1.5 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 ${
               isLiked
                 ? "text-red-500 bg-red-500/10"
                 : "text-muted-foreground hover:text-red-500 hover:bg-red-500/5"
@@ -507,10 +507,10 @@ export default function FeedPostCard({
           <button
             onClick={openComments}
             aria-label="Toggle comments"
-            className={`flex items-center gap-1.5 text-xs rounded-full px-3 py-1.5 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40 ${
+            className={`flex items-center gap-1.5 text-xs rounded-full px-3 py-1.5 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 ${
               commentsOpen
-                ? "text-indigo-500 bg-indigo-500/10"
-                : "text-muted-foreground hover:text-indigo-500 hover:bg-indigo-500/5"
+                ? "text-primary bg-primary/10"
+                : "text-muted-foreground hover:text-primary hover:bg-primary/5"
             }`}
           >
             <MessageCircle className="w-4 h-4" />
@@ -523,10 +523,10 @@ export default function FeedPostCard({
             onClick={handleBookmark}
             disabled={bookmarkLoading}
             aria-label={isBookmarked ? "Remove bookmark" : "Bookmark post"}
-            className={`flex items-center gap-1.5 text-xs rounded-full px-3 py-1.5 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/40 ${
+            className={`flex items-center gap-1.5 text-xs rounded-full px-3 py-1.5 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 ${
               isBookmarked
-                ? "text-indigo-500 bg-indigo-500/10"
-                : "text-muted-foreground hover:text-indigo-500 hover:bg-indigo-500/5"
+                ? "text-primary bg-primary/10"
+                : "text-muted-foreground hover:text-primary hover:bg-primary/5"
             }`}
           >
             {bookmarkLoading ? (
@@ -542,7 +542,7 @@ export default function FeedPostCard({
           <button
             onClick={() => setReportOpen(true)}
             aria-label="Report post"
-            className="flex items-center gap-1.5 text-xs rounded-full px-3 py-1.5 text-muted-foreground/60 hover:text-amber-500 hover:bg-amber-500/5 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/40"
+            className="flex items-center gap-1.5 text-xs rounded-full px-3 py-1.5 text-muted-foreground/60 hover:text-primary hover:bg-primary/5 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
           >
             <Flag className="w-4 h-4" />
             <span className="hidden sm:inline">Report</span>
@@ -554,7 +554,7 @@ export default function FeedPostCard({
           <div className="border-t border-border/20 pt-4 space-y-4 animate-fade-in-up">
             {commentsLoading ? (
               <div className="flex justify-center py-3">
-                <Loader2 className="h-4 w-4 animate-spin text-indigo-400" />
+                <Loader2 className="h-4 w-4 animate-spin text-primary" />
               </div>
             ) : (
               <>
@@ -566,9 +566,9 @@ export default function FeedPostCard({
                   <div className="space-y-3.5 max-h-60 overflow-y-auto pr-1">
                     {comments.map((comment) => (
                       <div key={comment.id} className="flex gap-2.5 animate-fade-in-up">
-                        <Avatar className="w-6 h-6 shrink-0 ring-1 ring-indigo-500/10">
+                        <Avatar className="w-6 h-6 shrink-0 ring-1 ring-primary/10">
                           <AvatarImage src={comment.user.avatarUrl || undefined} />
-                          <AvatarFallback className="text-[9px] font-bold bg-gradient-to-br from-indigo-500/20 to-purple-500/20 text-indigo-500 dark:text-indigo-400">
+                          <AvatarFallback className="text-[9px] font-bold bg-gradient-to-br from-primary/20 to-primary/20 text-primary dark:text-primary">
                             {comment.user.fullName?.charAt(0) || "?"}
                           </AvatarFallback>
                         </Avatar>
@@ -617,7 +617,7 @@ export default function FeedPostCard({
                     type="submit"
                     size="icon"
                     disabled={!commentText.trim() || commentSending}
-                    className="h-9 w-9 rounded-full bg-gradient-to-r from-indigo-500 to-purple-600 text-white hover:from-indigo-600 hover:to-purple-700"
+                    className="h-9 w-9 rounded-full bg-primary text-white hover:from-primary hover:to-primary"
                     aria-label="Send comment"
                   >
                     {commentSending ? (
@@ -647,7 +647,7 @@ export default function FeedPostCard({
               value={editContent}
               onChange={(e) => setEditContent(e.target.value.slice(0, MAX_CONTENT_LENGTH))}
               aria-label="Edit post content"
-              className="min-h-[110px] max-h-64 w-full resize-none text-sm bg-transparent border border-border/40 rounded-xl p-3 focus:outline-none focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20 placeholder:text-muted-foreground/50 transition-all"
+              className="min-h-[110px] max-h-64 w-full resize-none text-sm bg-transparent border border-border/40 rounded-xl p-3 focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 placeholder:text-muted-foreground/50 transition-all"
             />
 
             {editImagePreview ? (
@@ -766,7 +766,7 @@ export default function FeedPostCard({
               <span
                 className={`text-[10px] tabular-nums ${
                   editContent.length > MAX_CONTENT_LENGTH - 50
-                    ? "text-amber-500"
+                    ? "text-primary"
                     : "text-muted-foreground/50"
                 }`}
               >
@@ -781,7 +781,7 @@ export default function FeedPostCard({
             <Button
               onClick={saveEdit}
               disabled={editSaving || !editContent.trim()}
-              className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white hover:from-indigo-600 hover:to-purple-700"
+              className="bg-primary text-white hover:from-primary hover:to-primary"
             >
               {editSaving ? (
                 <Loader2 className="h-4 w-4 animate-spin" />

@@ -91,9 +91,9 @@ const STATUSES: ReportStatus[] = ["PENDING", "UNDER_REVIEW", "RESOLVED", "REJECT
 const ENTITY_TYPES: ReportEntityType[] = ["USER", "PROJECT", "POST", "COMMENT", "MESSAGE"];
 
 const statusStyles: Record<ReportStatus, string> = {
-  PENDING: "bg-amber-500/10 text-amber-500 border-amber-500/20",
+  PENDING: "bg-primary/10 text-primary border-primary/20",
   UNDER_REVIEW: "bg-blue-500/10 text-blue-500 border-blue-500/20",
-  RESOLVED: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20",
+  RESOLVED: "bg-accent/10 text-emerald-500 border-accent/20",
   REJECTED: "bg-red-500/10 text-red-500 border-red-500/20",
 };
 
@@ -221,7 +221,7 @@ export default function AdminReports() {
 
   const statCards = [
     { label: "Total Reports", value: stats?.total ?? 0, icon: Flag, color: "text-accent" },
-    { label: "Pending", value: stats?.pending ?? 0, icon: Clock, color: "text-amber-500" },
+    { label: "Pending", value: stats?.pending ?? 0, icon: Clock, color: "text-primary" },
     { label: "Under Review", value: stats?.underReview ?? 0, icon: Eye, color: "text-blue-500" },
     { label: "Resolved", value: stats?.resolved ?? 0, icon: CheckCircle2, color: "text-emerald-500" },
     { label: "Rejected", value: stats?.rejected ?? 0, icon: XCircle, color: "text-red-500" },
@@ -239,7 +239,7 @@ export default function AdminReports() {
           <div className="w-5 h-5 rounded-md bg-accent/10 flex items-center justify-center">
             <ShieldAlert className="w-3 h-3 text-accent" />
           </div>
-          <span className="text-xs font-medium uppercase tracking-wider text-accent">Moderation Center</span>
+          <span className="text-xs font-medium text-accent">Moderation Center</span>
         </div>
         <h1 className="text-2xl font-bold tracking-tight">Reports</h1>
         <p className="text-sm text-muted-foreground mt-1">
@@ -375,7 +375,7 @@ export default function AdminReports() {
                             <Icon className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
                             <div className="min-w-0">
                               <p className="text-sm truncate max-w-[180px]">{r.entityTitle}</p>
-                              <span className="text-[10px] uppercase tracking-wide text-muted-foreground">{r.entityType}</span>
+                              <span className="text-[10px] text-muted-foreground">{r.entityType}</span>
                             </div>
                           </div>
                         </TableCell>
@@ -483,7 +483,7 @@ export default function AdminReports() {
               <div className="space-y-5 mt-4">
                 {/* Reporter */}
                 <div>
-                  <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-2">Reporter</p>
+                  <p className="text-xs font-medium text-muted-foreground mb-2">Reporter</p>
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center text-sm font-bold text-accent overflow-hidden">
                       {selected.reporter.avatarUrl ? (
@@ -501,7 +501,7 @@ export default function AdminReports() {
 
                 {/* Reported entity */}
                 <div>
-                  <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-2">Reported Content</p>
+                  <p className="text-xs font-medium text-muted-foreground mb-2">Reported Content</p>
                   <div className="rounded-lg border border-border/40 p-3 bg-muted/30">
                     <div className="flex items-center gap-2 mb-1">
                       <EntityIcon className="w-4 h-4 text-accent" />
@@ -518,7 +518,7 @@ export default function AdminReports() {
 
                 {/* Reason & description */}
                 <div>
-                  <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-2">Details</p>
+                  <p className="text-xs font-medium text-muted-foreground mb-2">Details</p>
                   <div className="space-y-2">
                     <Badge variant="outline">{selected.reason.replace("_", " ")}</Badge>
                     {selected.description && (
@@ -531,7 +531,7 @@ export default function AdminReports() {
 
                 {/* Review info */}
                 <div>
-                  <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-2">Review</p>
+                  <p className="text-xs font-medium text-muted-foreground mb-2">Review</p>
                   <div className="grid grid-cols-2 gap-2 text-sm">
                     <div className="rounded-lg border border-border/40 p-3">
                       <p className="text-xs text-muted-foreground">Reviewed by</p>
@@ -555,7 +555,7 @@ export default function AdminReports() {
                 {/* Workflow — only show actionable buttons for non-terminal states */}
                 {selected.status !== "RESOLVED" && selected.status !== "REJECTED" && (
                   <div>
-                    <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-2">Workflow</p>
+                    <p className="text-xs font-medium text-muted-foreground mb-2">Workflow</p>
                     <div className="flex flex-wrap gap-2">
                       {selected.status === "PENDING" && (
                         <Button size="sm" variant="outline" disabled={actionLoading} onClick={() => setStatus("UNDER_REVIEW")}>
@@ -574,7 +574,7 @@ export default function AdminReports() {
 
                 {/* Moderation panel - dynamic per entity type */}
                 <div>
-                  <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-2">Moderation Actions</p>
+                  <p className="text-xs font-medium text-muted-foreground mb-2">Moderation Actions</p>
                   <div className="flex flex-wrap gap-2">
                     {selected.entityType === "USER" && (
                       <>

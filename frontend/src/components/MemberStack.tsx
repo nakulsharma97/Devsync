@@ -13,7 +13,7 @@ export function MemberStack({ members }: { members: MemberStackMember[] }) {
         <div
           key={m.id}
           title={m.fullName}
-          className="w-5 h-5 rounded-full ring-2 ring-card bg-gradient-to-br from-indigo-500/30 to-purple-500/30 flex items-center justify-center text-[8px] font-bold text-indigo-600 dark:text-indigo-300 overflow-hidden shrink-0"
+          className="w-5 h-5 rounded-full ring-2 ring-card bg-gradient-to-br from-primary/30 to-primary/30 flex items-center justify-center text-[8px] font-bold text-primary dark:text-primary overflow-hidden shrink-0"
         >
           {m.avatarUrl ? (
             <img src={m.avatarUrl} alt={m.fullName} className="w-full h-full object-cover" />

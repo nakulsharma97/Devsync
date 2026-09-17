@@ -214,9 +214,9 @@ export default function Feed() {
           <CardContent className="pt-5 pb-4">
             <form onSubmit={handleCreate} className="space-y-3">
               <div className="flex items-start gap-3">
-                <Avatar className="w-10 h-10 shrink-0 ring-2 ring-indigo-500/15 shadow-sm shadow-indigo-500/10">
+                <Avatar className="w-10 h-10 shrink-0 ring-2 ring-primary/15 shadow-sm shadow-primary/10">
                   <AvatarImage src={user?.avatarUrl || undefined} />
-                  <AvatarFallback className="bg-gradient-to-br from-indigo-500 to-purple-600 text-white text-xs font-bold">
+                  <AvatarFallback className="bg-primary text-white text-xs font-bold">
                     {user?.fullName?.charAt(0) || "U"}
                   </AvatarFallback>
                 </Avatar>
@@ -235,7 +235,7 @@ export default function Feed() {
                       }
                     }}
                     aria-label="Post content"
-                    className="min-h-[80px] max-h-48 w-full resize-none text-sm bg-transparent border border-border/40 rounded-xl p-3 focus:outline-none focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20 placeholder:text-muted-foreground/50 transition-all"
+                    className="min-h-[80px] max-h-48 w-full resize-none text-sm bg-transparent border border-border/40 rounded-xl p-3 focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 placeholder:text-muted-foreground/50 transition-all"
                   />
                 </div>
                 <button
@@ -295,7 +295,7 @@ export default function Feed() {
                     <div className="mt-2">
                       <div className="h-1 w-full rounded-full bg-muted overflow-hidden">
                         <div
-                          className="h-full bg-indigo-500 transition-all duration-200"
+                          className="h-full bg-primary transition-all duration-200"
                           style={{ width: `${uploadProgress}%` }}
                         />
                       </div>
@@ -342,7 +342,7 @@ export default function Feed() {
                     disabled={creating}
                     className={`text-xs gap-1.5 ${
                       imagePreviewUrl
-                        ? "text-indigo-400 bg-indigo-500/10"
+                        ? "text-primary bg-primary/10"
                         : "text-muted-foreground hover:text-foreground"
                     }`}
                   >
@@ -357,7 +357,7 @@ export default function Feed() {
                   <span
                     className={`text-[10px] tabular-nums ${
                       newContent.length > MAX_CONTENT_LENGTH - 50
-                        ? "text-amber-500"
+                        ? "text-primary"
                         : "text-muted-foreground/50"
                     }`}
                   >
@@ -366,7 +366,7 @@ export default function Feed() {
                   <Button
                     type="submit"
                     disabled={creating || !newContent.trim()}
-                    className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white text-xs hover:from-indigo-600 hover:to-purple-700 shadow-md h-8"
+                    className="bg-primary text-white text-xs hover:bg-primary/90 shadow-md h-8"
                   >
                     {creating ? (
                       <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -395,8 +395,8 @@ export default function Feed() {
       {/* Posts or Empty State */}
       {posts.length === 0 && !composerOpen ? (
         <div className="border border-border/40 rounded-xl bg-card py-8 px-6 text-center">
-          <div className="w-14 h-14 mx-auto mb-3 rounded-2xl bg-gradient-to-br from-indigo-500/15 to-purple-500/10 flex items-center justify-center ring-1 ring-indigo-500/20 shadow-md shadow-indigo-500/10">
-            <Rss className="w-6 h-6 text-indigo-400" />
+          <div className="w-14 h-14 mx-auto mb-3 rounded-2xl bg-gradient-to-br from-primary/15 to-primary/10 flex items-center justify-center ring-1 ring-primary/20 shadow-md shadow-primary/10">
+            <Rss className="w-6 h-6 text-primary" />
           </div>
           <h3 className="text-base font-semibold text-foreground mb-1">No posts yet</h3>
           <p className="text-sm text-muted-foreground max-w-xs mx-auto mb-4">
@@ -405,7 +405,7 @@ export default function Feed() {
           <Button
             size="sm"
             onClick={openComposer}
-            className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white hover:from-indigo-600 hover:to-purple-700 shadow-md gap-1.5"
+            className="bg-primary text-white hover:bg-primary/90 shadow-md gap-1.5"
           >
             <Plus className="w-3.5 h-3.5" />
             Create Post
@@ -438,7 +438,7 @@ export default function Feed() {
                 variant="outline"
                 onClick={loadMore}
                 disabled={loadingMore}
-                className="text-xs gap-1 rounded-full text-muted-foreground hover:text-indigo-500 hover:border-indigo-500/30 transition-colors"
+                className="text-xs gap-1 rounded-full text-muted-foreground hover:text-primary hover:border-primary/30 transition-colors"
               >
                 {loadingMore ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -459,11 +459,11 @@ export default function Feed() {
 
 function FeedHeader({ onCreatePost }: { onCreatePost: () => void }) {
   return (
-    <div className="flex items-start justify-between gap-4 mb-6">
+    <div className="flex items-start justify-between gap-4 mb-8">
       <div>
         <div className="flex items-center gap-2 mb-1">
-          <div className="w-5 h-5 rounded-md bg-accent/10 flex items-center justify-center">
-            <Sparkles className="w-3 h-3 text-accent" />
+          <div className="w-5 h-5 rounded-md bg-primary/10 flex items-center justify-center">
+            <Sparkles className="w-3 h-3 text-primary" />
           </div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground">Feed</h1>
         </div>
@@ -472,13 +472,13 @@ function FeedHeader({ onCreatePost }: { onCreatePost: () => void }) {
         </p>
       </div>
       <div className="flex items-center gap-2.5 shrink-0">
-        <span className="inline-flex items-center gap-1.5 text-[10px] font-medium px-2.5 py-1.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+        <span className="inline-flex items-center gap-1.5 text-[10px] font-medium px-2.5 py-1.5 rounded-full bg-accent/10 text-accent dark:text-accent border border-accent/20">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
           Live
         </span>
         <Button
           onClick={onCreatePost}
-          className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white hover:from-indigo-600 hover:to-purple-700 shadow-md gap-1.5 h-9"
+          className="bg-primary text-white hover:bg-primary/90 shadow-md gap-1.5 h-9"
         >
           <Plus className="w-3.5 h-3.5" />
           Create Post

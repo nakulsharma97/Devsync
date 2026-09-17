@@ -1,4 +1,3 @@
-import { motion } from "framer-motion";
 import { useEffect, useState, useRef } from "react";
 
 const codeLines = [
@@ -81,13 +80,11 @@ export default function GlassCodeEditor() {
   const stringColor = dark ? "rgba(52, 211, 153, 0.9)" : "rgba(4, 120, 87, 0.9)";
   const commentColor = dark ? "rgba(52, 211, 153, 0.55)" : "rgba(4, 120, 87, 0.55)";
 
+  // Entrance animation is a plain CSS keyframe (see .animate-hero-editor-in)
+  // so the hero does not pull the ~127 kB framer-motion runtime into the
+  // public landing bundle for a single one-shot reveal.
   return (
-    <motion.div
-      initial={{ opacity: 0, x: 40, rotateY: 5 }}
-      animate={{ opacity: 1, x: 0, rotateY: 0 }}
-      transition={{ duration: 0.8, delay: 0.4, ease: "easeOut" }}
-      className="relative group"
-    >
+    <div className="relative group animate-hero-editor-in">
       {/* Glow behind editor */}
       <div
         className="absolute -inset-4 rounded-2xl opacity-40 group-hover:opacity-60 transition-opacity duration-700"
@@ -126,7 +123,7 @@ export default function GlassCodeEditor() {
         >
           <div className="flex items-center gap-1.5">
             <div className="w-2.5 h-2.5 rounded-full bg-red-500/80" />
-            <div className="w-2.5 h-2.5 rounded-full bg-amber-500/80" />
+            <div className="w-2.5 h-2.5 rounded-full bg-primary/80" />
             <div className="w-2.5 h-2.5 rounded-full bg-emerald-500/80" />
           </div>
           <div
@@ -209,10 +206,8 @@ export default function GlassCodeEditor() {
                     </span>
 
                     {isActive && (
-                      <motion.span
-                        animate={{ opacity: [1, 0] }}
-                        transition={{ duration: 0.6, repeat: Infinity, repeatType: "reverse" }}
-                        className="inline-block w-[2px] h-[18px]"
+                      <span
+                        className="inline-block w-[2px] h-[18px] animate-caret-blink"
                         style={{ background: dark ? "rgba(129, 140, 248, 0.9)" : "rgba(99, 102, 241, 0.8)" }}
                       />
                     )}
@@ -245,6 +240,6 @@ export default function GlassCodeEditor() {
           </div>
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 }

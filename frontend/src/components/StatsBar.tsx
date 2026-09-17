@@ -11,8 +11,9 @@ interface DisplayStat {
 /**
  * Real platform statistics served by GET /api/public/stats. Numbers are
  * computed server-side from the database — never hardcoded, never inflated.
- * While loading (or if the fetch fails) the bar shows skeleton placeholders
- * instead of made-up figures.
+ * While loading it shows skeleton placeholders instead of made-up figures.
+ * Once the request has settled without data the bar removes itself entirely
+ * rather than pulsing forever.
  */
 function AnimatedNumber({ value }: { value: number }) {
   const ref = useRef<HTMLSpanElement>(null);
@@ -73,13 +74,18 @@ function buildStats(stats: PublicStats): DisplayStat[] {
   ];
 }
 
-export default function StatsBar({ stats }: { stats: PublicStats | null }) {
+export default function StatsBar({ stats, settled }: { stats: PublicStats | null; settled: boolean }) {
   const items = stats ? buildStats(stats) : null;
+
+  // The fetch has finished and produced nothing — render nothing at all.
+  // Showing a skeleton here would leave four placeholders pulsing forever,
+  // which reads as a broken page and costs a running animation per element.
+  if (!items && settled) return null;
 
   return (
     <section className="relative border-y border-border/20 bg-background/40 backdrop-blur-sm overflow-hidden">
       {/* Soft top accent */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 h-px w-2/3 bg-gradient-to-r from-transparent via-indigo-500/40 to-transparent" />
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 h-px w-2/3 bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
       <div className="mx-auto max-w-7xl px-4 sm:px-6 py-10 md:py-14">
         {items === null ? (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8" aria-hidden="true">
@@ -105,8 +111,8 @@ export default function StatsBar({ stats }: { stats: PublicStats | null }) {
                 <p className="text-xs md:text-sm text-muted-foreground mt-1.5 font-medium transition-colors group-hover:text-foreground">
                   {stat.label}
                 </p>
-                <p className="text-[10px] md:text-xs text-indigo-600/80 dark:text-indigo-400/70 mt-0.5 flex items-center justify-center gap-1">
-                  <span className="w-1 h-1 rounded-full bg-indigo-400/60 transition-transform duration-300 group-hover:scale-150" />
+                <p className="text-[10px] md:text-xs text-primary/80 dark:text-primary/70 mt-0.5 flex items-center justify-center gap-1">
+                  <span className="w-1 h-1 rounded-full bg-primary/60 transition-transform duration-300 group-hover:scale-150" />
                   {stat.sub}
                 </p>
               </div>

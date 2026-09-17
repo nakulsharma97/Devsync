@@ -52,12 +52,12 @@ export default function VerifyEmail() {
   };
 
   return (
-    <div className="min-h-screen bg-[#07071a] text-white flex items-center justify-center p-4 relative overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-br from-indigo-950/30 via-[#07071a] to-purple-950/20 pointer-events-none" />
+    <div className="min-h-screen bg-background text-white flex items-center justify-center p-4 relative overflow-hidden">
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-background to-accent/10 pointer-events-none" />
       <div className="relative w-full max-w-sm animate-fade-in-up">
         {status === "checking" && (
           <div className="text-center py-10">
-            <Loader2 className="h-8 w-8 animate-spin text-indigo-500 mx-auto" />
+            <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
             <p className="text-sm text-white/50 mt-4">Verifying your email…</p>
           </div>
         )}
@@ -66,7 +66,7 @@ export default function VerifyEmail() {
           <>
             <div className="text-center mb-6">
               <div className="flex justify-center mb-4">
-                <div className="w-16 h-16 rounded-2xl bg-emerald-500/10 ring-1 ring-emerald-500/25 flex items-center justify-center">
+                <div className="w-16 h-16 rounded-2xl bg-accent/10 ring-1 ring-emerald-500/25 flex items-center justify-center">
                   <CheckCircle2 className="w-8 h-8 text-emerald-400" />
                 </div>
               </div>
@@ -80,7 +80,7 @@ export default function VerifyEmail() {
             <div className="text-center">
               <Link
                 to="/auth"
-                className="text-sm text-indigo-400 hover:text-indigo-300 font-medium"
+                className="text-sm text-primary hover:text-primary font-medium"
               >
                 Continue to sign in
               </Link>
@@ -92,8 +92,8 @@ export default function VerifyEmail() {
           <>
             <div className="text-center mb-6">
               <div className="flex justify-center mb-4">
-                <div className="w-16 h-16 rounded-2xl bg-amber-500/10 ring-1 ring-amber-500/25 flex items-center justify-center">
-                  <MailWarning className="w-8 h-8 text-amber-400" />
+                <div className="w-16 h-16 rounded-2xl bg-primary/10 ring-1 ring-primary/25 flex items-center justify-center">
+                  <MailWarning className="w-8 h-8 text-primary" />
                 </div>
               </div>
               <h1 className="text-2xl font-bold tracking-tight">
@@ -132,13 +132,13 @@ export default function VerifyEmail() {
                     placeholder="you@example.com"
                     value={resendEmail}
                     onChange={(e) => setResendEmail(e.target.value)}
-                    className="h-11 text-sm bg-white/5 border-white/10 text-white placeholder:text-white/30 focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20 transition-all"
+                    className="h-11 text-sm bg-white/5 border-white/10 text-white placeholder:text-white/30 focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all"
                     required
                   />
                 </div>
                 <Button
                   type="submit"
-                  className="w-full h-11 text-sm font-semibold shadow-lg bg-gradient-to-r from-indigo-500 to-purple-600 text-white hover:from-indigo-600 hover:to-purple-700 disabled:opacity-50"
+                  className="w-full h-11 text-sm font-semibold shadow-lg bg-primary text-white hover:from-primary hover:to-primary disabled:opacity-50"
                   disabled={resending || !resendEmail}
                 >
                   {resending ? (

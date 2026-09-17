@@ -71,7 +71,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Fetch a short-lived WebSocket auth token (cookies can't be sent with WS)
       try {
         const wsTokenRes = await api.get("/auth/ws-token");
-        wsService.connect(user.id, wsTokenRes.data.accessToken);
+        // connect() loads the STOMP client on demand, so it returns a promise.
+        wsService.connect(user.id, wsTokenRes.data.accessToken).catch(() => {
+          console.warn("Could not open WebSocket connection");
+        });
       } catch {
         // WebSocket auth token fetch failed — messaging won't work but app still functions
         console.warn("Could not fetch WebSocket auth token");

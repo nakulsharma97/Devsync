@@ -54,17 +54,17 @@ export default function PricingSection() {
   return (
     <section
       id="pricing"
-      className="relative py-16 md:py-24 px-4 sm:px-6 bg-background/30 backdrop-blur-sm"
+      className="relative py-20 md:py-32 px-6 sm:px-8 bg-background/30 backdrop-blur-sm"
     >
       <div className="mx-auto max-w-7xl">
-        <ScrollReveal className="text-center mb-10">
-          <span className="text-xs font-semibold tracking-[0.2em] uppercase bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 dark:from-emerald-400 dark:via-teal-400 dark:to-cyan-400 bg-clip-text text-transparent mb-4 block">
+        <ScrollReveal className="text-center mb-12">
+          <span className="text-xs font-semibold tracking-[0.2em] uppercase bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 dark:from-emerald-400 dark:via-teal-400 dark:to-cyan-400 bg-clip-text text-transparent mb-6 block">
             Pricing
           </span>
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight">
+          <h2 className="text-4xl sm:text-5xl md:text-6xl font-black tracking-tight">
             Simple, transparent pricing
           </h2>
-          <p className="mt-4 text-muted-foreground max-w-md mx-auto">
+          <p className="mt-6 text-muted-foreground text-lg max-w-md mx-auto">
             Start free. Upgrade when you need more private projects, storage or analytics.
           </p>
         </ScrollReveal>
@@ -78,7 +78,7 @@ export default function PricingSection() {
             Pricing could not be loaded right now. Try again shortly.
           </p>
         ) : (
-          <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto items-stretch">
+          <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto items-stretch">
             {plans.map((plan, i) => {
               const popular = plan.code === "PRO";
               return (
@@ -86,13 +86,13 @@ export default function PricingSection() {
                   <div
                     className={`relative h-full rounded-2xl border p-8 transition-all duration-300 backdrop-blur-sm overflow-hidden group ${
                       popular
-                        ? "border-indigo-500/50 bg-gradient-to-b from-indigo-500/15 to-purple-500/10 shadow-xl shadow-indigo-500/10 scale-105 hover:shadow-2xl hover:shadow-indigo-500/20 hover:-translate-y-1"
-                        : "border-border/40 bg-card/70 hover:border-indigo-500/30 hover:shadow-lg hover:-translate-y-1"
+                        ? "border-primary/50 bg-gradient-to-b from-primary/15 to-primary/10 shadow-xl shadow-primary/10 scale-105 hover:shadow-2xl hover:shadow-primary/20 hover:-translate-y-1"
+                        : "border-border/40 bg-card/70 hover:border-primary/30 hover:shadow-lg hover:-translate-y-1"
                     }`}
                   >
                     {popular && (
                       <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10">
-                        <span className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full shadow-lg">
+                        <span className="bg-primary text-primary-foreground text-[10px] font-semibold px-3 py-1 rounded-full">
                           Most Popular
                         </span>
                       </div>
@@ -112,7 +112,7 @@ export default function PricingSection() {
                     <ul className="relative space-y-3 mb-8">
                       {featuresFor(plan).map((f) => (
                         <li key={f} className="flex items-start gap-2.5 text-sm">
-                          <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400 mt-0.5 shrink-0 transition-transform duration-200 group-hover:scale-110" />
+                          <Check className="w-4 h-4 text-accent dark:text-accent mt-0.5 shrink-0 transition-transform duration-200 group-hover:scale-110" />
                           <span>{f}</span>
                         </li>
                       ))}
@@ -124,8 +124,8 @@ export default function PricingSection() {
                       }
                       className={`w-full relative ${
                         popular
-                          ? "bg-gradient-to-r from-indigo-500 to-purple-600 text-white hover:from-indigo-600 hover:to-purple-700 shadow-lg"
-                          : "bg-card border border-border/50 hover:border-indigo-500/30 hover:bg-indigo-500/5"
+                          ? "bg-primary text-white hover:bg-primary/90 shadow-lg"
+                          : "bg-card border border-border/50 hover:border-primary/30 hover:bg-primary/5"
                       }`}
                       variant={popular ? "default" : "outline"}
                     >

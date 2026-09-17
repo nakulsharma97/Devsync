@@ -34,7 +34,7 @@ export default function ScrollProgress() {
     <div className="fixed top-0 left-0 right-0 h-[3px] z-[60] pointer-events-none">
       <div
         ref={barRef}
-        className="h-full bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 transition-[width] duration-150 ease-out"
+        className="h-full bg-gradient-to-r from-primary via-accent to-pink-500 transition-[width] duration-150 ease-out"
         style={{ width: "0%" }}
       />
     </div>

@@ -96,7 +96,7 @@ export function MessageComposer({ onSend, onTyping, contextId, projectId, disabl
         <div className="flex items-center gap-2 mb-2 px-3 py-2 rounded-lg border border-border/50 bg-muted/40">
           {attachment ? (
             <>
-              <span className="w-8 h-8 shrink-0 rounded-md bg-indigo-500/10 text-indigo-500 dark:text-indigo-400 flex items-center justify-center">
+              <span className="w-8 h-8 shrink-0 rounded-md bg-primary/10 text-primary dark:text-primary flex items-center justify-center">
                 <FileText className="w-4 h-4" />
               </span>
               <span className="flex-1 min-w-0">
@@ -129,7 +129,7 @@ export function MessageComposer({ onSend, onTyping, contextId, projectId, disabl
       {/* Input row */}
       <div
         className={cn(
-          "flex items-end gap-1.5 rounded-2xl border border-border/50 bg-muted/30 focus-within:border-indigo-500/50 focus-within:ring-2 focus-within:ring-indigo-500/20 transition-all px-2 py-1.5"
+          "flex items-end gap-1.5 rounded-2xl border border-border/50 bg-muted/30 focus-within:border-primary/50 focus-within:ring-2 focus-within:ring-primary/20 transition-all px-2 py-1.5"
         )}
       >
         <input
@@ -150,7 +150,7 @@ export function MessageComposer({ onSend, onTyping, contextId, projectId, disabl
           title="Attach file"
           className="w-8 h-8 shrink-0 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-accent/10 transition-colors disabled:opacity-40"
         >
-          {uploading ? <Loader2 className="w-4 h-4 animate-spin text-indigo-500" /> : <Paperclip className="w-4 h-4" />}
+          {uploading ? <Loader2 className="w-4 h-4 animate-spin text-primary" /> : <Paperclip className="w-4 h-4" />}
         </button>
 
         <EmojiPicker
@@ -190,7 +190,7 @@ export function MessageComposer({ onSend, onTyping, contextId, projectId, disabl
           onClick={submit}
           disabled={(!text.trim() && !attachment) || uploading || disabled}
           aria-label="Send message"
-          className="w-9 h-9 shrink-0 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 text-white flex items-center justify-center shadow-md shadow-indigo-500/25 transition-all hover:from-indigo-600 hover:to-purple-700 hover:shadow-lg hover:shadow-indigo-500/30 active:scale-95 disabled:opacity-40 disabled:shadow-none disabled:hover:from-indigo-500 disabled:hover:to-purple-600"
+          className="w-9 h-9 shrink-0 rounded-xl bg-primary text-white flex items-center justify-center shadow-md shadow-primary/25 transition-all hover:from-primary hover:to-primary hover:shadow-lg hover:shadow-primary/30 active:scale-95 disabled:opacity-40 disabled:shadow-none disabled:hover:from-primary disabled:hover:to-primary"
         >
           <Send className="w-4 h-4" />
         </button>

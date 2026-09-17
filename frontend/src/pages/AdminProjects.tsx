@@ -87,15 +87,15 @@ import { toast } from "sonner";
 const PAGE_SIZE = 10;
 
 const statusStyles: Record<string, string> = {
-  ACTIVE: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20",
-  ARCHIVED: "bg-amber-500/10 text-amber-500 border-amber-500/20",
+  ACTIVE: "bg-accent/10 text-emerald-500 border-accent/20",
+  ARCHIVED: "bg-primary/10 text-primary border-primary/20",
   COMPLETED: "bg-blue-500/10 text-blue-500 border-blue-500/20",
   DELETED: "bg-muted text-muted-foreground border-border/50",
 };
 
 const visibilityStyles: Record<string, string> = {
   PUBLIC: "bg-blue-500/10 text-blue-500 border-blue-500/20",
-  PRIVATE: "bg-purple-500/10 text-purple-500 border-purple-500/20",
+  PRIVATE: "bg-accent/10 text-accent border-accent/20",
 };
 
 function fmtDate(value?: string | null): string {
@@ -282,9 +282,9 @@ export default function AdminProjects() {
   const statCards = [
     { label: "Total Projects", value: stats?.total ?? 0, icon: FolderGit2, color: "text-accent" },
     { label: "Active", value: stats?.active ?? 0, icon: CircleCheck, color: "text-emerald-500" },
-    { label: "Archived", value: stats?.archived ?? 0, icon: Archive, color: "text-amber-500" },
+    { label: "Archived", value: stats?.archived ?? 0, icon: Archive, color: "text-primary" },
     { label: "Public", value: stats?.publicCount ?? 0, icon: Globe, color: "text-blue-500" },
-    { label: "Private", value: stats?.privateCount ?? 0, icon: Lock, color: "text-purple-500" },
+    { label: "Private", value: stats?.privateCount ?? 0, icon: Lock, color: "text-accent" },
   ];
 
   return (
@@ -529,7 +529,7 @@ export default function AdminProjects() {
                                   <DropdownMenuItem
                                     onClick={() => setArchiveTarget(p)}
                                     disabled={busyId === p.id || isDeleted}
-                                    className="text-amber-500 focus:text-amber-500"
+                                    className="text-primary focus:text-primary"
                                   >
                                     <Archive className="w-3.5 h-3.5 mr-2" /> Archive
                                   </DropdownMenuItem>
@@ -603,7 +603,7 @@ export default function AdminProjects() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
-              <Archive className="w-4 h-4 text-amber-500" /> Archive {archiveTarget?.name}?
+              <Archive className="w-4 h-4 text-primary" /> Archive {archiveTarget?.name}?
             </AlertDialogTitle>
             <AlertDialogDescription>
               Archived projects become read-only until restored: no new tasks, no messages and no edits.
@@ -615,7 +615,7 @@ export default function AdminProjects() {
             <AlertDialogAction
               onClick={handleArchive}
               disabled={busyId === archiveTarget?.id}
-              className="bg-amber-500 hover:bg-amber-600 text-white"
+              className="bg-primary hover:bg-primary text-white"
             >
               {busyId === archiveTarget?.id ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
               Archive Project
@@ -732,7 +732,7 @@ export default function AdminProjects() {
                     <p className="text-[11px] text-muted-foreground">Completed</p>
                   </div>
                   <div className="border border-border/50 rounded-lg p-3">
-                    <CircleDashed className="w-4 h-4 text-amber-500 mb-1" />
+                    <CircleDashed className="w-4 h-4 text-primary mb-1" />
                     <p className="text-lg font-bold">{detail.kanbanStats.pendingTasks}</p>
                     <p className="text-[11px] text-muted-foreground">Pending</p>
                   </div>
@@ -743,7 +743,7 @@ export default function AdminProjects() {
               <div className="grid grid-cols-2 gap-3">
                 <div className="border border-border/50 rounded-lg p-3">
                   <div className="flex items-center gap-2 mb-1">
-                    <Rss className="w-3.5 h-3.5 text-purple-400" />
+                    <Rss className="w-3.5 h-3.5 text-accent" />
                     <p className="text-[11px] text-muted-foreground">Posts</p>
                   </div>
                   <p className="text-lg font-bold">{detail.postsCount.toLocaleString()}</p>

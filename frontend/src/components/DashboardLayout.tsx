@@ -109,40 +109,31 @@ function SidebarLink({ to, icon: Icon, label, badge, onNavigate }: SidebarLinkPr
       onClick={onNavigate}
       className={({ isActive }) =>
         cn(
-          "group relative flex items-center gap-3 px-3 py-2 rounded-xl text-sm transition-all duration-200 border",
+          "group relative flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-all duration-150",
           isActive
-            ? "bg-gradient-to-r from-indigo-500/15 to-purple-500/5 text-indigo-600 dark:text-indigo-300 font-medium border-indigo-500/20 shadow-sm"
-            : "text-muted-foreground hover:text-foreground hover:bg-accent/5 border-transparent"
+            ? "bg-primary/10 text-primary font-medium"
+            : "text-muted-foreground hover:text-foreground hover:bg-secondary"
         )
       }
     >
       {({ isActive }) => (
         <>
-          {/* Left accent bar */}
-          <span
-            aria-hidden
-            className={cn(
-              "absolute left-0 top-1/2 -translate-y-1/2 h-5 w-[3px] rounded-full bg-gradient-to-b from-indigo-500 to-purple-500 transition-all duration-200",
-              isActive ? "opacity-100" : "opacity-0"
-            )}
-          />
           <div
             className={cn(
-              "relative w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-all duration-200",
+              "relative w-7 h-7 rounded-md flex items-center justify-center shrink-0 transition-colors duration-150",
               isActive
-                ? "bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-md shadow-indigo-500/20"
-                : "bg-muted/50 text-muted-foreground group-hover:text-indigo-500 group-hover:bg-indigo-500/10"
+                ? "bg-primary text-primary-foreground"
+                : "text-muted-foreground group-hover:text-foreground"
             )}
           >
-            <Icon className="w-4 h-4" />
+            <Icon className="w-3.5 h-3.5" />
             {badge !== undefined && badge > 0 && (
-              <span className="absolute -top-1.5 -right-1.5 min-w-[16px] h-4 px-1 rounded-full bg-red-500 text-[9px] font-bold text-white flex items-center justify-center shadow-sm ring-2 ring-background animate-badge-pop">
+              <span className="absolute -top-1 -right-1 min-w-[14px] h-3.5 px-1 rounded-full bg-destructive text-[8px] font-bold text-white flex items-center justify-center animate-badge-pop">
                 {badge > 99 ? "99+" : badge}
               </span>
             )}
           </div>
           <span className="flex-1 truncate">{label}</span>
-          {isActive && <ChevronRight className="w-3.5 h-3.5 text-indigo-400 shrink-0" />}
         </>
       )}
     </NavLink>
@@ -151,7 +142,7 @@ function SidebarLink({ to, icon: Icon, label, badge, onNavigate }: SidebarLinkPr
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <p className="px-3 pt-5 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground/50">
+    <p className="px-3 pt-4 pb-1 text-[11px] font-medium text-muted-foreground/40">
       {children}
     </p>
   );
@@ -253,7 +244,7 @@ export default function DashboardLayout() {
           className={cn(
             "fixed top-0 left-0 right-0 z-[60] flex items-center justify-center gap-2 px-4 py-2 text-xs font-medium transition-colors duration-300",
             !isOnline
-              ? "bg-amber-500/90 text-white"
+              ? "bg-primary/90 text-white"
               : "bg-emerald-500/90 text-white"
           )}
         >
@@ -287,12 +278,12 @@ export default function DashboardLayout() {
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        <div className="flex items-center justify-between px-4 py-4 border-b border-border/40">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-border">
           <button onClick={() => navigate("/")} className="flex items-center gap-2 group">
-            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-md shadow-indigo-500/20 transition-transform duration-200 group-hover:scale-105">
-              <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M16 18l6-6-6-6"/><path d="M8 6l-6 6 6 6"/></svg>
+            <div className="w-7 h-7 rounded-md bg-primary flex items-center justify-center">
+              <svg className="w-4 h-4 text-primary-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M16 18l6-6-6-6"/><path d="M8 6l-6 6 6 6"/></svg>
             </div>
-            <span className="text-sm font-bold tracking-tight">DevSync</span>
+            <span className="font-display text-sm font-semibold tracking-tight">DevSync</span>
           </button>
           <button
             onClick={closeSidebar}
@@ -356,18 +347,16 @@ export default function DashboardLayout() {
         <div className="shrink-0 p-3 border-t border-border/40 bg-background/60 backdrop-blur-xl">
           <div className="flex items-center gap-3 px-2 py-2 mb-1">
             <div className="relative shrink-0">
-              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 p-[2px]">
-                <div className="w-full h-full rounded-full bg-background flex items-center justify-center overflow-hidden">
-                  {user?.avatarUrl ? (
-                    <img src={user.avatarUrl} alt={user.fullName || ""} className="w-full h-full object-cover" />
-                  ) : (
-                    <span className="text-sm font-bold bg-gradient-to-br from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-                      {user?.fullName?.charAt(0) || "U"}
-                    </span>
-                  )}
-                </div>
+              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
+                {user?.avatarUrl ? (
+                  <img src={user.avatarUrl} alt={user.fullName || ""} className="w-full h-full object-cover" />
+                ) : (
+                  <span className="text-xs font-semibold text-primary">
+                    {user?.fullName?.charAt(0) || "U"}
+                  </span>
+                )}
               </div>
-              <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-500 ring-2 ring-background" />
+              <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-accent ring-2 ring-card" />
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1.5">
@@ -375,12 +364,12 @@ export default function DashboardLayout() {
                 {subscription && (
                   <button
                     onClick={() => { navigate("/settings/billing"); closeSidebar(); }}
-                    className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider transition-colors hover:opacity-80 ${
+                    className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium transition-colors hover:opacity-80 ${
                       subscription.planCode === "FREE"
-                        ? "bg-muted text-muted-foreground"
+                        ? "bg-secondary text-muted-foreground"
                         : subscription.planCode === "PRO"
-                          ? "bg-gradient-to-r from-indigo-500 to-purple-600 text-white"
-                          : "bg-gradient-to-r from-amber-500 to-orange-600 text-white"
+                          ? "bg-primary/10 text-primary"
+                          : "bg-accent/10 text-accent"
                     }`}
                   >
                     {subscription.planCode}
@@ -403,7 +392,7 @@ export default function DashboardLayout() {
 
       {/* Main content */}
       <div className="md:ml-64">
-        <header className="sticky top-0 z-30 h-16 border-b border-border/40 bg-background/80 backdrop-blur-xl">
+        <header className="sticky top-0 z-30 h-14 border-b border-border bg-background/90 backdrop-blur-sm">
           <div className="flex items-center justify-between h-full px-4 lg:px-6">
             <div className="flex items-center gap-3">
               <button
@@ -425,11 +414,8 @@ export default function DashboardLayout() {
                 </span>
               </button>
               <div className="hidden md:block w-px h-6 bg-border/50" />
-              <div className="flex items-center gap-2.5" data-testid="page-title">
-                <div className="w-7 h-7 rounded-lg bg-indigo-500/10 flex items-center justify-center">
-                  <PageIcon className="w-4 h-4 text-indigo-500" />
-                </div>
-                <h1 className="text-sm font-semibold text-foreground">{page.title}</h1>
+              <div className="flex items-center gap-2" data-testid="page-title">
+                <h1 className="font-display text-sm font-semibold text-foreground">{page.title}</h1>
               </div>
             </div>
             <div className="flex items-center gap-1.5 sm:gap-2">
@@ -438,9 +424,9 @@ export default function DashboardLayout() {
                 size="sm"
                 onClick={() => setPaletteOpen(true)}
                 aria-label="Open search"
-                className="hidden sm:flex items-center gap-2.5 h-9 w-[200px] lg:w-[240px] px-3 text-muted-foreground hover:text-foreground hover:border-indigo-500/30 hover:bg-indigo-500/5 transition-all"
+                className="hidden sm:flex items-center gap-2 h-8 w-[180px] lg:w-[220px] px-3 text-muted-foreground hover:text-foreground transition-colors"
               >
-                <Search className="w-4 h-4 shrink-0 text-indigo-400" />
+                <Search className="w-3.5 h-3.5 shrink-0" />
                 <span className="text-sm flex-1 text-left">Search...</span>
                 <kbd className="hidden lg:inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-mono text-muted-foreground bg-muted/60 rounded border border-border/40">
                   <Command className="w-2.5 h-2.5" />K
@@ -460,10 +446,10 @@ export default function DashboardLayout() {
               <button
                 onClick={() => navigate("/settings/billing")}
                 aria-label={subscription?.planCode && subscription.planCode !== "FREE" ? "Manage subscription" : "Upgrade plan"}
-                className={`inline-flex items-center gap-1.5 h-9 px-3 rounded-lg text-sm font-medium transition-all duration-200 shrink-0 ${
+                className={`inline-flex items-center gap-1.5 h-8 px-3 rounded-md text-xs font-medium transition-colors duration-150 shrink-0 ${
                   subscription?.planCode && subscription.planCode !== "FREE"
-                    ? "bg-gradient-to-r from-indigo-500/15 to-purple-500/10 text-indigo-600 dark:text-indigo-300 border border-indigo-500/20 hover:border-indigo-500/40 hover:bg-indigo-500/10"
-                    : "bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-md shadow-indigo-500/20 hover:shadow-lg hover:shadow-indigo-500/30 hover:opacity-90"
+                    ? "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                    : "bg-primary text-primary-foreground hover:bg-primary/90"
                 }`}
               >
                 <Crown className="w-4 h-4 shrink-0" />

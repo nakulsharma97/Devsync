@@ -101,7 +101,7 @@ function SidebarLink({ to, icon: Icon, label, onNavigate }: SidebarLinkProps) {
         cn(
           "group relative flex items-center gap-3 px-3 py-2 rounded-xl text-sm transition-all duration-200 border",
           isActive
-            ? "bg-gradient-to-r from-indigo-500/15 to-purple-500/5 text-indigo-600 dark:text-indigo-300 font-medium border-indigo-500/20 shadow-sm"
+            ? "bg-gradient-to-r from-primary/15 to-primary/5 text-primary dark:text-primary font-medium border-primary/20 shadow-sm"
             : "text-muted-foreground hover:text-foreground hover:bg-accent/5 border-transparent"
         )
       }
@@ -112,7 +112,7 @@ function SidebarLink({ to, icon: Icon, label, onNavigate }: SidebarLinkProps) {
           <span
             aria-hidden
             className={cn(
-              "absolute left-0 top-1/2 -translate-y-1/2 h-5 w-[3px] rounded-full bg-gradient-to-b from-indigo-500 to-purple-500 transition-all duration-200",
+              "absolute left-0 top-1/2 -translate-y-1/2 h-5 w-[3px] rounded-full bg-gradient-to-b from-primary to-primary transition-all duration-200",
               isActive ? "opacity-100" : "opacity-0"
             )}
           />
@@ -120,14 +120,14 @@ function SidebarLink({ to, icon: Icon, label, onNavigate }: SidebarLinkProps) {
             className={cn(
               "relative w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-all duration-200",
               isActive
-                ? "bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-md shadow-indigo-500/20"
-                : "bg-muted/50 text-muted-foreground group-hover:text-indigo-500 group-hover:bg-indigo-500/10"
+                ? "bg-primary text-white shadow-md shadow-primary/20"
+                : "bg-muted/50 text-muted-foreground group-hover:text-primary group-hover:bg-primary/10"
             )}
           >
             <Icon className="w-4 h-4" />
           </div>
           <span className="flex-1 truncate">{label}</span>
-          {isActive && <ChevronRight className="w-3.5 h-3.5 text-indigo-400 shrink-0" />}
+          {isActive && <ChevronRight className="w-3.5 h-3.5 text-primary shrink-0" />}
         </>
       )}
     </NavLink>
@@ -136,7 +136,7 @@ function SidebarLink({ to, icon: Icon, label, onNavigate }: SidebarLinkProps) {
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <p className="px-3 pt-5 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground/50">
+    <p className="px-3 pt-5 pb-1.5 text-[10px] font-medium text-muted-foreground/50">
       {children}
     </p>
   );
@@ -202,7 +202,7 @@ export default function AdminLayout() {
       >
         <div className="flex items-center justify-between px-4 py-4 border-b border-border/40">
           <button onClick={() => navigate("/admin/dashboard")} className="flex items-center gap-2 group">
-            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-md shadow-indigo-500/20 transition-transform duration-200 group-hover:scale-105">
+            <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center shadow-md shadow-primary/20 transition-transform duration-200 group-hover:scale-105">
               <Shield className="w-4 h-4 text-white" />
             </div>
             <span className="text-sm font-bold tracking-tight">DevSync Admin</span>
@@ -272,12 +272,12 @@ export default function AdminLayout() {
         <div className="shrink-0 p-3 border-t border-border/40 bg-background/60 backdrop-blur-xl">
           <div className="flex items-center gap-3 px-2 py-2 mb-1">
             <div className="relative shrink-0">
-              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 p-[2px]">
+              <div className="w-9 h-9 rounded-full bg-primary p-[2px]">
                 <div className="w-full h-full rounded-full bg-background flex items-center justify-center overflow-hidden">
                   {user?.avatarUrl ? (
                     <img src={user.avatarUrl} alt={user.fullName || ""} className="w-full h-full object-cover" />
                   ) : (
-                    <span className="text-sm font-bold bg-gradient-to-br from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+                    <span className="text-sm font-bold bg-primary bg-clip-text text-transparent">
                       {user?.fullName?.charAt(0) || "U"}
                     </span>
                   )}
@@ -314,7 +314,7 @@ export default function AdminLayout() {
                 <Menu className="w-5 h-5" />
               </button>
               <div className="flex items-center gap-2" data-testid="page-title">
-                <PageIcon className="w-4 h-4 text-indigo-400" />
+                <PageIcon className="w-4 h-4 text-primary" />
                 <h1 className="text-sm font-semibold">{page.title}</h1>
               </div>
             </div>

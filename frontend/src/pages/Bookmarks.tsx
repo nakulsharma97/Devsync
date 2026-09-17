@@ -137,8 +137,8 @@ export default function Bookmarks() {
       {/* Empty state */}
       {!loading && !error && posts.length === 0 && (
         <div className="border border-border/50 rounded-xl p-8 flex flex-col items-center text-center gap-3 bg-card">
-          <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 flex items-center justify-center ring-1 ring-indigo-500/20">
-            <Bookmark className="w-6 h-6 text-indigo-500" />
+          <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center ring-1 ring-primary/20">
+            <Bookmark className="w-6 h-6 text-primary" />
           </div>
           <div>
             <h3 className="text-sm font-semibold text-foreground">

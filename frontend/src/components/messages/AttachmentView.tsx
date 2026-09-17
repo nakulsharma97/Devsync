@@ -123,7 +123,7 @@ export function FileRow({ attachment, className }: { attachment: AttachmentDto; 
         className="flex items-center gap-2.5 flex-1 min-w-0 text-left"
         title={previewable ? `Preview ${attachment.fileName}` : `Download ${attachment.fileName}`}
       >
-        <span className="w-8 h-8 shrink-0 rounded-md bg-indigo-500/10 text-indigo-500 dark:text-indigo-400 flex items-center justify-center">
+        <span className="w-8 h-8 shrink-0 rounded-md bg-primary/10 text-primary dark:text-primary flex items-center justify-center">
           {fileIconFor(attachment)}
         </span>
         <span className="flex-1 min-w-0">

@@ -38,8 +38,8 @@ function SettingsSection({
     <div className="bg-card border border-border/50 rounded-2xl overflow-hidden">
       <div className="px-6 py-4 border-b border-border/40">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center">
-            <Icon className="w-4 h-4 text-indigo-500" />
+          <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+            <Icon className="w-4 h-4 text-primary" />
           </div>
           <div>
             <h3 className="text-sm font-semibold text-foreground">{title}</h3>
@@ -155,12 +155,12 @@ export default function Settings() {
                 onClick={() => setTheme(opt.value)}
                 className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${
                   isActive
-                    ? "border-indigo-500 bg-indigo-500/5 text-foreground"
-                    : "border-border/40 bg-muted/20 text-muted-foreground hover:border-indigo-500/30 hover:text-foreground"
+                    ? "border-primary bg-primary/5 text-foreground"
+                    : "border-border/40 bg-muted/20 text-muted-foreground hover:border-primary/30 hover:text-foreground"
                 }`}
               >
                 <Icon
-                  className={`w-5 h-5 ${isActive ? "text-indigo-500" : ""}`}
+                  className={`w-5 h-5 ${isActive ? "text-primary" : ""}`}
                 />
                 <span className="text-xs font-medium">{opt.label}</span>
               </button>
@@ -181,9 +181,9 @@ export default function Settings() {
           </div>
         ) : github.connected ? (
           <div className="space-y-4">
-            <div className="flex items-center gap-3 p-4 rounded-xl bg-emerald-500/5 border border-emerald-500/20">
-              <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center">
-                <GitBranch className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+            <div className="flex items-center gap-3 p-4 rounded-xl bg-emerald-500/5 border border-accent/20">
+              <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center">
+                <GitBranch className="w-5 h-5 text-accent dark:text-accent" />
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-foreground">
@@ -197,7 +197,7 @@ export default function Settings() {
               </div>
               <Badge
                 variant="secondary"
-                className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                className="bg-accent/10 text-accent dark:text-accent"
               >
                 Active
               </Badge>
@@ -227,7 +227,7 @@ export default function Settings() {
               size="sm"
               onClick={handleConnect}
               disabled={connecting}
-              className="bg-[#24292f] hover:bg-[#32383f] text-white dark:bg-[#f6f8fa] dark:hover:bg-[#e1e4e8] dark:text-[#24292f]"
+              className="bg-foreground text-background hover:bg-foreground/90 dark:bg-foreground dark:text-background dark:hover:bg-foreground/90"
             >
               {connecting ? (
                 <Loader2 className="w-4 h-4 animate-spin mr-2" />
@@ -257,7 +257,7 @@ export default function Settings() {
             <div className="p-3 rounded-xl bg-muted/30 border border-border/30">
               <div className="flex items-center gap-2 mb-1">
                 <Mail className="w-3.5 h-3.5 text-muted-foreground" />
-                <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                <span className="text-[11px] font-medium text-muted-foreground">
                   Email
                 </span>
               </div>
@@ -268,7 +268,7 @@ export default function Settings() {
             <div className="p-3 rounded-xl bg-muted/30 border border-border/30">
               <div className="flex items-center gap-2 mb-1">
                 <AtSign className="w-3.5 h-3.5 text-muted-foreground" />
-                <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                <span className="text-[11px] font-medium text-muted-foreground">
                   Username
                 </span>
               </div>
@@ -281,7 +281,7 @@ export default function Settings() {
             <div className="p-3 rounded-xl bg-muted/30 border border-border/30">
               <div className="flex items-center gap-2 mb-1">
                 <Shield className="w-3.5 h-3.5 text-muted-foreground" />
-                <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                <span className="text-[11px] font-medium text-muted-foreground">
                   Role
                 </span>
               </div>
@@ -292,7 +292,7 @@ export default function Settings() {
             <div className="p-3 rounded-xl bg-muted/30 border border-border/30">
               <div className="flex items-center gap-2 mb-1">
                 <Globe className="w-3.5 h-3.5 text-muted-foreground" />
-                <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                <span className="text-[11px] font-medium text-muted-foreground">
                   Provider
                 </span>
               </div>

@@ -1,38 +1,42 @@
-import * as Sentry from "@sentry/react";
 import { Toaster } from "@/components/ui/sonner";
-import { StrictMode } from "react";
+import { lazy, StrictMode, Suspense } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router";
 import { ThemeProvider } from "next-themes";
 import "./index.css";
 
-// Sentry error tracking (requires SENTRY_DSN env var)
+// Sentry error tracking — only loaded when DSN is configured.
+// Dynamic import keeps it out of the initial bundle (~50KB saved).
 if (import.meta.env.VITE_SENTRY_DSN) {
-  Sentry.init({
-    dsn: import.meta.env.VITE_SENTRY_DSN,
-    integrations: [Sentry.browserTracingIntegration(), Sentry.replayIntegration()],
-    tracesSampleRate: 0.1,
-    replaysSessionSampleRate: 0.1,
-    replaysOnErrorSampleRate: 1.0,
+  import("@sentry/react").then((Sentry) => {
+    Sentry.init({
+      dsn: import.meta.env.VITE_SENTRY_DSN,
+      integrations: [Sentry.browserTracingIntegration(), Sentry.replayIntegration()],
+      tracesSampleRate: 0.1,
+      replaysSessionSampleRate: 0.1,
+      replaysOnErrorSampleRate: 1.0,
+    });
   });
 }
 
-import { lazy, Suspense } from "react";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AdminRoute } from "@/components/AdminRoute";
-import DashboardLayout from "@/components/DashboardLayout";
-import AdminLayout from "@/components/AdminLayout";
 import PageTransition from "@/components/PageTransition";
 import { RouteSkeleton } from "@/components/Skeletons";
 import ScrollToTop from "@/components/ScrollToTop";
 import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
 import Landing from "./pages/Landing";
-import AuthPage from "./pages/Auth";
-import ForgotPassword from "./pages/ForgotPassword";
-import ResetPassword from "./pages/ResetPassword";
-import VerifyEmail from "./pages/VerifyEmail";
 import NotFound from "./pages/NotFound";
+// The two application shells are only ever mounted after authentication, so
+// they are split out of the public bundle (landing page) entirely.
+const DashboardLayout = lazy(() => import("@/components/DashboardLayout"));
+const AdminLayout = lazy(() => import("@/components/AdminLayout"));
+
+const AuthPage = lazy(() => import("./pages/Auth"));
+const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword"));
+const VerifyEmail = lazy(() => import("./pages/VerifyEmail"));
 
 // ── Route-level code splitting ────────────────────────────────
 // Heavy feature pages (dashboard, feed, messages, kanban, …) plus the

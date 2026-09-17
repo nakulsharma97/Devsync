@@ -26,8 +26,8 @@ export function EmptyState({
         className
       )}
     >
-      <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500/15 to-purple-500/10 flex items-center justify-center ring-1 ring-indigo-500/20 mb-5">
-        <Icon className="w-7 h-7 text-indigo-400" />
+      <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/15 to-primary/10 flex items-center justify-center ring-1 ring-primary/20 mb-5">
+        <Icon className="w-7 h-7 text-primary" />
       </div>
       <h3 className="text-base font-semibold mb-1.5">{title}</h3>
       {description && (
@@ -39,7 +39,7 @@ export function EmptyState({
         <Button
           size="sm"
           onClick={onAction}
-          className="mt-4 bg-gradient-to-r from-indigo-500 to-purple-600 text-white hover:from-indigo-600 hover:to-purple-700"
+          className="mt-4 bg-primary text-white hover:from-primary hover:to-primary"
         >
           {actionLabel}
         </Button>

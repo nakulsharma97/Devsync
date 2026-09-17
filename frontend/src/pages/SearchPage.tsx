@@ -93,7 +93,7 @@ export default function SearchPage() {
             className={cn(
               "px-3 py-2.5 text-xs border-b-2 transition-colors",
               tab === t.id
-                ? "border-indigo-500 text-indigo-600 dark:text-indigo-300 font-medium"
+                ? "border-primary text-primary dark:text-primary font-medium"
                 : "border-transparent text-muted-foreground hover:text-foreground"
             )}
           >
@@ -106,13 +106,13 @@ export default function SearchPage() {
       {tab === "people" &&
         (usersLoading ? (
           <div className="flex justify-center py-8">
-            <Loader2 className="h-6 w-6 animate-spin text-indigo-500" />
+            <Loader2 className="h-6 w-6 animate-spin text-primary" />
           </div>
         ) : users && users.length > 0 ? (
           <div className="space-y-2">
             {users.map((u) => (
-              <div key={u.id} className="flex items-center gap-3 p-3 rounded-lg border border-border/40 hover:border-indigo-500/20 transition-colors">
-                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-500/20 to-purple-500/20 flex items-center justify-center text-xs font-bold text-indigo-400 overflow-hidden shrink-0">
+              <div key={u.id} className="flex items-center gap-3 p-3 rounded-lg border border-border/40 hover:border-primary/20 transition-colors">
+                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary/20 to-primary/20 flex items-center justify-center text-xs font-bold text-primary overflow-hidden shrink-0">
                   {u.avatarUrl ? (
                     <img src={u.avatarUrl} alt="" className="w-full h-full object-cover" />
                   ) : (
@@ -137,7 +137,7 @@ export default function SearchPage() {
       {tab === "projects" &&
         (projectsLoading ? (
           <div className="flex justify-center py-8">
-            <Loader2 className="h-6 w-6 animate-spin text-indigo-500" />
+            <Loader2 className="h-6 w-6 animate-spin text-primary" />
           </div>
         ) : discovered && discovered.length > 0 ? (
           <div className="space-y-2">
@@ -145,14 +145,14 @@ export default function SearchPage() {
               const joined = myProjectIds.has(p.id);
               const pending = p.currentUserJoinRequestStatus === "PENDING";
               return (
-                <div key={p.id} className="flex items-start gap-3 p-4 rounded-lg border border-border/40 hover:border-indigo-500/25 hover:bg-indigo-500/[0.02] transition-colors">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500/15 to-purple-500/10 flex items-center justify-center shrink-0">
-                    <FolderKanban className="w-5 h-5 text-indigo-400" />
+                <div key={p.id} className="flex items-start gap-3 p-4 rounded-lg border border-border/40 hover:border-primary/25 hover:bg-primary/[0.02] transition-colors">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/15 to-primary/10 flex items-center justify-center shrink-0">
+                    <FolderKanban className="w-5 h-5 text-primary" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <p className="text-sm font-semibold">{p.name}</p>
-                      <span className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-full border border-emerald-500/25 bg-emerald-500/[0.07] text-emerald-600 dark:text-emerald-400">
+                      <span className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-full border border-accent/25 bg-accent/[0.07] text-accent dark:text-accent">
                         <Globe className="w-2.5 h-2.5" />
                         Public
                       </span>
@@ -178,7 +178,7 @@ export default function SearchPage() {
                         Open
                       </Button>
                     ) : pending ? (
-                      <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground border border-amber-500/30 bg-amber-500/[0.07] text-amber-600 dark:text-amber-400 rounded-lg px-3 py-1.5">
+                      <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground border border-primary/30 bg-primary/[0.07] text-primary dark:text-primary rounded-lg px-3 py-1.5">
                         <Clock className="w-3.5 h-3.5" />
                         Request Pending
                       </span>

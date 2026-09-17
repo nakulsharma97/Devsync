@@ -113,7 +113,7 @@ export function InviteMemberDialog({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <UserPlus className="w-4 h-4 text-indigo-400" />
+            <UserPlus className="w-4 h-4 text-primary" />
             Invite to {projectName}
           </DialogTitle>
           <DialogDescription>
@@ -135,7 +135,7 @@ export function InviteMemberDialog({
         <div className="space-y-1 max-h-72 overflow-y-auto -mx-2 px-2">
           {searching ? (
             <div className="flex justify-center py-6">
-              <Loader2 className="h-5 w-5 animate-spin text-indigo-500" />
+              <Loader2 className="h-5 w-5 animate-spin text-primary" />
             </div>
           ) : query.trim() && candidates.length === 0 && !searching ? (
             <p className="text-center text-sm text-muted-foreground py-6">
@@ -149,11 +149,11 @@ export function InviteMemberDialog({
                   key={user.id}
                   className="flex items-center gap-3 p-2 rounded-lg hover:bg-accent/5 transition-colors"
                 >
-                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-500/20 to-purple-500/20 flex items-center justify-center shrink-0 overflow-hidden">
+                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary/20 to-primary/20 flex items-center justify-center shrink-0 overflow-hidden">
                     {user.avatarUrl ? (
                       <img src={user.avatarUrl} alt="" className="w-full h-full object-cover" />
                     ) : (
-                      <span className="text-xs font-bold text-indigo-400">
+                      <span className="text-xs font-bold text-primary">
                         {user.fullName?.charAt(0) || "?"}
                       </span>
                     )}

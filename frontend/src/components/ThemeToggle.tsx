@@ -6,7 +6,6 @@ import { useEffect, useState } from "react";
 export function ThemeToggle() {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
-  const [isRotating, setIsRotating] = useState(false);
 
   // Prevent hydration mismatch — only render after mount
   useEffect(() => setMounted(true), []);
@@ -27,44 +26,28 @@ export function ThemeToggle() {
 
   const isDark = theme === "dark";
 
-  const handleToggle = () => {
-    setIsRotating(true);
-
-    // Brief full-page blur overlay during theme transition
-    const html = document.documentElement;
-    html.classList.add("theme-switching");
-
-    setTheme(isDark ? "light" : "dark");
-
-    // Remove overlay and reset rotation after animation completes
-    setTimeout(() => {
-      html.classList.remove("theme-switching");
-      setIsRotating(false);
-    }, 500);
-  };
-
   return (
     <div className="relative group">
       <Button
         variant="ghost"
         size="icon"
-        onClick={handleToggle}
+        onClick={() => setTheme(isDark ? "light" : "dark")}
         className="relative w-9 h-9 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent/10 transition-colors"
         aria-label={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
       >
         <Sun
-          className={`w-[18px] h-[18px] absolute transition-all duration-300 ${
+          className={`w-[18px] h-[18px] absolute transition-all duration-200 ${
             isDark
-              ? "opacity-0 scale-50 rotate-90"
-              : "opacity-100 scale-100 rotate-0 text-amber-500"
-          } ${isRotating ? "rotate-180" : ""}`}
+              ? "opacity-0 scale-75 rotate-45"
+              : "opacity-100 scale-100 rotate-0 text-primary"
+          }`}
         />
         <Moon
-          className={`w-[18px] h-[18px] absolute transition-all duration-300 ${
+          className={`w-[18px] h-[18px] absolute transition-all duration-200 ${
             isDark
-              ? "opacity-100 scale-100 rotate-0 text-indigo-300"
-              : "opacity-0 scale-50 -rotate-90"
-          } ${isRotating ? "-rotate-180" : ""}`}
+              ? "opacity-100 scale-100 rotate-0 text-primary"
+              : "opacity-0 scale-75 -rotate-45"
+          }`}
         />
       </Button>
 

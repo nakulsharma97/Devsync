@@ -109,10 +109,10 @@ export default function Profile() {
 
       {/* Profile Header Card */}
       <div className="bg-card border border-border/50 rounded-2xl p-6 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/[0.03] to-purple-500/[0.02] pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/[0.03] to-primary/[0.02] pointer-events-none" />
         <div className="relative flex items-start gap-5">
           {/* Avatar */}
-          <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-indigo-500/20 to-purple-500/10 flex items-center justify-center ring-2 ring-indigo-500/20 shrink-0 overflow-hidden shadow-md shadow-indigo-500/10">
+          <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center ring-2 ring-primary/20 shrink-0 overflow-hidden shadow-md shadow-primary/10">
             {user?.avatarUrl ? (
               <img
                 src={user.avatarUrl}
@@ -120,7 +120,7 @@ export default function Profile() {
                 className="w-full h-full object-cover"
               />
             ) : (
-              <User className="w-8 h-8 text-indigo-500" />
+              <User className="w-8 h-8 text-primary" />
             )}
           </div>
 
@@ -135,7 +135,7 @@ export default function Profile() {
 
             <div className="flex items-center gap-3 mt-3 flex-wrap">
               {profile?.jobTitle && (
-                <span className="text-[11px] px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 font-medium flex items-center gap-1">
+                <span className="text-[11px] px-2 py-0.5 rounded-full bg-primary/10 text-primary dark:text-primary border border-primary/20 font-medium flex items-center gap-1">
                   <Briefcase className="w-2.5 h-2.5" /> {profile.jobTitle}
                 </span>
               )}
@@ -193,36 +193,36 @@ export default function Profile() {
             <button
               type="button"
               onClick={() => navigate("/profile/posts")}
-              className="rounded-xl border border-border/40 bg-muted/20 p-4 text-left hover:border-indigo-500/20 hover:bg-indigo-500/5 transition-all"
+              className="rounded-xl border border-border/40 bg-muted/20 p-4 text-left hover:border-primary/20 hover:bg-primary/5 transition-all"
             >
               <p className="text-2xl font-bold text-foreground">
                 {social.posts.toLocaleString()}
               </p>
-              <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+              <p className="text-[11px] font-medium text-muted-foreground">
                 Posts
               </p>
             </button>
             <button
               type="button"
               onClick={() => navigate(`/profile/${user?.username}`)}
-              className="rounded-xl border border-border/40 bg-muted/20 p-4 text-left hover:border-indigo-500/20 hover:bg-indigo-500/5 transition-all"
+              className="rounded-xl border border-border/40 bg-muted/20 p-4 text-left hover:border-primary/20 hover:bg-primary/5 transition-all"
             >
               <p className="text-2xl font-bold text-foreground">
                 {social.followerCount.toLocaleString()}
               </p>
-              <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+              <p className="text-[11px] font-medium text-muted-foreground">
                 Followers
               </p>
             </button>
             <button
               type="button"
               onClick={() => navigate(`/profile/${user?.username}`)}
-              className="rounded-xl border border-border/40 bg-muted/20 p-4 text-left hover:border-indigo-500/20 hover:bg-indigo-500/5 transition-all"
+              className="rounded-xl border border-border/40 bg-muted/20 p-4 text-left hover:border-primary/20 hover:bg-primary/5 transition-all"
             >
               <p className="text-2xl font-bold text-foreground">
                 {social.followingCount.toLocaleString()}
               </p>
-              <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+              <p className="text-[11px] font-medium text-muted-foreground">
                 Following
               </p>
             </button>
@@ -236,7 +236,7 @@ export default function Profile() {
           <div className="flex items-center gap-3">
             <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${
               subscription && subscription.planCode !== "FREE"
-                ? "bg-gradient-to-br from-indigo-500 to-purple-600"
+                ? "bg-primary"
                 : "bg-muted"
             }`}>
               {subscription && subscription.planCode !== "FREE" ? (
@@ -259,7 +259,7 @@ export default function Profile() {
           </div>
           <button
             onClick={() => navigate("/settings/billing")}
-            className="text-xs font-medium px-3 py-1.5 rounded-lg border border-border/50 hover:border-indigo-500/30 hover:bg-indigo-500/5 transition-all"
+            className="text-xs font-medium px-3 py-1.5 rounded-lg border border-border/50 hover:border-primary/30 hover:bg-primary/5 transition-all"
           >
             Manage billing
           </button>
@@ -279,7 +279,7 @@ export default function Profile() {
         <div className="p-6">
           {loading ? (
             <div className="flex justify-center py-12">
-              <Loader2 className="h-6 w-6 animate-spin text-indigo-500" />
+              <Loader2 className="h-6 w-6 animate-spin text-primary" />
             </div>
           ) : (
             <form onSubmit={handleSave} className="space-y-5">
@@ -372,7 +372,7 @@ export default function Profile() {
 
               {/* Social Links */}
               <div className="pt-3 border-t border-border/40">
-                <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">
+                <h4 className="text-xs font-medium text-muted-foreground mb-3">
                   Social Links
                 </h4>
                 <div className="grid sm:grid-cols-3 gap-4">
@@ -422,7 +422,7 @@ export default function Profile() {
                 <Button
                   type="submit"
                   disabled={saving}
-                  className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white hover:from-indigo-600 hover:to-purple-700"
+                  className="bg-primary text-white hover:from-primary hover:to-primary"
                 >
                   {saving ? (
                     <Loader2 className="h-4 w-4 animate-spin mr-2" />

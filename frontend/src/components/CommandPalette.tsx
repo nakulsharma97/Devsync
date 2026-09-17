@@ -285,7 +285,7 @@ export function CommandPalette({
           <div className="max-h-80 overflow-y-auto p-2">
             {filtered.length > 0 && (
               <>
-                <div className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+                <div className="px-3 py-1.5 text-[10px] font-medium text-muted-foreground/50">
                   Navigate
                 </div>
                 {filtered.map((item, index) => (
@@ -354,7 +354,7 @@ export function CommandPalette({
                 )}
                 {resourceStatus === "success" && resourceResults.length > 0 && (
                   <>
-                    <div className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+                    <div className="px-3 py-1.5 text-[10px] font-medium text-muted-foreground/50">
                       Resources
                     </div>
                     {resourceResults.map((item) => (
@@ -382,10 +382,10 @@ export function CommandPalette({
                           )}
                         </div>
                         <span
-                          className={`shrink-0 text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-full ${
+                          className={`shrink-0 text-[10px] font-mono px-1.5 py-0.5 rounded-full ${
                             item.type === "user"
-                              ? "bg-indigo-500/10 text-indigo-500 dark:text-indigo-400"
-                              : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                              ? "bg-primary/10 text-primary dark:text-primary"
+                              : "bg-accent/10 text-accent dark:text-accent"
                           }`}
                         >
                           {item.type}

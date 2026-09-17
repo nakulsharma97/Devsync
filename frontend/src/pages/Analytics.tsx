@@ -80,7 +80,7 @@ export default function Analytics() {
     <div className="relative">
       {/* Background decoration */}
       <div className="absolute -top-20 -right-20 w-72 h-72 bg-gradient-to-bl from-accent/[0.03] to-transparent rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute -bottom-20 -left-20 w-72 h-72 bg-gradient-to-tr from-purple-500/[0.02] to-transparent rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute -bottom-20 -left-20 w-72 h-72 bg-gradient-to-tr from-accent/[0.02] to-transparent rounded-full blur-3xl pointer-events-none" />
 
       {/* Header */}
       <div className="mb-8">

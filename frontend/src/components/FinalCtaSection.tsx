@@ -8,25 +8,25 @@ export default function FinalCtaSection() {
 
   return (
     <section className="relative z-10 py-16 md:py-28 px-4 sm:px-6 overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-b from-indigo-500/[0.02] via-transparent to-purple-500/[0.02] pointer-events-none" />
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-gradient-to-br from-indigo-500/8 via-purple-500/5 to-pink-500/5 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-to-b from-primary/[0.02] via-transparent to-primary/[0.02] pointer-events-none" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-gradient-to-br from-primary/8 via-accent/5 to-pink-500/5 rounded-full blur-3xl pointer-events-none" />
 
       <ScrollReveal className="mx-auto max-w-4xl relative z-10" delay={0.1}>
         {/* Gradient-border glass card */}
-        <div className="relative rounded-3xl p-px bg-gradient-to-br from-indigo-500/40 via-purple-500/30 to-pink-500/40 shadow-2xl shadow-indigo-500/10 overflow-hidden">
+        <div className="relative rounded-3xl p-px bg-gradient-to-br from-primary/40 via-accent/30 to-pink-500/40 shadow-2xl shadow-primary/10 overflow-hidden">
           {/* Sweeping shine */}
           <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden rounded-3xl">
             <div className="animate-shine-sweep absolute top-0 bottom-0 left-0 w-1/3 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
           </div>
 
           <div className="relative rounded-3xl bg-card/80 backdrop-blur-2xl px-6 py-14 md:py-20 text-center">
-            <span className="text-xs font-semibold tracking-[0.2em] uppercase bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-500 dark:from-indigo-400 dark:via-purple-400 dark:to-pink-400 bg-clip-text text-transparent mb-4 block">
+            <span className="text-xs font-semibold tracking-[0.2em] uppercase bg-gradient-to-r from-primary via-accent to-pink-500 dark:from-primary dark:via-accent dark:to-pink-400 bg-clip-text text-transparent mb-4 block">
               Get started
             </span>
             <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.05]">
               Ready to build
               <br />
-              <span className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-500 dark:from-indigo-400 dark:via-purple-400 dark:to-pink-400 bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-primary via-accent to-pink-500 dark:from-primary dark:via-accent dark:to-pink-400 bg-clip-text text-transparent">
                 the next big thing?
               </span>
             </h2>
@@ -38,7 +38,7 @@ export default function FinalCtaSection() {
               <Button
                 size="lg"
                 onClick={() => navigate("/auth")}
-                className="w-full sm:w-auto text-base px-10 h-12 shadow-xl hover:shadow-2xl transition-all duration-200 bg-gradient-to-r from-indigo-500 to-purple-600 text-white hover:from-indigo-600 hover:to-purple-700 relative overflow-hidden group hover:scale-[1.02] active:scale-[0.98]"
+                className="w-full sm:w-auto text-base px-10 h-12 shadow-xl hover:shadow-2xl transition-all duration-200 bg-primary text-white hover:from-primary hover:to-primary relative overflow-hidden group hover:scale-[1.02] active:scale-[0.98]"
               >
                 <span className="relative z-10 flex items-center">
                   Get Started Free
@@ -62,7 +62,7 @@ export default function FinalCtaSection() {
                     .getElementById("docs")
                     ?.scrollIntoView({ behavior: "smooth" })
                 }
-                className="w-full sm:w-auto text-base px-10 h-12 border-border/50 hover:border-indigo-500/30 hover:bg-indigo-500/5 transition-all duration-200"
+                className="w-full sm:w-auto text-base px-10 h-12 border-border/50 hover:border-primary/30 hover:bg-primary/5 transition-all duration-200"
               >
                 <ExternalLink className="mr-2 w-4 h-4" />
                 View Documentation

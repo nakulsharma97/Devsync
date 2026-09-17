@@ -75,7 +75,7 @@ export function FilePreviewDialog({
       >
         {/* Header */}
         <div className="shrink-0 flex items-center gap-3 px-4 py-3 border-b border-border/40">
-          <span className="w-9 h-9 rounded-lg bg-indigo-500/10 text-indigo-500 flex items-center justify-center shrink-0">
+          <span className="w-9 h-9 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
             <FileText className="w-4 h-4" />
           </span>
           <div className="flex-1 min-w-0">
@@ -109,7 +109,7 @@ export function FilePreviewDialog({
               <p className="text-sm text-muted-foreground">Preview unavailable for this file.</p>
               <button
                 onClick={handleDownload}
-                className="mt-3 inline-flex items-center gap-1.5 text-xs font-medium text-white bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg px-3.5 py-2"
+                className="mt-3 inline-flex items-center gap-1.5 text-xs font-medium text-white bg-primary rounded-lg px-3.5 py-2"
               >
                 <Download className="w-3.5 h-3.5" /> Download instead
               </button>
@@ -151,7 +151,7 @@ export function FilePreviewDialog({
               <p className="text-xs text-muted-foreground mt-1">{formatBytes(attachment.size)}</p>
               <button
                 onClick={handleDownload}
-                className="mt-4 inline-flex items-center gap-1.5 text-xs font-medium text-white bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg px-3.5 py-2"
+                className="mt-4 inline-flex items-center gap-1.5 text-xs font-medium text-white bg-primary rounded-lg px-3.5 py-2"
               >
                 <Download className="w-3.5 h-3.5" /> Download
               </button>

@@ -184,7 +184,7 @@ export function ProjectChat({ room }: { room: TeamRoomDto }) {
         <span
           className={cn(
             "inline-flex items-center gap-1 text-[10px] shrink-0",
-            connected ? "text-emerald-500" : "text-amber-500"
+            connected ? "text-emerald-500" : "text-primary"
           )}
         >
           {connected ? <Wifi className="w-3 h-3" /> : <WifiOff className="w-3 h-3" />}
@@ -196,7 +196,7 @@ export function ProjectChat({ room }: { room: TeamRoomDto }) {
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-3 py-3 space-y-2.5">
         {loading ? (
           <div className="flex flex-col items-center justify-center py-8 gap-2">
-            <Loader2 className="w-5 h-5 animate-spin text-indigo-500" />
+            <Loader2 className="w-5 h-5 animate-spin text-primary" />
             <p className="text-xs text-muted-foreground">Loading messages…</p>
           </div>
         ) : messages.length === 0 ? (
@@ -208,11 +208,11 @@ export function ProjectChat({ room }: { room: TeamRoomDto }) {
             const mine = m.senderId === myId;
             return (
               <div key={m.id} className={cn("flex gap-2", mine && "flex-row-reverse")}>
-                <div className="w-7 h-7 rounded-full bg-gradient-to-br from-indigo-500/20 to-purple-500/20 flex items-center justify-center shrink-0 overflow-hidden">
+                <div className="w-7 h-7 rounded-full bg-gradient-to-br from-primary/20 to-primary/20 flex items-center justify-center shrink-0 overflow-hidden">
                   {m.senderAvatar ? (
                     <img src={m.senderAvatar} alt="" className="w-full h-full object-cover" />
                   ) : (
-                    <span className="text-[10px] font-bold text-indigo-400">
+                    <span className="text-[10px] font-bold text-primary">
                       {m.senderName?.charAt(0) || "?"}
                     </span>
                   )}
@@ -222,7 +222,7 @@ export function ProjectChat({ room }: { room: TeamRoomDto }) {
                     className={cn(
                       "rounded-xl px-3 py-1.5 text-sm",
                       mine
-                        ? "bg-gradient-to-r from-indigo-500 to-purple-600 text-white"
+                        ? "bg-primary text-white"
                         : "bg-muted/40 text-foreground border border-border/30"
                     )}
                   >
@@ -255,13 +255,13 @@ export function ProjectChat({ room }: { room: TeamRoomDto }) {
           onBlur={stopTyping}
           placeholder="Message the team…"
           rows={1}
-          className="flex-1 max-h-28 min-h-9 h-9 resize-none text-sm bg-muted/30 border border-border/40 rounded-lg px-3 py-2 focus:outline-none focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20 placeholder:text-muted-foreground/50 transition-all"
+          className="flex-1 max-h-28 min-h-9 h-9 resize-none text-sm bg-muted/30 border border-border/40 rounded-lg px-3 py-2 focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 placeholder:text-muted-foreground/50 transition-all"
         />
         <button
           type="submit"
           disabled={!text.trim() || sending}
           aria-label="Send message"
-          className="w-9 h-9 rounded-lg bg-gradient-to-r from-indigo-500 to-purple-600 text-white flex items-center justify-center disabled:opacity-40 hover:from-indigo-600 hover:to-purple-700 transition-all"
+          className="w-9 h-9 rounded-lg bg-primary text-white flex items-center justify-center disabled:opacity-40 hover:from-primary hover:to-primary transition-all"
         >
           {sending ? (
             <Loader2 className="w-4 h-4 animate-spin" />

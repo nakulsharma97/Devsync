@@ -29,13 +29,13 @@ export default function ForgotPassword() {
   };
 
   return (
-    <div className="min-h-screen bg-[#07071a] text-white flex items-center justify-center p-4 relative overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-br from-indigo-950/30 via-[#07071a] to-purple-950/20 pointer-events-none" />
+    <div className="min-h-screen bg-background text-white flex items-center justify-center p-4 relative overflow-hidden">
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-background to-accent/10 pointer-events-none" />
       <div className="relative w-full max-w-sm animate-fade-in-up">
         <div className="text-center mb-8">
           <div className="flex justify-center mb-4">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500/20 to-purple-500/10 flex items-center justify-center ring-1 ring-indigo-500/25">
-              <ShieldCheck className="w-8 h-8 text-indigo-400" />
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center ring-1 ring-primary/25">
+              <ShieldCheck className="w-8 h-8 text-primary" />
             </div>
           </div>
           <h1 className="text-2xl font-bold tracking-tight">
@@ -57,7 +57,7 @@ export default function ForgotPassword() {
                 <button
                   type="button"
                   onClick={() => setSent(false)}
-                  className="text-indigo-400 hover:text-indigo-300 transition-colors"
+                  className="text-primary hover:text-primary transition-colors"
                 >
                   try again
                 </button>
@@ -82,7 +82,7 @@ export default function ForgotPassword() {
                 placeholder="you@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="h-11 text-sm bg-white/5 border-white/10 text-white placeholder:text-white/30 focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20 transition-all"
+                className="h-11 text-sm bg-white/5 border-white/10 text-white placeholder:text-white/30 focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all"
                 required
                 autoFocus
               />
@@ -96,7 +96,7 @@ export default function ForgotPassword() {
 
             <Button
               type="submit"
-              className="w-full h-11 text-sm font-semibold shadow-lg bg-gradient-to-r from-indigo-500 to-purple-600 text-white hover:from-indigo-600 hover:to-purple-700 disabled:opacity-50"
+              className="w-full h-11 text-sm font-semibold shadow-lg bg-primary text-white hover:from-primary hover:to-primary disabled:opacity-50"
               disabled={loading || !email}
             >
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Send reset link"}
@@ -108,7 +108,7 @@ export default function ForgotPassword() {
                 className="text-sm text-white/50 hover:text-white transition-colors"
               >
                 Remembered your password?{" "}
-                <span className="text-indigo-400 hover:text-indigo-300 font-medium">
+                <span className="text-primary hover:text-primary font-medium">
                   Sign in
                 </span>
               </Link>

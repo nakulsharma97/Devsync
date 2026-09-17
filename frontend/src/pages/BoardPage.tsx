@@ -36,7 +36,7 @@ import { cn } from "@/lib/utils";
 
 const PRIORITY_STYLES: Record<string, { label: string; cls: string }> = {
   CRITICAL: { label: "Critical", cls: "text-red-600 dark:text-red-400 bg-red-500/10 border-red-500/25" },
-  HIGH: { label: "High", cls: "text-amber-600 dark:text-amber-400 bg-amber-500/10 border-amber-500/25" },
+  HIGH: { label: "High", cls: "text-primary dark:text-primary bg-primary/10 border-primary/25" },
   MEDIUM: { label: "Medium", cls: "text-blue-600 dark:text-blue-400 bg-blue-500/10 border-blue-500/25" },
   LOW: { label: "Low", cls: "text-muted-foreground bg-muted/60 border-border/30" },
 };
@@ -45,14 +45,14 @@ const PRIORITIES = ["LOW", "MEDIUM", "HIGH", "CRITICAL"];
 
 const PRIORITY_DOTS: Record<string, string> = {
   CRITICAL: "bg-red-500",
-  HIGH: "bg-amber-500",
+  HIGH: "bg-primary",
   MEDIUM: "bg-blue-500",
   LOW: "bg-muted-foreground/50",
 };
 
 function getColumnColor(name: string): string {
   const lower = name.toLowerCase();
-  if (lower.includes("todo") || lower.includes("to do") || lower.includes("backlog")) return "bg-purple-500";
+  if (lower.includes("todo") || lower.includes("to do") || lower.includes("backlog")) return "bg-accent";
   if (lower.includes("progress") || lower.includes("doing")) return "bg-blue-500";
   if (lower.includes("done") || lower.includes("complete")) return "bg-emerald-500";
   return "bg-slate-400";
@@ -65,9 +65,9 @@ function isOverdue(task: TaskDto): boolean {
 
 const PR_STATE_STYLES: Record<string, string> = {
   OPEN: "text-blue-600 dark:text-blue-400 bg-blue-500/10 border-blue-500/25",
-  CHANGES_REQUESTED: "text-amber-600 dark:text-amber-400 bg-amber-500/10 border-amber-500/25",
-  APPROVED: "text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/25",
-  MERGED: "text-purple-600 dark:text-purple-400 bg-purple-500/10 border-purple-500/25",
+  CHANGES_REQUESTED: "text-primary dark:text-primary bg-primary/10 border-primary/25",
+  APPROVED: "text-accent dark:text-accent bg-accent/10 border-accent/25",
+  MERGED: "text-accent dark:text-accent bg-accent/10 border-accent/25",
   CLOSED: "text-muted-foreground bg-muted/50 border-border/30",
 };
 
@@ -103,7 +103,7 @@ function TaskCard({
         "bg-card border border-border/40 rounded-xl p-3.5 cursor-grab active:cursor-grabbing transition-all",
         dragging
           ? "opacity-50 scale-[0.97] shadow-xl"
-          : "hover:border-indigo-500/30 hover:shadow-md hover:shadow-indigo-500/5"
+          : "hover:border-primary/30 hover:shadow-md hover:shadow-primary/5"
       )}
     >
       <div className="flex items-start justify-between gap-2">
@@ -115,7 +115,7 @@ function TaskCard({
       <div className="flex items-center gap-1.5 mt-2.5 flex-wrap">
         <span
           className={cn(
-            "inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-md border",
+            "inline-flex items-center gap-1 text-[10px] font-medium tracking-wide px-2 py-0.5 rounded-md border",
             priority.cls
           )}
         >
@@ -151,7 +151,7 @@ function TaskCard({
           {task.labels.slice(0, 3).map((label) => (
             <span
               key={label}
-              className="text-[9px] px-1.5 py-0.5 rounded-md bg-indigo-500/10 text-indigo-500 dark:text-indigo-300"
+              className="text-[9px] px-1.5 py-0.5 rounded-md bg-primary/10 text-primary dark:text-primary"
             >
               {label}
             </span>
@@ -166,7 +166,7 @@ function TaskCard({
       {(task.branchName || task.pullRequestState) && (
         <div className="flex items-center gap-1 mt-1.5 flex-wrap">
           {task.branchName && (
-            <span className="inline-flex items-center gap-1 text-[9px] px-1.5 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-mono">
+            <span className="inline-flex items-center gap-1 text-[9px] px-1.5 py-0.5 rounded-md bg-accent/10 text-accent dark:text-accent border border-accent/20 font-mono">
               <GitBranch className="w-2 h-2" />
               {task.branchName.split("/").pop()}
             </span>
@@ -191,7 +191,7 @@ function TaskCard({
       <div className="flex items-center justify-between mt-2 pt-2 border-t border-border/30">
         {task.assigneeName ? (
           <div className="flex items-center gap-1.5">
-            <div className="w-5 h-5 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-[8px] font-bold text-white">
+            <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center text-[8px] font-bold text-white">
               {task.assigneeName.charAt(0)}
             </div>
             <span className="text-[10px] text-muted-foreground truncate max-w-[80px]">{task.assigneeName}</span>
@@ -201,7 +201,7 @@ function TaskCard({
         )}
         {blocked && (
           <span
-            className="inline-flex items-center gap-1 text-[9px] font-medium text-amber-600 dark:text-amber-400"
+            className="inline-flex items-center gap-1 text-[9px] font-medium text-primary dark:text-primary"
             title={`Blocked by ${task.dependencies!.length} task${task.dependencies!.length !== 1 ? "s" : ""}`}
           >
             <Link2 className="w-2.5 h-2.5" />
@@ -373,7 +373,7 @@ function TaskDetailDialog({
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={3}
-              className="w-full text-sm bg-transparent border border-border/40 rounded-lg p-3 resize-none focus:outline-none focus:border-indigo-500/50 focus:ring-2 focus:ring-indigo-500/20"
+              className="w-full text-sm bg-transparent border border-border/40 rounded-lg p-3 resize-none focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20"
             />
           </div>
 
@@ -384,7 +384,7 @@ function TaskDetailDialog({
                 id="task-priority"
                 value={priority}
                 onChange={(e) => setPriority(e.target.value)}
-                className="h-9 w-full text-sm bg-muted/30 border border-border/40 rounded-lg px-2 focus:outline-none focus:border-indigo-500/50"
+                className="h-9 w-full text-sm bg-muted/30 border border-border/40 rounded-lg px-2 focus:outline-none focus:border-primary/50"
               >
                 {PRIORITIES.map((p) => (
                   <option key={p} value={p}>
@@ -403,7 +403,7 @@ function TaskDetailDialog({
                 id="task-assignee"
                 value={assigneeId}
                 onChange={(e) => setAssigneeId(e.target.value)}
-                className="h-9 w-full text-sm bg-muted/30 border border-border/40 rounded-lg px-2 focus:outline-none focus:border-indigo-500/50"
+                className="h-9 w-full text-sm bg-muted/30 border border-border/40 rounded-lg px-2 focus:outline-none focus:border-primary/50"
               >
                 <option value="">Unassigned</option>
                 {members.map((m) => (
@@ -427,7 +427,7 @@ function TaskDetailDialog({
             </div>
           </div>
 
-          <Button type="submit" disabled={saving || !title.trim()} className="w-full bg-gradient-to-r from-indigo-500 to-purple-600 text-white">
+          <Button type="submit" disabled={saving || !title.trim()} className="w-full bg-primary text-white">
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save Changes"}
           </Button>
         </form>
@@ -435,7 +435,7 @@ function TaskDetailDialog({
         {/* Dependencies */}
         <div className="border-t border-border/40 pt-4 space-y-3">
           <h4 className="text-sm font-semibold flex items-center gap-2">
-            <Link2 className="w-4 h-4 text-amber-500" />
+            <Link2 className="w-4 h-4 text-primary" />
             Dependencies
           </h4>
           {dependencyTasks.length === 0 ? (
@@ -444,7 +444,7 @@ function TaskDetailDialog({
             <div className="space-y-1.5">
               {dependencyTasks.map((dep) => (
                 <div key={dep.id} className="flex items-center gap-2 text-sm bg-muted/40 rounded-lg px-3 py-2">
-                  <Link2 className="w-3 h-3 text-amber-500 shrink-0" />
+                  <Link2 className="w-3 h-3 text-primary shrink-0" />
                   <span className="flex-1 min-w-0 truncate">{dep.title}</span>
                   <button
                     onClick={() => removeDependency(dep.id)}
@@ -464,7 +464,7 @@ function TaskDetailDialog({
                 value={newDepId}
                 onChange={(e) => setNewDepId(e.target.value)}
                 aria-label="Select blocking task"
-                className="h-9 flex-1 min-w-0 text-sm bg-muted/30 border border-border/40 rounded-lg px-2 focus:outline-none focus:border-indigo-500/50"
+                className="h-9 flex-1 min-w-0 text-sm bg-muted/30 border border-border/40 rounded-lg px-2 focus:outline-none focus:border-primary/50"
               >
                 <option value="">Blocked by…</option>
                 {candidateTasks.map((t) => (
@@ -495,7 +495,7 @@ function TaskDetailDialog({
           ) : (
             <div className="space-y-2 text-sm">
               {task.branchName && (
-                <div className="flex items-center gap-2 bg-emerald-500/5 border border-emerald-500/20 rounded-lg px-3 py-2">
+                <div className="flex items-center gap-2 bg-emerald-500/5 border border-accent/20 rounded-lg px-3 py-2">
                   <GitBranch className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
                   <span className="font-mono text-xs truncate">{task.branchName}</span>
                 </div>
@@ -505,7 +505,7 @@ function TaskDetailDialog({
                   <GitPullRequest className="w-3.5 h-3.5 shrink-0" />
                   <span
                     className={cn(
-                      "inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded-full border",
+                      "inline-flex items-center gap-1 text-[10px] font-medium tracking-wide px-1.5 py-0.5 rounded-full border",
                       prStateStyle(task.pullRequestState)
                     )}
                   >
@@ -524,7 +524,7 @@ function TaskDetailDialog({
                       href={task.pullRequestUrl}
                       target="_blank"
                       rel="noreferrer"
-                      className="ml-auto inline-flex items-center gap-1 text-xs text-indigo-500 hover:underline"
+                      className="ml-auto inline-flex items-center gap-1 text-xs text-primary hover:underline"
                     >
                       View PR <ExternalLink className="w-3 h-3" />
                     </a>
@@ -602,7 +602,7 @@ function TaskDetailDialog({
               <Button
                 size="sm"
                 variant="outline"
-                className="text-amber-600 dark:text-amber-400"
+                className="text-primary dark:text-primary"
                 disabled={wfBusy !== null}
                 onClick={() =>
                   runWorkflow("changes", () => boardService.requestChanges(task.id, "Please address the requested changes."), "Changes requested on the pull request")
@@ -614,7 +614,7 @@ function TaskDetailDialog({
               </Button>
               <Button
                 size="sm"
-                className="bg-purple-600 hover:bg-purple-700 text-white"
+                className="bg-accent hover:bg-accent text-white"
                 disabled={wfBusy !== null}
                 onClick={() => runWorkflow("merge", () => boardService.mergePullRequest(task.id), "Pull request merged — task completed")}
               >
@@ -755,7 +755,7 @@ function CalendarView({
         <div className="rounded-2xl border border-border/40 bg-card p-4">
           <div className="grid grid-cols-7 gap-1.5 mb-2">
             {WEEKDAYS.map((w) => (
-              <p key={w} className="text-center text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+              <p key={w} className="text-center text-[10px] font-medium tracking-wide text-muted-foreground">
                 {w}
               </p>
             ))}
@@ -772,10 +772,10 @@ function CalendarView({
                   className={cn(
                     "min-h-[5.5rem] rounded-xl border border-border/30 p-1.5 flex flex-col gap-1",
                     inMonth ? "bg-card" : "bg-muted/20 opacity-50",
-                    isToday && "ring-1 ring-indigo-500/50 border-indigo-500/40"
+                    isToday && "ring-1 ring-primary/50 border-primary/40"
                   )}
                 >
-                  <p className={cn("text-[10px] font-medium", isToday ? "text-indigo-500" : "text-muted-foreground")}>
+                  <p className={cn("text-[10px] font-medium", isToday ? "text-primary" : "text-muted-foreground")}>
                     {day.getDate()}
                   </p>
                   <div className="space-y-1 min-w-0">
@@ -790,7 +790,7 @@ function CalendarView({
                             "w-full text-left rounded px-1 py-0.5 border transition-colors",
                             overdue
                               ? "bg-red-500/10 border-red-500/25 text-red-600 dark:text-red-400 hover:bg-red-500/20"
-                              : "bg-indigo-500/10 border-indigo-500/25 text-indigo-600 dark:text-indigo-300 hover:bg-indigo-500/20"
+                              : "bg-primary/10 border-primary/25 text-primary dark:text-primary hover:bg-primary/20"
                           )}
                           title={`${t.title}${status ? ` · ${status}` : ""}${t.assigneeName ? ` · ${t.assigneeName}` : ""}`}
                         >
@@ -900,8 +900,8 @@ export default function BoardPage() {
   if (!board) {
     return (
       <div className="text-center py-16">
-        <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-indigo-500/15 to-purple-500/10 flex items-center justify-center ring-1 ring-indigo-500/20">
-          <KanbanSquare className="w-6 h-6 text-indigo-400" />
+        <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-primary/15 to-primary/10 flex items-center justify-center ring-1 ring-primary/20">
+          <KanbanSquare className="w-6 h-6 text-primary" />
         </div>
         <p className="text-muted-foreground mb-4">No board found for this project</p>
         <Button
@@ -914,7 +914,7 @@ export default function BoardPage() {
               toast("Failed to create board");
             }
           }}
-          className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white"
+          className="bg-primary text-white"
         >
           <Plus className="w-4 h-4 mr-1.5" />
           Create Board
@@ -941,7 +941,7 @@ export default function BoardPage() {
               className={cn(
                 "inline-flex items-center gap-1.5 text-xs font-medium px-3 py-2 rounded-lg transition-all",
                 view === "board"
-                  ? "bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-md"
+                  ? "bg-primary text-white shadow-md"
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
@@ -954,7 +954,7 @@ export default function BoardPage() {
               className={cn(
                 "inline-flex items-center gap-1.5 text-xs font-medium px-3 py-2 rounded-lg transition-all",
                 view === "calendar"
-                  ? "bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-md"
+                  ? "bg-primary text-white shadow-md"
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
@@ -984,8 +984,8 @@ export default function BoardPage() {
       {view === "board" && (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="bg-card border border-border/50 rounded-2xl p-5 flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-indigo-500/10 flex items-center justify-center shrink-0">
-              <BarChart3 className="w-5 h-5 text-indigo-500" />
+            <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+              <BarChart3 className="w-5 h-5 text-primary" />
             </div>
             <div>
               <p className="text-2xl font-bold text-foreground">{totalTasks}</p>
@@ -993,8 +993,8 @@ export default function BoardPage() {
             </div>
           </div>
           <div className="bg-card border border-border/50 rounded-2xl p-5 flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-amber-500/10 flex items-center justify-center shrink-0">
-              <Clock className="w-5 h-5 text-amber-500" />
+            <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+              <Clock className="w-5 h-5 text-primary" />
             </div>
             <div>
               <p className="text-2xl font-bold text-foreground">{inProgressTasks}</p>
@@ -1002,7 +1002,7 @@ export default function BoardPage() {
             </div>
           </div>
           <div className="bg-card border border-border/50 rounded-2xl p-5 flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center shrink-0">
+            <div className="w-12 h-12 rounded-xl bg-accent/10 flex items-center justify-center shrink-0">
               <CheckCircle2 className="w-5 h-5 text-emerald-500" />
             </div>
             <div>
@@ -1077,7 +1077,7 @@ export default function BoardPage() {
                       setSelectedColumn(col.id);
                       setOpen(true);
                     }}
-                    className="flex items-center gap-1.5 text-xs font-medium text-indigo-500 hover:text-indigo-600 dark:text-indigo-400 dark:hover:text-indigo-300 transition-colors w-full justify-center py-1.5 rounded-lg hover:bg-indigo-500/5"
+                    className="flex items-center gap-1.5 text-xs font-medium text-primary hover:text-primary dark:text-primary dark:hover:text-primary transition-colors w-full justify-center py-1.5 rounded-lg hover:bg-primary/5"
                   >
                     <Plus className="w-3.5 h-3.5" />
                     Add Task
@@ -1111,7 +1111,7 @@ export default function BoardPage() {
             <Button
               type="submit"
               disabled={creating || !title.trim()}
-              className="w-full bg-gradient-to-r from-indigo-500 to-purple-600 text-white"
+              className="w-full bg-primary text-white"
             >
               {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : "Add Task"}
             </Button>

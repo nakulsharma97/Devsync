@@ -85,7 +85,7 @@ export function ThreadPanel({ parent, myId, isRoom, onClose, onReplySent }: Thre
       {/* Parent preview */}
       <div className="shrink-0 px-3 py-2.5 border-b border-border/30 bg-muted/30">
         <div className="flex items-start gap-2.5">
-          <span className="w-7 h-7 mt-0.5 rounded-full bg-gradient-to-br from-indigo-500/20 to-purple-500/20 flex items-center justify-center text-[10px] font-bold text-indigo-400 shrink-0 overflow-hidden">
+          <span className="w-7 h-7 mt-0.5 rounded-full bg-gradient-to-br from-primary/20 to-primary/20 flex items-center justify-center text-[10px] font-bold text-primary shrink-0 overflow-hidden">
             {parent.senderAvatar ? (
               <img src={parent.senderAvatar} alt={parent.senderName} className="w-full h-full object-cover" />
             ) : (
@@ -93,7 +93,7 @@ export function ThreadPanel({ parent, myId, isRoom, onClose, onReplySent }: Thre
             )}
           </span>
           <div className="min-w-0">
-            <p className="text-[11px] font-medium text-indigo-500 dark:text-indigo-400">{parent.senderName}</p>
+            <p className="text-[11px] font-medium text-primary dark:text-primary">{parent.senderName}</p>
             <p className="text-sm text-foreground/85 break-words">{parent.content}</p>
           </div>
         </div>
@@ -118,7 +118,7 @@ export function ThreadPanel({ parent, myId, isRoom, onClose, onReplySent }: Thre
 
       {/* Reply composer */}
       <div className="shrink-0 border-t border-border/40 px-3 py-2.5">
-        <div className="flex items-end gap-1.5 rounded-xl border border-border/50 bg-muted/30 focus-within:border-indigo-500/50 px-2 py-1.5 transition-all">
+        <div className="flex items-end gap-1.5 rounded-xl border border-border/50 bg-muted/30 focus-within:border-primary/50 px-2 py-1.5 transition-all">
           <textarea
             value={text}
             onChange={(e) => setText(e.target.value)}
@@ -138,7 +138,7 @@ export function ThreadPanel({ parent, myId, isRoom, onClose, onReplySent }: Thre
             disabled={!text.trim() || sending}
             aria-label="Send reply"
             className={cn(
-              "w-8 h-8 shrink-0 rounded-lg bg-gradient-to-r from-indigo-500 to-purple-600 text-white flex items-center justify-center transition-all disabled:opacity-40",
+              "w-8 h-8 shrink-0 rounded-lg bg-primary text-white flex items-center justify-center transition-all disabled:opacity-40",
               sending && "opacity-60"
             )}
           >

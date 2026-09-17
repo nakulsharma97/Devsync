@@ -1,7 +1,10 @@
 // STOMP over native WebSocket for real-time messaging
 // Handles connection lifecycle, pending subscriptions, and auto-resubscribe on reconnect
 
-import { Client, type IMessage, type IFrame } from "@stomp/stompjs";
+// Type-only import — erased at build time. The STOMP runtime itself is
+// imported on demand inside connect() so the public landing page (which never
+// opens a socket) does not ship the messaging client in its initial bundle.
+import type { Client, IMessage, IFrame } from "@stomp/stompjs";
 import type { MessageDto } from "./messageService";
 import type { NotificationDto } from "./notificationService";
 
@@ -62,14 +65,23 @@ class WebSocketService {
   private userId: string | null = null;
   private token: string | null = null;
   private connected = false;
+  /** Bumped on every connect/disconnect so a late async connect is discarded. */
+  private connectGeneration = 0;
 
   // ── Lifecycle ────────────────────────────────────────────────
 
-  connect(userId: string, token: string) {
+  async connect(userId: string, token: string) {
     if (this.client?.active) {
       console.log("[STOMP] Already connected");
       return;
     }
+
+    // Load the STOMP client on first use (see the type-only import above).
+    const generation = ++this.connectGeneration;
+    const { Client } = await import("@stomp/stompjs");
+    // A disconnect() (logout) or a newer connect() landed while the chunk was
+    // loading — abandon this attempt rather than resurrecting the session.
+    if (generation !== this.connectGeneration || this.client?.active) return;
 
     this.userId = userId;
     this.token = token;
@@ -165,6 +177,7 @@ class WebSocketService {
   }
 
   disconnect() {
+    this.connectGeneration++;
     this.connected = false;
     this.client?.deactivate();
     this.client = null;

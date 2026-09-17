@@ -45,13 +45,13 @@ function UsageBar({ label, used, limit, unit }: { label: string; used: number; l
     <div>
       <div className="flex items-center justify-between text-sm mb-1.5">
         <span className="text-muted-foreground">{label}</span>
-        <span className={nearLimit ? "text-amber-600 dark:text-amber-400 font-medium" : "text-foreground"}>
+        <span className={nearLimit ? "text-primary dark:text-primary font-medium" : "text-foreground"}>
           {limit === null ? `${unit}${used} · Unlimited` : `${unit}${used} / ${unit}${limit}`}
         </span>
       </div>
       <div className="h-2 rounded-full bg-muted overflow-hidden">
         <div
-          className={`h-full rounded-full transition-all ${nearLimit ? "bg-amber-500" : "bg-emerald-500"}`}
+          className={`h-full rounded-full transition-all ${nearLimit ? "bg-primary" : "bg-emerald-500"}`}
           style={{ width: `${pct}%` }}
         />
       </div>
@@ -318,18 +318,18 @@ export default function Billing() {
       <section className="rounded-2xl border border-border/40 bg-card/70 p-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isPaid ? "bg-gradient-to-br from-indigo-500 to-purple-600" : "bg-muted"}`}>
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isPaid ? "bg-primary" : "bg-muted"}`}>
               {isPaid ? <Crown className="w-5 h-5 text-white" /> : <PartyPopper className="w-5 h-5 text-muted-foreground" />}
             </div>
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-lg font-semibold">{subscription?.planName ?? "Free"} plan</span>
                 <span
-                  className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide ${
+                  className={`px-2 py-0.5 rounded-full text-[10px] font-semibold tracking-wide ${
                     subscription?.status === "ACTIVE"
-                      ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
+                      ? "bg-emerald-500/15 text-accent dark:text-accent"
                       : subscription?.status === "PAST_DUE"
-                        ? "bg-amber-500/15 text-amber-600 dark:text-amber-400"
+                        ? "bg-primary/15 text-primary dark:text-primary"
                         : "bg-muted text-muted-foreground"
                   }`}
                 >
@@ -354,7 +354,7 @@ export default function Billing() {
                 )}
               </p>
               {periodEndsSoon && isPaid && !subscription?.cancelAtPeriodEnd && (
-                <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+                <p className="text-xs text-primary dark:text-primary mt-1">
                   {subscription?.billingMode === "RECURRING" && subscription?.provider === "STRIPE"
                     ? "Your plan renews automatically soon."
                     : "Your plan expires soon — renew manually to keep access."}
@@ -378,7 +378,7 @@ export default function Billing() {
             {!isPaid && (
               <button
                 onClick={() => document.getElementById("plans")?.scrollIntoView({ behavior: "smooth" })}
-                className="text-sm px-4 py-2 rounded-lg bg-gradient-to-r from-indigo-500 to-purple-600 text-white hover:opacity-90 transition-opacity"
+                className="text-sm px-4 py-2 rounded-lg bg-primary text-white hover:opacity-90 transition-opacity"
               >
                 View plans
               </button>
@@ -444,12 +444,12 @@ export default function Billing() {
               key={plan.code}
               className={`relative rounded-2xl border p-6 flex flex-col ${
                 popular
-                  ? "border-indigo-500/50 bg-gradient-to-b from-indigo-500/10 to-purple-500/5 shadow-xl shadow-indigo-500/10"
+                  ? "border-primary/50 bg-gradient-to-b from-primary/10 to-primary/5 shadow-xl shadow-primary/10"
                   : "border-border/40 bg-card/70"
               }`}
             >
               {popular && (
-                <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-indigo-500 to-purple-600 text-white text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full">
+                <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-white text-[10px] font-semibold tracking-wider px-3 py-1 rounded-full">
                   Most Popular
                 </span>
               )}
@@ -460,14 +460,14 @@ export default function Billing() {
                 <span className="text-sm text-muted-foreground">/month</span>
               </div>
               {plan.billingMode === "RECURRING" && (
-                <p className="text-xs text-indigo-600 dark:text-indigo-400 -mt-4 mb-4">
+                <p className="text-xs text-primary dark:text-primary -mt-4 mb-4">
                   Auto-renewing · Cancel anytime
                 </p>
               )}
               <ul className="space-y-2.5 mb-6 flex-1">
                 {planFeatures(plan).map((f) => (
                   <li key={f} className="flex items-start gap-2 text-sm">
-                    <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400 mt-0.5 shrink-0" />
+                    <Check className="w-4 h-4 text-accent dark:text-accent mt-0.5 shrink-0" />
                     <span>{f}</span>
                   </li>
                 ))}
@@ -483,8 +483,8 @@ export default function Billing() {
                     disabled={checkoutLoading !== null}
                     className={`px-4 py-2 rounded-lg text-sm font-medium transition-all disabled:opacity-60 ${
                       popular
-                        ? "bg-gradient-to-r from-indigo-500 to-purple-600 text-white hover:opacity-90"
-                        : "border border-border/50 hover:border-indigo-500/30"
+                        ? "bg-primary text-white hover:opacity-90"
+                        : "border border-border/50 hover:border-primary/30"
                     }`}
                   >
                     {checkoutLoading === plan.code ? (
@@ -498,7 +498,7 @@ export default function Billing() {
                   <button
                     onClick={() => upgrade(plan, "STRIPE")}
                     disabled={checkoutLoading !== null}
-                    className="px-4 py-2 rounded-lg text-sm font-medium border border-border/50 hover:border-indigo-500/30 transition-all disabled:opacity-60"
+                    className="px-4 py-2 rounded-lg text-sm font-medium border border-border/50 hover:border-primary/30 transition-all disabled:opacity-60"
                   >
                     {checkoutLoading === plan.code ? (
                       <span className="inline-flex items-center gap-2">
@@ -546,13 +546,13 @@ export default function Billing() {
                       </td>
                       <td className="py-2.5 pr-4">
                         <span
-                          className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide ${
+                          className={`px-2 py-0.5 rounded-full text-[10px] font-semibold tracking-wide ${
                             p.status === "SUCCESS"
-                              ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
+                              ? "bg-emerald-500/15 text-accent dark:text-accent"
                               : p.status === "FAILED"
                                 ? "bg-red-500/15 text-red-600 dark:text-red-400"
                                 : p.status === "REFUNDED"
-                                  ? "bg-amber-500/15 text-amber-600 dark:text-amber-400"
+                                  ? "bg-primary/15 text-primary dark:text-primary"
                                   : "bg-muted text-muted-foreground"
                           }`}
                         >
@@ -562,11 +562,11 @@ export default function Billing() {
                       <td className="py-2.5">
                         {refundStatus ? (
                           <span
-                            className={`text-[10px] font-bold uppercase tracking-wide ${
+                            className={`text-[10px] font-semibold tracking-wide ${
                               refundStatus.status === "PENDING"
-                                ? "text-amber-600 dark:text-amber-400"
+                                ? "text-primary dark:text-primary"
                                 : refundStatus.status === "APPROVED" || refundStatus.status === "COMPLETED"
-                                  ? "text-emerald-600 dark:text-emerald-400"
+                                  ? "text-accent dark:text-accent"
                                   : "text-red-600 dark:text-red-400"
                             }`}
                           >
@@ -624,7 +624,7 @@ export default function Billing() {
               <button
                 onClick={() => submitRefund(refundModalOpen)}
                 disabled={!refundReason.trim() || refundSubmitting}
-                className="text-sm px-4 py-2 rounded-lg bg-amber-600 text-white hover:opacity-90 transition-opacity disabled:opacity-60"
+                className="text-sm px-4 py-2 rounded-lg bg-primary text-white hover:opacity-90 transition-opacity disabled:opacity-60"
               >
                 {refundSubmitting ? "Submitting…" : "Submit request"}
               </button>

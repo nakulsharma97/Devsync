@@ -183,7 +183,7 @@ export function GitHubSection({ projectId }: { projectId: string }) {
           <GitBranch className="w-4 h-4 text-muted-foreground" />
           <h2 className="text-sm font-semibold">GitHub Integration</h2>
           {connected ? (
-            <Badge variant="outline" className="text-emerald-500 border-emerald-500/30 bg-emerald-500/10">
+            <Badge variant="outline" className="text-emerald-500 border-emerald-500/30 bg-accent/10">
               Connected as @{username}
             </Badge>
           ) : (
@@ -246,7 +246,7 @@ export function GitHubSection({ projectId }: { projectId: string }) {
           <div className="border border-border/40 rounded-xl p-4">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <a href={link.repoUrl} target="_blank" rel="noreferrer" className="text-sm font-medium text-indigo-500 hover:underline">
+                <a href={link.repoUrl} target="_blank" rel="noreferrer" className="text-sm font-medium text-primary hover:underline">
                   {link.repoFullName}
                 </a>
                 {link.repoDescription && (
@@ -324,7 +324,7 @@ export function GitHubSection({ projectId }: { projectId: string }) {
               {issues.length === 0 && <li className="p-3 text-sm text-muted-foreground">No open issues</li>}
               {issues.map((i) => (
                 <li key={i.number} className="p-3 text-sm">
-                  <a href={i.htmlUrl} target="_blank" rel="noreferrer" className="font-medium text-indigo-500 hover:underline">
+                  <a href={i.htmlUrl} target="_blank" rel="noreferrer" className="font-medium text-primary hover:underline">
                     #{i.number} {i.title}
                   </a>
                   <p className="text-xs text-muted-foreground mt-1">
@@ -341,7 +341,7 @@ export function GitHubSection({ projectId }: { projectId: string }) {
               {pulls.length === 0 && <li className="p-3 text-sm text-muted-foreground">No open pull requests</li>}
               {pulls.map((p) => (
                 <li key={p.number} className="p-3 text-sm">
-                  <a href={p.htmlUrl} target="_blank" rel="noreferrer" className="font-medium text-indigo-500 hover:underline">
+                  <a href={p.htmlUrl} target="_blank" rel="noreferrer" className="font-medium text-primary hover:underline">
                     #{p.number} {p.title}
                   </a>
                   <p className="text-xs text-muted-foreground mt-1">

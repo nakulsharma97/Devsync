@@ -45,15 +45,15 @@ const FEEDBACK_CATEGORIES = [
 ] as const;
 
 const REVIEW_STATUS_STYLES: Record<string, string> = {
-  PENDING: "bg-amber-500/10 text-amber-500 border-amber-500/20",
-  APPROVED: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20",
+  PENDING: "bg-primary/10 text-primary border-primary/20",
+  APPROVED: "bg-accent/10 text-emerald-500 border-accent/20",
   REJECTED: "bg-red-500/10 text-red-500 border-red-500/20",
 };
 
 const FEEDBACK_STATUS_STYLES: Record<string, string> = {
   OPEN: "bg-blue-500/10 text-blue-500 border-blue-500/20",
-  IN_REVIEW: "bg-amber-500/10 text-amber-500 border-amber-500/20",
-  RESOLVED: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20",
+  IN_REVIEW: "bg-primary/10 text-primary border-primary/20",
+  RESOLVED: "bg-accent/10 text-emerald-500 border-accent/20",
   CLOSED: "bg-muted text-muted-foreground border-border/50",
 };
 
@@ -84,8 +84,8 @@ function StarInput({
           <Star
             className={`w-7 h-7 transition-colors ${
               star <= value
-                ? "fill-amber-500 text-amber-500"
-                : "text-muted-foreground/40 hover:text-amber-500/70"
+                ? "fill-primary text-primary"
+                : "text-muted-foreground/40 hover:text-primary/70"
             }`}
           />
         </button>
@@ -480,7 +480,7 @@ export default function Feedback() {
                               aria-hidden
                               className={`w-3 h-3 ${
                                 i <= (f.rating ?? 0)
-                                  ? "fill-amber-500 text-amber-500"
+                                  ? "fill-primary text-primary"
                                   : "text-muted-foreground/30"
                               }`}
                             />

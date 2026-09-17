@@ -38,7 +38,7 @@ function DaySeparator({ date }: { date: string }) {
   return (
     <div className="flex items-center gap-3 my-4">
       <span className="h-px flex-1 bg-border/40" />
-      <span className="text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground/60">
+      <span className="text-[10px] font-medium text-muted-foreground/50">
         {label}
       </span>
       <span className="h-px flex-1 bg-border/40" />
@@ -86,7 +86,7 @@ function MessageBubble({
         ref={(el) => registerRef(msg.id, el)}
         className={cn(
           "flex justify-center my-2 transition-colors duration-500",
-          highlighted && "bg-indigo-500/10 rounded-lg"
+          highlighted && "bg-primary/10 rounded-lg"
         )}
       >
         <span className="text-[11px] text-muted-foreground italic bg-muted/40 rounded-full px-3 py-1">
@@ -112,12 +112,12 @@ function MessageBubble({
       className={cn(
         "group flex gap-2.5 px-1 transition-colors duration-500 rounded-lg",
         own ? "justify-end" : "justify-start",
-        highlighted && "bg-indigo-500/10"
+        highlighted && "bg-primary/10"
       )}
     >
       {/* Incoming avatar (rooms only) */}
       {!own && isRoom && (
-        <span className="w-7 h-7 mt-1 rounded-full bg-gradient-to-br from-indigo-500/20 to-purple-500/20 text-indigo-400 dark:text-indigo-300 flex items-center justify-center text-[10px] font-bold shrink-0 overflow-hidden">
+        <span className="w-7 h-7 mt-1 rounded-full bg-gradient-to-br from-primary/20 to-primary/20 text-primary dark:text-primary flex items-center justify-center text-[10px] font-bold shrink-0 overflow-hidden">
           {msg.senderAvatar ? (
             <img src={msg.senderAvatar} alt={msg.senderName} className="w-full h-full object-cover" />
           ) : (
@@ -129,7 +129,7 @@ function MessageBubble({
       <div className={cn("max-w-[70%] flex flex-col", own ? "items-end" : "items-start")}>
         {/* Sender name in rooms */}
         {!own && isRoom && (
-          <span className="text-[11px] font-medium text-indigo-500 dark:text-indigo-400 mb-1 ml-0.5">
+          <span className="text-[11px] font-medium text-primary dark:text-primary mb-1 ml-0.5">
             {msg.senderName}
           </span>
         )}
@@ -141,7 +141,7 @@ function MessageBubble({
               failed
                 ? "bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/30 rounded-br-md"
                 : own
-                  ? "bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-br-md shadow-sm shadow-indigo-500/20"
+                  ? "bg-primary text-white rounded-br-md shadow-sm shadow-primary/20"
                   : "bg-card border border-border/40 rounded-bl-md",
               optimistic && !failed && "opacity-70"
             )}
@@ -248,7 +248,7 @@ function MessageBubble({
                 className={cn(
                   "inline-flex items-center gap-1 text-[11px] rounded-full border px-1.5 py-0.5 transition-colors",
                   r.reactedByMe
-                    ? "bg-indigo-500/15 border-indigo-500/30 text-indigo-500 dark:text-indigo-300"
+                    ? "bg-primary/15 border-primary/30 text-primary dark:text-primary"
                     : "bg-muted/40 border-border/40 text-muted-foreground hover:bg-muted/70"
                 )}
               >
@@ -263,7 +263,7 @@ function MessageBubble({
         {replyCount > 0 && onOpenThread && !optimistic && (
           <button
             onClick={() => onOpenThread(msg)}
-            className="mt-1 inline-flex items-center gap-1.5 text-[11px] font-medium text-indigo-500 dark:text-indigo-400 hover:underline"
+            className="mt-1 inline-flex items-center gap-1.5 text-[11px] font-medium text-primary dark:text-primary hover:underline"
             title="View replies"
           >
             <MessageSquare className="w-3 h-3" />
@@ -316,7 +316,7 @@ export function MessageList({
   if (loading) {
     return (
       <div className="flex items-center justify-center py-10">
-        <Loader2 className="h-5 w-5 animate-spin text-indigo-500" />
+        <Loader2 className="h-5 w-5 animate-spin text-primary" />
       </div>
     );
   }

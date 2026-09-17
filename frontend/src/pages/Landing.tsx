@@ -20,20 +20,26 @@ import {
 
 export default function Landing() {
   const [stats, setStats] = useState<PublicStats | null>(null);
+  // Distinguishes "still loading" from "loaded and unavailable" so stats
+  // placeholders can stop animating once the request settles either way.
+  const [statsSettled, setStatsSettled] = useState(false);
   const [reviews, setReviews] = useState<PublicReviewsResponse | null>(null);
+  const [reviewsSettled, setReviewsSettled] = useState(false);
 
   // Real, server-computed aggregates — never hardcoded. A failed fetch simply
-  // leaves the sections in their honest empty/loading state.
+  // leaves the sections in their honest empty state.
   useEffect(() => {
     let cancelled = false;
     landingService
       .getStats()
       .then((s) => !cancelled && setStats(s))
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => !cancelled && setStatsSettled(true));
     landingService
       .getReviews()
       .then((r) => !cancelled && setReviews(r))
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => !cancelled && setReviewsSettled(true));
     return () => {
       cancelled = true;
     };
@@ -51,10 +57,10 @@ export default function Landing() {
         <Navbar />
         <HeroSection stats={stats} />
         <LogoMarquee />
-        <StatsBar stats={stats} />
+        <StatsBar stats={stats} settled={statsSettled} />
         <FeaturesSection />
         <HowItWorksSection />
-        <TestimonialsSection reviews={reviews} />
+        <TestimonialsSection reviews={reviews} settled={reviewsSettled} />
         <EnterpriseSection stats={stats} />
         <PricingSection />
         <FinalCtaSection />

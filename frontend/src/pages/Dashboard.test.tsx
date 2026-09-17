@@ -124,7 +124,6 @@ describe("Dashboard", () => {
 
     renderPage();
 
-    expect(screen.getByText(/Good (morning|afternoon|evening),/)).toBeInTheDocument();
     expect(screen.getByText("Buffy")).toBeInTheDocument();
     expect(screen.getByText("Admin")).toBeInTheDocument();
   });
@@ -200,10 +199,7 @@ describe("Dashboard", () => {
 
     renderPage();
 
-    expect(await screen.findByText("No projects yet")).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: /Create your first project/i })
-    ).toBeInTheDocument();
+    expect(await screen.findByText("No projects yet")).toBeInTheDocument();    expect(screen.getByRole("button", { name: /Create Project/i })).toBeInTheDocument();
     expect(screen.queryByText("View all")).not.toBeInTheDocument();
   });
 });

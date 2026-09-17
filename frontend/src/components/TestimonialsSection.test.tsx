@@ -69,10 +69,10 @@ function mockAuth(authenticated = true) {
   });
 }
 
-function renderSection(reviews: PublicReviewsResponse | null) {
+function renderSection(reviews: PublicReviewsResponse | null, settled = true) {
   return render(
     <MemoryRouter>
-      <TestimonialsSection reviews={reviews} />
+      <TestimonialsSection reviews={reviews} settled={settled} />
     </MemoryRouter>
   );
 }
@@ -114,8 +114,14 @@ describe("TestimonialsSection", () => {
     expect(screen.queryByText(/stripe|vercel|railway/i)).not.toBeInTheDocument();
   });
 
-  it("never fabricates a rating when reviews are still loading", () => {
-    renderSection(null);
+  it("never fabricates a rating while reviews are still loading", () => {
+    renderSection(null, false);
     expect(screen.queryByText(/based on/i)).not.toBeInTheDocument();
+  });
+
+  it("falls back to the empty state when the request settles without data", () => {
+    // Previously this left skeleton cards pulsing forever.
+    renderSection(null, true);
+    expect(screen.getByText("Your feedback can be the first")).toBeInTheDocument();
   });
 });

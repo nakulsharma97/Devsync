@@ -21,7 +21,7 @@ function Highlight({ text, query }: { text: string; query: string }) {
   return (
     <>
       {text.slice(0, idx)}
-      <em className="not-italic bg-amber-400/30 dark:bg-amber-400/20 text-foreground rounded px-0.5">
+      <em className="not-italic bg-primary/30 dark:bg-primary/20 text-foreground rounded px-0.5">
         {text.slice(idx, idx + query.length)}
       </em>
       {text.slice(idx + query.length)}
@@ -93,7 +93,7 @@ export function MessageSearch({ open, messages, onClose, onJump }: MessageSearch
                   className="w-full text-left px-2.5 py-2 rounded-lg hover:bg-accent/5 transition-colors"
                 >
                   <span className="flex items-center justify-between gap-2">
-                    <span className="text-[11px] font-medium text-indigo-500 dark:text-indigo-400 truncate">
+                    <span className="text-[11px] font-medium text-primary dark:text-primary truncate">
                       {m.senderName}
                     </span>
                     <span className="text-[10px] text-muted-foreground/60 shrink-0">

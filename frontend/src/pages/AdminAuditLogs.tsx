@@ -51,35 +51,35 @@ import { toast } from "sonner";
 
 const ACTION_META: Record<string, { label: string; badge: string }> = {
   REGISTER: { label: "Register", badge: "bg-slate-500/10 text-slate-600" },
-  LOGIN_SUCCESS: { label: "Login Success", badge: "bg-emerald-500/10 text-emerald-600" },
+  LOGIN_SUCCESS: { label: "Login Success", badge: "bg-accent/10 text-accent" },
   LOGIN_FAILURE: { label: "Login Failure", badge: "bg-red-500/10 text-red-600" },
   LOGOUT: { label: "Logout", badge: "bg-slate-500/10 text-slate-600" },
   JWT_REFRESH: { label: "JWT Refresh", badge: "bg-blue-500/10 text-blue-600" },
-  PASSWORD_RESET: { label: "Password Reset", badge: "bg-amber-500/10 text-amber-600" },
-  PASSWORD_CHANGED: { label: "Password Changed", badge: "bg-amber-500/10 text-amber-600" },
-  EMAIL_CHANGED: { label: "Email Changed", badge: "bg-amber-500/10 text-amber-600" },
+  PASSWORD_RESET: { label: "Password Reset", badge: "bg-primary/10 text-primary" },
+  PASSWORD_CHANGED: { label: "Password Changed", badge: "bg-primary/10 text-primary" },
+  EMAIL_CHANGED: { label: "Email Changed", badge: "bg-primary/10 text-primary" },
   OTP_VERIFIED: { label: "OTP Verified", badge: "bg-violet-500/10 text-violet-600" },
   OAUTH_LOGIN: { label: "OAuth Login", badge: "bg-cyan-500/10 text-cyan-600" },
   ROLE_CHANGED: { label: "Role Changed", badge: "bg-fuchsia-500/10 text-fuchsia-600" },
   ADMIN_CREATED: { label: "Admin Created", badge: "bg-fuchsia-500/10 text-fuchsia-600" },
   USER_BLOCKED: { label: "User Blocked", badge: "bg-red-500/10 text-red-600" },
-  USER_UNBLOCKED: { label: "User Unblocked", badge: "bg-emerald-500/10 text-emerald-600" },
+  USER_UNBLOCKED: { label: "User Unblocked", badge: "bg-accent/10 text-accent" },
   USER_DELETED: { label: "User Deleted", badge: "bg-red-500/10 text-red-600" },
   PROJECT_DELETED: { label: "Project Deleted", badge: "bg-red-500/10 text-red-600" },
-  PROJECT_ARCHIVED: { label: "Project Archived", badge: "bg-amber-500/10 text-amber-600" },
-  PROJECT_RESTORED: { label: "Project Restored", badge: "bg-emerald-500/10 text-emerald-600" },
+  PROJECT_ARCHIVED: { label: "Project Archived", badge: "bg-primary/10 text-primary" },
+  PROJECT_RESTORED: { label: "Project Restored", badge: "bg-accent/10 text-accent" },
   VISIBILITY_CHANGED: { label: "Visibility Changed", badge: "bg-blue-500/10 text-blue-600" },
-  MODERATION_ACTION: { label: "Moderation Action", badge: "bg-orange-500/10 text-orange-600" },
+  MODERATION_ACTION: { label: "Moderation Action", badge: "bg-accent/10 text-accent" },
   SUPPORT_TICKET_CREATED: { label: "Support Ticket Created", badge: "bg-teal-500/10 text-teal-600" },
   SUPPORT_TICKET_REPLIED: { label: "Support Reply", badge: "bg-teal-500/10 text-teal-600" },
   SUPPORT_TICKET_STATUS_CHANGED: { label: "Support Status Changed", badge: "bg-teal-500/10 text-teal-600" },
   SUPPORT_TICKET_ASSIGNED: { label: "Support Assigned", badge: "bg-teal-500/10 text-teal-600" },
-  SUPPORT_TICKET_RESOLVED: { label: "Support Resolved", badge: "bg-emerald-500/10 text-emerald-600" },
+  SUPPORT_TICKET_RESOLVED: { label: "Support Resolved", badge: "bg-accent/10 text-accent" },
   SUPPORT_TICKET_CLOSED: { label: "Support Closed", badge: "bg-slate-500/10 text-slate-600" },
 };
 
 const STATUS_META: Record<string, { label: string; badge: string }> = {
-  SUCCESS: { label: "Success", badge: "bg-emerald-500/10 text-emerald-600" },
+  SUCCESS: { label: "Success", badge: "bg-accent/10 text-accent" },
   FAILURE: { label: "Failure", badge: "bg-red-500/10 text-red-600" },
 };
 
@@ -435,7 +435,7 @@ export default function AdminAuditLogs() {
                     },
                   ].map((item) => (
                     <div key={item.label} className="p-3.5 rounded-xl border border-border/50 bg-card/50">
-                      <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">{item.label}</p>
+                      <p className="text-[11px] font-medium text-muted-foreground">{item.label}</p>
                       <p className="text-sm font-semibold text-foreground mt-1.5 truncate">{item.name ?? "—"}</p>
                       {item.id && (
                         <p className="text-[11px] text-muted-foreground/70 font-mono mt-1 break-all leading-relaxed">
@@ -464,7 +464,7 @@ export default function AdminAuditLogs() {
                     },
                   ].map((item) => (
                     <div key={item.label} className="p-3.5 rounded-xl border border-border/50 bg-card/50">
-                      <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">{item.label}</p>
+                      <p className="text-[11px] font-medium text-muted-foreground">{item.label}</p>
                       <p className={`text-sm font-semibold text-foreground mt-1.5 break-words ${item.mono ? "font-mono" : ""}`}>
                         {item.value ?? "—"}
                       </p>
@@ -475,7 +475,7 @@ export default function AdminAuditLogs() {
                 {/* Details section */}
                 {selected.details && (
                   <div className="border-t border-border/40 pt-5">
-                    <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-3">Details</p>
+                    <p className="text-[11px] font-medium text-muted-foreground mb-3">Details</p>
                     <div className="p-3.5 rounded-xl border border-border/50 bg-muted/30">
                       <p className="text-sm text-foreground whitespace-pre-wrap break-words leading-relaxed">
                         {selected.details}

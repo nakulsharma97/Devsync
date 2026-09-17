@@ -139,14 +139,14 @@ export default function Network() {
       value: totalDevelopers,
       label: "Total developers",
       description: "Explore the DevSync community",
-      color: "bg-indigo-500/10 text-indigo-500",
+      color: "bg-primary/10 text-primary",
     },
     {
       icon: UserCheck,
       value: followingCount,
       label: "Following",
       description: "Developers you follow",
-      color: "bg-emerald-500/10 text-emerald-500",
+      color: "bg-accent/10 text-emerald-500",
     },
     {
       icon: Heart,
@@ -228,7 +228,7 @@ export default function Network() {
             onClick={() => setActiveTab(tab.key)}
             className={`pb-2.5 text-sm font-medium border-b-2 transition-all ${
               activeTab === tab.key
-                ? "border-indigo-500 text-indigo-500"
+                ? "border-primary text-primary"
                 : "border-transparent text-muted-foreground hover:text-foreground"
             }`}
           >
@@ -303,11 +303,11 @@ export default function Network() {
                     }}
                     className="shrink-0"
                   >
-                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500/20 to-purple-500/10 flex items-center justify-center ring-2 ring-indigo-500/15 overflow-hidden shadow-md shadow-indigo-500/10 hover:ring-indigo-500/30 transition-all">
+                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center ring-2 ring-primary/15 overflow-hidden shadow-md shadow-primary/10 hover:ring-primary/30 transition-all">
                       {netUser.avatarUrl ? (
                         <img src={netUser.avatarUrl} alt="" className="w-full h-full object-cover" />
                       ) : (
-                        <User className="w-5 h-5 text-indigo-500" />
+                        <User className="w-5 h-5 text-primary" />
                       )}
                     </div>
                   </button>
@@ -320,17 +320,17 @@ export default function Network() {
                         onClick={() => {
                           if (!netUser.isSelf) navigate(`/profile/${netUser.username}`);
                         }}
-                        className="text-base font-bold text-foreground hover:text-indigo-500 transition-colors"
+                        className="text-base font-bold text-foreground hover:text-primary transition-colors"
                       >
                         {netUser.fullName}
                       </button>
                       {netUser.followsYou && !netUser.isSelf && (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-medium">
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-accent/10 text-accent dark:text-accent border border-accent/20 font-medium">
                           Follows you
                         </span>
                       )}
                       {netUser.isSelf && (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-indigo-500/10 text-indigo-500 border border-indigo-500/20 font-medium">
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 font-medium">
                           You
                         </span>
                       )}
@@ -376,7 +376,7 @@ export default function Network() {
                       {netUser.isFollowing && !netUser.isSelf && (
                         <>
                           <div className="w-px h-6 bg-border/40" />
-                          <span className="text-[10px] font-medium text-indigo-500">
+                          <span className="text-[10px] font-medium text-primary">
                             Following
                           </span>
                         </>
@@ -396,7 +396,7 @@ export default function Network() {
                         variant="ghost"
                         size="icon"
                         onClick={(e) => handleMessage(e, netUser.id)}
-                        className="w-9 h-9 rounded-xl text-muted-foreground hover:text-foreground hover:bg-indigo-500/10"
+                        className="w-9 h-9 rounded-xl text-muted-foreground hover:text-foreground hover:bg-primary/10"
                         title="Send message"
                       >
                         <MessageCircle className="w-4 h-4" />
@@ -409,7 +409,7 @@ export default function Network() {
                         className={`text-xs h-9 min-w-[90px] justify-center gap-1.5 rounded-xl font-medium ${
                           netUser.isFollowing
                             ? "border-border/60 text-foreground hover:border-red-500/50 hover:text-red-600 hover:bg-red-500/5 dark:hover:border-red-400/50 dark:hover:text-red-400 dark:hover:bg-red-500/10"
-                            : "border-indigo-500/30 bg-indigo-500 text-white hover:bg-indigo-600 dark:bg-indigo-600 dark:hover:bg-indigo-700"
+                            : "border-primary/30 bg-primary text-white hover:bg-primary dark:bg-primary dark:hover:bg-accent"
                         }`}
                       >
                         {togglingIds.has(netUser.id) ? (

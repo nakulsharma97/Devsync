@@ -479,8 +479,8 @@ export default function CropModal({
         <div className="flex items-center justify-between px-5 pt-5 pb-3">
           <div>
             <h2 className="text-base font-semibold flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg bg-indigo-500/10 flex items-center justify-center">
-                <Crop className="w-4 h-4 text-indigo-500" />
+              <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center">
+                <Crop className="w-4 h-4 text-primary" />
               </div>
               Crop Image
             </h2>
@@ -522,7 +522,7 @@ export default function CropModal({
             />
             {!imageLoaded && (
               <div className="absolute inset-0 flex items-center justify-center bg-neutral-900">
-                <div className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+                <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
               </div>
             )}
           </div>
@@ -541,7 +541,7 @@ export default function CropModal({
                   disabled={applying}
                   className={`px-2.5 py-1 text-[11px] font-medium rounded-lg transition-all ${
                     aspect === a.value
-                      ? "bg-indigo-500 text-white shadow-sm shadow-indigo-500/25"
+                      ? "bg-primary text-white shadow-sm shadow-primary/25"
                       : "bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground"
                   }`}
                 >
@@ -553,7 +553,7 @@ export default function CropModal({
                 disabled={applying}
                 className={`ml-1 p-1.5 rounded-lg transition-colors ${
                   showGrid
-                    ? "bg-indigo-500/10 text-indigo-500"
+                    ? "bg-primary/10 text-primary"
                     : "text-muted-foreground hover:bg-muted/60"
                 }`}
                 title="Toggle rule-of-thirds grid"
@@ -601,7 +601,7 @@ export default function CropModal({
             size="sm"
             onClick={handleApply}
             disabled={!imageLoaded || box.w < 1 || applying}
-            className="gap-1.5 bg-gradient-to-r from-indigo-500 to-purple-600 text-white hover:from-indigo-600 hover:to-purple-700 shadow-md min-w-[110px]"
+            className="gap-1.5 bg-primary text-white hover:from-primary hover:to-primary shadow-md min-w-[110px]"
           >
             {applying ? (
               <>

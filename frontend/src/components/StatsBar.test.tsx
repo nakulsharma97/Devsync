@@ -25,7 +25,7 @@ const sampleStats: PublicStats = {
 
 describe("StatsBar", () => {
   it("renders the real server-computed numbers", () => {
-    render(<StatsBar stats={sampleStats} />);
+    render(<StatsBar stats={sampleStats} settled />);
 
     expect(screen.getByText("Registered Developers")).toBeInTheDocument();
     expect(screen.getByText("127")).toBeInTheDocument();
@@ -38,7 +38,7 @@ describe("StatsBar", () => {
   });
 
   it("renders derived sub-labels from real data", () => {
-    render(<StatsBar stats={sampleStats} />);
+    render(<StatsBar stats={sampleStats} settled />);
     expect(screen.getByText("15 public projects")).toBeInTheDocument();
     expect(screen.getByText("8 completed")).toBeInTheDocument();
     expect(screen.getByText("of 318 total tasks")).toBeInTheDocument();
@@ -48,6 +48,7 @@ describe("StatsBar", () => {
   it("handles zero data honestly without fabricated numbers", () => {
     render(
       <StatsBar
+        settled
         stats={{
           users: 0,
           projects: 0,
@@ -69,8 +70,16 @@ describe("StatsBar", () => {
   });
 
   it("shows skeleton placeholders while stats are loading", () => {
-    render(<StatsBar stats={null} />);
+    const { container } = render(<StatsBar stats={null} settled={false} />);
     // No hardcoded numbers while loading.
     expect(screen.queryByText(/50,000|12,000|Registered Developers/)).not.toBeInTheDocument();
+    // A pulsing placeholder stands in until the request settles.
+    expect(container.querySelectorAll(".animate-pulse").length).toBeGreaterThan(0);
+  });
+
+  it("renders nothing once the request settles without data", () => {
+    // A failed/hung stats call must not leave placeholders pulsing forever.
+    const { container } = render(<StatsBar stats={null} settled />);
+    expect(container).toBeEmptyDOMElement();
   });
 });
