@@ -109,10 +109,10 @@ function SidebarLink({ to, icon: Icon, label, badge, onNavigate }: SidebarLinkPr
       onClick={onNavigate}
       className={({ isActive }) =>
         cn(
-          "group relative flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-all duration-150",
+          "group relative flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-150",
           isActive
-            ? "bg-primary/10 text-primary font-medium"
-            : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+            ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+            : "text-sidebar-foreground hover:text-foreground hover:bg-muted"
         )
       }
     >
@@ -122,8 +122,8 @@ function SidebarLink({ to, icon: Icon, label, badge, onNavigate }: SidebarLinkPr
             className={cn(
               "relative w-7 h-7 rounded-md flex items-center justify-center shrink-0 transition-colors duration-150",
               isActive
-                ? "bg-primary text-primary-foreground"
-                : "text-muted-foreground group-hover:text-foreground"
+                ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                : "text-muted-foreground group-hover:text-sidebar-foreground"
             )}
           >
             <Icon className="w-3.5 h-3.5" />
@@ -142,7 +142,7 @@ function SidebarLink({ to, icon: Icon, label, badge, onNavigate }: SidebarLinkPr
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <p className="px-3 pt-4 pb-1 text-[11px] font-medium text-muted-foreground/40">
+    <p className="px-3 pt-4 pb-1 text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
       {children}
     </p>
   );
@@ -245,7 +245,7 @@ export default function DashboardLayout() {
             "fixed top-0 left-0 right-0 z-[60] flex items-center justify-center gap-2 px-4 py-2 text-xs font-medium transition-colors duration-300",
             !isOnline
               ? "bg-primary/90 text-white"
-              : "bg-emerald-500/90 text-white"
+              : "bg-success/90 text-white"
           )}
         >
           {!isOnline ? (
@@ -274,21 +274,21 @@ export default function DashboardLayout() {
       {/* Sidebar */}
       <aside
         aria-label="Main navigation"
-        className={`fixed top-0 left-0 z-50 flex h-full w-64 flex-col border-r border-border bg-card transform transition-transform duration-200 md:translate-x-0 ${
+        className={`fixed top-0 left-0 z-50 flex h-full w-64 flex-col border-r border-sidebar-border bg-sidebar transform transition-transform duration-200 md:translate-x-0 ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-sidebar-border">
           <button onClick={() => navigate("/")} className="flex items-center gap-2 group">
-            <div className="w-7 h-7 rounded-md bg-primary flex items-center justify-center">
-              <svg className="w-4 h-4 text-primary-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M16 18l6-6-6-6"/><path d="M8 6l-6 6 6 6"/></svg>
+            <div className="w-7 h-7 rounded-lg bg-sidebar-primary flex items-center justify-center">
+              <svg className="w-4 h-4 text-sidebar-primary-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M16 18l6-6-6-6"/><path d="M8 6l-6 6 6 6"/></svg>
             </div>
-            <span className="font-display text-sm font-semibold tracking-tight">DevSync</span>
+            <span className="font-display text-sm font-semibold tracking-tight text-foreground">DevSync</span>
           </button>
           <button
             onClick={closeSidebar}
             aria-label="Close menu"
-            className="md:hidden p-1 rounded-md hover:bg-accent/10"
+            className="md:hidden p-1 rounded-md hover:bg-muted"
           >
             <X className="w-4 h-4" />
           </button>
@@ -344,32 +344,32 @@ export default function DashboardLayout() {
         </nav>
 
         {/* User card */}
-        <div className="shrink-0 p-3 border-t border-border bg-background">
+        <div className="shrink-0 p-3 border-t border-sidebar-border bg-sidebar">
           <div className="flex items-center gap-3 px-2 py-2 mb-1">
             <div className="relative shrink-0">
-              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
+              <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center overflow-hidden ring-1 ring-border">
                 {user?.avatarUrl ? (
                   <img src={user.avatarUrl} alt={user.fullName || ""} className="w-full h-full object-cover" />
                 ) : (
-                  <span className="text-xs font-semibold text-primary">
+                  <span className="text-xs font-semibold text-sidebar-primary">
                     {user?.fullName?.charAt(0) || "U"}
                   </span>
                 )}
               </div>
-              <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-accent ring-2 ring-card" />
+              <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-success ring-2 ring-sidebar" />
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1.5">
-                <p className="text-sm font-medium truncate">{user?.fullName || "User"}</p>
+                <p className="text-sm font-medium truncate text-foreground">{user?.fullName || "User"}</p>
                 {subscription && (
                   <button
                     onClick={() => { navigate("/settings/billing"); closeSidebar(); }}
                     className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium transition-colors hover:opacity-80 ${
                       subscription.planCode === "FREE"
-                        ? "bg-secondary text-muted-foreground"
+                        ? "bg-muted text-muted-foreground"
                         : subscription.planCode === "PRO"
-                          ? "bg-primary/10 text-primary"
-                          : "bg-accent/10 text-accent"
+                          ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                          : "bg-primary/10 text-primary"
                     }`}
                   >
                     {subscription.planCode}
@@ -383,7 +383,7 @@ export default function DashboardLayout() {
             variant="ghost"
             size="sm"
             onClick={logout}
-            className="w-full justify-start text-muted-foreground hover:text-foreground hover:bg-red-500/5"
+            className="w-full justify-start text-muted-foreground hover:text-danger hover:bg-danger/10 rounded-lg"
           >
             <LogOut className="w-4 h-4 mr-2" /> Sign out
           </Button>
@@ -391,8 +391,8 @@ export default function DashboardLayout() {
       </aside>
 
       {/* Main content */}
-      <div className="md:ml-64">
-        <header className="sticky top-0 z-30 h-14 border-b border-border bg-background">
+      <div className="md:ml-64 bg-background min-h-screen">
+        <header className="sticky top-0 z-30 h-14 border-b border-border bg-background/90 backdrop-blur-sm">
           <div className="flex items-center justify-between h-full px-4 lg:px-6">
             <div className="flex items-center gap-3">
               <button
@@ -400,7 +400,7 @@ export default function DashboardLayout() {
                 aria-label="Open menu"
                 className="md:hidden p-2 rounded-lg hover:bg-accent/10 transition-colors"
               >
-                <Menu className="w-5 h-5 text-foreground/80" />
+                <Menu className="w-5 h-5 text-muted-foreground" />
               </button>
               {/* DevSync logo — subtle in the navbar */}
               <button
@@ -413,7 +413,7 @@ export default function DashboardLayout() {
                   DevSync
                 </span>
               </button>
-              <div className="hidden md:block w-px h-6 bg-border/50" />
+              <div className="hidden md:block w-px h-6 bg-border" />
               <div className="flex items-center gap-2" data-testid="page-title">
                 <h1 className="font-display text-sm font-semibold text-foreground">{page.title}</h1>
               </div>
@@ -424,11 +424,11 @@ export default function DashboardLayout() {
                 size="sm"
                 onClick={() => setPaletteOpen(true)}
                 aria-label="Open search"
-                className="hidden sm:flex items-center gap-2 h-8 w-[180px] lg:w-[220px] px-3 text-muted-foreground hover:text-foreground transition-colors"
+                className="hidden sm:flex items-center gap-2 h-8 w-[180px] lg:w-[220px] px-3 text-muted-foreground hover:text-foreground bg-card border-border hover:border-primary/30 transition-colors rounded-lg"
               >
                 <Search className="w-3.5 h-3.5 shrink-0" />
                 <span className="text-sm flex-1 text-left">Search...</span>
-                <kbd className="hidden lg:inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-mono text-muted-foreground bg-muted/60 rounded border border-border/40">
+                <kbd className="hidden lg:inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-mono text-muted-foreground bg-muted rounded border border-border">
                   <Command className="w-2.5 h-2.5" />K
                 </kbd>
               </Button>
@@ -438,7 +438,7 @@ export default function DashboardLayout() {
                 size="icon"
                 onClick={() => setPaletteOpen(true)}
                 aria-label="Search"
-                className="sm:hidden h-9 w-9 rounded-lg hover:bg-accent/10 transition-colors"
+                className="sm:hidden h-9 w-9 rounded-lg hover:bg-muted transition-colors"
               >
                 <Search className="w-[18px] h-[18px] text-muted-foreground" />
               </Button>
@@ -446,10 +446,10 @@ export default function DashboardLayout() {
               <button
                 onClick={() => navigate("/settings/billing")}
                 aria-label={subscription?.planCode && subscription.planCode !== "FREE" ? "Manage subscription" : "Upgrade plan"}
-                className={`inline-flex items-center gap-1.5 h-8 px-3 rounded-md text-xs font-medium transition-colors duration-150 shrink-0 ${
+                className={`inline-flex items-center gap-1.5 h-8 px-3 rounded-lg text-xs font-medium transition-colors duration-150 shrink-0 ${
                   subscription?.planCode && subscription.planCode !== "FREE"
-                    ? "bg-secondary text-secondary-foreground hover:bg-secondary/80"
-                    : "bg-primary text-primary-foreground hover:bg-primary/90"
+                    ? "bg-card text-foreground hover:bg-muted border border-border"
+                    : "bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/20"
                 }`}
               >
                 <Crown className="w-4 h-4 shrink-0" />
@@ -461,11 +461,11 @@ export default function DashboardLayout() {
               <button
                 onClick={() => navigate("/messages")}
                 aria-label={`Messages${msgUnreadCount > 0 ? ` — ${msgUnreadCount} unread` : ""}`}
-                className="relative inline-flex items-center justify-center w-9 h-9 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent/10 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 outline-none transition-colors"
+                className="relative inline-flex items-center justify-center w-9 h-9 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 outline-none transition-colors"
               >
                 <MessageSquare className="w-4 h-4" />
                 {msgUnreadCount > 0 && (
-                  <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full bg-red-500 text-[9px] font-bold text-white flex items-center justify-center shadow-sm ring-2 ring-background animate-badge-pop">
+                  <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full bg-danger text-[9px] font-bold text-white flex items-center justify-center shadow-sm ring-2 ring-background animate-badge-pop">
                     {msgUnreadCount > 99 ? "99+" : msgUnreadCount}
                   </span>
                 )}
@@ -474,13 +474,13 @@ export default function DashboardLayout() {
                 unreadCount={unreadCount}
                 onUnreadCountChange={setUnreadCount}
               />
-              <div className="w-px h-6 bg-border/50 hidden sm:block" />
+              <div className="w-px h-6 bg-border hidden sm:block" />
               <ThemeToggle />
               <UserMenu />
             </div>
           </div>
         </header>
-        <main className="p-4 md:p-6">
+        <main className="p-4 md:p-6 bg-background">
           <Outlet />
         </main>
       </div>

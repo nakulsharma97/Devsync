@@ -3,20 +3,16 @@ import { useEffect, useState, useRef } from "react";
 const codeLines = [
   'import { createWorkspace } from "./devsync";',
   "",
-  'const ws = await createWorkspace({',
-  '  name: "DevSync",',
-  '  project: "collaboration-platform",',
-  '});',
+  'const ws = await createWorkspace({ name: "DevSync" });',
   "",
   'const task = await ws.tasks.create({',
-  '  title: "Build real-time chat",',
-  '  status: "in-progress",',
-  '  assignee: "Nakul",',
+  '  title: "Ship features",',
+  '  status: "active",',
   '});',
   "",
-  'await ws.deploy({ environment: "production" });',
+  'await ws.deploy({ env: "production" });',
   "",
-  'console.log("Deployed", task.id);',
+  'console.log("Deployed ✓", task.id);',
 ];
 
 // Theme-aware syntax colors
@@ -194,7 +190,7 @@ export default function GlassCodeEditor() {
         <div
           ref={containerRef}
           className="p-5 md:p-7 font-mono text-[13px] md:text-[14px] leading-[1.9] overflow-y-auto"
-          style={{ scrollbarWidth: "thin", scrollbarColor: dark ? "rgba(166, 83, 45, 0.15) transparent" : "rgba(166, 83, 45, 0.10) transparent" }}
+          style={{ scrollbarWidth: "thin", scrollbarColor: dark ? "rgba(166, 83, 45, 0.15) transparent" : "rgba(166, 83, 45, 0.10) transparent", maxHeight: '340px' }}
         >
           <div className="flex">
             {/* Line numbers */}
