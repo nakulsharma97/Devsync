@@ -112,11 +112,11 @@ export default function GlassCodeEditor() {
     : "linear-gradient(145deg, #F8FAFC 0%, #F1F5F9 100%)";
 
   const editorBorder = dark
-    ? "rgba(249, 115, 22, 0.45)"
+    ? "rgba(249, 115, 22, 0.22)"
     : "rgba(166, 83, 45, 0.18)";
 
   const editorShadow = dark
-    ? "0 0 0 1px rgba(249, 115, 22, 0.15), 0 20px 80px rgba(0, 0, 0, 0.5), 0 0 60px rgba(249, 115, 22, 0.2)"
+    ? "0 0 0 1px rgba(249, 115, 22, 0.08), 0 20px 80px rgba(0, 0, 0, 0.5), 0 0 35px rgba(249, 115, 22, 0.1)"
     : "0 0 0 1px rgba(0, 0, 0, 0.03), 0 20px 80px rgba(0, 0, 0, 0.10), 0 0 45px rgba(166, 83, 45, 0.06)";
 
   const lineNumColor = dark ? "rgba(166, 123, 74, 0.40)" : "rgba(166, 83, 45, 0.35)";
@@ -133,7 +133,7 @@ export default function GlassCodeEditor() {
       <div
         className="absolute -inset-6 rounded-3xl opacity-30 group-hover:opacity-50 transition-opacity duration-700 pointer-events-none"
         style={{
-          background: dark ? "radial-gradient(ellipse at 50% 40%, rgba(249, 115, 22, 0.2) 0%, transparent 70%)" : "radial-gradient(ellipse at 50% 40%, rgba(166, 83, 45, 0.18) 0%, transparent 70%)",
+          background: dark ? "radial-gradient(ellipse at 50% 40%, rgba(249, 115, 22, 0.1) 0%, transparent 70%)" : "radial-gradient(ellipse at 50% 40%, rgba(166, 83, 45, 0.18) 0%, transparent 70%)",
           filter: "blur(30px)",
         }}
       />

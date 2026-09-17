@@ -77,7 +77,7 @@ export default function Navbar() {
           }`}>Sign in</Button>
           <Button onClick={() => navigate("/auth?mode=register")} className={`transition-all duration-300 bg-primary text-primary-foreground hover:bg-[#fb923c] font-medium ${
             scrolled ? "text-xs h-7 px-3" : "text-sm h-9 px-4"
-          }`} style={{ boxShadow: "0 0 24px rgba(249, 115, 22, 0.25)" }}>
+          }`} style={{ boxShadow: "0 0 16px rgba(249, 115, 22, 0.12)" }}>
             Start Free<ArrowRight className={`ml-1.5 transition-all duration-300 ${scrolled ? "w-3 h-3" : "w-3.5 h-3.5"}`} />
           </Button>
         </nav>

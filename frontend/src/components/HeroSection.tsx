@@ -90,7 +90,7 @@ export default function HeroSection({ stats }: { stats: PublicStats | null }) {
               <br />
               Collaborate.
               <br />
-              <span className="text-primary">Ship.</span>
+              <span className="text-foreground">Ship.</span>
             </h1>
 
             <p
@@ -109,7 +109,7 @@ export default function HeroSection({ stats }: { stats: PublicStats | null }) {
                 size="lg"
                 onClick={() => navigate("/auth?mode=register")}
                 className="w-full sm:w-auto text-sm px-8 h-11 font-medium bg-primary text-primary-foreground hover:bg-[#fb923c]"
-                style={{ boxShadow: "0 0 24px rgba(249, 115, 22, 0.25)" }}
+                style={{ boxShadow: "0 0 16px rgba(249, 115, 22, 0.12)" }}
               >
                 <span className="flex items-center">
                   Start Free
