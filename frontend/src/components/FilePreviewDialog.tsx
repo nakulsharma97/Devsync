@@ -89,14 +89,14 @@ export function FilePreviewDialog({
             onClick={handleDownload}
             disabled={downloading}
             aria-label="Download file"
-            className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent/10 transition-colors disabled:opacity-40"
+            className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-primary/10 transition-colors disabled:opacity-40"
           >
             {downloading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
           </button>
           <button
             onClick={onClose}
             aria-label="Close preview"
-            className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent/10 transition-colors"
+            className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-primary/10 transition-colors"
           >
             <X className="w-4 h-4" />
           </button>

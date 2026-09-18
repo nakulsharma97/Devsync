@@ -73,7 +73,7 @@ export function ConversationDetails({
           <button
             onClick={onClose}
             aria-label="Close details"
-            className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent/10 transition-colors"
+            className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-primary/10 transition-colors"
           >
             <X className="w-4 h-4" />
           </button>

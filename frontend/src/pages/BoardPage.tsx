@@ -66,8 +66,8 @@ function isOverdue(task: TaskDto): boolean {
 const PR_STATE_STYLES: Record<string, string> = {
   OPEN: "text-info dark:text-blue-400 bg-info/10 border-info/25",
   CHANGES_REQUESTED: "text-primary dark:text-primary bg-primary/10 border-primary/25",
-  APPROVED: "text-accent dark:text-accent bg-accent/10 border-accent/25",
-  MERGED: "text-accent dark:text-accent bg-accent/10 border-accent/25",
+  APPROVED: "text-primary dark:text-primary bg-primary/10 border-primary/25",
+  MERGED: "text-primary dark:text-primary bg-primary/10 border-primary/25",
   CLOSED: "text-muted-foreground bg-muted/50 border-border/30",
 };
 
@@ -166,7 +166,7 @@ function TaskCard({
       {(task.branchName || task.pullRequestState) && (
         <div className="flex items-center gap-1 mt-1.5 flex-wrap">
           {task.branchName && (
-            <span className="inline-flex items-center gap-1 text-[9px] px-1.5 py-0.5 rounded-md bg-accent/10 text-accent dark:text-accent border border-accent/20 font-mono">
+            <span className="inline-flex items-center gap-1 text-[9px] px-1.5 py-0.5 rounded-md bg-primary/10 text-primary dark:text-primary border border-primary/20 font-mono">
               <GitBranch className="w-2 h-2" />
               {task.branchName.split("/").pop()}
             </span>
@@ -427,7 +427,7 @@ function TaskDetailDialog({
             </div>
           </div>
 
-          <Button type="submit" disabled={saving || !title.trim()} className="w-full bg-primary text-white">
+          <Button type="submit" disabled={saving || !title.trim()} className="w-full bg-primary text-primary-foreground">
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save Changes"}
           </Button>
         </form>
@@ -495,7 +495,7 @@ function TaskDetailDialog({
           ) : (
             <div className="space-y-2 text-sm">
               {task.branchName && (
-                <div className="flex items-center gap-2 bg-success/5 border border-accent/20 rounded-lg px-3 py-2">
+                <div className="flex items-center gap-2 bg-success/5 border border-primary/20 rounded-lg px-3 py-2">
                   <GitBranch className="w-3.5 h-3.5 text-success shrink-0" />
                   <span className="font-mono text-xs truncate">{task.branchName}</span>
                 </div>
@@ -914,7 +914,7 @@ export default function BoardPage() {
               toast("Failed to create board");
             }
           }}
-          className="bg-primary text-white"
+          className="bg-primary text-primary-foreground"
         >
           <Plus className="w-4 h-4 mr-1.5" />
           Create Board
@@ -941,7 +941,7 @@ export default function BoardPage() {
               className={cn(
                 "inline-flex items-center gap-1.5 text-xs font-medium px-3 py-2 rounded-lg transition-all",
                 view === "board"
-                  ? "bg-primary text-white shadow-md"
+                  ? "bg-primary text-primary-foreground shadow-md"
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
@@ -954,7 +954,7 @@ export default function BoardPage() {
               className={cn(
                 "inline-flex items-center gap-1.5 text-xs font-medium px-3 py-2 rounded-lg transition-all",
                 view === "calendar"
-                  ? "bg-primary text-white shadow-md"
+                  ? "bg-primary text-primary-foreground shadow-md"
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
@@ -1002,7 +1002,7 @@ export default function BoardPage() {
             </div>
           </div>
           <div className="bg-card border border-border/50 rounded-2xl p-5 flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-accent/10 flex items-center justify-center shrink-0">
+            <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
               <CheckCircle2 className="w-5 h-5 text-success" />
             </div>
             <div>
@@ -1041,7 +1041,7 @@ export default function BoardPage() {
                       setSelectedColumn(col.id);
                       setOpen(true);
                     }}
-                    className="p-1.5 rounded-lg hover:bg-accent/10 transition-colors"
+                    className="p-1.5 rounded-lg hover:bg-primary/10 transition-colors"
                     aria-label={`Add task to ${col.name}`}
                   >
                     <Plus className="w-4 h-4 text-muted-foreground" />
@@ -1111,7 +1111,7 @@ export default function BoardPage() {
             <Button
               type="submit"
               disabled={creating || !title.trim()}
-              className="w-full bg-primary text-white"
+              className="w-full bg-primary text-primary-foreground"
             >
               {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : "Add Task"}
             </Button>

@@ -186,7 +186,7 @@ function FollowListDialog({
                       "text-xs shrink-0",
                       u.isFollowing
                         ? "border-border/60 text-foreground hover:border-red-500/50 hover:text-red-600 hover:bg-red-500/5 dark:hover:border-red-400/50 dark:hover:text-red-400 dark:hover:bg-red-500/10"
-                        : "border-primary/30 bg-primary text-white hover:bg-primary dark:bg-primary dark:hover:bg-accent"
+                        : "border-primary/30 bg-primary text-primary-foreground hover:bg-primary dark:bg-primary dark:hover:bg-accent"
                     )}
                   >
                     {togglingIds.has(u.id) ? (
@@ -357,7 +357,7 @@ export default function UserProfilePage() {
     return (
       <div className="flex items-center justify-center py-20">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-8 h-8 rounded-full border-2 border-accent/30 border-t-accent animate-spin" />
+          <div className="w-8 h-8 rounded-full border-2 border-primary/30 border-t-accent animate-spin" />
           <p className="text-sm text-muted-foreground">Loading profile...</p>
         </div>
       </div>
@@ -367,8 +367,8 @@ export default function UserProfilePage() {
   if (error || !profile || !social) {
     return (
       <div className="flex flex-col items-center justify-center py-20">
-        <div className="w-12 h-12 rounded-2xl bg-accent/10 flex items-center justify-center mb-4 ring-1 ring-accent/20">
-          <User className="w-6 h-6 text-accent" />
+        <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center mb-4 ring-1 ring-accent/20">
+          <User className="w-6 h-6 text-primary" />
         </div>
         <h3 className="text-sm font-semibold text-foreground">Profile not found</h3>
         <p className="text-sm text-muted-foreground mt-1">This user doesn't exist or has been removed.</p>
@@ -435,7 +435,7 @@ export default function UserProfilePage() {
             {/* Badges — only from data the user actually provided */}
             <div className="flex items-center gap-2 mt-2 flex-wrap">
               {profile.jobTitle && (
-                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-accent/10 text-accent border border-accent/20 font-medium flex items-center gap-1">
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 font-medium flex items-center gap-1">
                   <Briefcase className="w-2.5 h-2.5" /> {profile.jobTitle}
                 </span>
               )}
@@ -450,7 +450,7 @@ export default function UserProfilePage() {
                 </span>
               )}
               {social.isSelf && (
-                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-accent/10 text-accent border border-accent/20 font-medium">
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 font-medium">
                   This is you
                 </span>
               )}
@@ -482,7 +482,7 @@ export default function UserProfilePage() {
                 </span>
               )}
               {c.currentStreak > 0 && (
-                <span className="inline-flex items-center gap-1 text-accent">
+                <span className="inline-flex items-center gap-1 text-primary">
                   <Flame className="w-3.5 h-3.5" /> {c.currentStreak} day streak
                 </span>
               )}
@@ -505,7 +505,7 @@ export default function UserProfilePage() {
                 <Button
                   size="sm"
                   onClick={() => navigate("/profile/posts")}
-                  className="text-xs gap-1.5 bg-primary text-white hover:from-primary hover:to-primary"
+                  className="text-xs gap-1.5 bg-primary text-primary-foreground hover:from-primary hover:to-primary"
                 >
                   <FileText className="w-3.5 h-3.5" />
                   My Posts
@@ -521,7 +521,7 @@ export default function UserProfilePage() {
                   "text-xs gap-1.5 min-w-[100px] justify-center",
                   social.isFollowing
                     ? "border-border/60 text-foreground hover:border-red-500/50 hover:text-red-600 hover:bg-red-500/5 dark:hover:border-red-400/50 dark:hover:text-red-400 dark:hover:bg-red-500/10"
-                    : "border-primary/30 bg-primary text-white hover:bg-primary dark:bg-primary dark:hover:bg-accent"
+                    : "border-primary/30 bg-primary text-primary-foreground hover:bg-primary dark:bg-primary dark:hover:bg-accent"
                 )}
               >
                 {followBusy ? (
@@ -618,7 +618,7 @@ export default function UserProfilePage() {
       <div className="rounded-2xl border border-border/50 bg-card p-5 mb-6">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-            <Flame className="w-4 h-4 text-accent" />
+            <Flame className="w-4 h-4 text-primary" />
             Contribution activity
           </h3>
           <span className="text-[11px] text-muted-foreground">Last {HEATMAP_DAYS} days</span>

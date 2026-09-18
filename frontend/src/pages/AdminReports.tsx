@@ -93,7 +93,7 @@ const ENTITY_TYPES: ReportEntityType[] = ["USER", "PROJECT", "POST", "COMMENT", 
 const statusStyles: Record<ReportStatus, string> = {
   PENDING: "bg-primary/10 text-primary border-primary/20",
   UNDER_REVIEW: "bg-info/10 text-info border-info/20",
-  RESOLVED: "bg-accent/10 text-success border-accent/20",
+  RESOLVED: "bg-primary/10 text-success border-primary/20",
   REJECTED: "bg-red-500/10 text-red-500 border-red-500/20",
 };
 
@@ -220,7 +220,7 @@ export default function AdminReports() {
   };
 
   const statCards = [
-    { label: "Total Reports", value: stats?.total ?? 0, icon: Flag, color: "text-accent" },
+    { label: "Total Reports", value: stats?.total ?? 0, icon: Flag, color: "text-primary" },
     { label: "Pending", value: stats?.pending ?? 0, icon: Clock, color: "text-primary" },
     { label: "Under Review", value: stats?.underReview ?? 0, icon: Eye, color: "text-info" },
     { label: "Resolved", value: stats?.resolved ?? 0, icon: CheckCircle2, color: "text-success" },
@@ -236,10 +236,10 @@ export default function AdminReports() {
       {/* Header */}
       <div>
         <div className="flex items-center gap-2 mb-1">
-          <div className="w-5 h-5 rounded-md bg-accent/10 flex items-center justify-center">
-            <ShieldAlert className="w-3 h-3 text-accent" />
+          <div className="w-5 h-5 rounded-md bg-primary/10 flex items-center justify-center">
+            <ShieldAlert className="w-3 h-3 text-primary" />
           </div>
-          <span className="text-xs font-medium text-accent">Moderation Center</span>
+          <span className="text-xs font-medium text-primary">Moderation Center</span>
         </div>
         <h1 className="text-2xl font-bold tracking-tight">Reports</h1>
         <p className="text-sm text-muted-foreground mt-1">
@@ -357,7 +357,7 @@ export default function AdminReports() {
                         <TableCell className="font-mono text-xs">{r.id.slice(0, 8)}</TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
-                            <div className="w-6 h-6 rounded-full bg-accent/10 flex items-center justify-center text-[10px] font-bold text-accent shrink-0 overflow-hidden">
+                            <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold text-primary shrink-0 overflow-hidden">
                               {r.reporter.avatarUrl ? (
                                 <img src={r.reporter.avatarUrl} alt="" className="w-full h-full object-cover" />
                               ) : (
@@ -470,7 +470,7 @@ export default function AdminReports() {
             <>
               <SheetHeader>
                 <div className="flex items-center gap-2">
-                  <ShieldAlert className="w-5 h-5 text-accent" />
+                  <ShieldAlert className="w-5 h-5 text-primary" />
                   <SheetTitle>Report {selected.id.slice(0, 8)}</SheetTitle>
                 </div>
                 <SheetDescription>
@@ -485,7 +485,7 @@ export default function AdminReports() {
                 <div>
                   <p className="text-xs font-medium text-muted-foreground mb-2">Reporter</p>
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center text-sm font-bold text-accent overflow-hidden">
+                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary overflow-hidden">
                       {selected.reporter.avatarUrl ? (
                         <img src={selected.reporter.avatarUrl} alt="" className="w-full h-full object-cover" />
                       ) : (
@@ -504,7 +504,7 @@ export default function AdminReports() {
                   <p className="text-xs font-medium text-muted-foreground mb-2">Reported Content</p>
                   <div className="rounded-lg border border-border/40 p-3 bg-muted/30">
                     <div className="flex items-center gap-2 mb-1">
-                      <EntityIcon className="w-4 h-4 text-accent" />
+                      <EntityIcon className="w-4 h-4 text-primary" />
                       <Badge variant="outline" className="text-[10px]">{selected.entityType}</Badge>
                     </div>
                     <p className="text-sm">{selected.entityTitle}</p>

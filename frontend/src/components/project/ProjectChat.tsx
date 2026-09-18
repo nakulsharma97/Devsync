@@ -222,7 +222,7 @@ export function ProjectChat({ room }: { room: TeamRoomDto }) {
                     className={cn(
                       "rounded-xl px-3 py-1.5 text-sm",
                       mine
-                        ? "bg-primary text-white"
+                        ? "bg-primary text-primary-foreground"
                         : "bg-muted/40 text-foreground border border-border/30"
                     )}
                   >
@@ -261,7 +261,7 @@ export function ProjectChat({ room }: { room: TeamRoomDto }) {
           type="submit"
           disabled={!text.trim() || sending}
           aria-label="Send message"
-          className="w-9 h-9 rounded-lg bg-primary text-white flex items-center justify-center disabled:opacity-40 hover:from-primary hover:to-primary transition-all"
+          className="w-9 h-9 rounded-lg bg-primary text-primary-foreground flex items-center justify-center disabled:opacity-40 hover:from-primary hover:to-primary transition-all"
         >
           {sending ? (
             <Loader2 className="w-4 h-4 animate-spin" />

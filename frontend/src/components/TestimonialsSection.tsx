@@ -116,8 +116,8 @@ export default function TestimonialsSection({
           </div>
         ) : !hasReviews ? (
           <div className="max-w-xl mx-auto text-center rounded-2xl border border-border/40 bg-card/70 backdrop-blur-sm p-8 md:p-10">
-            <div className="mx-auto w-14 h-14 rounded-2xl bg-accent/10 flex items-center justify-center ring-1 ring-accent/20 mb-4">
-              <MessageSquarePlus className="w-7 h-7 text-accent" />
+            <div className="mx-auto w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center ring-1 ring-accent/20 mb-4">
+              <MessageSquarePlus className="w-7 h-7 text-primary" />
             </div>
             <h3 className="text-lg font-semibold mb-2">Your feedback can be the first</h3>
             <p className="text-sm text-muted-foreground leading-relaxed mb-6">
@@ -156,7 +156,7 @@ export default function TestimonialsSection({
                     <div className="flex items-center gap-3 pt-4 border-t border-border/50">
                       <Avatar className="w-10 h-10 ring-1 ring-accent/20">
                         {review.avatarUrl ? <AvatarImage src={review.avatarUrl} alt="" /> : null}
-                        <AvatarFallback className="bg-gradient-to-br from-accent/20 to-accent/5 text-xs font-medium text-accent">
+                        <AvatarFallback className="bg-gradient-to-br from-accent/20 to-accent/5 text-xs font-medium text-primary">
                           {initials(review.displayName)}
                         </AvatarFallback>
                       </Avatar>

@@ -87,7 +87,7 @@ import { toast } from "sonner";
 const PAGE_SIZE = 10;
 
 const statusStyles: Record<string, string> = {
-  ACTIVE: "bg-accent/10 text-success border-accent/20",
+  ACTIVE: "bg-primary/10 text-success border-primary/20",
   ARCHIVED: "bg-primary/10 text-primary border-primary/20",
   COMPLETED: "bg-info/10 text-info border-info/20",
   DELETED: "bg-muted text-muted-foreground border-border/50",
@@ -95,7 +95,7 @@ const statusStyles: Record<string, string> = {
 
 const visibilityStyles: Record<string, string> = {
   PUBLIC: "bg-info/10 text-info border-info/20",
-  PRIVATE: "bg-accent/10 text-accent border-accent/20",
+  PRIVATE: "bg-primary/10 text-primary border-primary/20",
 };
 
 function fmtDate(value?: string | null): string {
@@ -280,11 +280,11 @@ export default function AdminProjects() {
   }
 
   const statCards = [
-    { label: "Total Projects", value: stats?.total ?? 0, icon: FolderGit2, color: "text-accent" },
+    { label: "Total Projects", value: stats?.total ?? 0, icon: FolderGit2, color: "text-primary" },
     { label: "Active", value: stats?.active ?? 0, icon: CircleCheck, color: "text-success" },
     { label: "Archived", value: stats?.archived ?? 0, icon: Archive, color: "text-primary" },
     { label: "Public", value: stats?.publicCount ?? 0, icon: Globe, color: "text-info" },
-    { label: "Private", value: stats?.privateCount ?? 0, icon: Lock, color: "text-accent" },
+    { label: "Private", value: stats?.privateCount ?? 0, icon: Lock, color: "text-primary" },
   ];
 
   return (
@@ -294,8 +294,8 @@ export default function AdminProjects() {
       {/* Header */}
       <div>
         <div className="flex items-center gap-2 mb-1">
-          <div className="w-5 h-5 rounded-md bg-accent/10 flex items-center justify-center">
-            <ShieldAlert className="w-3 h-3 text-accent" />
+          <div className="w-5 h-5 rounded-md bg-primary/10 flex items-center justify-center">
+            <ShieldAlert className="w-3 h-3 text-primary" />
           </div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground">Project Management</h1>
         </div>
@@ -450,8 +450,8 @@ export default function AdminProjects() {
                       <TableRow key={p.id} className="hover:bg-accent/5 transition-colors">
                         <TableCell>
                           <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-lg bg-accent/10 ring-1 ring-accent/20 flex items-center justify-center shrink-0">
-                              <FolderGit2 className="w-4 h-4 text-accent" />
+                            <div className="w-8 h-8 rounded-lg bg-primary/10 ring-1 ring-accent/20 flex items-center justify-center shrink-0">
+                              <FolderGit2 className="w-4 h-4 text-primary" />
                             </div>
                             <div className="min-w-0">
                               <p className="text-sm font-medium text-foreground truncate">{p.name}</p>
@@ -465,7 +465,7 @@ export default function AdminProjects() {
                           <div className="flex items-center gap-2">
                             <Avatar className="w-6 h-6 ring-1 ring-accent/20">
                               {p.ownerAvatarUrl ? <AvatarImage src={p.ownerAvatarUrl} alt="" /> : null}
-                              <AvatarFallback className="bg-gradient-to-br from-accent/20 to-accent/5 text-[10px] font-medium text-accent">
+                              <AvatarFallback className="bg-gradient-to-br from-accent/20 to-accent/5 text-[10px] font-medium text-primary">
                                 {(p.ownerName || "U").charAt(0).toUpperCase()}
                               </AvatarFallback>
                             </Avatar>
@@ -615,7 +615,7 @@ export default function AdminProjects() {
             <AlertDialogAction
               onClick={handleArchive}
               disabled={busyId === archiveTarget?.id}
-              className="bg-primary hover:bg-primary text-white"
+              className="bg-primary hover:bg-primary text-primary-foreground"
             >
               {busyId === archiveTarget?.id ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
               Archive Project
@@ -655,8 +655,8 @@ export default function AdminProjects() {
         <SheetContent className="w-full sm:max-w-md overflow-y-auto">
           <SheetHeader className="border-b border-border/40 pb-4">
             <SheetTitle className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-accent/10 ring-1 ring-accent/20 flex items-center justify-center shrink-0">
-                <FolderGit2 className="w-5 h-5 text-accent" />
+              <div className="w-10 h-10 rounded-lg bg-primary/10 ring-1 ring-accent/20 flex items-center justify-center shrink-0">
+                <FolderGit2 className="w-5 h-5 text-primary" />
               </div>
               <div className="min-w-0">
                 <p className="text-base font-semibold truncate">{detail?.name}</p>
@@ -691,7 +691,7 @@ export default function AdminProjects() {
                 <Badge variant="outline" className={statusStyles[detail.status] || ""}>
                   {detail.status}
                 </Badge>
-                <Badge variant="outline" className="bg-accent/10 text-accent border-accent/20">
+                <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
                   <Users className="w-3 h-3 mr-1" /> {detail.memberCount} members
                 </Badge>
               </div>
@@ -704,7 +704,7 @@ export default function AdminProjects() {
                 <div className="flex items-center gap-2.5">
                   <Avatar className="w-8 h-8 ring-1 ring-accent/20">
                     {detail.owner.avatarUrl ? <AvatarImage src={detail.owner.avatarUrl} alt="" /> : null}
-                    <AvatarFallback className="bg-gradient-to-br from-accent/20 to-accent/5 text-xs font-medium text-accent">
+                    <AvatarFallback className="bg-gradient-to-br from-accent/20 to-accent/5 text-xs font-medium text-primary">
                       {(detail.owner.fullName || "U").charAt(0).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
@@ -718,11 +718,11 @@ export default function AdminProjects() {
               {/* Kanban stats */}
               <div>
                 <p className="text-xs font-semibold text-foreground mb-2 flex items-center gap-1.5">
-                  <ListChecks className="w-3.5 h-3.5 text-accent" /> Kanban Statistics
+                  <ListChecks className="w-3.5 h-3.5 text-primary" /> Kanban Statistics
                 </p>
                 <div className="grid grid-cols-3 gap-3">
                   <div className="border border-border/50 rounded-lg p-3">
-                    <CircleDot className="w-4 h-4 text-accent mb-1" />
+                    <CircleDot className="w-4 h-4 text-primary mb-1" />
                     <p className="text-lg font-bold">{detail.kanbanStats.totalTasks}</p>
                     <p className="text-[11px] text-muted-foreground">Total Tasks</p>
                   </div>
@@ -743,7 +743,7 @@ export default function AdminProjects() {
               <div className="grid grid-cols-2 gap-3">
                 <div className="border border-border/50 rounded-lg p-3">
                   <div className="flex items-center gap-2 mb-1">
-                    <Rss className="w-3.5 h-3.5 text-accent" />
+                    <Rss className="w-3.5 h-3.5 text-primary" />
                     <p className="text-[11px] text-muted-foreground">Posts</p>
                   </div>
                   <p className="text-lg font-bold">{detail.postsCount.toLocaleString()}</p>
@@ -766,7 +766,7 @@ export default function AdminProjects() {
                       <div key={m.userId} className="flex items-center gap-2.5">
                         <Avatar className="w-6 h-6 ring-1 ring-accent/20">
                           {m.avatarUrl ? <AvatarImage src={m.avatarUrl} alt="" /> : null}
-                          <AvatarFallback className="bg-gradient-to-br from-accent/20 to-accent/5 text-[10px] font-medium text-accent">
+                          <AvatarFallback className="bg-gradient-to-br from-accent/20 to-accent/5 text-[10px] font-medium text-primary">
                             {(m.fullName || "U").charAt(0).toUpperCase()}
                           </AvatarFallback>
                         </Avatar>
@@ -787,7 +787,7 @@ export default function AdminProjects() {
               {detail.recentActivity.length > 0 && (
                 <div className="border-t border-border/40 pt-4">
                   <p className="text-xs font-semibold text-foreground mb-2 flex items-center gap-1.5">
-                    <Activity className="w-3.5 h-3.5 text-accent" /> Recent Activity
+                    <Activity className="w-3.5 h-3.5 text-primary" /> Recent Activity
                   </p>
                   <div className="space-y-2.5">
                     {detail.recentActivity.map((a, idx) => (

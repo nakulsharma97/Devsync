@@ -203,7 +203,7 @@ export default function ProjectWorkspace() {
                 className={cn(
                   "inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full border",
                   project.visibility === "PUBLIC"
-                    ? "text-accent dark:text-accent border-accent/25 bg-accent/[0.07]"
+                    ? "text-primary dark:text-primary border-primary/25 bg-accent/[0.07]"
                     : "text-primary dark:text-primary border-primary/25 bg-primary/[0.07]"
                 )}
               >
@@ -281,7 +281,7 @@ export default function ProjectWorkspace() {
             className={cn(
               "shrink-0 inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all",
               tab === id
-                ? "bg-primary text-white shadow-sm"
+                ? "bg-primary text-primary-foreground shadow-sm"
                 : "text-muted-foreground hover:text-foreground hover:bg-accent/5"
             )}
           >
@@ -430,7 +430,7 @@ function PublicProjectJoinView({
           </div>
           <h1 className="text-xl font-bold tracking-tight">{project.name}</h1>
           <StatusPill status={project.status} />
-          <span className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full border border-accent/25 bg-accent/[0.07] text-accent dark:text-accent">
+          <span className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full border border-primary/25 bg-accent/[0.07] text-primary dark:text-primary">
             <Globe className="w-2.5 h-2.5" />
             Public
           </span>
@@ -487,7 +487,7 @@ function PublicProjectJoinView({
               <Button
                 onClick={handleRequestJoin}
                 disabled={busy}
-                className="bg-primary text-white hover:from-primary hover:to-primary shadow-lg shadow-primary/20"
+                className="bg-primary text-primary-foreground hover:from-primary hover:to-primary shadow-lg shadow-primary/20"
               >
                 {busy ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -733,7 +733,7 @@ function TasksTab({ projectId }: { projectId: string }) {
                   className={cn(
                     "text-[9px] font-semibold uppercase px-1.5 py-0.5 rounded-full",
                     /done|completed/i.test(t.columnName)
-                      ? "bg-accent/10 text-accent dark:text-accent"
+                      ? "bg-primary/10 text-primary dark:text-primary"
                       : /progress/i.test(t.columnName)
                         ? "bg-primary/10 text-primary dark:text-primary"
                         : "bg-muted/60 text-muted-foreground"
@@ -1069,7 +1069,7 @@ function DocsTab({ projectId }: { projectId: string }) {
             className={cn(
               "text-xs px-2.5 py-1.5 rounded-md transition-all",
               mode === "edit"
-                ? "bg-primary text-white shadow-sm"
+                ? "bg-primary text-primary-foreground shadow-sm"
                 : "text-muted-foreground hover:text-foreground"
             )}
           >
@@ -1081,7 +1081,7 @@ function DocsTab({ projectId }: { projectId: string }) {
             className={cn(
               "text-xs px-2.5 py-1.5 rounded-md transition-all",
               mode === "preview"
-                ? "bg-primary text-white shadow-sm"
+                ? "bg-primary text-primary-foreground shadow-sm"
                 : "text-muted-foreground hover:text-foreground"
             )}
           >
@@ -1374,7 +1374,7 @@ function MembersTab({
                       <button
                         aria-label="Member actions"
                         title="Member actions"
-                        className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent/10 transition-colors shrink-0"
+                        className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-primary/10 transition-colors shrink-0"
                       >
                         <MoreVertical className="w-4 h-4" />
                       </button>
@@ -1494,7 +1494,7 @@ function MembersTab({
             <AlertDialogAction
               onClick={handleTransfer}
               disabled={transferBusy || !transferTargetId}
-              className="bg-primary hover:bg-primary text-white"
+              className="bg-primary hover:bg-primary text-primary-foreground"
             >
               {transferBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : "Transfer Ownership"}
             </AlertDialogAction>
@@ -1518,7 +1518,7 @@ const ACTIVITY_LABELS: Record<string, { label: string; tone: string }> = {
   TASK_UPDATED: { label: "Task updated", tone: "text-info" },
   TASK_MOVED: { label: "Task moved", tone: "text-primary" },
   TASK_COMPLETED: { label: "Task completed", tone: "text-success" },
-  TASK_ASSIGNED: { label: "Task assigned", tone: "text-accent" },
+  TASK_ASSIGNED: { label: "Task assigned", tone: "text-primary" },
   USER_JOINED_PROJECT: { label: "Member joined", tone: "text-success" },
   USER_LEFT_PROJECT: { label: "Member removed", tone: "text-red-500" },
   INVITATION_SENT: { label: "Invitation sent", tone: "text-primary" },
@@ -1526,7 +1526,7 @@ const ACTIVITY_LABELS: Record<string, { label: string; tone: string }> = {
   MEMBER_ROLE_CHANGED: { label: "Role changed", tone: "text-primary" },
   OWNERSHIP_TRANSFERRED: { label: "Ownership transferred", tone: "text-primary" },
   MESSAGE_SENT: { label: "Message sent", tone: "text-info" },
-  FILE_UPLOADED: { label: "File uploaded", tone: "text-accent" },
+  FILE_UPLOADED: { label: "File uploaded", tone: "text-primary" },
   REPORT_RESOLVED: { label: "Report resolved", tone: "text-success" },
 };
 

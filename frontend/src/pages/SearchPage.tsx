@@ -152,7 +152,7 @@ export default function SearchPage() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <p className="text-sm font-semibold">{p.name}</p>
-                      <span className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-full border border-accent/25 bg-accent/[0.07] text-accent dark:text-accent">
+                      <span className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-full border border-primary/25 bg-accent/[0.07] text-primary dark:text-primary">
                         <Globe className="w-2.5 h-2.5" />
                         Public
                       </span>

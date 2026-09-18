@@ -48,15 +48,15 @@ import { toast } from "sonner";
 const STATUS_META: Record<string, { label: string; badge: string }> = {
   OPEN: { label: "Open", badge: "bg-info/10 text-info" },
   IN_PROGRESS: { label: "In Progress", badge: "bg-primary/10 text-primary" },
-  WAITING_USER: { label: "Waiting", badge: "bg-accent/10 text-accent" },
-  RESOLVED: { label: "Resolved", badge: "bg-accent/10 text-accent" },
+  WAITING_USER: { label: "Waiting", badge: "bg-primary/10 text-primary" },
+  RESOLVED: { label: "Resolved", badge: "bg-primary/10 text-primary" },
   CLOSED: { label: "Closed", badge: "bg-slate-500/10 text-slate-600" },
 };
 
 const PRIORITY_META: Record<string, { label: string; badge: string }> = {
   LOW: { label: "Low", badge: "bg-slate-500/10 text-slate-600" },
   MEDIUM: { label: "Medium", badge: "bg-info/10 text-info" },
-  HIGH: { label: "High", badge: "bg-accent/10 text-accent" },
+  HIGH: { label: "High", badge: "bg-primary/10 text-primary" },
   URGENT: { label: "Urgent", badge: "bg-red-500/10 text-red-600" },
 };
 
@@ -165,8 +165,8 @@ export default function AdminSupport() {
       {/* Header */}
       <div>
         <div className="flex items-center gap-2 mb-1">
-          <div className="w-8 h-8 rounded-xl bg-accent/10 border border-accent/20 flex items-center justify-center">
-            <Headphones className="w-4 h-4 text-accent" />
+          <div className="w-8 h-8 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center">
+            <Headphones className="w-4 h-4 text-primary" />
           </div>
           <h1 className="text-2xl font-semibold tracking-tight">Support Tickets</h1>
         </div>
@@ -322,7 +322,7 @@ export default function AdminSupport() {
         <SheetContent className="w-full sm:max-w-lg overflow-y-auto flex flex-col">
           <SheetHeader>
             <SheetTitle className="flex items-center gap-2">
-              <Headphones className="w-4 h-4 text-accent" />
+              <Headphones className="w-4 h-4 text-primary" />
               <span className="text-xs font-mono text-muted-foreground">{selected?.ticketNumber}</span>
               {selected?.subject}
             </SheetTitle>
@@ -390,7 +390,7 @@ export default function AdminSupport() {
                     reply.internalNote
                       ? "bg-primary/5 border-primary/20"
                       : reply.adminReply
-                        ? "bg-accent/5 border-accent/20"
+                        ? "bg-accent/5 border-primary/20"
                         : "bg-muted/30"
                   }`}
                 >
@@ -402,7 +402,7 @@ export default function AdminSupport() {
                       </Badge>
                     )}
                     {reply.adminReply && !reply.internalNote && (
-                      <Badge variant="secondary" className="text-xs bg-accent/10 text-accent">
+                      <Badge variant="secondary" className="text-xs bg-primary/10 text-primary">
                         Support
                       </Badge>
                     )}

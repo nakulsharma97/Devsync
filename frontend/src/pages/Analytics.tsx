@@ -59,7 +59,7 @@ export default function Analytics() {
     return (
       <div className="flex items-center justify-center py-20">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-8 h-8 rounded-full border-2 border-accent/30 border-t-accent animate-spin" />
+          <div className="w-8 h-8 rounded-full border-2 border-primary/30 border-t-accent animate-spin" />
           <p className="text-sm text-muted-foreground">Loading analytics...</p>
         </div>
       </div>
@@ -85,8 +85,8 @@ export default function Analytics() {
       {/* Header */}
       <div className="mb-8">
         <div className="flex items-center gap-2 mb-1">
-          <div className="w-5 h-5 rounded-md bg-accent/10 flex items-center justify-center">
-            <BarChart3 className="w-3 h-3 text-accent" />
+          <div className="w-5 h-5 rounded-md bg-primary/10 flex items-center justify-center">
+            <BarChart3 className="w-3 h-3 text-primary" />
           </div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground">Analytics</h1>
         </div>
@@ -108,7 +108,7 @@ export default function Analytics() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.04 }}
-            className="bg-card border border-border/50 rounded-xl p-4 relative overflow-hidden group hover:border-accent/30 transition-all duration-200"
+            className="bg-card border border-border/50 rounded-xl p-4 relative overflow-hidden group hover:border-primary/30 transition-all duration-200"
           >
             <div className="absolute inset-0 bg-gradient-to-br from-accent/[0.02] to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
             <div className="flex items-center gap-3 relative">
@@ -136,7 +136,7 @@ export default function Analytics() {
           className="bg-card border border-border/50 rounded-xl p-5"
         >
           <div className="flex items-center gap-2 mb-4">
-            <TrendingUp className="w-4 h-4 text-accent" />
+            <TrendingUp className="w-4 h-4 text-primary" />
             <h3 className="text-sm font-semibold text-foreground">Posts per Day (30 days)</h3>
           </div>
           {(postStats?.dailyData?.length ?? 0) > 0 ? (
@@ -170,8 +170,8 @@ export default function Analytics() {
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center h-56 text-center">
-              <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center mb-3">
-                <TrendingUp className="w-5 h-5 text-accent/50" />
+              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center mb-3">
+                <TrendingUp className="w-5 h-5 text-primary/50" />
               </div>
               <p className="text-sm font-medium text-muted-foreground">No posting activity yet</p>
               <p className="text-xs text-muted-foreground/70 mt-1 max-w-[200px]">
@@ -250,7 +250,7 @@ export default function Analytics() {
         className="bg-card border border-border/50 rounded-xl p-5"
       >
         <div className="flex items-center gap-2 mb-4">
-          <Activity className="w-4 h-4 text-accent" />
+          <Activity className="w-4 h-4 text-primary" />
           <h3 className="text-sm font-semibold text-foreground">Activity Breakdown</h3>
         </div>
         {activityPieData.length > 0 ? (
@@ -289,8 +289,8 @@ export default function Analytics() {
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center h-48 text-center">
-            <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center mb-3">
-              <Activity className="w-5 h-5 text-accent/50" />
+            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center mb-3">
+              <Activity className="w-5 h-5 text-primary/50" />
             </div>
             <p className="text-sm font-medium text-muted-foreground">No activity yet</p>
             <p className="text-xs text-muted-foreground/70 mt-1 max-w-[240px]">

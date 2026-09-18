@@ -79,13 +79,13 @@ import { toast } from "sonner";
 const PAGE_SIZE = 10;
 
 const statusStyles: Record<string, string> = {
-  ACTIVE: "bg-accent/10 text-success border-accent/20",
+  ACTIVE: "bg-primary/10 text-success border-primary/20",
   BLOCKED: "bg-red-500/10 text-red-500 border-red-500/20",
   DELETED: "bg-muted text-muted-foreground border-border/50",
 };
 
 const roleStyles: Record<string, string> = {
-  ADMIN: "bg-accent/10 text-accent border-accent/20",
+  ADMIN: "bg-primary/10 text-primary border-primary/20",
   USER: "bg-info/10 text-info border-info/20",
 };
 
@@ -304,8 +304,8 @@ export default function AdminUsers() {
       {/* Header */}
       <div>
         <div className="flex items-center gap-2 mb-1">
-          <div className="w-5 h-5 rounded-md bg-accent/10 flex items-center justify-center">
-            <ShieldAlert className="w-3 h-3 text-accent" />
+          <div className="w-5 h-5 rounded-md bg-primary/10 flex items-center justify-center">
+            <ShieldAlert className="w-3 h-3 text-primary" />
           </div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground">User Management</h1>
         </div>
@@ -453,7 +453,7 @@ export default function AdminUsers() {
                             {u.avatarUrl ? (
                               <AvatarImage src={u.avatarUrl} alt="" />
                             ) : null}
-                            <AvatarFallback className="bg-gradient-to-br from-accent/20 to-accent/5 text-xs font-medium text-accent">
+                            <AvatarFallback className="bg-gradient-to-br from-accent/20 to-accent/5 text-xs font-medium text-primary">
                               {(u.fullName || "U").charAt(0).toUpperCase()}
                             </AvatarFallback>
                           </Avatar>
@@ -597,7 +597,7 @@ export default function AdminUsers() {
             <AlertDialogAction
               onClick={confirmBlock}
               disabled={busyId === blockTarget?.id}
-              className="bg-primary hover:bg-primary text-white"
+              className="bg-primary hover:bg-primary text-primary-foreground"
             >
               {busyId === blockTarget?.id ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
               Block User
@@ -640,7 +640,7 @@ export default function AdminUsers() {
             <div className="flex items-start gap-4">
               <Avatar className="w-14 h-14 ring-2 ring-accent/15 shrink-0">
                 {detail?.avatarUrl ? <AvatarImage src={detail.avatarUrl} alt="" /> : null}
-                <AvatarFallback className="bg-gradient-to-br from-accent/20 to-accent/5 text-base font-semibold text-accent">
+                <AvatarFallback className="bg-gradient-to-br from-accent/20 to-accent/5 text-base font-semibold text-primary">
                   {(detail?.fullName || "U").charAt(0).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
@@ -683,7 +683,7 @@ export default function AdminUsers() {
                     {detail.status}
                   </Badge>
                   {detail.emailVerified ? (
-                    <Badge variant="outline" className="bg-accent/10 text-success border-accent/20">
+                    <Badge variant="outline" className="bg-primary/10 text-success border-primary/20">
                       Verified
                     </Badge>
                   ) : (
@@ -720,7 +720,7 @@ export default function AdminUsers() {
                     { icon: FolderGit2, label: "Projects Owned", value: detail.projectsOwned.length, color: "text-primary" },
                     { icon: UserCog, label: "Projects Joined", value: detail.projectsJoined.length, color: "text-blue-400" },
                     { icon: Users, label: "Teams", value: detail.teams.length, color: "text-primary" },
-                    { icon: Rss, label: "Posts", value: detail.postsCount, color: "text-accent" },
+                    { icon: Rss, label: "Posts", value: detail.postsCount, color: "text-primary" },
                     { icon: MessagesSquare, label: "Messages", value: detail.messagesCount, color: "text-cyan-400" },
                   ].map((s) => (
                     <div key={s.label} className="border border-border/50 rounded-xl p-4 bg-card/50">

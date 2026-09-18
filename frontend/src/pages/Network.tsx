@@ -146,7 +146,7 @@ export default function Network() {
       value: followingCount,
       label: "Following",
       description: "Developers you follow",
-      color: "bg-accent/10 text-emerald-500",
+      color: "bg-primary/10 text-emerald-500",
     },
     {
       icon: Heart,
@@ -165,8 +165,8 @@ export default function Network() {
       <div className="mb-6">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <div className="w-5 h-5 rounded-md bg-accent/10 flex items-center justify-center">
-              <Users className="w-3 h-3 text-accent" />
+            <div className="w-5 h-5 rounded-md bg-primary/10 flex items-center justify-center">
+              <Users className="w-3 h-3 text-primary" />
             </div>
             <h1 className="text-2xl font-bold tracking-tight text-foreground">Network</h1>
           </div>
@@ -183,7 +183,7 @@ export default function Network() {
           return (
             <div
               key={stat.label}
-              className="bg-card border border-border/50 rounded-xl p-4 flex items-center gap-3 hover:border-accent/30 transition-all"
+              className="bg-card border border-border/50 rounded-xl p-4 flex items-center gap-3 hover:border-primary/30 transition-all"
             >
               <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${stat.color}`}>
                 <Icon className="w-4 h-4" />
@@ -211,7 +211,7 @@ export default function Network() {
               }
             }}
             placeholder="Search developers by name, username, or bio..."
-            className="pl-9 h-9 text-sm bg-muted/30 border-border/50 focus-visible:ring-accent/30 focus-visible:border-accent/40 rounded-xl"
+            className="pl-9 h-9 text-sm bg-muted/30 border-border/50 focus-visible:ring-accent/30 focus-visible:border-primary/40 rounded-xl"
           />
         </div>
       </div>
@@ -291,7 +291,7 @@ export default function Network() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
               transition={{ duration: 0.2 }}
-              className="border border-border/40 rounded-xl bg-card hover:border-accent/20 hover:shadow-lg hover:shadow-accent/5 transition-all duration-200"
+              className="border border-border/40 rounded-xl bg-card hover:border-primary/20 hover:shadow-lg hover:shadow-accent/5 transition-all duration-200"
             >
               <div className="p-4">
                 <div className="flex items-start gap-3">
@@ -325,7 +325,7 @@ export default function Network() {
                         {netUser.fullName}
                       </button>
                       {netUser.followsYou && !netUser.isSelf && (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-accent/10 text-accent dark:text-accent border border-accent/20 font-medium">
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary dark:text-primary border border-primary/20 font-medium">
                           Follows you
                         </span>
                       )}
@@ -409,7 +409,7 @@ export default function Network() {
                         className={`text-xs h-9 min-w-[90px] justify-center gap-1.5 rounded-xl font-medium ${
                           netUser.isFollowing
                             ? "border-border/60 text-foreground hover:border-red-500/50 hover:text-red-600 hover:bg-red-500/5 dark:hover:border-red-400/50 dark:hover:text-red-400 dark:hover:bg-red-500/10"
-                            : "border-primary/30 bg-primary text-white hover:bg-primary dark:bg-primary dark:hover:bg-accent"
+                            : "border-primary/30 bg-primary text-primary-foreground hover:bg-primary dark:bg-primary dark:hover:bg-accent"
                         }`}
                       >
                         {togglingIds.has(netUser.id) ? (

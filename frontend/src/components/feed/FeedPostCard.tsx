@@ -617,7 +617,7 @@ export default function FeedPostCard({
                     type="submit"
                     size="icon"
                     disabled={!commentText.trim() || commentSending}
-                    className="h-9 w-9 rounded-full bg-primary text-white hover:from-primary hover:to-primary"
+                    className="h-9 w-9 rounded-full bg-primary text-primary-foreground hover:from-primary hover:to-primary"
                     aria-label="Send comment"
                   >
                     {commentSending ? (
@@ -781,7 +781,7 @@ export default function FeedPostCard({
             <Button
               onClick={saveEdit}
               disabled={editSaving || !editContent.trim()}
-              className="bg-primary text-white hover:from-primary hover:to-primary"
+              className="bg-primary text-primary-foreground hover:from-primary hover:to-primary"
             >
               {editSaving ? (
                 <Loader2 className="h-4 w-4 animate-spin" />

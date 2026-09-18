@@ -31,7 +31,7 @@ export function HighContrastToggle() {
         onClick={toggle}
         className={`relative transition-all duration-200 ${
           enabled
-            ? "text-accent hover:text-accent/80"
+            ? "text-primary hover:text-primary/80"
             : "text-muted-foreground hover:text-foreground"
         } hover:bg-accent/5`}
         aria-label={

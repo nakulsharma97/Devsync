@@ -1,4 +1,5 @@
-import { Code2, Github, Twitter, MessageCircle } from "lucide-react";
+import { Github, Twitter, MessageCircle } from "lucide-react";
+import { LogoMark } from "@/components/Logo";
 import { footerColumns } from "@/data/landing";
 
 export default function FooterSection() {
@@ -7,11 +8,9 @@ export default function FooterSection() {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 py-14 md:py-20">
         <div className="grid sm:grid-cols-2 md:grid-cols-5 gap-8 md:gap-12">
           <div className="sm:col-span-2">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center shadow-lg">
-                <Code2 className="w-4 h-4 text-white" />
-              </div>
-              <span className="text-base font-bold">DevSync</span>
+            <div className="flex items-center gap-2.5 mb-4">
+              <LogoMark size={32} />
+              <span className="font-display text-base font-semibold tracking-tight">DevSync</span>
             </div>
             <p className="text-xs md:text-sm text-muted-foreground leading-relaxed max-w-xs mb-6">
               A developer collaboration platform built by engineers, for engineers. Ship better software, together.

@@ -104,7 +104,7 @@ export function NotificationBell({
       <PopoverTrigger asChild>
         <button
           aria-label="Notifications"
-          className="relative inline-flex items-center justify-center w-9 h-9 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent/10 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 outline-none transition-colors"
+          className="relative inline-flex items-center justify-center w-9 h-9 rounded-lg text-muted-foreground hover:text-foreground hover:bg-primary/10 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 outline-none transition-colors"
         >
           <Bell className="w-4 h-4" />
           {unreadCount > 0 && (
@@ -178,7 +178,7 @@ export function NotificationBell({
                       className={`w-full text-left flex items-start gap-3 px-4 py-3 transition-colors ${
                         n.read
                           ? "hover:bg-muted/40"
-                          : "bg-accent/5 hover:bg-accent/10"
+                          : "bg-accent/5 hover:bg-primary/10"
                       }`}
                     >
                       <span

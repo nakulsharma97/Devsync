@@ -46,14 +46,14 @@ const FEEDBACK_CATEGORIES = [
 
 const REVIEW_STATUS_STYLES: Record<string, string> = {
   PENDING: "bg-primary/10 text-primary border-primary/20",
-  APPROVED: "bg-accent/10 text-success border-accent/20",
+  APPROVED: "bg-primary/10 text-success border-primary/20",
   REJECTED: "bg-red-500/10 text-red-500 border-red-500/20",
 };
 
 const FEEDBACK_STATUS_STYLES: Record<string, string> = {
   OPEN: "bg-info/10 text-info border-info/20",
   IN_REVIEW: "bg-primary/10 text-primary border-primary/20",
-  RESOLVED: "bg-accent/10 text-success border-accent/20",
+  RESOLVED: "bg-primary/10 text-success border-primary/20",
   CLOSED: "bg-muted text-muted-foreground border-border/50",
 };
 
@@ -253,7 +253,7 @@ export default function Feedback() {
     return (
       <div className="flex items-center justify-center py-20">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-8 h-8 rounded-full border-2 border-accent/30 border-t-accent animate-spin" />
+          <div className="w-8 h-8 rounded-full border-2 border-primary/30 border-t-accent animate-spin" />
           <p className="text-sm text-muted-foreground">Loading your feedback...</p>
         </div>
       </div>
@@ -264,8 +264,8 @@ export default function Feedback() {
     <div className="relative space-y-8 max-w-3xl">
       <div>
         <div className="flex items-center gap-2 mb-1">
-          <div className="w-5 h-5 rounded-md bg-accent/10 flex items-center justify-center">
-            <MessageSquarePlus className="w-3 h-3 text-accent" />
+          <div className="w-5 h-5 rounded-md bg-primary/10 flex items-center justify-center">
+            <MessageSquarePlus className="w-3 h-3 text-primary" />
           </div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground">Feedback</h1>
         </div>

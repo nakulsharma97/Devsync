@@ -188,7 +188,7 @@ export default function Projects() {
         </div>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
-            <Button className="relative overflow-hidden group bg-primary text-white hover:bg-primary/90 shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200">
+            <Button className="relative overflow-hidden group bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200">
               <Plus className="w-4 h-4 mr-1.5" />
               New Project
               <span
@@ -297,7 +297,7 @@ export default function Projects() {
               <Button
                 type="submit"
                 disabled={creating || !name.trim()}
-                className="w-full bg-primary text-white hover:from-primary hover:to-primary"
+                className="w-full bg-primary text-primary-foreground hover:from-primary hover:to-primary"
               >
                 {creating ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -408,7 +408,7 @@ export default function Projects() {
           </p>
           <Button
             onClick={() => setOpen(true)}
-            className="bg-primary text-white hover:from-primary hover:to-primary"
+            className="bg-primary text-primary-foreground hover:from-primary hover:to-primary"
           >
             <Plus className="w-4 h-4 mr-1.5" />
             Create your first project
@@ -517,7 +517,7 @@ function ProjectCard({
               className={cn(
                 "inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-full border",
                 isPublic
-                  ? "text-accent dark:text-accent border-accent/25 bg-accent/[0.07]"
+                  ? "text-primary dark:text-primary border-primary/25 bg-accent/[0.07]"
                   : "text-primary dark:text-primary border-primary/25 bg-primary/[0.07]"
               )}
             >
@@ -551,7 +551,7 @@ function ProjectCard({
             e.stopPropagation();
             onOpen();
           }}
-          className="w-full text-xs bg-primary text-white hover:from-primary hover:to-primary shadow-sm @min-[22.5rem]:flex-1 @min-[22.5rem]:min-w-[7rem]"
+          className="w-full text-xs bg-primary text-primary-foreground hover:from-primary hover:to-primary shadow-sm @min-[22.5rem]:flex-1 @min-[22.5rem]:min-w-[7rem]"
         >
           <ArrowUpRight className="w-3 h-3" />
           Open Project

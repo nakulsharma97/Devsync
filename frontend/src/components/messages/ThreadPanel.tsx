@@ -70,7 +70,7 @@ export function ThreadPanel({ parent, myId, isRoom, onClose, onReplySent }: Thre
         <button
           onClick={onClose}
           aria-label="Close thread"
-          className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent/10 transition-colors"
+          className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-primary/10 transition-colors"
         >
           <X className="w-4 h-4" />
         </button>
@@ -138,7 +138,7 @@ export function ThreadPanel({ parent, myId, isRoom, onClose, onReplySent }: Thre
             disabled={!text.trim() || sending}
             aria-label="Send reply"
             className={cn(
-              "w-8 h-8 shrink-0 rounded-lg bg-primary text-white flex items-center justify-center transition-all disabled:opacity-40",
+              "w-8 h-8 shrink-0 rounded-lg bg-primary text-primary-foreground flex items-center justify-center transition-all disabled:opacity-40",
               sending && "opacity-60"
             )}
           >

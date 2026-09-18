@@ -98,9 +98,9 @@ function ParticleCanvas() {
       let g = glowCache.get(key);
       if (!g) {
         g = ctx.createRadialGradient(0, 0, 0, 0, 0, r);
-        g.addColorStop(0, dark ? "rgba(249, 115, 22, 0.05)" : "rgba(166, 83, 45, 0.04)");
-        g.addColorStop(0.5, dark ? "rgba(249, 115, 22, 0.02)" : "rgba(166, 83, 45, 0.01)");
-        g.addColorStop(1, "rgba(249, 115, 22, 0)");
+        g.addColorStop(0, dark ? "rgba(217, 119, 50, 0.05)" : "rgba(217, 119, 50, 0.04)");
+        g.addColorStop(0.5, dark ? "rgba(217, 119, 50, 0.02)" : "rgba(217, 119, 50, 0.01)");
+        g.addColorStop(1, "rgba(217, 119, 50, 0)");
         glowCache.set(key, g);
       }
       return g;
@@ -152,7 +152,7 @@ function ParticleCanvas() {
       const offsetX = (mx - 0.5) * 6;
       const offsetY = (my - 0.5) * 6;
 
-      ctx.strokeStyle = dark ? "rgba(249, 115, 22, 0.03)" : "rgba(166, 83, 45, 0.03)";
+      ctx.strokeStyle = dark ? "rgba(217, 119, 50, 0.03)" : "rgba(217, 119, 50, 0.03)";
       ctx.lineWidth = 0.5;
       ctx.beginPath();
       for (const gx of gridXs) {
@@ -169,7 +169,7 @@ function ParticleCanvas() {
       const beamAlpha = dark
         ? 0.015 + Math.sin(frameCount * 0.01) * 0.008
         : 0.02 + Math.sin(frameCount * 0.01) * 0.01;
-      ctx.strokeStyle = dark ? `rgba(249, 115, 22, ${beamAlpha})` : `rgba(166, 83, 45, ${beamAlpha})`;
+      ctx.strokeStyle = dark ? `rgba(217, 119, 50, ${beamAlpha})` : `rgba(217, 119, 50, ${beamAlpha})`;
       ctx.lineWidth = 1.5;
       for (let i = 0; i < 3; i++) {
         const baseX = (w * (i + 1)) / 4 + offsetX * 2;
@@ -241,7 +241,7 @@ function ParticleCanvas() {
             ctx.beginPath();
             ctx.moveTo(a.x, a.y);
             ctx.lineTo(b.x, b.y);
-            ctx.strokeStyle = dark ? `rgba(249, 115, 22, ${(1 - dist / 120) * 0.05})` : `rgba(166, 83, 45, ${(1 - dist / 120) * 0.06})`;
+            ctx.strokeStyle = dark ? `rgba(217, 119, 50, ${(1 - dist / 120) * 0.05})` : `rgba(217, 119, 50, ${(1 - dist / 120) * 0.06})`;
             ctx.stroke();
           }
         }

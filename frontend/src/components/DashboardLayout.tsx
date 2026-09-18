@@ -25,7 +25,6 @@ import {
   ChevronRight,
   Command,
   Headphones,
-  Crown,
   Bookmark,
   type LucideIcon,
 } from "lucide-react";
@@ -34,7 +33,7 @@ import { useSubscription } from "@/contexts/SubscriptionContext";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import { WifiOff, Check } from "lucide-react";
-import logo from "@/assets/logo.svg";
+import { LogoMark } from "@/components/Logo";
 
 // ── Navigation config ─────────────────────────────────────
 
@@ -109,7 +108,7 @@ function SidebarLink({ to, icon: Icon, label, badge, onNavigate }: SidebarLinkPr
       onClick={onNavigate}
       className={({ isActive }) =>
         cn(
-          "group relative flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-150",
+          "group relative flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors duration-150",
           isActive
             ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
             : "text-sidebar-foreground hover:text-foreground hover:bg-muted"
@@ -118,22 +117,28 @@ function SidebarLink({ to, icon: Icon, label, badge, onNavigate }: SidebarLinkPr
     >
       {({ isActive }) => (
         <>
-          <div
+          {/* Muted orange indicator bar — the only accent on an active item */}
+          <span
+            aria-hidden
             className={cn(
-              "relative w-7 h-7 rounded-md flex items-center justify-center shrink-0 transition-colors duration-150",
+              "absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-4 rounded-full bg-primary transition-opacity duration-150",
+              isActive ? "opacity-90" : "opacity-0"
+            )}
+          />
+          <Icon
+            className={cn(
+              "w-4 h-4 shrink-0 transition-colors duration-150",
               isActive
-                ? "bg-sidebar-primary text-sidebar-primary-foreground"
-                : "text-muted-foreground group-hover:text-sidebar-foreground"
+                ? "text-foreground"
+                : "text-muted-foreground group-hover:text-foreground"
             )}
-          >
-            <Icon className="w-3.5 h-3.5" />
-            {badge !== undefined && badge > 0 && (
-              <span className="absolute -top-1 -right-1 min-w-[14px] h-3.5 px-1 rounded-full bg-destructive text-[8px] font-bold text-white flex items-center justify-center animate-badge-pop">
-                {badge > 99 ? "99+" : badge}
-              </span>
-            )}
-          </div>
+          />
           <span className="flex-1 truncate">{label}</span>
+          {badge !== undefined && badge > 0 && (
+            <span className="min-w-[18px] h-[18px] px-1 rounded-full bg-muted-foreground/20 text-foreground text-[10px] font-semibold flex items-center justify-center tabular-nums">
+              {badge > 99 ? "99+" : badge}
+            </span>
+          )}
         </>
       )}
     </NavLink>
@@ -142,7 +147,7 @@ function SidebarLink({ to, icon: Icon, label, badge, onNavigate }: SidebarLinkPr
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <p className="px-3 pt-4 pb-1 text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
+    <p className="px-3 pt-5 pb-1.5 text-[11px] font-medium text-muted-foreground/80 uppercase tracking-wider">
       {children}
     </p>
   );
@@ -178,8 +183,6 @@ export default function DashboardLayout() {
   }, [isOnline, wasOffline]);
 
   const closeSidebar = () => setSidebarOpen(false);
-
-
 
   // Unread badges for Notifications + Messages
   const fetchUnreadCounts = useCallback(async () => {
@@ -230,7 +233,6 @@ export default function DashboardLayout() {
   }, [fetchUnreadCounts, user?.id]);
 
   const page = getPageMeta(location.pathname);
-  const PageIcon = page.icon;
 
   const bannerVisible = !isOnline || showReconnected;
 
@@ -244,8 +246,8 @@ export default function DashboardLayout() {
           className={cn(
             "fixed top-0 left-0 right-0 z-[60] flex items-center justify-center gap-2 px-4 py-2 text-xs font-medium transition-colors duration-300",
             !isOnline
-              ? "bg-primary/90 text-white"
-              : "bg-success/90 text-white"
+              ? "bg-warning text-warning-foreground"
+              : "bg-success text-success-foreground"
           )}
         >
           {!isOnline ? (
@@ -279,10 +281,8 @@ export default function DashboardLayout() {
         }`}
       >
         <div className="flex items-center justify-between px-4 py-3 border-b border-sidebar-border">
-          <button onClick={() => navigate("/")} className="flex items-center gap-2 group">
-            <div className="w-7 h-7 rounded-lg bg-sidebar-primary flex items-center justify-center">
-              <svg className="w-4 h-4 text-sidebar-primary-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M16 18l6-6-6-6"/><path d="M8 6l-6 6 6 6"/></svg>
-            </div>
+          <button onClick={() => navigate("/")} className="flex items-center gap-2.5 group">
+            <LogoMark size={24} />
             <span className="font-display text-sm font-semibold tracking-tight text-foreground">DevSync</span>
           </button>
           <button
@@ -294,9 +294,9 @@ export default function DashboardLayout() {
           </button>
         </div>
 
-        <nav className="flex-1 px-3 pt-2 pb-4 overflow-y-auto">
+        <nav className="flex-1 px-3 pt-1 pb-4 overflow-y-auto">
           <SectionLabel>Main</SectionLabel>
-          <div className="space-y-1">
+          <div className="space-y-0.5">
             {mainNavItems.map((item) => (
               <SidebarLink
                 key={item.to}
@@ -312,7 +312,7 @@ export default function DashboardLayout() {
           </div>
 
           <SectionLabel>Discover</SectionLabel>
-          <div className="space-y-1">
+          <div className="space-y-0.5">
             {discoverNavItems.map((item) => (
               <SidebarLink
                 key={item.to}
@@ -325,7 +325,7 @@ export default function DashboardLayout() {
           </div>
 
           <SectionLabel>Account</SectionLabel>
-          <div className="space-y-1">
+          <div className="space-y-0.5">
             {accountNavItems.map((item) => (
               <SidebarLink
                 key={item.to}
@@ -339,19 +339,17 @@ export default function DashboardLayout() {
               />
             ))}
           </div>
-
-
         </nav>
 
         {/* User card */}
-        <div className="shrink-0 p-3 border-t border-sidebar-border bg-sidebar">
-          <div className="flex items-center gap-3 px-2 py-2 mb-1">
+        <div className="shrink-0 p-3 border-t border-sidebar-border">
+          <div className="flex items-center gap-2.5 px-2 py-1.5 mb-1">
             <div className="relative shrink-0">
               <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center overflow-hidden ring-1 ring-border">
                 {user?.avatarUrl ? (
                   <img src={user.avatarUrl} alt={user.fullName || ""} className="w-full h-full object-cover" />
                 ) : (
-                  <span className="text-xs font-semibold text-sidebar-primary">
+                  <span className="text-xs font-semibold text-foreground">
                     {user?.fullName?.charAt(0) || "U"}
                   </span>
                 )}
@@ -367,9 +365,7 @@ export default function DashboardLayout() {
                     className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium transition-colors hover:opacity-80 ${
                       subscription.planCode === "FREE"
                         ? "bg-muted text-muted-foreground"
-                        : subscription.planCode === "PRO"
-                          ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                          : "bg-primary/10 text-primary"
+                        : "bg-primary/10 text-primary"
                     }`}
                   >
                     {subscription.planCode}
@@ -379,14 +375,24 @@ export default function DashboardLayout() {
               <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
             </div>
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={logout}
-            className="w-full justify-start text-muted-foreground hover:text-danger hover:bg-danger/10 rounded-lg"
-          >
-            <LogOut className="w-4 h-4 mr-2" /> Sign out
-          </Button>
+          <div className="grid grid-cols-2 gap-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => { navigate("/settings"); closeSidebar(); }}
+              className="justify-start text-muted-foreground hover:text-foreground rounded-lg"
+            >
+              <Settings className="w-3.5 h-3.5 mr-1.5" /> Settings
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={logout}
+              className="justify-start text-muted-foreground hover:text-danger hover:bg-danger/10 rounded-lg"
+            >
+              <LogOut className="w-3.5 h-3.5 mr-1.5" /> Sign out
+            </Button>
+          </div>
         </div>
       </aside>
 
@@ -394,29 +400,27 @@ export default function DashboardLayout() {
       <div className="md:ml-64 bg-background min-h-screen">
         <header className="sticky top-0 z-30 h-14 border-b border-border bg-background/90 backdrop-blur-sm">
           <div className="flex items-center justify-between h-full px-4 lg:px-6">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 min-w-0">
               <button
                 onClick={() => setSidebarOpen(true)}
                 aria-label="Open menu"
-                className="md:hidden p-2 rounded-lg hover:bg-accent/10 transition-colors"
+                className="md:hidden p-2 -ml-2 rounded-lg hover:bg-muted transition-colors"
               >
                 <Menu className="w-5 h-5 text-muted-foreground" />
               </button>
-              {/* DevSync logo — subtle in the navbar */}
-              <button
-                onClick={() => navigate("/")}
-                className="hidden md:flex items-center gap-2.5 group shrink-0"
-                aria-label="Go to landing page"
-              >
-                <img src={logo} alt="DevSync" className="w-6 h-6 shrink-0" />
-                <span className="text-[13px] font-bold tracking-tight text-foreground/70 group-hover:text-foreground transition-colors">
+              {/* Breadcrumb: DevSync / Page */}
+              <nav aria-label="Breadcrumb" className="hidden sm:flex items-center gap-1.5 min-w-0">
+                <button
+                  onClick={() => navigate("/dashboard")}
+                  className="text-[13px] text-muted-foreground hover:text-foreground transition-colors"
+                >
                   DevSync
-                </span>
-              </button>
-              <div className="hidden md:block w-px h-6 bg-border" />
-              <div className="flex items-center gap-2" data-testid="page-title">
-                <h1 className="font-display text-sm font-semibold text-foreground">{page.title}</h1>
-              </div>
+                </button>
+                <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/50 shrink-0" />
+              </nav>
+              <h1 className="text-[13px] font-medium text-foreground truncate" data-testid="page-title">
+                {page.title}
+              </h1>
             </div>
             <div className="flex items-center gap-1.5 sm:gap-2">
               <Button
@@ -424,10 +428,10 @@ export default function DashboardLayout() {
                 size="sm"
                 onClick={() => setPaletteOpen(true)}
                 aria-label="Open search"
-                className="hidden sm:flex items-center gap-2 h-8 w-[180px] lg:w-[220px] px-3 text-muted-foreground hover:text-foreground bg-card border-border hover:border-primary/30 transition-colors rounded-lg"
+                className="hidden sm:flex items-center gap-2 h-8 w-[180px] lg:w-[240px] px-3 text-muted-foreground hover:text-foreground bg-card border-border hover:border-ring/40 transition-colors rounded-lg font-normal"
               >
                 <Search className="w-3.5 h-3.5 shrink-0" />
-                <span className="text-sm flex-1 text-left">Search...</span>
+                <span className="text-[13px] flex-1 text-left">Search projects, people…</span>
                 <kbd className="hidden lg:inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-mono text-muted-foreground bg-muted rounded border border-border">
                   <Command className="w-2.5 h-2.5" />K
                 </kbd>
@@ -442,18 +446,17 @@ export default function DashboardLayout() {
               >
                 <Search className="w-[18px] h-[18px] text-muted-foreground" />
               </Button>
-              {/* Upgrade CTA */}
+              {/* Upgrade CTA — the one deliberate orange button in the shell */}
               <button
                 onClick={() => navigate("/settings/billing")}
                 aria-label={subscription?.planCode && subscription.planCode !== "FREE" ? "Manage subscription" : "Upgrade plan"}
-                className={`inline-flex items-center gap-1.5 h-8 px-3 rounded-lg text-xs font-medium transition-colors duration-150 shrink-0 ${
+                className={`inline-flex items-center gap-1.5 h-8 px-3 rounded-lg text-xs font-medium transition-colors duration-150 shrink-0 border ${
                   subscription?.planCode && subscription.planCode !== "FREE"
-                    ? "bg-card text-foreground hover:bg-muted border border-border"
-                    : "bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/20"
+                    ? "bg-card text-foreground hover:bg-muted border-border"
+                    : "bg-primary text-primary-foreground hover:bg-accent-hover border-transparent"
                 }`}
               >
-                <Crown className="w-4 h-4 shrink-0" />
-                <span className="hidden sm:inline">
+                <span className="shrink-0">
                   {subscription?.planCode && subscription.planCode !== "FREE" ? "Manage Plan" : "Upgrade"}
                 </span>
               </button>
@@ -465,7 +468,7 @@ export default function DashboardLayout() {
               >
                 <MessageSquare className="w-4 h-4" />
                 {msgUnreadCount > 0 && (
-                  <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full bg-danger text-[9px] font-bold text-white flex items-center justify-center shadow-sm ring-2 ring-background animate-badge-pop">
+                  <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full bg-danger text-[9px] font-bold text-white flex items-center justify-center ring-2 ring-background animate-badge-pop">
                     {msgUnreadCount > 99 ? "99+" : msgUnreadCount}
                   </span>
                 )}

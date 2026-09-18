@@ -282,7 +282,7 @@ export default function Notifications() {
                 className={cn(
                   "flex items-center gap-1.5 px-4 py-2.5 rounded-full text-xs font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50",
                   filter === f.id
-                    ? "bg-primary text-white shadow-sm"
+                    ? "bg-primary text-primary-foreground shadow-sm"
                     : "text-muted-foreground hover:text-foreground hover:bg-accent/40"
                 )}
               >
@@ -475,7 +475,7 @@ function NotificationCard({
             size="sm"
             disabled={responding}
             onClick={() => onRespond(true)}
-            className="text-xs bg-primary text-white hover:from-primary hover:to-primary shadow-sm"
+            className="text-xs bg-primary text-primary-foreground hover:from-primary hover:to-primary shadow-sm"
           >
             {responding ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5 mr-1" />}
             Accept
@@ -566,7 +566,7 @@ function PaginationBar({
               className={cn(
                 "inline-flex items-center justify-center w-8 h-8 rounded-lg text-xs font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 transition-colors",
                 p === page
-                  ? "bg-primary text-white shadow-sm"
+                  ? "bg-primary text-primary-foreground shadow-sm"
                   : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
               )}
             >
@@ -611,7 +611,7 @@ function SummaryCard({ total, unread, read }: { total: number; unread: number; r
   const rows = [
     { icon: Bell, label: "Total notifications", value: total, color: "text-primary bg-primary/10" },
     { icon: Circle, label: "Unread", value: unread, color: "text-red-500 bg-red-500/10" },
-    { icon: CheckCheck, label: "Read", value: read, color: "text-success bg-accent/10" },
+    { icon: CheckCheck, label: "Read", value: read, color: "text-success bg-primary/10" },
   ];
   return (
     <section className="rounded-2xl border border-border/40 bg-card/60 p-5">
@@ -637,7 +637,7 @@ function QuickTipsCard() {
       icon: UserPlus,
       title: "Accept project invitations",
       body: "Collaborate with your team and get more done.",
-      color: "text-accent bg-accent/10",
+      color: "text-primary bg-primary/10",
     },
     {
       icon: Bell,
@@ -649,7 +649,7 @@ function QuickTipsCard() {
       icon: CheckCheck,
       title: "Mark as read",
       body: "Keep your notification center clean.",
-      color: "text-success bg-accent/10",
+      color: "text-success bg-primary/10",
     },
   ];
   return (

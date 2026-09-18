@@ -51,7 +51,7 @@ import { toast } from "sonner";
 
 const ACTION_META: Record<string, { label: string; badge: string }> = {
   REGISTER: { label: "Register", badge: "bg-slate-500/10 text-slate-600" },
-  LOGIN_SUCCESS: { label: "Login Success", badge: "bg-accent/10 text-accent" },
+  LOGIN_SUCCESS: { label: "Login Success", badge: "bg-primary/10 text-primary" },
   LOGIN_FAILURE: { label: "Login Failure", badge: "bg-red-500/10 text-red-600" },
   LOGOUT: { label: "Logout", badge: "bg-slate-500/10 text-slate-600" },
   JWT_REFRESH: { label: "JWT Refresh", badge: "bg-info/10 text-info" },
@@ -63,23 +63,23 @@ const ACTION_META: Record<string, { label: string; badge: string }> = {
   ROLE_CHANGED: { label: "Role Changed", badge: "bg-fuchsia-500/10 text-fuchsia-600" },
   ADMIN_CREATED: { label: "Admin Created", badge: "bg-fuchsia-500/10 text-fuchsia-600" },
   USER_BLOCKED: { label: "User Blocked", badge: "bg-red-500/10 text-red-600" },
-  USER_UNBLOCKED: { label: "User Unblocked", badge: "bg-accent/10 text-accent" },
+  USER_UNBLOCKED: { label: "User Unblocked", badge: "bg-primary/10 text-primary" },
   USER_DELETED: { label: "User Deleted", badge: "bg-red-500/10 text-red-600" },
   PROJECT_DELETED: { label: "Project Deleted", badge: "bg-red-500/10 text-red-600" },
   PROJECT_ARCHIVED: { label: "Project Archived", badge: "bg-primary/10 text-primary" },
-  PROJECT_RESTORED: { label: "Project Restored", badge: "bg-accent/10 text-accent" },
+  PROJECT_RESTORED: { label: "Project Restored", badge: "bg-primary/10 text-primary" },
   VISIBILITY_CHANGED: { label: "Visibility Changed", badge: "bg-info/10 text-info" },
-  MODERATION_ACTION: { label: "Moderation Action", badge: "bg-accent/10 text-accent" },
+  MODERATION_ACTION: { label: "Moderation Action", badge: "bg-primary/10 text-primary" },
   SUPPORT_TICKET_CREATED: { label: "Support Ticket Created", badge: "bg-info/10 text-info" },
   SUPPORT_TICKET_REPLIED: { label: "Support Reply", badge: "bg-info/10 text-info" },
   SUPPORT_TICKET_STATUS_CHANGED: { label: "Support Status Changed", badge: "bg-info/10 text-info" },
   SUPPORT_TICKET_ASSIGNED: { label: "Support Assigned", badge: "bg-info/10 text-info" },
-  SUPPORT_TICKET_RESOLVED: { label: "Support Resolved", badge: "bg-accent/10 text-accent" },
+  SUPPORT_TICKET_RESOLVED: { label: "Support Resolved", badge: "bg-primary/10 text-primary" },
   SUPPORT_TICKET_CLOSED: { label: "Support Closed", badge: "bg-slate-500/10 text-slate-600" },
 };
 
 const STATUS_META: Record<string, { label: string; badge: string }> = {
-  SUCCESS: { label: "Success", badge: "bg-accent/10 text-accent" },
+  SUCCESS: { label: "Success", badge: "bg-primary/10 text-primary" },
   FAILURE: { label: "Failure", badge: "bg-red-500/10 text-red-600" },
 };
 
@@ -210,8 +210,8 @@ export default function AdminAuditLogs() {
       {/* Header */}
       <div>
         <div className="flex items-center gap-2 mb-1">
-          <div className="w-8 h-8 rounded-xl bg-accent/10 border border-accent/20 flex items-center justify-center">
-            <ShieldCheck className="w-4 h-4 text-accent" />
+          <div className="w-8 h-8 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center">
+            <ShieldCheck className="w-4 h-4 text-primary" />
           </div>
           <h1 className="text-2xl font-semibold tracking-tight">Audit Logs</h1>
         </div>
@@ -404,7 +404,7 @@ export default function AdminAuditLogs() {
               <div className="px-6 py-5 space-y-6">
                 {/* Event summary */}
                 <div className="flex items-center gap-4 p-4 rounded-xl border border-border/50 bg-card/50">
-                  <div className="w-11 h-11 rounded-xl bg-accent/10 border border-accent/20 flex items-center justify-center shrink-0">
+                  <div className="w-11 h-11 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
                     <ActionIcon action={selected.action} />
                   </div>
                   <div className="min-w-0 flex-1">

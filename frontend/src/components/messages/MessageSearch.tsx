@@ -71,7 +71,7 @@ export function MessageSearch({ open, messages, onClose, onJump }: MessageSearch
         <button
           onClick={onClose}
           aria-label="Close search"
-          className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/10 transition-colors"
+          className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-primary/10 transition-colors"
         >
           <X className="w-3.5 h-3.5" />
         </button>

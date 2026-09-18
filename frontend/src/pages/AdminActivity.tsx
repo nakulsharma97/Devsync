@@ -54,11 +54,11 @@ const ACTIVITY_TYPES = [
 ];
 
 const typeBadge = (type: string) => {
-  if (type.startsWith("PROJECT")) return "border-accent/30 bg-accent/10 text-accent";
+  if (type.startsWith("PROJECT")) return "border-primary/30 bg-primary/10 text-primary";
   if (type.startsWith("TASK")) return "border-info/30 bg-info/10 text-info";
-  if (type === "MESSAGE_SENT") return "border-success/30 bg-accent/10 text-success";
+  if (type === "MESSAGE_SENT") return "border-success/30 bg-primary/10 text-success";
   if (type === "POST_CREATED" || type === "COMMENT_ADDED")
-    return "border-accent/30 bg-accent/10 text-accent";
+    return "border-primary/30 bg-primary/10 text-primary";
   return "border-border/40 bg-muted/40 text-muted-foreground";
 };
 
@@ -149,10 +149,10 @@ export default function AdminActivity() {
   };
 
   const statCards = [
-    { label: "Today's Activities", value: stats?.todayCount ?? 0, icon: ActivityIcon, color: "text-accent" },
+    { label: "Today's Activities", value: stats?.todayCount ?? 0, icon: ActivityIcon, color: "text-primary" },
     { label: "Projects", value: stats?.projects ?? 0, icon: FolderGit2, color: "text-info" },
     { label: "Tasks", value: stats?.tasks ?? 0, icon: ListTodo, color: "text-success" },
-    { label: "Messages", value: stats?.messages ?? 0, icon: MessageSquare, color: "text-accent" },
+    { label: "Messages", value: stats?.messages ?? 0, icon: MessageSquare, color: "text-primary" },
   ];
 
   return (
@@ -162,8 +162,8 @@ export default function AdminActivity() {
       {/* Header */}
       <div>
         <div className="flex items-center gap-2 mb-1">
-          <div className="w-8 h-8 rounded-lg bg-accent/10 border border-accent/20 flex items-center justify-center">
-            <ActivityIcon className="w-4 h-4 text-accent" />
+          <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
+            <ActivityIcon className="w-4 h-4 text-primary" />
           </div>
           <h1 className="text-xl font-bold tracking-tight">Activity Timeline</h1>
         </div>
@@ -280,7 +280,7 @@ export default function AdminActivity() {
                       {item.user.avatarUrl ? (
                         <img src={item.user.avatarUrl} alt="" className="w-4 h-4 rounded-full" />
                       ) : (
-                        <span className="w-4 h-4 rounded-full bg-accent/20 flex items-center justify-center text-[9px] font-bold">
+                        <span className="w-4 h-4 rounded-full bg-primary/10 flex items-center justify-center text-[9px] font-bold">
                           {item.user.fullName.charAt(0)}
                         </span>
                       )}

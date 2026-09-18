@@ -27,6 +27,7 @@ import {
 import { useCallback, useEffect, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router";
 import AdminPageTransition from "@/components/AdminPageTransition";
+import { LogoMark } from "@/components/Logo";
 
 // ── Admin Navigation config ─────────────────────────────
 
@@ -120,7 +121,7 @@ function SidebarLink({ to, icon: Icon, label, onNavigate }: SidebarLinkProps) {
             className={cn(
               "relative w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-all duration-200",
               isActive
-                ? "bg-primary text-white shadow-md shadow-primary/20"
+                ? "bg-primary text-primary-foreground shadow-md shadow-primary/20"
                 : "bg-muted/50 text-muted-foreground group-hover:text-primary group-hover:bg-primary/10"
             )}
           >
@@ -202,15 +203,13 @@ export default function AdminLayout() {
       >
         <div className="flex items-center justify-between px-4 py-4 border-b border-border/40">
           <button onClick={() => navigate("/admin/dashboard")} className="flex items-center gap-2 group">
-            <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center shadow-md shadow-primary/20 transition-transform duration-200 group-hover:scale-105">
-              <Shield className="w-4 h-4 text-white" />
-            </div>
-            <span className="text-sm font-bold tracking-tight">DevSync Admin</span>
+            <LogoMark size={28} className="transition-transform duration-200 group-hover:scale-105" />
+            <span className="font-display text-sm font-semibold tracking-tight">DevSync Admin</span>
           </button>
           <button
             onClick={closeSidebar}
             aria-label="Close menu"
-            className="md:hidden p-1 rounded-md hover:bg-accent/10"
+            className="md:hidden p-1 rounded-md hover:bg-primary/10"
           >
             <X className="w-4 h-4" />
           </button>
@@ -309,7 +308,7 @@ export default function AdminLayout() {
               <button
                 onClick={() => setSidebarOpen(true)}
                 aria-label="Open menu"
-                className="md:hidden p-2 rounded-md hover:bg-accent/10"
+                className="md:hidden p-2 rounded-md hover:bg-primary/10"
               >
                 <Menu className="w-5 h-5" />
               </button>

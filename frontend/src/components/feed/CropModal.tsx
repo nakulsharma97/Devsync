@@ -541,7 +541,7 @@ export default function CropModal({
                   disabled={applying}
                   className={`px-2.5 py-1 text-[11px] font-medium rounded-lg transition-all ${
                     aspect === a.value
-                      ? "bg-primary text-white shadow-sm shadow-primary/25"
+                      ? "bg-primary text-primary-foreground shadow-sm shadow-primary/25"
                       : "bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground"
                   }`}
                 >
@@ -601,7 +601,7 @@ export default function CropModal({
             size="sm"
             onClick={handleApply}
             disabled={!imageLoaded || box.w < 1 || applying}
-            className="gap-1.5 bg-primary text-white hover:from-primary hover:to-primary shadow-md min-w-[110px]"
+            className="gap-1.5 bg-primary text-primary-foreground hover:from-primary hover:to-primary shadow-md min-w-[110px]"
           >
             {applying ? (
               <>

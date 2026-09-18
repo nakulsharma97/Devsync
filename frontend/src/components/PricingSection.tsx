@@ -112,7 +112,7 @@ export default function PricingSection() {
                     <ul className="relative space-y-3 mb-8">
                       {featuresFor(plan).map((f) => (
                         <li key={f} className="flex items-start gap-2.5 text-sm">
-                          <Check className="w-4 h-4 text-accent dark:text-accent mt-0.5 shrink-0 transition-transform duration-200 group-hover:scale-110" />
+                          <Check className="w-4 h-4 text-primary dark:text-primary mt-0.5 shrink-0 transition-transform duration-200 group-hover:scale-110" />
                           <span>{f}</span>
                         </li>
                       ))}
@@ -124,7 +124,7 @@ export default function PricingSection() {
                       }
                       className={`w-full relative ${
                         popular
-                          ? "bg-primary text-white hover:bg-primary/90 shadow-lg"
+                          ? "bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg"
                           : "bg-card border border-border/50 hover:border-primary/30 hover:bg-primary/5"
                       }`}
                       variant={popular ? "default" : "outline"}

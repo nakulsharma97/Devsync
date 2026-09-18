@@ -144,7 +144,7 @@ export function FileRow({ attachment, className }: { attachment: AttachmentDto; 
           onClick={handleDownload}
           aria-label={`Download ${attachment.fileName}`}
           title="Download"
-          className="p-1.5 rounded-md text-muted-foreground/60 hover:text-foreground hover:bg-accent/10 transition-colors shrink-0"
+          className="p-1.5 rounded-md text-muted-foreground/60 hover:text-foreground hover:bg-primary/10 transition-colors shrink-0"
         >
           <Download className="w-3.5 h-3.5" />
         </button>

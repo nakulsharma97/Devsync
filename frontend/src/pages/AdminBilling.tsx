@@ -40,7 +40,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 
 const STATUS_STYLES: Record<string, string> = {
-  ACTIVE: "bg-accent/10 text-success border-accent/20",
+  ACTIVE: "bg-primary/10 text-success border-primary/20",
   TRIALING: "bg-info/10 text-info border-info/20",
   PAST_DUE: "bg-primary/10 text-primary border-primary/20",
   CANCELLED: "bg-red-500/10 text-red-500 border-red-500/20",
@@ -266,10 +266,10 @@ export default function AdminBilling() {
       {/* Header */}
       <div>
         <div className="flex items-center gap-2 mb-1">
-          <div className="w-5 h-5 rounded-md bg-accent/10 flex items-center justify-center">
-            <CreditCard className="w-3 h-3 text-accent" />
+          <div className="w-5 h-5 rounded-md bg-primary/10 flex items-center justify-center">
+            <CreditCard className="w-3 h-3 text-primary" />
           </div>
-          <span className="text-xs font-medium text-accent">Billing</span>
+          <span className="text-xs font-medium text-primary">Billing</span>
         </div>
         <h1 className="text-2xl font-bold tracking-tight">Billing Management</h1>
         <p className="text-sm text-muted-foreground mt-1">
@@ -303,7 +303,7 @@ export default function AdminBilling() {
           onClick={() => setActiveTab("subscriptions")}
           className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
             activeTab === "subscriptions"
-              ? "border-accent text-accent"
+              ? "border-primary text-primary"
               : "border-transparent text-muted-foreground hover:text-foreground"
           }`}
         >
@@ -313,7 +313,7 @@ export default function AdminBilling() {
           onClick={() => setActiveTab("refunds")}
           className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
             activeTab === "refunds"
-              ? "border-accent text-accent"
+              ? "border-primary text-primary"
               : "border-transparent text-muted-foreground hover:text-foreground"
           }`}
         >
@@ -412,7 +412,7 @@ export default function AdminBilling() {
                     <TableRow key={s.id} className="hover:bg-accent/5">
                       <TableCell>
                         <div className="flex items-center gap-2">
-                          <div className="w-7 h-7 rounded-full bg-accent/10 flex items-center justify-center text-[10px] font-bold text-accent shrink-0">
+                          <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold text-primary shrink-0">
                             {s.userName?.charAt(0) || "U"}
                           </div>
                           <span className="text-sm font-medium truncate max-w-[140px]">
@@ -563,7 +563,7 @@ export default function AdminBilling() {
                     <TableRow key={rr.id} className="hover:bg-accent/5">
                       <TableCell>
                         <div className="flex items-center gap-2">
-                          <div className="w-7 h-7 rounded-full bg-accent/10 flex items-center justify-center text-[10px] font-bold text-accent shrink-0">
+                          <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold text-primary shrink-0">
                             {rr.userName?.charAt(0) || "U"}
                           </div>
                           <div>
@@ -582,7 +582,7 @@ export default function AdminBilling() {
                       <TableCell>
                         <Badge variant="outline" className={`text-[11px] ${
                           rr.status === "PENDING" ? "bg-primary/10 text-primary border-primary/20"
-                          : rr.status === "APPROVED" || rr.status === "COMPLETED" ? "bg-accent/10 text-success border-accent/20"
+                          : rr.status === "APPROVED" || rr.status === "COMPLETED" ? "bg-primary/10 text-success border-primary/20"
                           : "bg-red-500/10 text-red-500 border-red-500/20"
                         }`}>
                           {rr.status}

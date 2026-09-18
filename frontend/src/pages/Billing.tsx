@@ -327,7 +327,7 @@ export default function Billing() {
                 <span
                   className={`px-2 py-0.5 rounded-full text-[10px] font-semibold tracking-wide ${
                     subscription?.status === "ACTIVE"
-                      ? "bg-emerald-500/15 text-accent dark:text-accent"
+                      ? "bg-emerald-500/15 text-primary dark:text-primary"
                       : subscription?.status === "PAST_DUE"
                         ? "bg-primary/15 text-primary dark:text-primary"
                         : "bg-muted text-muted-foreground"
@@ -378,7 +378,7 @@ export default function Billing() {
             {!isPaid && (
               <button
                 onClick={() => document.getElementById("plans")?.scrollIntoView({ behavior: "smooth" })}
-                className="text-sm px-4 py-2 rounded-lg bg-primary text-white hover:opacity-90 transition-opacity"
+                className="text-sm px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:opacity-90 transition-opacity"
               >
                 View plans
               </button>
@@ -449,7 +449,7 @@ export default function Billing() {
               }`}
             >
               {popular && (
-                <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-white text-[10px] font-semibold tracking-wider px-3 py-1 rounded-full">
+                <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground text-[10px] font-semibold tracking-wider px-3 py-1 rounded-full">
                   Most Popular
                 </span>
               )}
@@ -467,7 +467,7 @@ export default function Billing() {
               <ul className="space-y-2.5 mb-6 flex-1">
                 {planFeatures(plan).map((f) => (
                   <li key={f} className="flex items-start gap-2 text-sm">
-                    <Check className="w-4 h-4 text-accent dark:text-accent mt-0.5 shrink-0" />
+                    <Check className="w-4 h-4 text-primary dark:text-primary mt-0.5 shrink-0" />
                     <span>{f}</span>
                   </li>
                 ))}
@@ -483,7 +483,7 @@ export default function Billing() {
                     disabled={checkoutLoading !== null}
                     className={`px-4 py-2 rounded-lg text-sm font-medium transition-all disabled:opacity-60 ${
                       popular
-                        ? "bg-primary text-white hover:opacity-90"
+                        ? "bg-primary text-primary-foreground hover:opacity-90"
                         : "border border-border/50 hover:border-primary/30"
                     }`}
                   >
@@ -548,7 +548,7 @@ export default function Billing() {
                         <span
                           className={`px-2 py-0.5 rounded-full text-[10px] font-semibold tracking-wide ${
                             p.status === "SUCCESS"
-                              ? "bg-emerald-500/15 text-accent dark:text-accent"
+                              ? "bg-emerald-500/15 text-primary dark:text-primary"
                               : p.status === "FAILED"
                                 ? "bg-red-500/15 text-red-600 dark:text-red-400"
                                 : p.status === "REFUNDED"
@@ -566,7 +566,7 @@ export default function Billing() {
                               refundStatus.status === "PENDING"
                                 ? "text-primary dark:text-primary"
                                 : refundStatus.status === "APPROVED" || refundStatus.status === "COMPLETED"
-                                  ? "text-accent dark:text-accent"
+                                  ? "text-primary dark:text-primary"
                                   : "text-red-600 dark:text-red-400"
                             }`}
                           >
@@ -624,7 +624,7 @@ export default function Billing() {
               <button
                 onClick={() => submitRefund(refundModalOpen)}
                 disabled={!refundReason.trim() || refundSubmitting}
-                className="text-sm px-4 py-2 rounded-lg bg-primary text-white hover:opacity-90 transition-opacity disabled:opacity-60"
+                className="text-sm px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:opacity-90 transition-opacity disabled:opacity-60"
               >
                 {refundSubmitting ? "Submitting…" : "Submit request"}
               </button>

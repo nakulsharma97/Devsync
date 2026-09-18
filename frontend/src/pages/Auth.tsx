@@ -3,7 +3,8 @@ import { useNavigate, useSearchParams } from "react-router";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Github, Code2, Mail, ArrowRight, Loader2, Sparkles, Shield, Users, Zap, Globe } from "lucide-react";
+import { Github, Mail, ArrowRight, Loader2, Sparkles, Shield, Users, Zap, Globe } from "lucide-react";
+import { LogoMark } from "@/components/Logo";
 
 function OtpInput({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   const [focused, setFocused] = useState(true);
@@ -178,10 +179,8 @@ export default function Auth() {
         {/* DevSync logo */}
         <div className="relative z-10">
           <button onClick={() => navigate("/")} className="flex items-center gap-2.5 group">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#A6532D] to-[#F59A45] flex items-center justify-center">
-              <Code2 className="w-5 h-5 text-white" />
-            </div>
-            <span className="text-lg font-bold tracking-tight font-display">DevSync</span>
+            <LogoMark size={36} />
+            <span className="font-display text-lg font-semibold tracking-tight">DevSync</span>
           </button>
         </div>
 
@@ -220,9 +219,7 @@ export default function Auth() {
             <div className="flex h-[280px]">
               <div className="w-44 border-r border-white/5 bg-[#0D1117]/60 p-3 flex flex-col gap-1">
                 <div className="flex items-center gap-2 px-2 py-1.5 mb-2">
-                  <div className="w-5 h-5 rounded bg-gradient-to-br from-[#A6532D] to-[#F59A45] flex items-center justify-center">
-                    <Code2 className="w-3 h-3 text-white" />
-                  </div>
+                  <LogoMark size={20} />
                   <span className="text-[10px] font-semibold text-white/80">DevSync</span>
                 </div>
                 {["Dashboard", "Tasks", "Kanban", "Team Chat", "Files", "GitHub", "Settings"].map((item, i) => (
@@ -308,9 +305,7 @@ export default function Auth() {
         <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-6 py-4 lg:px-8">
           <div className="lg:hidden flex items-center gap-2">
             <button onClick={() => navigate("/")} className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#A6532D] to-[#F59A45] flex items-center justify-center">
-                <Code2 className="w-4 h-4 text-white" />
-              </div>
+              <LogoMark size={32} />
             </button>
           </div>
           <div className="flex items-center gap-3 ml-auto">
@@ -329,9 +324,7 @@ export default function Auth() {
           <div className="w-full max-w-md animate-fade-in-up">
             {/* Header icon */}
             <div className="flex justify-center mb-6">
-              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#A6532D] to-[#8B4526] flex items-center justify-center shadow-lg shadow-[#A6532D]/20">
-                <Code2 className="w-8 h-8 text-white" />
-              </div>
+              <LogoMark size={56} />
             </div>
 
             {/* Heading */}

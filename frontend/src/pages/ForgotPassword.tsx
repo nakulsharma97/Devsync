@@ -96,7 +96,7 @@ export default function ForgotPassword() {
 
             <Button
               type="submit"
-              className="w-full h-11 text-sm font-semibold shadow-lg bg-primary text-white hover:from-primary hover:to-primary disabled:opacity-50"
+              className="w-full h-11 text-sm font-semibold shadow-lg bg-primary text-primary-foreground hover:from-primary hover:to-primary disabled:opacity-50"
               disabled={loading || !email}
             >
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Send reset link"}

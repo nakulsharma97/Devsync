@@ -103,7 +103,7 @@ export function EmojiPicker({ onSelect, disabled }: EmojiPickerProps) {
         ref={buttonRef}
         onClick={() => setOpen((prev) => !prev)}
         disabled={disabled}
-        className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-accent/10 transition-colors disabled:opacity-40"
+        className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-primary/10 transition-colors disabled:opacity-40"
         title="Add emoji"
         type="button"
       >
@@ -123,7 +123,7 @@ export function EmojiPicker({ onSelect, disabled }: EmojiPickerProps) {
                 onClick={() => setActiveCategory(i)}
                 className={`shrink-0 px-2 py-1 text-[10px] rounded-md transition-colors ${
                   activeCategory === i
-                    ? "bg-accent/10 text-accent font-medium"
+                    ? "bg-primary/10 text-primary font-medium"
                     : "text-muted-foreground hover:text-foreground hover:bg-accent/5"
                 }`}
               >
@@ -142,7 +142,7 @@ export function EmojiPicker({ onSelect, disabled }: EmojiPickerProps) {
                     onSelect(emoji);
                     setOpen(false);
                   }}
-                  className="w-8 h-8 flex items-center justify-center text-lg hover:bg-accent/10 rounded-lg transition-colors hover:scale-110"
+                  className="w-8 h-8 flex items-center justify-center text-lg hover:bg-primary/10 rounded-lg transition-colors hover:scale-110"
                   title={emoji}
                 >
                   {emoji}

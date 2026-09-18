@@ -66,7 +66,7 @@ export default function VerifyEmail() {
           <>
             <div className="text-center mb-6">
               <div className="flex justify-center mb-4">
-                <div className="w-16 h-16 rounded-2xl bg-accent/10 ring-1 ring-emerald-500/25 flex items-center justify-center">
+                <div className="w-16 h-16 rounded-2xl bg-primary/10 ring-1 ring-emerald-500/25 flex items-center justify-center">
                   <CheckCircle2 className="w-8 h-8 text-emerald-400" />
                 </div>
               </div>
@@ -138,7 +138,7 @@ export default function VerifyEmail() {
                 </div>
                 <Button
                   type="submit"
-                  className="w-full h-11 text-sm font-semibold shadow-lg bg-primary text-white hover:from-primary hover:to-primary disabled:opacity-50"
+                  className="w-full h-11 text-sm font-semibold shadow-lg bg-primary text-primary-foreground hover:from-primary hover:to-primary disabled:opacity-50"
                   disabled={resending || !resendEmail}
                 >
                   {resending ? (

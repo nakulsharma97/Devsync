@@ -38,7 +38,7 @@ export default function FinalCtaSection() {
               <Button
                 size="lg"
                 onClick={() => navigate("/auth?mode=register")}
-                className="w-full sm:w-auto text-base px-10 h-12 shadow-xl hover:shadow-2xl transition-all duration-200 bg-primary text-white hover:from-primary hover:to-primary relative overflow-hidden group hover:scale-[1.02] active:scale-[0.98]"
+                className="w-full sm:w-auto text-base px-10 h-12 shadow-xl hover:shadow-2xl transition-all duration-200 bg-primary text-primary-foreground hover:from-primary hover:to-primary relative overflow-hidden group hover:scale-[1.02] active:scale-[0.98]"
               >
                 <span className="relative z-10 flex items-center">
                   Get Started Free

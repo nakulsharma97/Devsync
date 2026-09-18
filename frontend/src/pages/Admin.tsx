@@ -89,14 +89,14 @@ export default function Admin() {
 
   const roleBadge = (role: string) =>
     role === "ADMIN" ? (
-      <Badge variant="outline" className="bg-accent/10 text-accent border-accent/20">ADMIN</Badge>
+      <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">ADMIN</Badge>
     ) : (
       <Badge variant="outline" className="bg-info/10 text-info border-info/20">USER</Badge>
     );
 
   const statusBadge = (status: string) => {
     const styles: Record<string, string> = {
-      ACTIVE: "bg-accent/10 text-success border-accent/20",
+      ACTIVE: "bg-primary/10 text-success border-primary/20",
       ARCHIVED: "bg-primary/10 text-primary border-primary/20",
       COMPLETED: "bg-info/10 text-info border-info/20",
     };
@@ -113,7 +113,7 @@ export default function Admin() {
         { icon: FolderGit2, label: "Projects", value: dashboard.totalProjects, color: "text-primary" },
         { icon: UserPlus, label: "Teams", value: dashboard.totalTeams, color: "text-primary" },
         { icon: ListTodo, label: "Tasks", value: dashboard.totalTasks, color: "text-info" },
-        { icon: Rss, label: "Posts", value: dashboard.totalPosts, color: "text-accent" },
+        { icon: Rss, label: "Posts", value: dashboard.totalPosts, color: "text-primary" },
         { icon: MessagesSquare, label: "Messages", value: dashboard.totalMessages, color: "text-info" },
       ]
     : [];
@@ -122,7 +122,7 @@ export default function Admin() {
     return (
       <div className="flex items-center justify-center py-20">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-8 h-8 rounded-full border-2 border-accent/30 border-t-accent animate-spin" />
+          <div className="w-8 h-8 rounded-full border-2 border-primary/30 border-t-accent animate-spin" />
           <p className="text-sm text-muted-foreground">Loading admin dashboard...</p>
         </div>
       </div>
@@ -156,8 +156,8 @@ export default function Admin() {
 
       <div>
         <div className="flex items-center gap-2 mb-1">
-          <div className="w-5 h-5 rounded-md bg-accent/10 flex items-center justify-center">
-            <Shield className="w-3 h-3 text-accent" />
+          <div className="w-5 h-5 rounded-md bg-primary/10 flex items-center justify-center">
+            <Shield className="w-3 h-3 text-primary" />
           </div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground">Admin Dashboard</h1>
         </div>
@@ -166,7 +166,7 @@ export default function Admin() {
 
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
         {statCards.map((s) => (
-          <Card key={s.label} className="gap-2 py-4 border-border/50 hover:border-accent/30 transition-colors">
+          <Card key={s.label} className="gap-2 py-4 border-border/50 hover:border-primary/30 transition-colors">
             <CardContent className="px-4 flex items-center justify-between gap-2">
               <div className="min-w-0">
                 <p className="text-xs text-muted-foreground truncate">{s.label}</p>
@@ -196,7 +196,7 @@ export default function Admin() {
                     <TableCell>
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-full bg-gradient-to-br from-accent/20 to-accent/5 flex items-center justify-center ring-1 ring-accent/20 shrink-0 overflow-hidden">
-                          {u.avatarUrl ? <img src={u.avatarUrl} alt="" className="w-full h-full object-cover" /> : <Users className="w-3.5 h-3.5 text-accent" />}
+                          {u.avatarUrl ? <img src={u.avatarUrl} alt="" className="w-full h-full object-cover" /> : <Users className="w-3.5 h-3.5 text-primary" />}
                         </div>
                         <div className="min-w-0">
                           <p className="text-sm font-medium text-foreground truncate">{u.fullName}</p>
@@ -259,7 +259,7 @@ export default function Admin() {
           <button
             key={t}
             onClick={() => setTab(t)}
-            className={`px-3 py-2.5 text-xs border-b-2 transition-colors capitalize ${tab === t ? "border-accent text-accent" : "border-transparent text-muted-foreground hover:text-foreground"}`}
+            className={`px-3 py-2.5 text-xs border-b-2 transition-colors capitalize ${tab === t ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}
           >
             {t === "overview" && "📊 "}
             {t === "users" && "👥 "}
@@ -340,9 +340,9 @@ export default function Admin() {
             <div className="border border-border/50 rounded-xl p-10 text-center text-sm text-muted-foreground bg-card">No users found.</div>
           ) : (
             users.map((user) => (
-              <div key={user.id} className="bg-card border border-border/50 rounded-xl p-4 flex items-center gap-4 hover:border-accent/20 transition-colors">
+              <div key={user.id} className="bg-card border border-border/50 rounded-xl p-4 flex items-center gap-4 hover:border-primary/20 transition-colors">
                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-accent/20 to-accent/5 flex items-center justify-center ring-1 ring-accent/20 shrink-0 overflow-hidden">
-                  {user.avatarUrl ? <img src={user.avatarUrl} alt="" className="w-full h-full object-cover" /> : <Users className="w-4 h-4 text-accent" />}
+                  {user.avatarUrl ? <img src={user.avatarUrl} alt="" className="w-full h-full object-cover" /> : <Users className="w-4 h-4 text-primary" />}
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-foreground truncate">{user.fullName}</p>
@@ -356,7 +356,7 @@ export default function Admin() {
                   <Button
                     size="sm"
                     variant="ghost"
-                    className={user.blocked ? "text-success hover:text-accent" : "text-muted-foreground hover:text-destructive"}
+                    className={user.blocked ? "text-success hover:text-primary" : "text-muted-foreground hover:text-destructive"}
                     onClick={() => handleToggleBlock(user)}
                     disabled={togglingBlock === user.id}
                   >
@@ -376,7 +376,7 @@ export default function Admin() {
             <div className="border border-border/50 rounded-xl p-10 text-center text-sm text-muted-foreground bg-card">No posts found.</div>
           ) : (
             posts.map((post) => (
-              <div key={post.id} className="bg-card border border-border/50 rounded-xl p-4 hover:border-accent/20 transition-colors">
+              <div key={post.id} className="bg-card border border-border/50 rounded-xl p-4 hover:border-primary/20 transition-colors">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
                     <p className="text-sm text-foreground line-clamp-2">{post.content}</p>

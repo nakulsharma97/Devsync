@@ -141,7 +141,7 @@ function MessageBubble({
               failed
                 ? "bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/30 rounded-br-md"
                 : own
-                  ? "bg-primary text-white rounded-br-md shadow-sm shadow-primary/20"
+                  ? "bg-primary text-primary-foreground rounded-br-md shadow-sm shadow-primary/20"
                   : "bg-card border border-border/40 rounded-bl-md",
               optimistic && !failed && "opacity-70"
             )}
@@ -175,7 +175,7 @@ function MessageBubble({
                   onClick={() => onReply(msg)}
                   aria-label="Reply"
                   title="Reply"
-                  className="p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-accent/10 transition-colors"
+                  className="p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-primary/10 transition-colors"
                 >
                   <Reply className="w-3 h-3" />
                 </button>
@@ -186,7 +186,7 @@ function MessageBubble({
                   disabled={reacting}
                   aria-label="React with thumbs up"
                   title="React 👍"
-                  className="p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-accent/10 transition-colors disabled:opacity-40"
+                  className="p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-primary/10 transition-colors disabled:opacity-40"
                 >
                   {reacting ? (
                     <Loader2 className="w-3 h-3 animate-spin" />
@@ -200,7 +200,7 @@ function MessageBubble({
                   onClick={() => onEdit(msg)}
                   aria-label="Edit message"
                   title="Edit message"
-                  className="p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-accent/10 transition-colors"
+                  className="p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-primary/10 transition-colors"
                 >
                   <Pencil className="w-3 h-3" />
                 </button>
@@ -217,7 +217,7 @@ function MessageBubble({
                 }}
                 aria-label="Copy message"
                 title="Copy message"
-                className="p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-accent/10 transition-colors"
+                className="p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-primary/10 transition-colors"
               >
                 {copied ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3" />}
               </button>

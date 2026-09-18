@@ -298,14 +298,14 @@ export function CommandPalette({
                     onMouseEnter={() => setSelectedIndex(index)}
                     className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-150 ${
                       index === selectedIndex
-                        ? "bg-accent/10 text-accent"
+                        ? "bg-primary/10 text-primary"
                         : "text-foreground hover:bg-accent/5"
                     }`}
                   >
                     <div
                       className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
                         index === selectedIndex
-                          ? "bg-accent/15 text-accent"
+                          ? "bg-primary/10 text-primary"
                           : "bg-muted text-muted-foreground"
                       }`}
                     >
@@ -322,7 +322,7 @@ export function CommandPalette({
                     <ArrowRight
                       className={`w-3.5 h-3.5 ${
                         index === selectedIndex
-                          ? "text-accent opacity-100"
+                          ? "text-primary opacity-100"
                           : "text-muted-foreground opacity-0"
                       } transition-opacity`}
                     />
@@ -385,7 +385,7 @@ export function CommandPalette({
                           className={`shrink-0 text-[10px] font-mono px-1.5 py-0.5 rounded-full ${
                             item.type === "user"
                               ? "bg-primary/10 text-primary dark:text-primary"
-                              : "bg-accent/10 text-accent dark:text-accent"
+                              : "bg-primary/10 text-primary dark:text-primary"
                           }`}
                         >
                           {item.type}

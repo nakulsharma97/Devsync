@@ -82,7 +82,7 @@ export default function MyPosts() {
         <Button
           size="sm"
           onClick={() => navigate("/feed")}
-          className="bg-primary text-white text-xs hover:from-primary hover:to-primary shadow-md"
+          className="bg-primary text-primary-foreground text-xs hover:from-primary hover:to-primary shadow-md"
         >
           <PenLine className="w-3.5 h-3.5 mr-1.5" />
           Create Post

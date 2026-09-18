@@ -43,7 +43,7 @@ export default function EnterpriseSection({ stats }: { stats: PublicStats | null
                     ? `Join ${stats.users.toLocaleString()} developer${stats.users === 1 ? "" : "s"} already building on DevSync.`
                     : "Start building your next project on DevSync today."}
                 </p>
-                <Button onClick={() => navigate("/auth?mode=register")} className="shadow-xl hover:shadow-2xl transition-all duration-200 bg-primary text-white hover:from-primary hover:to-primary">
+                <Button onClick={() => navigate("/auth?mode=register")} className="shadow-xl hover:shadow-2xl transition-all duration-200 bg-primary text-primary-foreground hover:from-primary hover:to-primary">
                   Get started<ChevronRight className="ml-1 w-4 h-4" />
                 </Button>
               </div>

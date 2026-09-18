@@ -55,7 +55,7 @@ export default function HeroSection({ stats }: { stats: PublicStats | null }) {
           className="absolute inset-0"
           style={{
             backgroundImage:
-              "linear-gradient(rgba(166, 83, 45, 0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(166, 83, 45, 0.3) 1px, transparent 1px)",
+              "linear-gradient(rgba(217, 119, 50, 0.22) 1px, transparent 1px), linear-gradient(90deg, rgba(217, 119, 50, 0.22) 1px, transparent 1px)",
             backgroundSize: "72px 72px",
           }}
         />
@@ -108,8 +108,7 @@ export default function HeroSection({ stats }: { stats: PublicStats | null }) {
               <Button
                 size="lg"
                 onClick={() => navigate("/auth?mode=register")}
-                className="w-full sm:w-auto text-sm px-8 h-11 font-medium bg-primary text-primary-foreground hover:bg-[#fb923c]"
-                style={{ boxShadow: "0 0 16px rgba(249, 115, 22, 0.12)" }}
+                className="w-full sm:w-auto text-sm px-8 h-11 font-medium bg-primary text-primary-foreground hover:bg-accent-hover"
               >
                 <span className="flex items-center">
                   Start Free
@@ -137,15 +136,15 @@ export default function HeroSection({ stats }: { stats: PublicStats | null }) {
               style={{ animationDelay: "0.5s" }}
             >
               <span className="flex items-center gap-1.5">
-                <Check className="w-3.5 h-3.5 text-accent" />
+                <Check className="w-3.5 h-3.5 text-primary" />
                 No credit card
               </span>
               <span className="flex items-center gap-1.5">
-                <Check className="w-3.5 h-3.5 text-accent" />
+                <Check className="w-3.5 h-3.5 text-primary" />
                 Free tier
               </span>
               <span className="flex items-center gap-1.5">
-                <Check className="w-3.5 h-3.5 text-accent" />
+                <Check className="w-3.5 h-3.5 text-primary" />
                 Cancel anytime
               </span>
             </div>

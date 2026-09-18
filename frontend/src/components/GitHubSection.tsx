@@ -183,7 +183,7 @@ export function GitHubSection({ projectId }: { projectId: string }) {
           <GitBranch className="w-4 h-4 text-muted-foreground" />
           <h2 className="text-sm font-semibold">GitHub Integration</h2>
           {connected ? (
-            <Badge variant="outline" className="text-emerald-500 border-emerald-500/30 bg-accent/10">
+            <Badge variant="outline" className="text-emerald-500 border-emerald-500/30 bg-primary/10">
               Connected as @{username}
             </Badge>
           ) : (
@@ -270,7 +270,7 @@ export function GitHubSection({ projectId }: { projectId: string }) {
                 key={t}
                 onClick={() => openTab(t)}
                 className={`px-3 py-2 text-xs border-b-2 transition-colors capitalize ${
-                  tab === t ? "border-accent text-accent" : "border-transparent text-muted-foreground hover:text-foreground"
+                  tab === t ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"
                 }`}
               >
                 {t === "commits" && <GitCommitHorizontal className="w-3.5 h-3.5 inline mr-1" />}

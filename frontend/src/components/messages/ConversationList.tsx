@@ -68,7 +68,7 @@ function ConversationRow({
           className={cn(
             "w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold",
             isRoom
-              ? "bg-gradient-to-br from-accent/20 to-pink-500/20 text-accent"
+              ? "bg-gradient-to-br from-accent/20 to-pink-500/20 text-primary"
               : "bg-gradient-to-br from-primary/20 to-info/20 text-primary"
           )}
         >
@@ -123,7 +123,7 @@ function ConversationRow({
             {conv.lastMessage || "No messages yet"}
           </span>
           {unread > 0 && (
-            <span className="shrink-0 min-w-[18px] h-[18px] px-1 rounded-full bg-primary text-white text-[10px] font-bold flex items-center justify-center">
+            <span className="shrink-0 min-w-[18px] h-[18px] px-1 rounded-full bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center">
               {unread > 99 ? "99+" : unread}
             </span>
           )}

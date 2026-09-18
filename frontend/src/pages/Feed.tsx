@@ -216,7 +216,7 @@ export default function Feed() {
               <div className="flex items-start gap-3">
                 <Avatar className="w-10 h-10 shrink-0 ring-2 ring-primary/15 shadow-sm shadow-primary/10">
                   <AvatarImage src={user?.avatarUrl || undefined} />
-                  <AvatarFallback className="bg-primary text-white text-xs font-bold">
+                  <AvatarFallback className="bg-primary text-primary-foreground text-xs font-bold">
                     {user?.fullName?.charAt(0) || "U"}
                   </AvatarFallback>
                 </Avatar>
@@ -366,7 +366,7 @@ export default function Feed() {
                   <Button
                     type="submit"
                     disabled={creating || !newContent.trim()}
-                    className="bg-primary text-white text-xs hover:bg-primary/90 shadow-md h-8"
+                    className="bg-primary text-primary-foreground text-xs hover:bg-primary/90 shadow-md h-8"
                   >
                     {creating ? (
                       <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -405,7 +405,7 @@ export default function Feed() {
           <Button
             size="sm"
             onClick={openComposer}
-            className="bg-primary text-white hover:bg-primary/90 shadow-md gap-1.5"
+            className="bg-primary text-primary-foreground hover:bg-primary/90 shadow-md gap-1.5"
           >
             <Plus className="w-3.5 h-3.5" />
             Create Post
@@ -472,13 +472,13 @@ function FeedHeader({ onCreatePost }: { onCreatePost: () => void }) {
         </p>
       </div>
       <div className="flex items-center gap-2.5 shrink-0">
-        <span className="inline-flex items-center gap-1.5 text-[10px] font-medium px-2.5 py-1.5 rounded-full bg-accent/10 text-accent dark:text-accent border border-accent/20">
+        <span className="inline-flex items-center gap-1.5 text-[10px] font-medium px-2.5 py-1.5 rounded-full bg-primary/10 text-primary dark:text-primary border border-primary/20">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
           Live
         </span>
         <Button
           onClick={onCreatePost}
-          className="bg-primary text-white hover:bg-primary/90 shadow-md gap-1.5 h-9"
+          className="bg-primary text-primary-foreground hover:bg-primary/90 shadow-md gap-1.5 h-9"
         >
           <Plus className="w-3.5 h-3.5" />
           Create Post

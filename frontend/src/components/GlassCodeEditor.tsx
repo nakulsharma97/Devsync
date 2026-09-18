@@ -13,18 +13,16 @@ const codeLines = [
   'await ws.deploy({ env: "production" });',
   "",
   'console.log("Deployed ✓", task.id);',
-];
-
-// Theme-aware syntax colors
+];  // Theme-aware syntax colors
 function getSyntaxColors(isDark: boolean) {
   return {
-    keyword: isDark ? "#F59A45" : "#A6532D",
-    function: isDark ? "#7DD3FC" : "#0369A1",
-    string: isDark ? "#86EFAC" : "#047857",
-    variable: isDark ? "#F8FAFC" : "#111827",
-    comment: isDark ? "#737B87" : "#6B7280",
+    keyword: isDark ? "#D97732" : "#A0521F",
+    function: isDark ? "#8AB8E8" : "#0369A1",
+    string: isDark ? "#7FCBA4" : "#047857",
+    variable: isDark ? "#E8EBEE" : "#20242A",
+    comment: isDark ? "#707983" : "#8B949E",
     number: isDark ? "#C4B5FD" : "#7C3AED",
-    punctuation: isDark ? "#CBD5E1" : "#475569",
+    punctuation: isDark ? "#A1A8B0" : "#626B76",
   };
 }
 
@@ -112,15 +110,15 @@ export default function GlassCodeEditor() {
     : "linear-gradient(145deg, #F8FAFC 0%, #F1F5F9 100%)";
 
   const editorBorder = dark
-    ? "rgba(249, 115, 22, 0.22)"
-    : "rgba(166, 83, 45, 0.18)";
+    ? "rgba(217, 119, 50, 0.28)"
+    : "rgba(197, 106, 43, 0.22)";
 
   const editorShadow = dark
-    ? "0 0 0 1px rgba(249, 115, 22, 0.08), 0 20px 80px rgba(0, 0, 0, 0.5), 0 0 35px rgba(249, 115, 22, 0.1)"
-    : "0 0 0 1px rgba(0, 0, 0, 0.03), 0 20px 80px rgba(0, 0, 0, 0.10), 0 0 45px rgba(166, 83, 45, 0.06)";
+    ? "0 0 0 1px rgba(255, 255, 255, 0.03), 0 20px 60px rgba(0, 0, 0, 0.45)"
+    : "0 0 0 1px rgba(0, 0, 0, 0.03), 0 20px 60px rgba(0, 0, 0, 0.08)";
 
-  const lineNumColor = dark ? "rgba(166, 123, 74, 0.40)" : "rgba(166, 83, 45, 0.35)";
-  const activeLineBg = dark ? "rgba(245, 154, 69, 0.06)" : "rgba(245, 154, 69, 0.04)";
+  const lineNumColor = dark ? "rgba(161, 168, 176, 0.35)" : "rgba(139, 148, 158, 0.5)";
+  const activeLineBg = dark ? "rgba(217, 119, 50, 0.07)" : "rgba(197, 106, 43, 0.06)";
   const statusBarBg = dark ? "rgba(255, 255, 255, 0.02)" : "rgba(0, 0, 0, 0.02)";
   const statusBarBorder = dark ? "rgba(255, 255, 255, 0.06)" : "rgba(0, 0, 0, 0.06)";
   const statusText = dark ? "rgba(167, 176, 190, 0.60)" : "rgba(71, 85, 105, 0.75)";
@@ -131,9 +129,9 @@ export default function GlassCodeEditor() {
     <div className="relative group animate-hero-editor-in">
       {/* Subtle glow behind editor */}
       <div
-        className="absolute -inset-6 rounded-3xl opacity-30 group-hover:opacity-50 transition-opacity duration-700 pointer-events-none"
+        className="absolute -inset-6 rounded-3xl opacity-20 pointer-events-none"
         style={{
-          background: dark ? "radial-gradient(ellipse at 50% 40%, rgba(249, 115, 22, 0.1) 0%, transparent 70%)" : "radial-gradient(ellipse at 50% 40%, rgba(166, 83, 45, 0.18) 0%, transparent 70%)",
+          background: dark ? "radial-gradient(ellipse at 50% 40%, rgba(217, 119, 50, 0.07) 0%, transparent 70%)" : "radial-gradient(ellipse at 50% 40%, rgba(197, 106, 43, 0.08) 0%, transparent 70%)",
           filter: "blur(30px)",
         }}
       />
@@ -163,8 +161,8 @@ export default function GlassCodeEditor() {
           <div
             className="flex items-center gap-1.5 ml-3 text-[11px] px-3 py-1.5 rounded-lg font-mono transition-colors"
             style={{
-              color: dark ? "rgba(245, 154, 69, 0.80)" : "rgba(166, 83, 45, 0.80)",
-              background: dark ? "rgba(245, 154, 69, 0.08)" : "rgba(245, 154, 69, 0.05)",
+              color: dark ? "rgba(217, 119, 50, 0.85)" : "rgba(197, 106, 43, 0.85)",
+              background: dark ? "rgba(217, 119, 50, 0.08)" : "rgba(197, 106, 43, 0.06)",
             }}
           >
             <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -235,7 +233,7 @@ export default function GlassCodeEditor() {
                     {isActive && (
                       <span
                         className="inline-block w-[2px] h-[18px] animate-caret-blink"
-                        style={{ background: dark ? "rgba(245, 154, 69, 0.90)" : "rgba(166, 83, 45, 0.85)" }}
+                        style={{                        background: dark ? "rgba(217, 119, 50, 0.75)" : "rgba(197, 106, 43, 0.7)" }}
                       />
                     )}
                   </div>

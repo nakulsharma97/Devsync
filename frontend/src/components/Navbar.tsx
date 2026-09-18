@@ -3,7 +3,8 @@ import { useNavigate } from "react-router";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { HighContrastToggle } from "@/components/HighContrastToggle";
-import { Code2, ArrowRight, Menu, X } from "lucide-react";
+import { ArrowRight, Menu, X } from "lucide-react";
+import { LogoMark } from "@/components/Logo";
 
 const navLinks = [
   { label: "Features", href: "#features" },
@@ -45,14 +46,11 @@ export default function Navbar() {
         scrolled ? "py-2" : "py-3"
       }`}>
         <button onClick={() => navigate("/")} className="flex items-center gap-2.5 group">
-          <div className={`rounded-lg bg-primary flex items-center justify-center shadow-lg shadow-primary/20 transition-all duration-300 group-hover:scale-105 group-hover:shadow-primary/30 ${
-            scrolled ? "w-6 h-6" : "w-8 h-8"
-          }`}>
-            <Code2 className={`text-white transition-all duration-300 ${
-              scrolled ? "w-3 h-3" : "w-4 h-4"
-            }`} />
-          </div>
-          <span className={`font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text transition-all duration-300 ${
+          <LogoMark
+            size={scrolled ? 24 : 32}
+            className="transition-all duration-300 group-hover:scale-105"
+          />
+          <span className={`font-display font-semibold tracking-tight text-foreground transition-all duration-300 ${
             scrolled ? "text-sm" : "text-base"
           }`}>DevSync</span>
         </button>
@@ -75,9 +73,9 @@ export default function Navbar() {
           <Button variant="ghost" onClick={() => navigate("/auth")} className={`transition-all duration-300 font-medium ${
             scrolled ? "text-xs h-7 px-2.5" : "text-sm h-9 px-4"
           }`}>Sign in</Button>
-          <Button onClick={() => navigate("/auth?mode=register")} className={`transition-all duration-300 bg-primary text-primary-foreground hover:bg-[#fb923c] font-medium ${
+          <Button onClick={() => navigate("/auth?mode=register")} className={`transition-all duration-300 bg-primary text-primary-foreground hover:bg-accent-hover font-medium ${
             scrolled ? "text-xs h-7 px-3" : "text-sm h-9 px-4"
-          }`} style={{ boxShadow: "0 0 16px rgba(249, 115, 22, 0.12)" }}>
+          }`}>
             Start Free<ArrowRight className={`ml-1.5 transition-all duration-300 ${scrolled ? "w-3 h-3" : "w-3.5 h-3.5"}`} />
           </Button>
         </nav>

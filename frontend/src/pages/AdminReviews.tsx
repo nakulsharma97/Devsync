@@ -61,7 +61,7 @@ const PAGE_SIZE = 10;
 
 const statusStyles: Record<string, string> = {
   PENDING: "bg-primary/10 text-primary border-primary/20",
-  APPROVED: "bg-accent/10 text-emerald-500 border-accent/20",
+  APPROVED: "bg-primary/10 text-emerald-500 border-primary/20",
   REJECTED: "bg-red-500/10 text-red-500 border-red-500/20",
 };
 
@@ -212,8 +212,8 @@ export default function AdminReviews() {
       {/* Header */}
       <div>
         <div className="flex items-center gap-2 mb-1">
-          <div className="w-5 h-5 rounded-md bg-accent/10 flex items-center justify-center">
-            <ShieldAlert className="w-3 h-3 text-accent" />
+          <div className="w-5 h-5 rounded-md bg-primary/10 flex items-center justify-center">
+            <ShieldAlert className="w-3 h-3 text-primary" />
           </div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground">Review Moderation</h1>
         </div>
@@ -326,7 +326,7 @@ export default function AdminReviews() {
                         <div className="flex items-center gap-3">
                           <Avatar className="w-8 h-8 ring-1 ring-accent/20">
                             {r.reviewerAvatarUrl ? <AvatarImage src={r.reviewerAvatarUrl} alt="" /> : null}
-                            <AvatarFallback className="bg-gradient-to-br from-accent/20 to-accent/5 text-xs font-medium text-accent">
+                            <AvatarFallback className="bg-gradient-to-br from-accent/20 to-accent/5 text-xs font-medium text-primary">
                               {(r.reviewerName || "U").charAt(0).toUpperCase()}
                             </AvatarFallback>
                           </Avatar>
@@ -370,7 +370,7 @@ export default function AdminReviews() {
                               <Button
                                 size="sm"
                                 variant="outline"
-                                className="text-emerald-500 hover:text-accent"
+                                className="text-emerald-500 hover:text-primary"
                                 onClick={() => handleApprove(r)}
                                 disabled={busyId === r.id}
                               >

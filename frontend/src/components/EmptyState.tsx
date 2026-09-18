@@ -39,7 +39,7 @@ export function EmptyState({
         <Button
           size="sm"
           onClick={onAction}
-          className="mt-4 bg-primary text-white hover:from-primary hover:to-primary"
+          className="mt-4 bg-primary text-primary-foreground hover:from-primary hover:to-primary"
         >
           {actionLabel}
         </Button>

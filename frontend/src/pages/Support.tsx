@@ -48,15 +48,15 @@ import { toast } from "sonner";
 const STATUS_META: Record<string, { label: string; badge: string }> = {
   OPEN: { label: "Open", badge: "bg-info/10 text-info dark:text-blue-400" },
   IN_PROGRESS: { label: "In Progress", badge: "bg-primary/10 text-primary dark:text-primary" },
-  WAITING_USER: { label: "Waiting for You", badge: "bg-accent/10 text-accent dark:text-accent" },
-  RESOLVED: { label: "Resolved", badge: "bg-accent/10 text-accent dark:text-accent" },
+  WAITING_USER: { label: "Waiting for You", badge: "bg-primary/10 text-primary dark:text-primary" },
+  RESOLVED: { label: "Resolved", badge: "bg-primary/10 text-primary dark:text-primary" },
   CLOSED: { label: "Closed", badge: "bg-slate-500/10 text-slate-600 dark:text-slate-400" },
 };
 
 const PRIORITY_META: Record<string, { label: string; badge: string }> = {
   LOW: { label: "Low", badge: "bg-slate-500/10 text-slate-600 dark:text-slate-400" },
   MEDIUM: { label: "Medium", badge: "bg-info/10 text-info dark:text-blue-400" },
-  HIGH: { label: "High", badge: "bg-accent/10 text-accent dark:text-accent" },
+  HIGH: { label: "High", badge: "bg-primary/10 text-primary dark:text-primary" },
   URGENT: { label: "Urgent", badge: "bg-red-500/10 text-red-600 dark:text-red-400" },
 };
 
@@ -241,7 +241,7 @@ export default function Support() {
         </div>
         <Button
           onClick={() => setCreateOpen(true)}
-          className="bg-primary text-white hover:from-primary hover:to-primary shrink-0"
+          className="bg-primary text-primary-foreground hover:from-primary hover:to-primary shrink-0"
         >
           <Plus className="w-4 h-4 mr-2" /> New Ticket
         </Button>
@@ -569,7 +569,7 @@ export default function Support() {
           </div>
           <div className="border-t px-6 py-4">
             <Button
-              className="w-full h-10 bg-primary text-white hover:from-primary hover:to-primary"
+              className="w-full h-10 bg-primary text-primary-foreground hover:from-primary hover:to-primary"
               onClick={handleCreate}
               disabled={creating}
             >
@@ -680,7 +680,7 @@ export default function Support() {
                       <div
                         className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold ${
                           reply.adminReply
-                            ? "bg-primary text-white"
+                            ? "bg-primary text-primary-foreground"
                             : "bg-muted text-muted-foreground"
                         }`}
                       >
@@ -731,7 +731,7 @@ export default function Support() {
                   size="icon"
                   onClick={handleReply}
                   disabled={!replyText.trim() || sendingReply}
-                  className="h-10 w-10 shrink-0 bg-primary text-white hover:from-primary hover:to-primary"
+                  className="h-10 w-10 shrink-0 bg-primary text-primary-foreground hover:from-primary hover:to-primary"
                 >
                   {sendingReply ? (
                     <Loader2 className="w-4 h-4 animate-spin" />

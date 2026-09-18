@@ -614,7 +614,7 @@ export default function Messages() {
               <button
                 onClick={() => navigate("/messages")}
                 aria-label="Back to conversations"
-                className="md:hidden p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent/10 transition-colors"
+                className="md:hidden p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-primary/10 transition-colors"
               >
                 <ArrowLeft className="w-4 h-4" />
               </button>
@@ -623,7 +623,7 @@ export default function Messages() {
               <div className="relative shrink-0">
                 <span className="w-9 h-9 rounded-full bg-gradient-to-br from-primary/20 to-primary/20 flex items-center justify-center text-sm font-bold text-primary overflow-hidden">
                   {isRoom ? (
-                    <span className="text-accent">
+                    <span className="text-primary">
                       <MessageSquare className="w-4 h-4" />
                     </span>
                   ) : currentConv?.avatarUrl ? (
@@ -668,8 +668,8 @@ export default function Messages() {
                   aria-label="Search in conversation"
                   title="Search messages"
                   className={cn(
-                    "p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent/10 transition-colors",
-                    searchOpen && "bg-accent/10 text-foreground"
+                    "p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-primary/10 transition-colors",
+                    searchOpen && "bg-primary/10 text-foreground"
                   )}
                 >
                   <Search className="w-4 h-4" />
@@ -678,7 +678,7 @@ export default function Messages() {
                   onClick={() => setDetailsOpen(true)}
                   aria-label="Show conversation details"
                   title="Details"
-                  className="lg:hidden p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent/10 transition-colors"
+                  className="lg:hidden p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-primary/10 transition-colors"
                 >
                   <PanelRight className="w-4 h-4" />
                 </button>
@@ -739,7 +739,7 @@ export default function Messages() {
                     replyingToRef.current = null;
                   }}
                   aria-label="Cancel reply"
-                  className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/10 transition-colors"
+                  className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-primary/10 transition-colors"
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
@@ -755,7 +755,7 @@ export default function Messages() {
                   <button
                     onClick={() => setEditing(null)}
                     aria-label="Cancel edit"
-                    className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/10 transition-colors"
+                    className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-primary/10 transition-colors"
                   >
                     <X className="w-3.5 h-3.5" />
                   </button>
