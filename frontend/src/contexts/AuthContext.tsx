@@ -4,6 +4,14 @@ import { wsService } from "@/services/websocketService";
 import { getErrorMessage } from "@/lib/utils";
 import api from "@/services/api";
 
+/**
+ * Which endpoint confirms an OTP. Registration codes are issued by
+ * /auth/register/initiate and confirmed by /auth/register/verify; login codes are
+ * confirmed by /auth/otp/verify. The two are not interchangeable, so the caller
+ * (which knows whether it is registering or logging in) must say which it is.
+ */
+export type OtpPurpose = "registration" | "login";
+
 interface AuthContextType {
   user: AuthResponse["user"] | null;
   isLoading: boolean;
@@ -11,7 +19,19 @@ interface AuthContextType {
   /** True only when the authenticated user has the ADMIN role. */
   isAdmin: boolean;
   error: string | null;
-  login: (email: string, password: string) => Promise<void>;
+  /** `rememberMe` is a UI preference only — refresh-cookie lifetime is server-controlled. */
+  login: (email: string, password: string, rememberMe?: boolean) => Promise<void>;
+  /** Starts email registration: creates the pending registration and sends the OTP. */
+  register: (
+    email: string,
+    password: string,
+    fullName: string,
+    username?: string
+  ) => Promise<void>;
+  /** Resends the OTP for a registration already started with register(). */
+  resendOtp: (email: string) => Promise<void>;
+  /** Confirms an OTP, opens the session, and returns the authenticated user. */
+  verifyOtp: (email: string, otp: string, purpose: OtpPurpose) => Promise<void>;
   logout: () => void;
   clearError: () => void;
   forgotPassword: (email: string) => Promise<void>;
@@ -121,6 +141,52 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const register = useCallback(
+    async (email: string, password: string, fullName: string, username?: string) => {
+      setError(null);
+      setIsLoading(true);
+      try {
+        await authService.initiateRegistration(email, password, fullName, username);
+      } catch (err) {
+        setError(getErrorMessage(err, "Registration failed"));
+        throw err;
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    []
+  );
+
+  const resendOtp = useCallback(async (email: string) => {
+    setError(null);
+    try {
+      await authService.resendRegistrationOtp(email);
+    } catch (err) {
+      setError(getErrorMessage(err, "Could not resend the code"));
+      throw err;
+    }
+  }, []);
+
+  const verifyOtp = useCallback(async (email: string, otp: string, purpose: OtpPurpose) => {
+    setError(null);
+    setIsLoading(true);
+    try {
+      const response =
+        purpose === "registration"
+          ? await authService.verifyRegistration(email, otp)
+          : await authService.verifyOtp(email, otp);
+      // The backend set the refresh cookie on this response; caching the user is
+      // what makes the app render as authenticated before refreshUser() answers.
+      authService.saveSession(response);
+      setUser(response.user);
+    } catch (err) {
+      setError(getErrorMessage(err, "Verification failed"));
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
   const logout = useCallback(() => {
     // Revoke the refresh token server-side (and clear the cookie) before
     // dropping the local session — a stolen refresh token must not outlive logout.
@@ -141,6 +207,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isAdmin: user?.role === "ADMIN",
       error,
       login,
+      register,
+      resendOtp,
+      verifyOtp,
       logout,
       clearError,
       forgotPassword,
@@ -152,6 +221,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isLoading,
       error,
       login,
+      register,
+      resendOtp,
+      verifyOtp,
       logout,
       clearError,
       forgotPassword,

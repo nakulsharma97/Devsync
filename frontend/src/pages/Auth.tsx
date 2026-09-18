@@ -1,9 +1,9 @@
 import { useEffect, useState, useCallback } from "react";
-import { useNavigate, useSearchParams } from "react-router";
+import { useNavigate } from "react-router";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Github, Mail, ArrowRight, Loader2, Sparkles, Shield, Users, Zap, Globe } from "lucide-react";
+import { Github, Mail, ArrowRight, Loader2, Shield, Users, Zap, Globe } from "lucide-react";
 import { LogoMark } from "@/components/Logo";
 
 function OtpInput({ value, onChange }: { value: string; onChange: (v: string) => void }) {
@@ -54,8 +54,8 @@ function FeatureBadge({ icon: Icon, label }: { icon: React.ElementType; label: s
 
 export default function Auth() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const { login, register, isLoading, isAuthenticated, isAdmin, forgotPassword, verifyOtp, resendOtp, refreshUser } = useAuth();
+  const { login, register, isLoading, isAuthenticated, isAdmin, verifyOtp, resendOtp, refreshUser } =
+    useAuth();
 
   const [mode, setMode] = useState<"login" | "register">("login");
   const [email, setEmail] = useState("");
@@ -107,7 +107,9 @@ export default function Auth() {
     try {
       await resendOtp(email);
       setResendCooldown(60);
-    } catch {}
+    } catch {
+      // The provider already exposes the message via `error` — nothing to add here.
+    }
   }, [email, resendOtp]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -116,7 +118,11 @@ export default function Auth() {
     setLocalLoading(true);
     try {
       if (useOtp || (mode === "register" && registrationStep === "verify")) {
-        await verifyOtp(email, otpCode);
+        // A registration code must be confirmed by /auth/register/verify, a login
+        // code by /auth/otp/verify — the flow we are in decides which.
+        const purpose =
+          mode === "register" && registrationStep === "verify" ? "registration" : "login";
+        await verifyOtp(email, otpCode, purpose);
         await refreshUser();
         navigate(isAdmin ? "/admin/dashboard" : "/dashboard");
         return;
@@ -124,13 +130,11 @@ export default function Auth() {
       if (mode === "login") {
         await login(email, password, rememberMe);
       } else {
-        if (registrationStep === "form") {
-          setRegistrationStep("verify");
-          await resendOtp(email);
-          setResendCooldown(60);
-          return;
-        }
-        await register(email, password, fullName, username, otpCode);
+        // Registering creates the pending registration and sends the code; the code
+        // itself is confirmed on the next step by the OTP branch above.
+        await register(email, password, fullName, username);
+        setRegistrationStep("verify");
+        setResendCooldown(60);
       }
     } catch (err: any) {
       setError(err?.response?.data?.message || err?.message || "Something went wrong");

@@ -1,5 +1,5 @@
 import { useState, useEffect, lazy, Suspense } from "react";
-import { BarChart3, Heart, MessageCircle, UserPlus, Rss, Users } from "lucide-react";
+import { BarChart3, Heart, MessageCircle, Rss, Users } from "lucide-react";
 import { analyticsService, type PostStats, type FollowerGrowth, type ActivityStats } from "@/services/analyticsService";
 
 // The charts (and therefore recharts, ~420 kB) live in their own chunk so this
