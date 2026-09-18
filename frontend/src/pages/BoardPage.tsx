@@ -191,7 +191,7 @@ function TaskCard({
       <div className="flex items-center justify-between mt-2 pt-2 border-t border-border/30">
         {task.assigneeName ? (
           <div className="flex items-center gap-1.5">
-            <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center text-[8px] font-bold text-white">
+            <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center text-[8px] font-bold text-primary-foreground">
               {task.assigneeName.charAt(0)}
             </div>
             <span className="text-[10px] text-muted-foreground truncate max-w-[80px]">{task.assigneeName}</span>
@@ -591,7 +591,7 @@ function TaskDetailDialog({
             <div className="flex flex-wrap items-center gap-2 border-t border-border/40 pt-3">
               <Button
                 size="sm"
-                className="bg-success hover:bg-emerald-700 text-white"
+                className="bg-success text-success-foreground hover:bg-success/90"
                 disabled={wfBusy !== null}
                 onClick={() => runWorkflow("approve", () => boardService.approvePullRequest(task.id), "Pull request approved")}
               >
@@ -614,7 +614,7 @@ function TaskDetailDialog({
               </Button>
               <Button
                 size="sm"
-                className="bg-accent hover:bg-accent text-white"
+                className="bg-primary text-primary-foreground hover:bg-accent-hover"
                 disabled={wfBusy !== null}
                 onClick={() => runWorkflow("merge", () => boardService.mergePullRequest(task.id), "Pull request merged — task completed")}
               >

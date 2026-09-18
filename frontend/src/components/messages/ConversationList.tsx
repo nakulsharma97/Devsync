@@ -216,7 +216,7 @@ export function ConversationList({
           <h2 className="text-sm font-semibold tracking-tight">Messages</h2>
           <button
             onClick={onNewChat}
-            className="inline-flex items-center gap-1 text-[11px] font-medium text-white bg-primary hover:from-primary hover:to-primary rounded-lg px-2.5 py-1.5 shadow-sm shadow-primary/20 transition-all"
+            className="inline-flex items-center gap-1 text-[11px] font-medium text-primary-foreground bg-primary hover:from-primary hover:to-primary rounded-lg px-2.5 py-1.5 shadow-sm shadow-primary/20 transition-all"
             title="New chat"
           >
             <Plus className="w-3.5 h-3.5" /> New Chat
@@ -323,7 +323,7 @@ export function ConversationList({
             </p>
             <button
               onClick={onNewChat}
-              className="mt-1 inline-flex items-center gap-1 text-[11px] font-medium text-white bg-primary rounded-lg px-3 py-1.5 shadow-sm shadow-primary/20 transition-all hover:from-primary hover:to-primary"
+              className="mt-1 inline-flex items-center gap-1 text-[11px] font-medium text-primary-foreground bg-primary rounded-lg px-3 py-1.5 shadow-sm shadow-primary/20 transition-all hover:from-primary hover:to-primary"
             >
               <Plus className="w-3.5 h-3.5" /> New Chat
             </button>

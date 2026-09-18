@@ -8,6 +8,10 @@ import { cn } from "@/lib/utils";
  *
  * Geometry is duplicated deliberately in `public/logo.svg` (a favicon cannot
  * import a React component) — keep the two in sync if the mark ever changes.
+ *
+ * Colours come from the `--brand` tokens rather than `--primary`: brand
+ * surfaces must stay recognisable in every mode, and high-contrast repaints
+ * `--primary` to near-white, which would render the white glyph invisible.
  */
 export function LogoMark({
   size = 28,
@@ -22,7 +26,7 @@ export function LogoMark({
     <span
       aria-hidden
       className={cn(
-        "inline-flex items-center justify-center shrink-0 bg-primary text-white",
+        "inline-flex items-center justify-center shrink-0 bg-brand text-brand-foreground",
         className
       )}
       style={{ width: size, height: size, borderRadius: Math.round(size * 0.28) }}

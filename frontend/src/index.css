@@ -49,6 +49,8 @@
   --color-sidebar-ring: var(--sidebar-ring);
 
   /* ── Extended palette ───────────────────────────── */
+  --color-brand: var(--brand);
+  --color-brand-foreground: var(--brand-foreground);
   --color-info: var(--info);
   --color-info-foreground: #FFFFFF;
   --color-success: var(--success);
@@ -83,6 +85,13 @@
   --radius: 0.625rem;
 
   /* Core design tokens */
+  /* Brand mark — deliberately NOT themeable, and defined only here so neither
+     `.dark` nor `.high-contrast` can repaint it. High contrast turns
+     `--primary` near-white, which would leave the white logo glyph sitting on
+     a white chip; the logo keeps its identity in every mode. */
+  --brand: #d97732;
+  --brand-foreground: #ffffff;
+
   --bg-primary: #f7f8fa;
   --bg-secondary: #ffffff;
   --bg-card: #ffffff;

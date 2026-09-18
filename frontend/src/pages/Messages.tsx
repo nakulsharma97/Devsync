@@ -783,7 +783,7 @@ export default function Messages() {
                   <button
                     onClick={saveEdit}
                     disabled={editSaving || !editText.trim()}
-                    className="inline-flex items-center gap-1.5 text-xs font-medium text-white bg-primary hover:from-primary hover:to-primary rounded-lg px-3 py-1.5 transition-all disabled:opacity-40"
+                    className="inline-flex items-center gap-1.5 text-xs font-medium text-primary-foreground bg-primary hover:from-primary hover:to-primary rounded-lg px-3 py-1.5 transition-all disabled:opacity-40"
                   >
                     {editSaving ? <Spinner className="w-3 h-3 animate-spin" /> : "Save"}
                   </button>
@@ -811,7 +811,7 @@ export default function Messages() {
               </p>
               <button
                 onClick={() => setNewChatOpen(true)}
-                className="mt-4 inline-flex items-center gap-1.5 text-xs font-medium text-white bg-primary hover:from-primary hover:to-primary rounded-lg px-3.5 py-2 shadow-sm shadow-primary/20 transition-all"
+                className="mt-4 inline-flex items-center gap-1.5 text-xs font-medium text-primary-foreground bg-primary hover:from-primary hover:to-primary rounded-lg px-3.5 py-2 shadow-sm shadow-primary/20 transition-all"
               >
                 New Chat
               </button>

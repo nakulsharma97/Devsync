@@ -109,7 +109,7 @@ export function FilePreviewDialog({
               <p className="text-sm text-muted-foreground">Preview unavailable for this file.</p>
               <button
                 onClick={handleDownload}
-                className="mt-3 inline-flex items-center gap-1.5 text-xs font-medium text-white bg-primary rounded-lg px-3.5 py-2"
+                className="mt-3 inline-flex items-center gap-1.5 text-xs font-medium text-primary-foreground bg-primary rounded-lg px-3.5 py-2"
               >
                 <Download className="w-3.5 h-3.5" /> Download instead
               </button>
@@ -151,7 +151,7 @@ export function FilePreviewDialog({
               <p className="text-xs text-muted-foreground mt-1">{formatBytes(attachment.size)}</p>
               <button
                 onClick={handleDownload}
-                className="mt-4 inline-flex items-center gap-1.5 text-xs font-medium text-white bg-primary rounded-lg px-3.5 py-2"
+                className="mt-4 inline-flex items-center gap-1.5 text-xs font-medium text-primary-foreground bg-primary rounded-lg px-3.5 py-2"
               >
                 <Download className="w-3.5 h-3.5" /> Download
               </button>

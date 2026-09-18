@@ -425,8 +425,8 @@ function PublicProjectJoinView({
         <div className="absolute -top-16 -right-16 w-56 h-56 bg-gradient-to-bl from-primary/[0.07] to-transparent rounded-full blur-3xl pointer-events-none" />
 
         <div className="flex items-center gap-2.5 flex-wrap relative">
-          <div className="w-11 h-11 rounded-xl bg-primary flex items-center justify-center shadow-md shadow-primary/20 shrink-0">
-            <FolderKanban className="w-5 h-5 text-white" />
+          <div className="w-11 h-11 rounded-xl bg-primary flex items-center justify-center shrink-0">
+            <FolderKanban className="w-5 h-5 text-primary-foreground" />
           </div>
           <h1 className="text-xl font-bold tracking-tight">{project.name}</h1>
           <StatusPill status={project.status} />
