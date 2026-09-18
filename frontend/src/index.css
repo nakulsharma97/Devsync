@@ -1,7 +1,10 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
-@custom-variant dark (&:is(.dark *));
+/* `.auth-light` opts its subtree out of every `dark:` utility: the auth page
+   deliberately pairs a dark hero with a LIGHT form panel, so when the app is
+   in dark mode those utilities must not repaint it (see AUTH SURFACES below). */
+@custom-variant dark (&:is(.dark *):not(.auth-light *));
 
 @theme inline {
   /* ── Radius hierarchy ─────────────────────────── */
@@ -72,8 +75,11 @@
 
 /* ═══════════════════════════════════════════════════
    LIGHT MODE — Soft off-white, white surfaces, muted orange accent
+   Also applied to `.auth-light` so the auth form panel keeps light tokens
+   even when the app shell is in dark mode.
    ═══════════════════════════════════════════════════ */
-:root {
+:root,
+.auth-light {
   --radius: 0.625rem;
 
   /* Core design tokens */
@@ -142,8 +148,11 @@
 
 /* ═══════════════════════════════════════════════════
    DARK MODE — Deep charcoal, elevated surfaces, muted orange accent
+   Also applied to `.auth-dark` so the dark-only auth pages (forgot/reset/
+   verify) keep their dark tokens when the app shell is in light mode.
    ═══════════════════════════════════════════════════ */
-.dark {
+.dark,
+.auth-dark {
   /* Core design tokens */
   --bg-primary: #0b0d0f;
   --bg-secondary: #111418;
@@ -401,6 +410,51 @@ html {
   scroll-padding-top: 4.5rem;
   scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
   scrollbar-width: thin;
+}
+
+/* ═══════════════════════════════════════════════════
+   AUTH SURFACES
+   The auth pages pin their own theme rather than following the app shell:
+   /auth is a dark hero beside a light form panel, while forgot/reset/verify
+   are dark-only. Without pinning, the dark app theme leaked `dark:` utilities
+   and dark autofill appearance into the light panel — which painted the
+   credential fields dark-on-white and left typed text unreadable.
+   ═══════════════════════════════════════════════════ */
+.auth-light {
+  color-scheme: light;
+  /* Inherited `color` is resolved on <body> with the app's tokens, so set it
+     here too — otherwise un-classed text inside the panel would stay light. */
+  color: var(--text-primary);
+}
+
+.auth-dark {
+  color-scheme: dark;
+  color: var(--text-primary);
+}
+
+/* Credential fields must stay legible in every state: typed, focused and
+   browser-autofilled. Chrome paints its own background and text fill for
+   autofilled inputs — that mismatch is what made saved credentials look
+   washed out on the light panel. */
+.auth-light input,
+.auth-light textarea,
+.auth-dark input,
+.auth-dark textarea {
+  -webkit-text-fill-color: currentColor;
+  caret-color: currentColor;
+}
+
+.auth-light input:-webkit-autofill,
+.auth-light input:-webkit-autofill:hover,
+.auth-light input:-webkit-autofill:focus,
+.auth-light input:-webkit-autofill:active,
+.auth-dark input:-webkit-autofill,
+.auth-dark input:-webkit-autofill:hover,
+.auth-dark input:-webkit-autofill:focus,
+.auth-dark input:-webkit-autofill:active {
+  -webkit-text-fill-color: currentColor;
+  /* Keeps Chrome's autofill background from overriding the field surface. */
+  transition: background-color 9999s ease-in-out 0s;
 }
 
 /* ═══════════════════════════════════════════════════

@@ -153,7 +153,7 @@ export default function Auth() {
         : true;
 
   return (
-    <div className="min-h-screen flex bg-white">
+    <div className="auth-light min-h-screen flex bg-white">
       <style>{`
         @keyframes fade-in-up {
           from { opacity: 0; transform: translateY(12px); }
@@ -300,7 +300,7 @@ export default function Auth() {
       </div>
 
       {/* ═══ RIGHT: Auth Form ═══ */}
-      <div className="w-full lg:w-[45%] flex flex-col relative bg-white">
+      <div className="auth-light w-full lg:w-[45%] flex flex-col relative bg-white">
         {/* Top bar */}
         <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-6 py-4 lg:px-8">
           <div className="lg:hidden flex items-center gap-2">

@@ -52,7 +52,7 @@ export default function VerifyEmail() {
   };
 
   return (
-    <div className="min-h-screen bg-background text-white flex items-center justify-center p-4 relative overflow-hidden">
+    <div className="auth-dark min-h-screen bg-background text-white flex items-center justify-center p-4 relative overflow-hidden">
       <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-background to-accent/10 pointer-events-none" />
       <div className="relative w-full max-w-sm animate-fade-in-up">
         {status === "checking" && (
