@@ -28,6 +28,7 @@ import { useCallback, useEffect, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router";
 import AdminPageTransition from "@/components/AdminPageTransition";
 import { LogoMark } from "@/components/Logo";
+import { prefetchRoute } from "@/lib/routePrefetch";
 
 // ── Admin Navigation config ─────────────────────────────
 
@@ -98,6 +99,9 @@ function SidebarLink({ to, icon: Icon, label, onNavigate }: SidebarLinkProps) {
     <NavLink
       to={to}
       onClick={onNavigate}
+      // Warm the admin page chunk on intent so the click is instant.
+      onMouseEnter={() => prefetchRoute(to)}
+      onFocus={() => prefetchRoute(to)}
       className={({ isActive }) =>
         cn(
           "group relative flex items-center gap-3 px-3 py-2 rounded-xl text-sm transition-all duration-200 border",

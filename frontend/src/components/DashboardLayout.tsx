@@ -8,6 +8,7 @@ import { notificationService } from "@/services/notificationService";
 import { conversationService } from "@/services/conversationService";
 import { wsService } from "@/services/websocketService";
 import { cn } from "@/lib/utils";
+import { prefetchRoute } from "@/lib/routePrefetch";
 import {
   LayoutDashboard,
   FolderKanban,
@@ -106,6 +107,10 @@ function SidebarLink({ to, icon: Icon, label, badge, onNavigate }: SidebarLinkPr
     <NavLink
       to={to}
       onClick={onNavigate}
+      // Warm the page chunk while the pointer is on the link so the click
+      // resolves from cache instead of waiting on a download.
+      onMouseEnter={() => prefetchRoute(to)}
+      onFocus={() => prefetchRoute(to)}
       className={({ isActive }) =>
         cn(
           "group relative flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors duration-150",
