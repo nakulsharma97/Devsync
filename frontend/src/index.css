@@ -58,6 +58,13 @@
   --color-warning: var(--warning);
   --color-warning-foreground: var(--warning-foreground);
   --color-danger: var(--danger);
+  --color-danger-foreground: var(--danger-foreground);
+  --color-destructive-foreground: var(--danger-foreground);
+  /* Text variants of the status colours — see the `--*-text` note below. */
+  --color-info-text: var(--info-text);
+  --color-success-text: var(--success-text);
+  --color-warning-text: var(--warning-text);
+  --color-danger-text: var(--danger-text);
   --color-bg-primary: var(--bg-primary);
   --color-bg-secondary: var(--bg-secondary);
   --color-bg-card: var(--bg-card);
@@ -97,13 +104,25 @@
   --bg-card: #ffffff;
   --bg-card-hover: #f1f3f5;
   --text-primary: #20242a;
-  --text-secondary: #626b76;
-  --text-muted: #8b949e;
+  /* Secondary/muted text is measured against the DARKEST surface it can land
+     on (#f1f3f5 card-hover), not against white — secondary #626b76 / muted
+     #8b949e only reached 5.08:1 and 4.38:1 there, and muted fell to 2.89:1 on
+     the page background, i.e. below WCAG AA (4.5:1). These values hold
+     >=5.1:1 on every light surface and still read as clearly secondary. */
+  --text-secondary: #4f5866;
+  /* A step darker than before: cards tinted with ~10% copper (the "most
+     popular" plan, CTA cards) pushed the old #5f6774 to 4.41:1. This clears
+     AA on those tints as well as on plain white and grey surfaces. */
+  --text-muted: #565e6b;
   --border-color: #e1e5ea;
   --border-subtle: #eceff2;
-  --accent-color: #c56a2b;
-  --accent-hover: #ae581f;
-  --accent-soft: rgba(197, 106, 43, 0.1);
+  /* The accent doubles as TEXT (active tabs, links, primary buttons carry a
+     label). At #c56a2b it only reached 3.61–3.83:1 on white — below AA — so the
+     light theme uses a deeper copper that clears 5.2:1 while staying the same
+     hue. The dark theme accent is already legible on its surfaces. */
+  --accent-color: #a1541f;
+  --accent-hover: #8a4415;
+  --accent-soft: rgba(161, 84, 31, 0.1);
   --shadow-card: 0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 3px rgba(16, 24, 40, 0.06);
 
   /* Status */
@@ -112,7 +131,19 @@
   --success-foreground: #06130c;
   --warning: #a87522;
   --warning-foreground: #221904;
-  --danger: #c94f4f;
+  /* #c94f4f put white destructive-button labels at 4.45:1 — just under AA. */
+  --danger: #c04444;
+  /* `bg-danger`/`bg-destructive` fills carry a label. White clears AA on the
+     light fill; the dark fill is a light red, so its label is near-black. */
+  --danger-foreground: #ffffff;
+  /* Status tokens above are FILLS: they pair with a dark --*-foreground label,
+     so they sit mid-scale. Used as TEXT on a light surface the same value fails
+     AA — --info reached 3.08:1 and --success 3.77:1 on their own 10% tints.
+     These darker variants exist purely for text/icons; fills are unchanged. */
+  --info-text: #1d5fa8;
+  --success-text: #10664a;
+  --warning-text: #7a5406;
+  --danger-text: #b02525;
 
   /* shadcn/ui aliases */
   --background: var(--bg-primary);
@@ -123,7 +154,7 @@
   --popover: var(--bg-card);
   --popover-foreground: var(--text-primary);
   --primary: var(--accent-color);
-  --primary-foreground: #1a120a;
+  --primary-foreground: #ffffff;
   --secondary: #f1f3f5;
   --secondary-foreground: #374151;
   --muted: #f1f3f5;
@@ -144,7 +175,7 @@
   --sidebar: var(--bg-secondary);
   --sidebar-foreground: var(--text-secondary);
   --sidebar-primary: var(--accent-color);
-  --sidebar-primary-foreground: #1a120a;
+  --sidebar-primary-foreground: #ffffff;
   --sidebar-accent: #f1f3f5;
   --sidebar-accent-foreground: var(--text-primary);
   --sidebar-border: var(--border-subtle);
@@ -169,7 +200,8 @@
   --bg-card-hover: #1c2127;
   --text-primary: #f1f3f5;
   --text-secondary: #a1a8b0;
-  --text-muted: #707983;
+  /* #707983 scored only 3.67:1 on the elevated (#1c2127) surface. */
+  --text-muted: #8a939e;
   --border-color: #292f36;
   --border-subtle: #20252b;
   --accent-color: #d97732;
@@ -184,6 +216,14 @@
   --warning: #d6a24a;
   --warning-foreground: #1c1505;
   --danger: #d96b6b;
+  /* White on #d96b6b measured 3.37:1 — below AA for button/badge labels. */
+  --danger-foreground: #2a0b0b;
+  /* On dark surfaces the fill values already clear AA as text, so these match
+     them; the split exists for light mode. */
+  --info-text: #5b9cf6;
+  --success-text: #45b88a;
+  --warning-text: #d6a24a;
+  --danger-text: #d96b6b;
 
   /* shadcn/ui aliases */
   --background: var(--bg-primary);
@@ -469,56 +509,127 @@ html {
 /* ═══════════════════════════════════════════════════
    HIGH-CONTRAST MODE
    ═══════════════════════════════════════════════════ */
+/* High contrast strengthens contrast WITHIN DevSync's palette. Two failure
+   modes are corrected here:
+
+   1. The old block overrode only the shadcn aliases (--foreground, --border,
+      ...) and left the app-level tokens (--bg-*, --text-*, --border-color,
+      --accent-color) untouched. Because most components consume the app
+      tokens, high contrast only half-applied. Both layers are now set.
+
+   2. It imported an unrelated palette: --primary went near-white and --accent
+      became blue (light) / green (dark). --accent is this design system's
+      NEUTRAL HOVER SURFACE, so hovering a nav item turned it green, and the
+      near-white --primary erased the brand. High contrast now keeps the brand
+      orange, darkened/lightened far enough to clear AAA text contrast. */
 .high-contrast {
-  --foreground: oklch(0 0 0);
-  --card-foreground: oklch(0 0 0);
-  --popover-foreground: oklch(0 0 0);
-  --secondary: oklch(0.85 0.01 250);
-  --secondary-foreground: oklch(0 0 0);
-  --muted: oklch(0.88 0.01 250);
-  --muted-foreground: oklch(0.15 0.02 250);
-  --accent: oklch(0.35 0.20 255);
-  --accent-foreground: oklch(1 0 0);
-  --border: oklch(0.55 0.02 250);
-  --input: oklch(0.50 0.02 250);
-  --ring: oklch(0.25 0.20 255);
-  --sidebar: oklch(0.94 0.005 250);
-  --sidebar-foreground: oklch(0 0 0);
-  --sidebar-accent: oklch(0.82 0.01 250);
-  --sidebar-accent-foreground: oklch(0 0 0);
-  --sidebar-border: oklch(0.65 0.02 250);
-  --sidebar-ring: oklch(0.25 0.20 255);
-  --scrollbar-thumb: oklch(0.40 0.02 250);
-  --scrollbar-thumb-hover: oklch(0.30 0.03 250);
+  --bg-primary: #ffffff;
+  --bg-secondary: #ffffff;
+  --bg-card: #ffffff;
+  --bg-card-hover: #e8ebef;
+  --text-primary: #000000;
+  --text-secondary: #1f2329;
+  --text-muted: #33383f;
+  --border-color: #6b7480;
+  --border-subtle: #9aa2ad;
+  --accent-color: #8a4415;
+  --accent-hover: #6d3410;
+  --accent-soft: rgba(138, 68, 21, 0.14);
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.18);
+
+  --info: #0b4f9e;
+  --success: #0a6b4a;
+  --warning: #7a5406;
+  --danger: #a01b1b;
+  --danger-foreground: #ffffff;
+  --info-text: #0b4f9e;
+  --success-text: #0a6b4a;
+  --warning-text: #7a5406;
+  --danger-text: #a01b1b;
+
+  --background: var(--bg-primary);
+  --foreground: var(--text-primary);
+  --card: var(--bg-card);
+  --card-foreground: var(--text-primary);
+  --popover: var(--bg-card);
+  --popover-foreground: var(--text-primary);
+  --primary: var(--accent-color);
+  --primary-foreground: #ffffff;
+  --secondary: var(--bg-card-hover);
+  --secondary-foreground: var(--text-primary);
+  --muted: var(--bg-card-hover);
+  --muted-foreground: var(--text-muted);
+  --accent: var(--bg-card-hover);
+  --accent-foreground: var(--text-primary);
+  --destructive: var(--danger);
+  --border: var(--border-color);
+  --input: var(--border-color);
+  --ring: var(--accent-color);
+  --sidebar: var(--bg-secondary);
+  --sidebar-foreground: var(--text-secondary);
+  --sidebar-primary: var(--accent-color);
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: var(--bg-card-hover);
+  --sidebar-accent-foreground: var(--text-primary);
+  --sidebar-border: var(--border-color);
+  --sidebar-ring: var(--accent-color);
+  --scrollbar-thumb: #6b7480;
+  --scrollbar-thumb-hover: #4a525c;
 }
 
 .high-contrast.dark {
-  --background: oklch(0.05 0.01 260);
-  --foreground: oklch(0.99 0 0);
-  --card: oklch(0.08 0.01 260);
-  --card-foreground: oklch(0.99 0 0);
-  --popover: oklch(0.08 0.01 260);
-  --popover-foreground: oklch(0.99 0 0);
-  --primary: oklch(0.95 0.01 255);
-  --primary-foreground: oklch(0 0 0);
-  --secondary: oklch(0.12 0.015 260);
-  --secondary-foreground: oklch(0.99 0 0);
-  --muted: oklch(0.12 0.015 260);
-  --muted-foreground: oklch(0.82 0.015 250);
-  --accent: oklch(0.75 0.18 155);
-  --accent-foreground: oklch(0 0 0);
-  --destructive: oklch(0.70 0.22 25);
-  --border: oklch(0.50 0.02 260);
-  --input: oklch(0.50 0.02 260);
-  --ring: oklch(0.75 0.18 255);
-  --sidebar: oklch(0.04 0.01 260);
-  --sidebar-foreground: oklch(0.99 0 0);
-  --sidebar-accent: oklch(0.10 0.015 260);
-  --sidebar-accent-foreground: oklch(0.99 0 0);
-  --sidebar-border: oklch(0.40 0.02 260);
-  --sidebar-ring: oklch(0.75 0.18 255);
-  --scrollbar-thumb: oklch(0.50 0.02 260);
-  --scrollbar-thumb-hover: oklch(0.60 0.025 260);
+  --bg-primary: #000000;
+  --bg-secondary: #0a0c0e;
+  --bg-card: #101316;
+  --bg-card-hover: #1d2227;
+  --text-primary: #ffffff;
+  --text-secondary: #e4e7ea;
+  --text-muted: #c3c9d0;
+  --border-color: #8d959e;
+  --border-subtle: #5d656e;
+  --accent-color: #f0a06a;
+  --accent-hover: #ffb37f;
+  --accent-soft: rgba(240, 160, 106, 0.18);
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.6);
+
+  --info: #8fc0ff;
+  --success: #6fdcae;
+  --warning: #f0c070;
+  --danger: #ff9a9a;
+  --danger-foreground: #2a0b0b;
+  --info-text: #8fc0ff;
+  --success-text: #6fdcae;
+  --warning-text: #f0c070;
+  --danger-text: #ff9a9a;
+
+  --background: var(--bg-primary);
+  --foreground: var(--text-primary);
+  --card: var(--bg-card);
+  --card-foreground: var(--text-primary);
+  --popover: var(--bg-card);
+  --popover-foreground: var(--text-primary);
+  --primary: var(--accent-color);
+  --primary-foreground: #1a120a;
+  --secondary: var(--bg-card-hover);
+  --secondary-foreground: var(--text-primary);
+  --muted: var(--bg-card-hover);
+  --muted-foreground: var(--text-muted);
+  --accent: var(--bg-card-hover);
+  --accent-foreground: var(--text-primary);
+  --destructive: var(--danger);
+  --border: var(--border-color);
+  --input: var(--border-color);
+  --ring: var(--accent-color);
+  --sidebar: var(--bg-secondary);
+  --sidebar-foreground: var(--text-secondary);
+  --sidebar-primary: var(--accent-color);
+  --sidebar-primary-foreground: #1a120a;
+  --sidebar-accent: var(--bg-card-hover);
+  --sidebar-accent-foreground: var(--text-primary);
+  --sidebar-border: var(--border-color);
+  --sidebar-ring: var(--accent-color);
+  --scrollbar-thumb: #8d959e;
+  --scrollbar-thumb-hover: #b3bac1;
 }
 
 .high-contrast *:focus-visible {

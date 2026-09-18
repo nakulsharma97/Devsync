@@ -181,9 +181,9 @@ export default function Settings() {
           </div>
         ) : github.connected ? (
           <div className="space-y-4">
-            <div className="flex items-center gap-3 p-4 rounded-xl bg-emerald-500/5 border border-primary/20">
+            <div className="flex items-center gap-3 p-4 rounded-xl bg-success/5 border border-primary/20">
               <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                <GitBranch className="w-5 h-5 text-primary dark:text-primary" />
+                <GitBranch className="w-5 h-5 text-primary" />
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-foreground">
@@ -197,7 +197,7 @@ export default function Settings() {
               </div>
               <Badge
                 variant="secondary"
-                className="bg-primary/10 text-primary dark:text-primary"
+                className="bg-primary/10 text-primary"
               >
                 Active
               </Badge>
@@ -207,7 +207,7 @@ export default function Settings() {
               size="sm"
               onClick={handleDisconnect}
               disabled={disconnecting}
-              className="text-muted-foreground hover:text-red-600 hover:border-red-500/30"
+              className="text-muted-foreground hover:text-danger-text hover:border-danger/30"
             >
               {disconnecting ? (
                 <Loader2 className="w-4 h-4 animate-spin mr-2" />

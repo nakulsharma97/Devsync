@@ -96,7 +96,7 @@ export function MessageComposer({ onSend, onTyping, contextId, projectId, disabl
         <div className="flex items-center gap-2 mb-2 px-3 py-2 rounded-lg border border-border/50 bg-muted/40">
           {attachment ? (
             <>
-              <span className="w-8 h-8 shrink-0 rounded-md bg-primary/10 text-primary dark:text-primary flex items-center justify-center">
+              <span className="w-8 h-8 shrink-0 rounded-md bg-primary/10 text-primary flex items-center justify-center">
                 <FileText className="w-4 h-4" />
               </span>
               <span className="flex-1 min-w-0">
@@ -113,7 +113,7 @@ export function MessageComposer({ onSend, onTyping, contextId, projectId, disabl
             </>
           ) : (
             <>
-              <span className="flex-1 text-xs text-red-500/90">{uploadError}</span>
+              <span className="flex-1 text-xs text-danger-text/90">{uploadError}</span>
               <button
                 onClick={() => setUploadError(null)}
                 aria-label="Dismiss error"
@@ -182,7 +182,7 @@ export function MessageComposer({ onSend, onTyping, contextId, projectId, disabl
           placeholder={disabled ? "Messaging unavailable" : "Type a message..."}
           disabled={disabled}
           aria-label="Message"
-          className="flex-1 resize-none bg-transparent text-sm text-foreground placeholder:text-muted-foreground/60 outline-none py-1.5 max-h-[132px] leading-relaxed disabled:opacity-50"
+          className="flex-1 resize-none bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none py-1.5 max-h-[132px] leading-relaxed disabled:opacity-50"
         />
 
         <button
@@ -195,7 +195,7 @@ export function MessageComposer({ onSend, onTyping, contextId, projectId, disabl
           <Send className="w-4 h-4" />
         </button>
       </div>
-      <p className="text-[10px] text-muted-foreground/50 mt-1.5 px-1">
+      <p className="text-[10px] text-muted-foreground mt-1.5 px-1">
         Enter to send · Shift + Enter for a new line
       </p>
     </div>

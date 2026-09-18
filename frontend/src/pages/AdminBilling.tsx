@@ -40,17 +40,17 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 
 const STATUS_STYLES: Record<string, string> = {
-  ACTIVE: "bg-primary/10 text-success border-primary/20",
-  TRIALING: "bg-info/10 text-info border-info/20",
+  ACTIVE: "bg-primary/10 text-success-text border-primary/20",
+  TRIALING: "bg-info/10 text-info-text border-info/20",
   PAST_DUE: "bg-primary/10 text-primary border-primary/20",
-  CANCELLED: "bg-red-500/10 text-red-500 border-red-500/20",
+  CANCELLED: "bg-danger/10 text-danger-text border-danger/20",
   EXPIRED: "bg-muted text-muted-foreground border-border/40",
-  INCOMPLETE: "bg-red-500/10 text-red-500 border-red-500/20",
+  INCOMPLETE: "bg-danger/10 text-danger-text border-danger/20",
 };
 
 const PLAN_STYLES: Record<string, string> = {
-  PRO: "bg-info/10 text-info border-info/20",
-  ENTERPRISE: "bg-info/10 text-info border-info/20",
+  PRO: "bg-info/10 text-info-text border-info/20",
+  ENTERPRISE: "bg-info/10 text-info-text border-info/20",
   FREE: "bg-muted text-muted-foreground border-border/40",
 };
 
@@ -226,28 +226,28 @@ export default function AdminBilling() {
       label: "Total Revenue",
       value: stats ? formatINR(stats.totalRevenuePaise) : "—",
       icon: IndianRupee,
-      color: "text-success",
+      color: "text-success-text",
       sub: stats ? `${formatINR(stats.revenueThisMonthPaise)} this month` : undefined,
     },
     {
       label: "Active Subscriptions",
       value: stats ? String(stats.activeSubscriptions) : "0",
       icon: CheckCircle,
-      color: "text-info",
+      color: "text-info-text",
       sub: stats ? `${stats.proUsers} Pro · ${stats.enterpriseUsers} Enterprise` : undefined,
     },
     {
       label: "Free Users",
       value: stats ? String(stats.freeUsers) : "0",
       icon: Users,
-      color: "text-info",
+      color: "text-info-text",
       sub: stats ? `${stats.totalSubscriptions} total subs` : undefined,
     },
     {
       label: "Failed Payments",
       value: stats ? String(stats.failedPayments) : "0",
       icon: XCircle,
-      color: "text-red-500",
+      color: "text-danger-text",
       sub: stats ? `${stats.refundedPayments} refunded` : undefined,
     },
     {
@@ -582,8 +582,8 @@ export default function AdminBilling() {
                       <TableCell>
                         <Badge variant="outline" className={`text-[11px] ${
                           rr.status === "PENDING" ? "bg-primary/10 text-primary border-primary/20"
-                          : rr.status === "APPROVED" || rr.status === "COMPLETED" ? "bg-primary/10 text-success border-primary/20"
-                          : "bg-red-500/10 text-red-500 border-red-500/20"
+                          : rr.status === "APPROVED" || rr.status === "COMPLETED" ? "bg-primary/10 text-success-text border-primary/20"
+                          : "bg-danger/10 text-danger-text border-danger/20"
                         }`}>
                           {rr.status}
                         </Badge>
@@ -678,7 +678,7 @@ export default function AdminBilling() {
               <button
                 onClick={() => rejectRefund(rejectModal)}
                 disabled={!rejectNote.trim() || processingRefund === rejectModal}
-                className="text-sm px-4 py-2 rounded-lg bg-destructive text-white hover:opacity-90 transition-opacity disabled:opacity-60"
+                className="text-sm px-4 py-2 rounded-lg bg-destructive text-destructive-foreground hover:opacity-90 transition-opacity disabled:opacity-60"
               >
                 {processingRefund === rejectModal ? "Rejecting…" : "Reject"}
               </button>

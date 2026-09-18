@@ -235,7 +235,7 @@ export default function Feed() {
                       }
                     }}
                     aria-label="Post content"
-                    className="min-h-[80px] max-h-48 w-full resize-none text-sm bg-transparent border border-border/40 rounded-xl p-3 focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 placeholder:text-muted-foreground/50 transition-all"
+                    className="min-h-[80px] max-h-48 w-full resize-none text-sm bg-transparent border border-border/40 rounded-xl p-3 focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 placeholder:text-muted-foreground transition-all"
                   />
                 </div>
                 <button
@@ -308,7 +308,7 @@ export default function Feed() {
               )}
 
               {imageError && (
-                <p role="alert" className="flex items-center gap-1.5 text-xs text-red-500 ml-13">
+                <p role="alert" className="flex items-center gap-1.5 text-xs text-danger-text ml-13">
                   <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
                   {imageError}
                 </p>
@@ -349,7 +349,7 @@ export default function Feed() {
                     <ImagePlus className="w-3.5 h-3.5" />
                     {imagePreviewUrl ? "Replace image" : "Attach image"}
                   </Button>
-                  <span className="text-[10px] text-muted-foreground/50 ml-1 hidden sm:inline">
+                  <span className="text-[10px] text-muted-foreground ml-1 hidden sm:inline">
                     Ctrl/⌘ + Enter to post
                   </span>
                 </div>
@@ -358,7 +358,7 @@ export default function Feed() {
                     className={`text-[10px] tabular-nums ${
                       newContent.length > MAX_CONTENT_LENGTH - 50
                         ? "text-primary"
-                        : "text-muted-foreground/50"
+                        : "text-muted-foreground"
                     }`}
                   >
                     {newContent.length}/{MAX_CONTENT_LENGTH}
@@ -472,8 +472,8 @@ function FeedHeader({ onCreatePost }: { onCreatePost: () => void }) {
         </p>
       </div>
       <div className="flex items-center gap-2.5 shrink-0">
-        <span className="inline-flex items-center gap-1.5 text-[10px] font-medium px-2.5 py-1.5 rounded-full bg-primary/10 text-primary dark:text-primary border border-primary/20">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+        <span className="inline-flex items-center gap-1.5 text-[10px] font-medium px-2.5 py-1.5 rounded-full bg-primary/10 text-primary border border-primary/20">
+          <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
           Live
         </span>
         <Button

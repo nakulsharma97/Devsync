@@ -259,7 +259,7 @@ export default function Notifications() {
                 variant="outline"
                 size="sm"
                 onClick={markAllRead}
-                className="border-primary/40 text-primary dark:text-primary hover:bg-primary/5 hover:border-primary/60"
+                className="border-primary/40 text-primary hover:bg-primary/5 hover:border-primary/60"
               >
                 <CheckCheck className="w-4 h-4 mr-1.5" />
                 Mark all as read
@@ -290,8 +290,10 @@ export default function Notifications() {
                 <span
                   className={cn(
                     "min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-semibold inline-flex items-center justify-center",
+                    // Inverted pill: a 20%-foreground overlay over the accent left
+                    // the count at 3.7:1. Solid inverse keeps the accent pair intact.
                     filter === f.id
-                      ? "bg-white/20 text-white"
+                      ? "bg-primary-foreground text-primary"
                       : "bg-muted text-muted-foreground"
                   )}
                 >
@@ -321,7 +323,7 @@ export default function Notifications() {
             </div>
           ) : error ? (
             <div className="flex flex-col items-center gap-3 py-16 text-center rounded-2xl border border-border/40 bg-card/50">
-              <AlertCircle className="w-10 h-10 text-muted-foreground/40" />
+              <AlertCircle className="w-10 h-10 text-muted-foreground" />
               <p className="text-sm text-muted-foreground">{error}</p>
               <Button variant="outline" size="sm" onClick={load}>
                 Retry
@@ -436,18 +438,18 @@ function NotificationCard({
 
         {/* Content */}
         <span className="flex-1 min-w-0">
-          <span className="block text-[10px] font-medium text-muted-foreground/50 mb-0.5">
+          <span className="block text-[10px] font-medium text-muted-foreground mb-0.5">
             {meta.label}
           </span>
           <span className={cn("block text-sm leading-snug", n.read ? "text-muted-foreground" : "text-foreground font-medium")}>
             {n.title}
           </span>
           {n.message && (
-            <span className={cn("block text-xs mt-0.5 leading-relaxed", n.read ? "text-muted-foreground/70" : "text-muted-foreground")}>
+            <span className={cn("block text-xs mt-0.5 leading-relaxed", n.read ? "text-muted-foreground" : "text-muted-foreground")}>
               {n.message}
             </span>
           )}
-          <span className="block text-[11px] text-muted-foreground/60 mt-1.5">
+          <span className="block text-[11px] text-muted-foreground mt-1.5">
             {timeAgo(n.createdAt, "recently")}
           </span>
         </span>
@@ -459,12 +461,12 @@ function NotificationCard({
               "inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full border",
               n.read
                 ? "text-muted-foreground border-border/40 bg-muted/40"
-                : "text-primary dark:text-primary border-primary/25 bg-primary/10"
+                : "text-primary border-primary/25 bg-primary/10"
             )}
           >
             {n.read ? "Read" : "New"}
           </span>
-          <ChevronRight className="w-4 h-4 text-muted-foreground/40 group-hover:text-primary transition-colors" />
+          <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
         </span>
       </button>
 
@@ -490,7 +492,7 @@ function NotificationCard({
             <X className="w-3.5 h-3.5 mr-1" />
             Reject
           </Button>
-          <span className="text-[11px] text-muted-foreground/60 ml-auto hidden sm:inline">
+          <span className="text-[11px] text-muted-foreground ml-auto hidden sm:inline">
             {invitation.projectName}
           </span>
         </div>
@@ -553,7 +555,7 @@ function PaginationBar({
 
         {pages.map((p, i) =>
           p === "…" ? (
-            <span key={`e-${i}`} className="w-8 h-8 inline-flex items-center justify-center text-xs text-muted-foreground/60">
+            <span key={`e-${i}`} className="w-8 h-8 inline-flex items-center justify-center text-xs text-muted-foreground">
               …
             </span>
           ) : (
@@ -610,8 +612,8 @@ function PaginationBar({
 function SummaryCard({ total, unread, read }: { total: number; unread: number; read: number }) {
   const rows = [
     { icon: Bell, label: "Total notifications", value: total, color: "text-primary bg-primary/10" },
-    { icon: Circle, label: "Unread", value: unread, color: "text-red-500 bg-red-500/10" },
-    { icon: CheckCheck, label: "Read", value: read, color: "text-success bg-primary/10" },
+    { icon: Circle, label: "Unread", value: unread, color: "text-danger-text bg-danger/10" },
+    { icon: CheckCheck, label: "Read", value: read, color: "text-success-text bg-primary/10" },
   ];
   return (
     <section className="rounded-2xl border border-border/40 bg-card/60 p-5">
@@ -643,13 +645,13 @@ function QuickTipsCard() {
       icon: Bell,
       title: "Stay updated",
       body: "Never miss an important project update.",
-      color: "text-info bg-info/10",
+      color: "text-info-text bg-info/10",
     },
     {
       icon: CheckCheck,
       title: "Mark as read",
       body: "Keep your notification center clean.",
-      color: "text-success bg-primary/10",
+      color: "text-success-text bg-primary/10",
     },
   ];
   return (

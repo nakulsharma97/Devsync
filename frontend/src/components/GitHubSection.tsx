@@ -183,7 +183,7 @@ export function GitHubSection({ projectId }: { projectId: string }) {
           <GitBranch className="w-4 h-4 text-muted-foreground" />
           <h2 className="text-sm font-semibold">GitHub Integration</h2>
           {connected ? (
-            <Badge variant="outline" className="text-emerald-500 border-emerald-500/30 bg-primary/10">
+            <Badge variant="outline" className="text-success-text border-success/30 bg-primary/10">
               Connected as @{username}
             </Badge>
           ) : (

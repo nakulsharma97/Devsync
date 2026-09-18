@@ -404,7 +404,7 @@ export default function FeedPostCard({
             >
               <Avatar className="w-10 h-10 ring-2 ring-primary/10">
                 <AvatarImage src={post.user.avatarUrl || undefined} />
-                <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/20 text-primary dark:text-primary text-xs font-bold">
+                <AvatarFallback className="bg-primary text-primary-foreground text-xs font-bold">
                   {post.user.fullName?.charAt(0) || "?"}
                 </AvatarFallback>
               </Avatar>
@@ -417,19 +417,19 @@ export default function FeedPostCard({
                   disabled={!post.user.username}
                   className={`text-sm font-semibold text-left ${
                     post.user.username
-                      ? "hover:text-primary dark:hover:text-primary transition-colors"
+                      ? "hover:text-primary transition-colors"
                       : "cursor-default"
                   }`}
                 >
                   {post.user.fullName}
                 </button>
                 {post.user.username && (
-                  <span className="text-xs text-muted-foreground/70">
+                  <span className="text-xs text-muted-foreground">
                     @{post.user.username}
                   </span>
                 )}
                 {isOwnPost && (
-                  <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-primary/10 text-primary dark:text-primary border border-primary/20">
+                  <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
                     You
                   </span>
                 )}
@@ -437,7 +437,7 @@ export default function FeedPostCard({
               <p className="text-xs text-muted-foreground flex items-center gap-1.5">
                 {timeAgo}
                 {isEdited && (
-                  <span className="text-[10px] text-muted-foreground/70">
+                  <span className="text-[10px] text-muted-foreground">
                     · Edited
                   </span>
                 )}
@@ -451,7 +451,7 @@ export default function FeedPostCard({
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-7 w-7 text-muted-foreground/50 hover:text-foreground hover:bg-muted opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-all"
+                  className="h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-muted opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-all"
                   aria-label="Post actions"
                 >
                   <MoreVertical className="h-4 w-4" />
@@ -465,7 +465,7 @@ export default function FeedPostCard({
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   onSelect={() => setDeleteOpen(true)}
-                  className="gap-2 cursor-pointer text-red-500 focus:text-red-500 focus:bg-red-500/10"
+                  className="gap-2 cursor-pointer text-danger-text focus:text-danger-text focus:bg-danger/10"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                   Delete
@@ -488,8 +488,8 @@ export default function FeedPostCard({
             aria-label={isLiked ? "Unlike post" : "Like post"}
             className={`flex items-center gap-1.5 text-xs rounded-full px-3 py-1.5 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 ${
               isLiked
-                ? "text-red-500 bg-red-500/10"
-                : "text-muted-foreground hover:text-red-500 hover:bg-red-500/5"
+                ? "text-danger-text bg-danger/10"
+                : "text-muted-foreground hover:text-danger-text hover:bg-danger/5"
             }`}
           >
             <motion.span
@@ -542,7 +542,7 @@ export default function FeedPostCard({
           <button
             onClick={() => setReportOpen(true)}
             aria-label="Report post"
-            className="flex items-center gap-1.5 text-xs rounded-full px-3 py-1.5 text-muted-foreground/60 hover:text-primary hover:bg-primary/5 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+            className="flex items-center gap-1.5 text-xs rounded-full px-3 py-1.5 text-muted-foreground hover:text-primary hover:bg-primary/5 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
           >
             <Flag className="w-4 h-4" />
             <span className="hidden sm:inline">Report</span>
@@ -568,7 +568,7 @@ export default function FeedPostCard({
                       <div key={comment.id} className="flex gap-2.5 animate-fade-in-up">
                         <Avatar className="w-6 h-6 shrink-0 ring-1 ring-primary/10">
                           <AvatarImage src={comment.user.avatarUrl || undefined} />
-                          <AvatarFallback className="text-[9px] font-bold bg-gradient-to-br from-primary/20 to-primary/20 text-primary dark:text-primary">
+                          <AvatarFallback className="text-[9px] font-bold bg-primary text-primary-foreground">
                             {comment.user.fullName?.charAt(0) || "?"}
                           </AvatarFallback>
                         </Avatar>
@@ -593,7 +593,7 @@ export default function FeedPostCard({
                           <button
                             onClick={() => setCommentToDelete(comment)}
                             aria-label="Delete comment"
-                            className="self-start p-1 rounded-md text-muted-foreground/40 hover:text-red-500 hover:bg-red-500/10 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/40"
+                            className="self-start p-1 rounded-md text-muted-foreground hover:text-danger-text hover:bg-danger/10 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger/40"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
@@ -647,7 +647,7 @@ export default function FeedPostCard({
               value={editContent}
               onChange={(e) => setEditContent(e.target.value.slice(0, MAX_CONTENT_LENGTH))}
               aria-label="Edit post content"
-              className="min-h-[110px] max-h-64 w-full resize-none text-sm bg-transparent border border-border/40 rounded-xl p-3 focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 placeholder:text-muted-foreground/50 transition-all"
+              className="min-h-[110px] max-h-64 w-full resize-none text-sm bg-transparent border border-border/40 rounded-xl p-3 focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 placeholder:text-muted-foreground transition-all"
             />
 
             {editImagePreview ? (
@@ -717,7 +717,7 @@ export default function FeedPostCard({
                     variant="ghost"
                     size="sm"
                     onClick={() => setEditRemoveImage(true)}
-                    className="h-8 text-xs gap-1.5 text-muted-foreground hover:text-red-400"
+                    className="h-8 text-xs gap-1.5 text-muted-foreground hover:text-danger-text"
                   >
                     <X className="h-3.5 w-3.5" />
                     Remove
@@ -756,7 +756,7 @@ export default function FeedPostCard({
             />
 
             {editImageError && (
-              <p role="alert" className="flex items-center gap-1.5 text-xs text-red-500">
+              <p role="alert" className="flex items-center gap-1.5 text-xs text-danger-text">
                 <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
                 {editImageError}
               </p>
@@ -767,7 +767,7 @@ export default function FeedPostCard({
                 className={`text-[10px] tabular-nums ${
                   editContent.length > MAX_CONTENT_LENGTH - 50
                     ? "text-primary"
-                    : "text-muted-foreground/50"
+                    : "text-muted-foreground"
                 }`}
               >
                 {editContent.length}/{MAX_CONTENT_LENGTH}
@@ -806,7 +806,7 @@ export default function FeedPostCard({
             <AlertDialogAction
               onClick={confirmDelete}
               disabled={deleting}
-              className="bg-red-500 text-white hover:bg-red-600"
+              className="bg-danger text-danger-foreground hover:bg-danger/90"
             >
               {deleting && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
               Delete
@@ -851,7 +851,7 @@ export default function FeedPostCard({
             <AlertDialogAction
               onClick={confirmDeleteComment}
               disabled={commentDeleting}
-              className="bg-red-500 text-white hover:bg-red-600"
+              className="bg-danger text-danger-foreground hover:bg-danger/90"
             >
               {commentDeleting && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
               Delete

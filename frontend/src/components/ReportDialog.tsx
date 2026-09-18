@@ -85,7 +85,7 @@ export function ReportDialog({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Flag className="w-4 h-4 text-red-500" />
+            <Flag className="w-4 h-4 text-danger-text" />
             Report {entityLabel}
           </DialogTitle>
           <DialogDescription>
@@ -112,7 +112,7 @@ export function ReportDialog({
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="report-details" className="text-xs">
-              Details <span className="text-muted-foreground/60">(optional)</span>
+              Details <span className="text-muted-foreground">(optional)</span>
             </Label>
             <Input
               id="report-details"
@@ -122,7 +122,7 @@ export function ReportDialog({
             />
           </div>
           {!reason && (
-            <p role="alert" className="flex items-center gap-1.5 text-xs text-red-500">
+            <p role="alert" className="flex items-center gap-1.5 text-xs text-danger-text">
               <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
               Please select a reason.
             </p>
@@ -135,7 +135,7 @@ export function ReportDialog({
           <Button
             onClick={submit}
             disabled={!reason || submitting}
-            className="bg-red-500 text-white hover:bg-red-600"
+            className="bg-danger text-danger-foreground hover:bg-danger/90"
           >
             {submitting ? (
               <Loader2 className="h-4 w-4 animate-spin" />

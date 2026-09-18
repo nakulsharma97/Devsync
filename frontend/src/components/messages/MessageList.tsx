@@ -38,7 +38,7 @@ function DaySeparator({ date }: { date: string }) {
   return (
     <div className="flex items-center gap-3 my-4">
       <span className="h-px flex-1 bg-border/40" />
-      <span className="text-[10px] font-medium text-muted-foreground/50">
+      <span className="text-[10px] font-medium text-muted-foreground">
         {label}
       </span>
       <span className="h-px flex-1 bg-border/40" />
@@ -117,7 +117,7 @@ function MessageBubble({
     >
       {/* Incoming avatar (rooms only) */}
       {!own && isRoom && (
-        <span className="w-7 h-7 mt-1 rounded-full bg-gradient-to-br from-primary/20 to-primary/20 text-primary dark:text-primary flex items-center justify-center text-[10px] font-bold shrink-0 overflow-hidden">
+        <span className="w-7 h-7 mt-1 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-[10px] font-bold shrink-0 overflow-hidden">
           {msg.senderAvatar ? (
             <img src={msg.senderAvatar} alt={msg.senderName} className="w-full h-full object-cover" />
           ) : (
@@ -129,7 +129,7 @@ function MessageBubble({
       <div className={cn("max-w-[70%] flex flex-col", own ? "items-end" : "items-start")}>
         {/* Sender name in rooms */}
         {!own && isRoom && (
-          <span className="text-[11px] font-medium text-primary dark:text-primary mb-1 ml-0.5">
+          <span className="text-[11px] font-medium text-primary mb-1 ml-0.5">
             {msg.senderName}
           </span>
         )}
@@ -139,7 +139,7 @@ function MessageBubble({
             className={cn(
               "rounded-2xl px-3.5 py-2 text-sm leading-relaxed break-words",
               failed
-                ? "bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/30 rounded-br-md"
+                ? "bg-danger/10 text-danger-text border border-danger/30 rounded-br-md"
                 : own
                   ? "bg-primary text-primary-foreground rounded-br-md shadow-sm shadow-primary/20"
                   : "bg-card border border-border/40 rounded-bl-md",
@@ -152,7 +152,7 @@ function MessageBubble({
               <span
                 className={cn(
                   "block text-[9px] italic mt-0.5",
-                  own ? "text-white/60" : "text-muted-foreground/60"
+                  own ? "text-white/60" : "text-muted-foreground"
                 )}
                 title={msg.editedAt ? `Edited ${new Date(msg.editedAt).toLocaleString()}` : "Edited"}
               >
@@ -219,14 +219,14 @@ function MessageBubble({
                 title="Copy message"
                 className="p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-primary/10 transition-colors"
               >
-                {copied ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3" />}
+                {copied ? <Check className="w-3 h-3 text-success-text" /> : <Copy className="w-3 h-3" />}
               </button>
               {own && onDelete && (
                 <button
                   onClick={() => onDelete(msg)}
                   aria-label="Delete message"
                   title="Delete message"
-                  className="p-1.5 rounded text-muted-foreground hover:text-red-500 hover:bg-red-500/10 transition-colors"
+                  className="p-1.5 rounded text-muted-foreground hover:text-danger-text hover:bg-danger/10 transition-colors"
                 >
                   <Trash2 className="w-3 h-3" />
                 </button>
@@ -248,7 +248,7 @@ function MessageBubble({
                 className={cn(
                   "inline-flex items-center gap-1 text-[11px] rounded-full border px-1.5 py-0.5 transition-colors",
                   r.reactedByMe
-                    ? "bg-primary/15 border-primary/30 text-primary dark:text-primary"
+                    ? "bg-primary/15 border-primary/30 text-primary"
                     : "bg-muted/40 border-border/40 text-muted-foreground hover:bg-muted/70"
                 )}
               >
@@ -263,7 +263,7 @@ function MessageBubble({
         {replyCount > 0 && onOpenThread && !optimistic && (
           <button
             onClick={() => onOpenThread(msg)}
-            className="mt-1 inline-flex items-center gap-1.5 text-[11px] font-medium text-primary dark:text-primary hover:underline"
+            className="mt-1 inline-flex items-center gap-1.5 text-[11px] font-medium text-primary hover:underline"
             title="View replies"
           >
             <MessageSquare className="w-3 h-3" />
@@ -281,15 +281,15 @@ function MessageBubble({
           {failed ? (
             <button
               onClick={() => onRetry?.(msg)}
-              className="text-red-500 hover:underline font-medium"
+              className="text-danger-text hover:underline font-medium"
               title="Resend this message"
             >
               Failed · tap to retry
             </button>
           ) : (
             <>
-              <span className="text-muted-foreground/60">{formatChatTime(msg.createdAt)}</span>
-              {optimistic && <span className="italic text-muted-foreground/60">sending…</span>}
+              <span className="text-muted-foreground">{formatChatTime(msg.createdAt)}</span>
+              {optimistic && <span className="italic text-muted-foreground">sending…</span>}
             </>
           )}
         </span>
@@ -324,7 +324,7 @@ export function MessageList({
   if (messages.length === 0) {
     return (
       <div className="flex flex-col items-center gap-2 py-16 text-center px-6">
-        <MessageSquare className="w-10 h-10 text-muted-foreground/25" />
+        <MessageSquare className="w-10 h-10 text-muted-foreground" />
         <p className="text-sm font-medium text-foreground/80">No messages yet</p>
         <p className="text-xs text-muted-foreground">Say hello to start the conversation.</p>
       </div>

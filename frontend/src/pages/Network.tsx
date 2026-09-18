@@ -146,14 +146,14 @@ export default function Network() {
       value: followingCount,
       label: "Following",
       description: "Developers you follow",
-      color: "bg-primary/10 text-emerald-500",
+      color: "bg-primary/10 text-success-text",
     },
     {
       icon: Heart,
       value: followerCount,
       label: "Followers",
       description: "Developers who follow you",
-      color: "bg-rose-500/10 text-rose-500",
+      color: "bg-rose-500/10 text-danger-text",
     },
   ];
 
@@ -191,7 +191,7 @@ export default function Network() {
               <div>
                 <p className="text-xl font-bold text-foreground">{stat.value}</p>
                 <p className="text-xs text-muted-foreground">{stat.label}</p>
-                <p className="text-[10px] text-muted-foreground/60 mt-0.5">{stat.description}</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">{stat.description}</p>
               </div>
             </div>
           );
@@ -248,8 +248,8 @@ export default function Network() {
 
       {/* Error */}
       {!loading && loadError && (
-        <div className="border border-red-500/20 bg-red-500/5 rounded-2xl p-8 flex flex-col items-center text-center gap-3">
-          <AlertTriangle className="w-6 h-6 text-red-500" />
+        <div className="border border-danger/20 bg-danger/5 rounded-2xl p-8 flex flex-col items-center text-center gap-3">
+          <AlertTriangle className="w-6 h-6 text-danger-text" />
           <p className="text-sm font-medium text-foreground">{loadError}</p>
           <Button variant="outline" size="sm" onClick={fetchUsers} className="gap-1.5">
             <RefreshCw className="w-3.5 h-3.5" /> Retry
@@ -261,7 +261,7 @@ export default function Network() {
       {!loading && !loadError && filteredUsers.length === 0 && (
         <div className="border border-border/40 rounded-2xl p-12 flex flex-col items-center text-center gap-3 bg-card">
           <div className="w-12 h-12 rounded-2xl bg-muted/50 flex items-center justify-center">
-            <Search className="w-5 h-5 text-muted-foreground/50" />
+            <Search className="w-5 h-5 text-muted-foreground" />
           </div>
           <h3 className="text-sm font-semibold text-foreground">
             {searchInput
@@ -325,7 +325,7 @@ export default function Network() {
                         {netUser.fullName}
                       </button>
                       {netUser.followsYou && !netUser.isSelf && (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary dark:text-primary border border-primary/20 font-medium">
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 font-medium">
                           Follows you
                         </span>
                       )}
@@ -341,7 +341,7 @@ export default function Network() {
                     </p>
 
                     {netUser.bio && (
-                      <p className="text-xs text-muted-foreground/80 mt-1.5 line-clamp-2 leading-relaxed">
+                      <p className="text-xs text-muted-foreground mt-1.5 line-clamp-2 leading-relaxed">
                         {netUser.bio}
                       </p>
                     )}
@@ -382,7 +382,7 @@ export default function Network() {
                         </>
                       )}
                       {netUser.followsYou && netUser.isFollowing && !netUser.isSelf && (
-                        <span className="text-[10px] font-medium text-emerald-500">
+                        <span className="text-[10px] font-medium text-success-text">
                           Mutual
                         </span>
                       )}
@@ -408,7 +408,7 @@ export default function Network() {
                         disabled={togglingIds.has(netUser.id)}
                         className={`text-xs h-9 min-w-[90px] justify-center gap-1.5 rounded-xl font-medium ${
                           netUser.isFollowing
-                            ? "border-border/60 text-foreground hover:border-red-500/50 hover:text-red-600 hover:bg-red-500/5 dark:hover:border-red-400/50 dark:hover:text-red-400 dark:hover:bg-red-500/10"
+                            ? "border-border/60 text-foreground hover:border-danger/50 hover:text-danger-text hover:bg-danger/5"
                             : "border-primary/30 bg-primary text-primary-foreground hover:bg-primary dark:bg-primary dark:hover:bg-accent"
                         }`}
                       >

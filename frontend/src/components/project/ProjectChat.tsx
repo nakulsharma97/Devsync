@@ -184,7 +184,7 @@ export function ProjectChat({ room }: { room: TeamRoomDto }) {
         <span
           className={cn(
             "inline-flex items-center gap-1 text-[10px] shrink-0",
-            connected ? "text-emerald-500" : "text-primary"
+            connected ? "text-success-text" : "text-primary"
           )}
         >
           {connected ? <Wifi className="w-3 h-3" /> : <WifiOff className="w-3 h-3" />}
@@ -208,11 +208,11 @@ export function ProjectChat({ room }: { room: TeamRoomDto }) {
             const mine = m.senderId === myId;
             return (
               <div key={m.id} className={cn("flex gap-2", mine && "flex-row-reverse")}>
-                <div className="w-7 h-7 rounded-full bg-gradient-to-br from-primary/20 to-primary/20 flex items-center justify-center shrink-0 overflow-hidden">
+                <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center shrink-0 overflow-hidden">
                   {m.senderAvatar ? (
                     <img src={m.senderAvatar} alt="" className="w-full h-full object-cover" />
                   ) : (
-                    <span className="text-[10px] font-bold text-primary">
+                    <span className="text-[10px] font-bold text-primary-foreground">
                       {m.senderName?.charAt(0) || "?"}
                     </span>
                   )}
@@ -233,7 +233,7 @@ export function ProjectChat({ room }: { room: TeamRoomDto }) {
                     )}
                     <p className="break-words whitespace-pre-wrap">{m.content}</p>
                   </div>
-                  <p className="text-[9px] text-muted-foreground/60 mt-0.5">
+                  <p className="text-[9px] text-muted-foreground mt-0.5">
                     {timeAgo(m.createdAt, "") || "just now"}
                   </p>
                 </div>
@@ -255,7 +255,7 @@ export function ProjectChat({ room }: { room: TeamRoomDto }) {
           onBlur={stopTyping}
           placeholder="Message the team…"
           rows={1}
-          className="flex-1 max-h-28 min-h-9 h-9 resize-none text-sm bg-muted/30 border border-border/40 rounded-lg px-3 py-2 focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 placeholder:text-muted-foreground/50 transition-all"
+          className="flex-1 max-h-28 min-h-9 h-9 resize-none text-sm bg-muted/30 border border-border/40 rounded-lg px-3 py-2 focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 placeholder:text-muted-foreground transition-all"
         />
         <button
           type="submit"

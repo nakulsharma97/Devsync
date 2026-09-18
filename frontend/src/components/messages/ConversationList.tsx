@@ -68,8 +68,8 @@ function ConversationRow({
           className={cn(
             "w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold",
             isRoom
-              ? "bg-gradient-to-br from-accent/20 to-pink-500/20 text-primary"
-              : "bg-gradient-to-br from-primary/20 to-info/20 text-primary"
+              ? "bg-primary text-primary-foreground"
+              : "bg-primary text-primary-foreground"
           )}
         >
           {conv.avatarUrl ? (
@@ -102,13 +102,13 @@ function ConversationRow({
             {conv.name}
           </span>
           {conv.lastMessageAt && (
-            <span className="text-[10px] text-muted-foreground/60 shrink-0">
+            <span className="text-[10px] text-muted-foreground shrink-0">
               {timeAgo(conv.lastMessageAt, "")}
             </span>
           )}
         </span>
         {isRoom && conv.projectName && conv.projectName !== conv.name && (
-          <span className="block text-[10px] text-muted-foreground/50 truncate mt-0.5">
+          <span className="block text-[10px] text-muted-foreground truncate mt-0.5">
             {conv.projectName}
           </span>
         )}
@@ -140,7 +140,7 @@ function PeopleResult({ user, onClick }: { user: PublicUserDto; onClick: () => v
       className="w-full text-left flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-accent/5 transition-colors"
     >
       <span className="relative shrink-0">
-        <span className="w-9 h-9 rounded-full bg-gradient-to-br from-primary/20 to-info/20 text-primary flex items-center justify-center overflow-hidden text-sm font-bold">
+        <span className="w-9 h-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center overflow-hidden text-sm font-bold">
           {user.avatarUrl ? (
             <img src={user.avatarUrl} alt={user.fullName} className="w-full h-full object-cover" />
           ) : (
@@ -158,7 +158,7 @@ function PeopleResult({ user, onClick }: { user: PublicUserDto; onClick: () => v
         <span className="block text-sm font-medium truncate">{user.fullName}</span>
         <span className="block text-xs text-muted-foreground truncate">@{user.username}</span>
       </span>
-      <MessageSquare className="w-3.5 h-3.5 text-muted-foreground/40 shrink-0" />
+      <MessageSquare className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
     </button>
   );
 }
@@ -225,13 +225,13 @@ export function ConversationList({
 
         {/* Search box */}
         <div className="relative">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground/60 pointer-events-none" />
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search people or messages..."
             aria-label="Search conversations"
-            className="w-full h-9 pl-8 pr-3 rounded-lg text-xs bg-muted/40 border border-border/50 focus:border-primary/50 focus:ring-2 focus:ring-primary/20 outline-none transition-all placeholder:text-muted-foreground/60"
+            className="w-full h-9 pl-8 pr-3 rounded-lg text-xs bg-muted/40 border border-border/50 focus:border-primary/50 focus:ring-2 focus:ring-primary/20 outline-none transition-all placeholder:text-muted-foreground"
           />
         </div>
 
@@ -245,7 +245,7 @@ export function ConversationList({
                 className={cn(
                   "px-2.5 py-1 rounded-md text-[11px] font-medium capitalize transition-colors",
                   tab === t
-                    ? "bg-primary/10 text-primary dark:text-primary"
+                    ? "bg-primary/10 text-primary"
                     : "text-muted-foreground hover:text-foreground"
                 )}
               >
@@ -316,7 +316,7 @@ export function ConversationList({
           </div>
         ) : conversations === null || conversations.length === 0 ? (
           <div className="flex flex-col items-center gap-2 py-10 text-center px-4">
-            <MessageSquare className="w-8 h-8 text-muted-foreground/30" />
+            <MessageSquare className="w-8 h-8 text-muted-foreground" />
             <p className="text-sm font-medium text-foreground/80">No conversations yet</p>
             <p className="text-xs text-muted-foreground max-w-[220px]">
               Start a conversation with a developer or teammate.
@@ -332,7 +332,7 @@ export function ConversationList({
           <div className="space-y-0.5">
             {direct.length > 0 && (
               <>
-                <p className="px-3 pt-2 pb-1 text-[10px] font-medium text-muted-foreground/50">
+                <p className="px-3 pt-2 pb-1 text-[10px] font-medium text-muted-foreground">
                   Direct Messages
                 </p>
                 {direct.map((c) => (
@@ -348,7 +348,7 @@ export function ConversationList({
             )}
             {rooms.length > 0 && (
               <>
-                <p className="px-3 pt-3 pb-1 text-[10px] font-medium text-muted-foreground/50">
+                <p className="px-3 pt-3 pb-1 text-[10px] font-medium text-muted-foreground">
                   Team Chats
                 </p>
                 {rooms.map((c) => (

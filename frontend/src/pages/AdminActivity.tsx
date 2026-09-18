@@ -55,8 +55,8 @@ const ACTIVITY_TYPES = [
 
 const typeBadge = (type: string) => {
   if (type.startsWith("PROJECT")) return "border-primary/30 bg-primary/10 text-primary";
-  if (type.startsWith("TASK")) return "border-info/30 bg-info/10 text-info";
-  if (type === "MESSAGE_SENT") return "border-success/30 bg-primary/10 text-success";
+  if (type.startsWith("TASK")) return "border-info/30 bg-info/10 text-info-text";
+  if (type === "MESSAGE_SENT") return "border-success/30 bg-primary/10 text-success-text";
   if (type === "POST_CREATED" || type === "COMMENT_ADDED")
     return "border-primary/30 bg-primary/10 text-primary";
   return "border-border/40 bg-muted/40 text-muted-foreground";
@@ -150,8 +150,8 @@ export default function AdminActivity() {
 
   const statCards = [
     { label: "Today's Activities", value: stats?.todayCount ?? 0, icon: ActivityIcon, color: "text-primary" },
-    { label: "Projects", value: stats?.projects ?? 0, icon: FolderGit2, color: "text-info" },
-    { label: "Tasks", value: stats?.tasks ?? 0, icon: ListTodo, color: "text-success" },
+    { label: "Projects", value: stats?.projects ?? 0, icon: FolderGit2, color: "text-info-text" },
+    { label: "Tasks", value: stats?.tasks ?? 0, icon: ListTodo, color: "text-success-text" },
     { label: "Messages", value: stats?.messages ?? 0, icon: MessageSquare, color: "text-primary" },
   ];
 
@@ -180,9 +180,12 @@ export default function AdminActivity() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs text-muted-foreground">{card.label}</p>
-                  <p className="text-2xl font-bold mt-1">
+                  {/* must not be a <p>: it wraps a <div> skeleton, and browsers
+                      auto-close a <p> that contains a block element, which
+                      orphans the placeholder and breaks the card layout. */}
+                  <div className="text-2xl font-bold mt-1">
                     {stats ? card.value : <Skeleton className="h-7 w-10" />}
-                  </p>
+                  </div>
                 </div>
                 <div className="w-10 h-10 rounded-xl bg-muted/40 border border-border/40 flex items-center justify-center">
                   <card.icon className={`w-5 h-5 ${card.color}`} />

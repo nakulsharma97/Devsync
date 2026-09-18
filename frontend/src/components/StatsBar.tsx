@@ -111,7 +111,9 @@ export default function StatsBar({ stats, settled }: { stats: PublicStats | null
                 <p className="text-xs md:text-sm text-muted-foreground mt-1.5 font-medium transition-colors group-hover:text-foreground">
                   {stat.label}
                 </p>
-                <p className="text-[10px] md:text-xs text-primary/80 dark:text-primary/70 mt-0.5 flex items-center justify-center gap-1">
+                {/* Full-opacity accent token: the 70–80% alpha this used to carry
+                    measured 3.5:1 on the light page background, below AA. */}
+                <p className="text-[10px] md:text-xs text-accent-color mt-0.5 flex items-center justify-center gap-1">
                   <span className="w-1 h-1 rounded-full bg-primary/60 transition-transform duration-300 group-hover:scale-150" />
                   {stat.sub}
                 </p>

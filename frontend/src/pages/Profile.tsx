@@ -135,7 +135,7 @@ export default function Profile() {
 
             <div className="flex items-center gap-3 mt-3 flex-wrap">
               {profile?.jobTitle && (
-                <span className="text-[11px] px-2 py-0.5 rounded-full bg-primary/10 text-primary dark:text-primary border border-primary/20 font-medium flex items-center gap-1">
+                <span className="text-[11px] px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 font-medium flex items-center gap-1">
                   <Briefcase className="w-2.5 h-2.5" /> {profile.jobTitle}
                 </span>
               )}

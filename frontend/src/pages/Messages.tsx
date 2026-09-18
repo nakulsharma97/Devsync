@@ -621,9 +621,9 @@ export default function Messages() {
 
               {/* Avatar + identity */}
               <div className="relative shrink-0">
-                <span className="w-9 h-9 rounded-full bg-gradient-to-br from-primary/20 to-primary/20 flex items-center justify-center text-sm font-bold text-primary overflow-hidden">
+                <span className="w-9 h-9 rounded-full bg-primary flex items-center justify-center text-sm font-bold text-primary-foreground overflow-hidden">
                   {isRoom ? (
-                    <span className="text-primary">
+                    <span className="text-primary-foreground">
                       <MessageSquare className="w-4 h-4" />
                     </span>
                   ) : currentConv?.avatarUrl ? (
@@ -637,7 +637,7 @@ export default function Messages() {
                     className={cn(
                       "absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full ring-2 ring-background",
                       (presence[currentConv.otherUserId] ?? currentConv.otherUserPresence ?? "OFFLINE") === "ONLINE"
-                        ? "bg-emerald-500"
+                        ? "bg-success"
                         : (presence[currentConv.otherUserId] ?? currentConv.otherUserPresence ?? "OFFLINE") === "AWAY"
                           ? "bg-primary"
                           : "bg-muted-foreground/40"
@@ -656,7 +656,7 @@ export default function Messages() {
                 <span
                   className={cn(
                     "hidden sm:inline-flex items-center gap-1 text-[10px] mr-1",
-                    wsConnected ? "text-emerald-500" : "text-primary"
+                    wsConnected ? "text-success-text" : "text-primary"
                   )}
                   title={wsConnected ? "Connected" : "Reconnecting…"}
                 >
@@ -698,12 +698,12 @@ export default function Messages() {
               {/* Loading older messages indicator */}
               {loadingOlder && (
                 <div className="flex justify-center py-2">
-                  <Spinner className="h-4 w-4 animate-spin text-muted-foreground/50" />
+                  <Spinner className="h-4 w-4 animate-spin text-muted-foreground" />
                 </div>
               )}
               {!hasMoreOlder && messages.length > 10 && isRoom && (
                 <div className="flex justify-center py-2">
-                  <span className="text-[10px] text-muted-foreground/40">Beginning of conversation</span>
+                  <span className="text-[10px] text-muted-foreground">Beginning of conversation</span>
                 </div>
               )}
               <MessageList
@@ -892,7 +892,7 @@ export default function Messages() {
                 confirmDelete();
               }}
               disabled={deleting}
-              className="bg-red-600 hover:bg-red-700 text-white"
+              className="bg-danger text-danger-foreground hover:bg-danger/90"
             >
               {deleting ? <Spinner className="w-4 h-4 animate-spin" /> : "Delete"}
             </AlertDialogAction>

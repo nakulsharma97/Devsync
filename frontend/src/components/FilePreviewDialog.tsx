@@ -128,7 +128,7 @@ export function FilePreviewDialog({
                 className="w-full h-[70vh] rounded-lg border border-border/40 bg-white"
               />
             ) : (
-              <Loader2 className="w-6 h-6 animate-spin text-muted-foreground/60" />
+              <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
             )
           ) : isVideo ? (
             objectUrl ? (
@@ -142,11 +142,11 @@ export function FilePreviewDialog({
                 Your browser does not support video playback.
               </video>
             ) : (
-              <Loader2 className="w-6 h-6 animate-spin text-muted-foreground/60" />
+              <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
             )
           ) : (
             <div className={cn("text-center py-10")}>
-              <FileText className="w-10 h-10 text-muted-foreground/40 mx-auto mb-3" />
+              <FileText className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
               <p className="text-sm text-foreground font-medium">{attachment.fileName}</p>
               <p className="text-xs text-muted-foreground mt-1">{formatBytes(attachment.size)}</p>
               <button

@@ -122,7 +122,12 @@ function App() {
               element={
                 <ProtectedRoute>
                   <AdminRoute>
-                    <AdminLayout />
+                    {/* The admin tree renders shared pages (/admin/profile) that read
+                        this context. Without it, mounting Profile threw and, with no
+                        error boundary above it, unmounted the entire app. */}
+                    <SubscriptionProvider>
+                      <AdminLayout />
+                    </SubscriptionProvider>
                   </AdminRoute>
                 </ProtectedRoute>
               }

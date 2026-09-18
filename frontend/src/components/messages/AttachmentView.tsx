@@ -69,7 +69,7 @@ export function AuthorizedImage({
 
   if (failed) {
     return (
-      <div className={cn("flex items-center justify-center bg-muted/40 text-muted-foreground/60", className)}>
+      <div className={cn("flex items-center justify-center bg-muted/40 text-muted-foreground", className)}>
         <ImageIcon className="w-5 h-5" />
       </div>
     );
@@ -77,7 +77,7 @@ export function AuthorizedImage({
   if (!src) {
     return (
       <div className={cn("flex items-center justify-center bg-muted/30", className)}>
-        <Loader2 className="w-4 h-4 animate-spin text-muted-foreground/50" />
+        <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
       </div>
     );
   }
@@ -123,7 +123,7 @@ export function FileRow({ attachment, className }: { attachment: AttachmentDto; 
         className="flex items-center gap-2.5 flex-1 min-w-0 text-left"
         title={previewable ? `Preview ${attachment.fileName}` : `Download ${attachment.fileName}`}
       >
-        <span className="w-8 h-8 shrink-0 rounded-md bg-primary/10 text-primary dark:text-primary flex items-center justify-center">
+        <span className="w-8 h-8 shrink-0 rounded-md bg-primary/10 text-primary flex items-center justify-center">
           {fileIconFor(attachment)}
         </span>
         <span className="flex-1 min-w-0">
@@ -137,14 +137,14 @@ export function FileRow({ attachment, className }: { attachment: AttachmentDto; 
         </span>
       </button>
       {downloading ? (
-        <Loader2 className="w-3.5 h-3.5 shrink-0 animate-spin text-muted-foreground/60" />
+        <Loader2 className="w-3.5 h-3.5 shrink-0 animate-spin text-muted-foreground" />
       ) : (
         <button
           type="button"
           onClick={handleDownload}
           aria-label={`Download ${attachment.fileName}`}
           title="Download"
-          className="p-1.5 rounded-md text-muted-foreground/60 hover:text-foreground hover:bg-primary/10 transition-colors shrink-0"
+          className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-primary/10 transition-colors shrink-0"
         >
           <Download className="w-3.5 h-3.5" />
         </button>

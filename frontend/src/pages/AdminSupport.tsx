@@ -46,18 +46,18 @@ import { getErrorMessage } from "@/lib/utils";
 import { toast } from "sonner";
 
 const STATUS_META: Record<string, { label: string; badge: string }> = {
-  OPEN: { label: "Open", badge: "bg-info/10 text-info" },
+  OPEN: { label: "Open", badge: "bg-info/10 text-info-text" },
   IN_PROGRESS: { label: "In Progress", badge: "bg-primary/10 text-primary" },
   WAITING_USER: { label: "Waiting", badge: "bg-primary/10 text-primary" },
   RESOLVED: { label: "Resolved", badge: "bg-primary/10 text-primary" },
-  CLOSED: { label: "Closed", badge: "bg-slate-500/10 text-slate-600" },
+  CLOSED: { label: "Closed", badge: "bg-muted text-muted-foreground" },
 };
 
 const PRIORITY_META: Record<string, { label: string; badge: string }> = {
-  LOW: { label: "Low", badge: "bg-slate-500/10 text-slate-600" },
-  MEDIUM: { label: "Medium", badge: "bg-info/10 text-info" },
+  LOW: { label: "Low", badge: "bg-muted text-muted-foreground" },
+  MEDIUM: { label: "Medium", badge: "bg-info/10 text-info-text" },
   HIGH: { label: "High", badge: "bg-primary/10 text-primary" },
-  URGENT: { label: "Urgent", badge: "bg-red-500/10 text-red-600" },
+  URGENT: { label: "Urgent", badge: "bg-danger/10 text-danger-text" },
 };
 
 function timeAgo(iso?: string | null): string {
@@ -265,7 +265,7 @@ export default function AdminSupport() {
                   <TableRow>
                     <TableCell colSpan={6} className="text-center py-12">
                       <div className="flex flex-col items-center gap-2">
-                        <Inbox className="w-8 h-8 text-muted-foreground/50" />
+                        <Inbox className="w-8 h-8 text-muted-foreground" />
                         <p className="text-sm text-muted-foreground">No support tickets found</p>
                       </div>
                     </TableCell>

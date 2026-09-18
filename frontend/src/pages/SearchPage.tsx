@@ -93,7 +93,7 @@ export default function SearchPage() {
             className={cn(
               "px-3 py-2.5 text-xs border-b-2 transition-colors",
               tab === t.id
-                ? "border-primary text-primary dark:text-primary font-medium"
+                ? "border-primary text-primary font-medium"
                 : "border-transparent text-muted-foreground hover:text-foreground"
             )}
           >
@@ -112,7 +112,7 @@ export default function SearchPage() {
           <div className="space-y-2">
             {users.map((u) => (
               <div key={u.id} className="flex items-center gap-3 p-3 rounded-lg border border-border/40 hover:border-primary/20 transition-colors">
-                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary/20 to-primary/20 flex items-center justify-center text-xs font-bold text-primary overflow-hidden shrink-0">
+                <div className="w-9 h-9 rounded-full bg-primary flex items-center justify-center text-xs font-bold text-primary-foreground overflow-hidden shrink-0">
                   {u.avatarUrl ? (
                     <img src={u.avatarUrl} alt="" className="w-full h-full object-cover" />
                   ) : (
@@ -152,7 +152,7 @@ export default function SearchPage() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <p className="text-sm font-semibold">{p.name}</p>
-                      <span className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-full border border-primary/25 bg-accent/[0.07] text-primary dark:text-primary">
+                      <span className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-full border border-primary/25 bg-accent/[0.07] text-primary">
                         <Globe className="w-2.5 h-2.5" />
                         Public
                       </span>
@@ -160,10 +160,10 @@ export default function SearchPage() {
                     {p.description && (
                       <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{p.description}</p>
                     )}
-                    <p className="text-[11px] text-muted-foreground/70 mt-1.5 inline-flex items-center gap-1">
+                    <p className="text-[11px] text-muted-foreground mt-1.5 inline-flex items-center gap-1">
                       <Users className="w-3 h-3" />
                       {p.memberCount} member{p.memberCount !== 1 ? "s" : ""}
-                      {p.ownerName && <><span className="text-muted-foreground/40">·</span> Owned by {p.ownerName}</>}
+                      {p.ownerName && <><span className="text-muted-foreground">·</span> Owned by {p.ownerName}</>}
                     </p>
                   </div>
                   <div className="shrink-0">
@@ -174,11 +174,11 @@ export default function SearchPage() {
                         onClick={() => navigate(`/projects/${p.id}`)}
                         className="text-xs"
                       >
-                        <Check className="w-3.5 h-3.5 mr-1 text-emerald-500" />
+                        <Check className="w-3.5 h-3.5 mr-1 text-success-text" />
                         Open
                       </Button>
                     ) : pending ? (
-                      <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground border border-primary/30 bg-primary/[0.07] text-primary dark:text-primary rounded-lg px-3 py-1.5">
+                      <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground border border-primary/30 bg-primary/[0.07] text-primary rounded-lg px-3 py-1.5">
                         <Clock className="w-3.5 h-3.5" />
                         Request Pending
                       </span>

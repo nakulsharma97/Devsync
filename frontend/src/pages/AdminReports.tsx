@@ -92,9 +92,9 @@ const ENTITY_TYPES: ReportEntityType[] = ["USER", "PROJECT", "POST", "COMMENT", 
 
 const statusStyles: Record<ReportStatus, string> = {
   PENDING: "bg-primary/10 text-primary border-primary/20",
-  UNDER_REVIEW: "bg-info/10 text-info border-info/20",
-  RESOLVED: "bg-primary/10 text-success border-primary/20",
-  REJECTED: "bg-red-500/10 text-red-500 border-red-500/20",
+  UNDER_REVIEW: "bg-info/10 text-info-text border-info/20",
+  RESOLVED: "bg-primary/10 text-success-text border-primary/20",
+  REJECTED: "bg-danger/10 text-danger-text border-danger/20",
 };
 
 const entityIcon: Record<ReportEntityType, typeof User> = {
@@ -222,9 +222,9 @@ export default function AdminReports() {
   const statCards = [
     { label: "Total Reports", value: stats?.total ?? 0, icon: Flag, color: "text-primary" },
     { label: "Pending", value: stats?.pending ?? 0, icon: Clock, color: "text-primary" },
-    { label: "Under Review", value: stats?.underReview ?? 0, icon: Eye, color: "text-info" },
-    { label: "Resolved", value: stats?.resolved ?? 0, icon: CheckCircle2, color: "text-success" },
-    { label: "Rejected", value: stats?.rejected ?? 0, icon: XCircle, color: "text-red-500" },
+    { label: "Under Review", value: stats?.underReview ?? 0, icon: Eye, color: "text-info-text" },
+    { label: "Resolved", value: stats?.resolved ?? 0, icon: CheckCircle2, color: "text-success-text" },
+    { label: "Rejected", value: stats?.rejected ?? 0, icon: XCircle, color: "text-danger-text" },
   ];
 
   const EntityIcon = selected ? entityIcon[selected.entityType] : User;
@@ -334,7 +334,7 @@ export default function AdminReports() {
                   <TableRow>
                     <TableCell colSpan={7} className="text-center py-12">
                       <div className="flex flex-col items-center gap-2">
-                        <AlertTriangle className="w-8 h-8 text-red-500" />
+                        <AlertTriangle className="w-8 h-8 text-danger-text" />
                         <p className="text-sm text-muted-foreground">{error}</p>
                         <Button variant="outline" size="sm" onClick={fetchData}>Retry</Button>
                       </div>
@@ -433,7 +433,7 @@ export default function AdminReports() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4 text-red-500" />
+              <AlertTriangle className="w-4 h-4 text-danger-text" />
               {confirmAction?.label}
             </AlertDialogTitle>
             <AlertDialogDescription>
@@ -448,7 +448,7 @@ export default function AdminReports() {
                 e.preventDefault();
                 confirmRunModeration();
               }}
-              className="bg-red-600 hover:bg-red-700 text-white"
+              className="bg-danger text-danger-foreground hover:bg-danger/90"
             >
               {actionLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               Confirm
@@ -563,10 +563,10 @@ export default function AdminReports() {
                         </Button>
                       )}
                       <Button size="sm" variant="outline" disabled={actionLoading} onClick={() => setStatus("RESOLVED")}>
-                        <CheckCircle2 className="w-3.5 h-3.5 mr-1 text-success" /> Resolve
+                        <CheckCircle2 className="w-3.5 h-3.5 mr-1 text-success-text" /> Resolve
                       </Button>
                       <Button size="sm" variant="outline" disabled={actionLoading} onClick={() => setStatus("REJECTED")}>
-                        <XCircle className="w-3.5 h-3.5 mr-1 text-red-500" /> Reject
+                        <XCircle className="w-3.5 h-3.5 mr-1 text-danger-text" /> Reject
                       </Button>
                     </div>
                   </div>
@@ -585,7 +585,7 @@ export default function AdminReports() {
                           <Undo2 className="w-3.5 h-3.5 mr-1" /> Unblock
                         </Button>
                         <Button size="sm" variant="outline" disabled={actionLoading} onClick={() => runModeration("DELETE_USER", "Delete user", "This action cannot be undone. The user account will be soft-deleted.")}>
-                          <Trash2 className="w-3.5 h-3.5 mr-1 text-red-500" /> Delete
+                          <Trash2 className="w-3.5 h-3.5 mr-1 text-danger-text" /> Delete
                         </Button>
                       </>
                     )}
@@ -598,7 +598,7 @@ export default function AdminReports() {
                           <Globe className="w-3.5 h-3.5 mr-1" /> Visibility
                         </Button>
                         <Button size="sm" variant="outline" disabled={actionLoading} onClick={() => runModeration("DELETE_PROJECT", "Delete project", "This action cannot be undone. The project will be soft-deleted.")}>
-                          <Trash2 className="w-3.5 h-3.5 mr-1 text-red-500" /> Delete
+                          <Trash2 className="w-3.5 h-3.5 mr-1 text-danger-text" /> Delete
                         </Button>
                       </>
                     )}
@@ -611,14 +611,14 @@ export default function AdminReports() {
                           <Undo2 className="w-3.5 h-3.5 mr-1" /> Restore
                         </Button>
                         <Button size="sm" variant="outline" disabled={actionLoading} onClick={() => runModeration("DELETE_POST", "Delete post", "This action cannot be undone. The post and its likes/comments will be removed.")}>
-                          <Trash2 className="w-3.5 h-3.5 mr-1 text-red-500" /> Delete
+                          <Trash2 className="w-3.5 h-3.5 mr-1 text-danger-text" /> Delete
                         </Button>
                       </>
                     )}
                     {selected.entityType === "COMMENT" && (
                       <>
                         <Button size="sm" variant="outline" disabled={actionLoading} onClick={() => runModeration("DELETE_COMMENT", "Delete comment", "This action cannot be undone.")}>
-                          <Trash2 className="w-3.5 h-3.5 mr-1 text-red-500" /> Delete
+                          <Trash2 className="w-3.5 h-3.5 mr-1 text-danger-text" /> Delete
                         </Button>
                         <Button size="sm" variant="outline" disabled={actionLoading} onClick={() => runModeration("RESTORE_COMMENT", "Restore comment", "The hidden comment will become visible again.")}>
                           <Undo2 className="w-3.5 h-3.5 mr-1" /> Restore
@@ -631,7 +631,7 @@ export default function AdminReports() {
                           <EyeOff className="w-3.5 h-3.5 mr-1" /> Hide
                         </Button>
                         <Button size="sm" variant="outline" disabled={actionLoading} onClick={() => runModeration("DELETE_MESSAGE", "Delete message", "This action cannot be undone.")}>
-                          <Trash2 className="w-3.5 h-3.5 mr-1 text-red-500" /> Delete
+                          <Trash2 className="w-3.5 h-3.5 mr-1 text-danger-text" /> Delete
                         </Button>
                       </>
                     )}

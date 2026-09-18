@@ -45,13 +45,13 @@ function UsageBar({ label, used, limit, unit }: { label: string; used: number; l
     <div>
       <div className="flex items-center justify-between text-sm mb-1.5">
         <span className="text-muted-foreground">{label}</span>
-        <span className={nearLimit ? "text-primary dark:text-primary font-medium" : "text-foreground"}>
+        <span className={nearLimit ? "text-primary font-medium" : "text-foreground"}>
           {limit === null ? `${unit}${used} · Unlimited` : `${unit}${used} / ${unit}${limit}`}
         </span>
       </div>
       <div className="h-2 rounded-full bg-muted overflow-hidden">
         <div
-          className={`h-full rounded-full transition-all ${nearLimit ? "bg-primary" : "bg-emerald-500"}`}
+          className={`h-full rounded-full transition-all ${nearLimit ? "bg-primary" : "bg-success"}`}
           style={{ width: `${pct}%` }}
         />
       </div>
@@ -327,9 +327,9 @@ export default function Billing() {
                 <span
                   className={`px-2 py-0.5 rounded-full text-[10px] font-semibold tracking-wide ${
                     subscription?.status === "ACTIVE"
-                      ? "bg-emerald-500/15 text-primary dark:text-primary"
+                      ? "bg-success/10 text-primary"
                       : subscription?.status === "PAST_DUE"
-                        ? "bg-primary/15 text-primary dark:text-primary"
+                        ? "bg-primary/15 text-primary"
                         : "bg-muted text-muted-foreground"
                   }`}
                 >
@@ -354,7 +354,7 @@ export default function Billing() {
                 )}
               </p>
               {periodEndsSoon && isPaid && !subscription?.cancelAtPeriodEnd && (
-                <p className="text-xs text-primary dark:text-primary mt-1">
+                <p className="text-xs text-primary mt-1">
                   {subscription?.billingMode === "RECURRING" && subscription?.provider === "STRIPE"
                     ? "Your plan renews automatically soon."
                     : "Your plan expires soon — renew manually to keep access."}
@@ -425,7 +425,7 @@ export default function Billing() {
               </button>
               <button
                 onClick={cancelSubscription}
-                className="text-sm px-4 py-2 rounded-lg bg-destructive text-white hover:opacity-90 transition-opacity"
+                className="text-sm px-4 py-2 rounded-lg bg-destructive text-destructive-foreground hover:opacity-90 transition-opacity"
               >
                 Cancel at period end
               </button>
@@ -460,14 +460,14 @@ export default function Billing() {
                 <span className="text-sm text-muted-foreground">/month</span>
               </div>
               {plan.billingMode === "RECURRING" && (
-                <p className="text-xs text-primary dark:text-primary -mt-4 mb-4">
+                <p className="text-xs text-primary -mt-4 mb-4">
                   Auto-renewing · Cancel anytime
                 </p>
               )}
               <ul className="space-y-2.5 mb-6 flex-1">
                 {planFeatures(plan).map((f) => (
                   <li key={f} className="flex items-start gap-2 text-sm">
-                    <Check className="w-4 h-4 text-primary dark:text-primary mt-0.5 shrink-0" />
+                    <Check className="w-4 h-4 text-primary mt-0.5 shrink-0" />
                     <span>{f}</span>
                   </li>
                 ))}
@@ -548,11 +548,11 @@ export default function Billing() {
                         <span
                           className={`px-2 py-0.5 rounded-full text-[10px] font-semibold tracking-wide ${
                             p.status === "SUCCESS"
-                              ? "bg-emerald-500/15 text-primary dark:text-primary"
+                              ? "bg-success/10 text-primary"
                               : p.status === "FAILED"
-                                ? "bg-red-500/15 text-red-600 dark:text-red-400"
+                                ? "bg-danger/15 text-danger-text"
                                 : p.status === "REFUNDED"
-                                  ? "bg-primary/15 text-primary dark:text-primary"
+                                  ? "bg-primary/15 text-primary"
                                   : "bg-muted text-muted-foreground"
                           }`}
                         >
@@ -564,10 +564,10 @@ export default function Billing() {
                           <span
                             className={`text-[10px] font-semibold tracking-wide ${
                               refundStatus.status === "PENDING"
-                                ? "text-primary dark:text-primary"
+                                ? "text-primary"
                                 : refundStatus.status === "APPROVED" || refundStatus.status === "COMPLETED"
-                                  ? "text-primary dark:text-primary"
-                                  : "text-red-600 dark:text-red-400"
+                                  ? "text-primary"
+                                  : "text-danger-text"
                             }`}
                           >
                             {refundStatus.status === "REJECTED" ? "Refund declined" : `Refund ${refundStatus.status.toLowerCase()}`}

@@ -61,8 +61,8 @@ const PAGE_SIZE = 10;
 
 const statusStyles: Record<string, string> = {
   PENDING: "bg-primary/10 text-primary border-primary/20",
-  APPROVED: "bg-primary/10 text-emerald-500 border-primary/20",
-  REJECTED: "bg-red-500/10 text-red-500 border-red-500/20",
+  APPROVED: "bg-primary/10 text-success-text border-primary/20",
+  REJECTED: "bg-danger/10 text-danger-text border-danger/20",
 };
 
 function Stars({ rating }: { rating: number }) {
@@ -75,7 +75,7 @@ function Stars({ rating }: { rating: number }) {
           className={`w-3.5 h-3.5 ${
             i <= rating
               ? "fill-primary text-primary"
-              : "text-muted-foreground/30"
+              : "text-muted-foreground"
           }`}
         />
       ))}
@@ -370,7 +370,7 @@ export default function AdminReviews() {
                               <Button
                                 size="sm"
                                 variant="outline"
-                                className="text-emerald-500 hover:text-primary"
+                                className="text-success-text hover:text-primary"
                                 onClick={() => handleApprove(r)}
                                 disabled={busyId === r.id}
                               >
@@ -380,7 +380,7 @@ export default function AdminReviews() {
                               <Button
                                 size="sm"
                                 variant="outline"
-                                className="text-red-500 hover:text-red-600"
+                                className="text-danger-text hover:text-danger-text"
                                 onClick={() => handleReject(r)}
                                 disabled={busyId === r.id}
                               >
@@ -466,7 +466,7 @@ export default function AdminReviews() {
             <AlertDialogAction
               onClick={confirmDelete}
               disabled={busyId === deleteTarget?.id}
-              className="bg-destructive hover:bg-destructive/90 text-white"
+              className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
             >
               {busyId === deleteTarget?.id ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
               Delete Review

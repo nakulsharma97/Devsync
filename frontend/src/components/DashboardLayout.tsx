@@ -32,6 +32,7 @@ import {
 import { useState, useEffect, useCallback } from "react";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router";
+import RouteErrorBoundary from "@/components/RouteErrorBoundary";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import { WifiOff, Check } from "lucide-react";
 import { LogoMark } from "@/components/Logo";
@@ -152,7 +153,7 @@ function SidebarLink({ to, icon: Icon, label, badge, onNavigate }: SidebarLinkPr
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <p className="px-3 pt-5 pb-1.5 text-[11px] font-medium text-muted-foreground/80 uppercase tracking-wider">
+    <p className="px-3 pt-5 pb-1.5 text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
       {children}
     </p>
   );
@@ -393,7 +394,7 @@ export default function DashboardLayout() {
               variant="ghost"
               size="sm"
               onClick={logout}
-              className="justify-start text-muted-foreground hover:text-danger hover:bg-danger/10 rounded-lg"
+              className="justify-start text-muted-foreground hover:text-danger-text hover:bg-danger/10 rounded-lg"
             >
               <LogOut className="w-3.5 h-3.5 mr-1.5" /> Sign out
             </Button>
@@ -421,7 +422,7 @@ export default function DashboardLayout() {
                 >
                   DevSync
                 </button>
-                <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/50 shrink-0" />
+                <ChevronRight className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
               </nav>
               <h1 className="text-[13px] font-medium text-foreground truncate" data-testid="page-title">
                 {page.title}
@@ -473,7 +474,7 @@ export default function DashboardLayout() {
               >
                 <MessageSquare className="w-4 h-4" />
                 {msgUnreadCount > 0 && (
-                  <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full bg-danger text-[9px] font-bold text-white flex items-center justify-center ring-2 ring-background animate-badge-pop">
+                  <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full bg-danger text-[9px] font-bold text-danger-foreground flex items-center justify-center ring-2 ring-background animate-badge-pop">
                     {msgUnreadCount > 99 ? "99+" : msgUnreadCount}
                   </span>
                 )}
@@ -489,7 +490,10 @@ export default function DashboardLayout() {
           </div>
         </header>
         <main className="p-4 md:p-6 bg-background">
-          <Outlet />
+          {/* keyed by pathname so a failed page resets on navigation */}
+          <RouteErrorBoundary key={location.pathname}>
+            <Outlet />
+          </RouteErrorBoundary>
         </main>
       </div>
     </div>

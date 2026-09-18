@@ -112,8 +112,8 @@ export default function Bookmarks() {
       {/* Error state */}
       {!loading && error && (
         <div className="border border-border/50 rounded-xl p-8 flex flex-col items-center text-center gap-3 bg-card">
-          <div className="w-12 h-12 rounded-2xl bg-red-500/10 flex items-center justify-center ring-1 ring-red-500/20">
-            <AlertTriangle className="w-6 h-6 text-red-500" />
+          <div className="w-12 h-12 rounded-2xl bg-danger/10 flex items-center justify-center ring-1 ring-danger/20">
+            <AlertTriangle className="w-6 h-6 text-danger-text" />
           </div>
           <div>
             <h3 className="text-sm font-semibold text-foreground">

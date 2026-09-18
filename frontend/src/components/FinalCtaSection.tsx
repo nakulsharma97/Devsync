@@ -9,24 +9,27 @@ export default function FinalCtaSection() {
   return (
     <section className="relative z-10 py-16 md:py-28 px-4 sm:px-6 overflow-hidden">
       <div className="absolute inset-0 bg-gradient-to-b from-primary/[0.02] via-transparent to-primary/[0.02] pointer-events-none" />
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-gradient-to-br from-primary/8 via-accent/5 to-pink-500/5 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-gradient-to-br from-primary/8 to-primary/5 rounded-full blur-3xl pointer-events-none" />
 
       <ScrollReveal className="mx-auto max-w-4xl relative z-10" delay={0.1}>
         {/* Gradient-border glass card */}
-        <div className="relative rounded-3xl p-px bg-gradient-to-br from-primary/40 via-accent/30 to-pink-500/40 shadow-2xl shadow-primary/10 overflow-hidden">
+        <div className="relative rounded-3xl p-px bg-gradient-to-br from-primary/40 to-primary/15 shadow-2xl shadow-primary/10 overflow-hidden">
           {/* Sweeping shine */}
           <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden rounded-3xl">
             <div className="animate-shine-sweep absolute top-0 bottom-0 left-0 w-1/3 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
           </div>
 
-          <div className="relative rounded-3xl bg-card/80 backdrop-blur-2xl px-6 py-14 md:py-20 text-center">
-            <span className="text-xs font-semibold tracking-[0.2em] uppercase bg-gradient-to-r from-primary via-accent to-pink-500 dark:from-primary dark:via-accent dark:to-pink-400 bg-clip-text text-transparent mb-4 block">
+          {/* Opaque card: at /80 the 40%-copper border gradient tinted the inner
+              surface enough to pull the muted copy and the gradient heading below
+              AA. The 1px gradient ring still reads as before. */}
+          <div className="relative rounded-3xl bg-card px-6 py-14 md:py-20 text-center">
+            <span className="text-xs font-semibold tracking-[0.2em] uppercase bg-gradient-to-r from-primary to-accent-hover bg-clip-text text-transparent mb-4 block">
               Get started
             </span>
             <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.05]">
               Ready to build
               <br />
-              <span className="bg-gradient-to-r from-primary via-accent to-pink-500 dark:from-primary dark:via-accent dark:to-pink-400 bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-primary to-accent-hover bg-clip-text text-transparent">
                 the next big thing?
               </span>
             </h2>

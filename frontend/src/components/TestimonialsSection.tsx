@@ -16,7 +16,7 @@ function Stars({ rating, className = "w-4 h-4" }: { rating: number; className?: 
           className={`${className} ${
             i <= rating
               ? "fill-primary text-primary dark:fill-primary dark:text-primary"
-              : "text-muted-foreground/30"
+              : "text-muted-foreground"
           }`}
         />
       ))}
@@ -72,7 +72,7 @@ export default function TestimonialsSection({
       <div className="absolute inset-0 bg-gradient-to-b from-accent/[0.02] to-transparent pointer-events-none" />
       <div className="mx-auto max-w-7xl relative">
         <ScrollReveal className="text-center mb-12">
-          <span className="text-xs font-semibold tracking-[0.2em] uppercase bg-gradient-to-r from-primary via-accent to-red-600 dark:from-primary dark:via-accent dark:to-red-400 bg-clip-text text-transparent mb-6 block">
+          <span className="text-xs font-semibold tracking-[0.2em] uppercase bg-gradient-to-r from-primary to-accent-hover bg-clip-text text-transparent mb-6 block">
             Reviews
           </span>
           <h2 className="text-4xl sm:text-5xl md:text-6xl font-black tracking-tight">
@@ -140,7 +140,7 @@ export default function TestimonialsSection({
                   <div className="relative h-full bg-card/70 backdrop-blur-sm border border-border/40 rounded-2xl p-6 md:p-8 transition-all duration-300 hover:border-primary/30 hover:shadow-xl hover:shadow-primary/10 hover:-translate-y-1 group">
                     <Quote
                       aria-hidden
-                      className="absolute top-5 right-5 w-8 h-8 text-primary/10 dark:text-primary/10 group-hover:text-primary/25 dark:group-hover:text-primary/25 transition-colors duration-300"
+                      className="absolute top-5 right-5 w-8 h-8 text-primary/10 group-hover:text-primary/25 transition-colors duration-300"
                     />
 
                     <Stars rating={review.rating} />
@@ -169,7 +169,7 @@ export default function TestimonialsSection({
                             {[review.jobTitle, review.company].filter(Boolean).join(", ")}
                           </p>
                         )}
-                        <p className="text-[10px] text-muted-foreground/70">
+                        <p className="text-[10px] text-muted-foreground">
                           {new Date(review.createdAt).toLocaleDateString(undefined, {
                             year: "numeric",
                             month: "short",

@@ -97,7 +97,7 @@ export function AnalyticsCharts({ postStats, followerGrowth, activityStats }: Pr
                 <TrendingUp className="w-5 h-5 text-muted-foreground" />
               </div>
               <p className="text-sm font-medium text-muted-foreground">No posting activity yet</p>
-              <p className="text-xs text-muted-foreground/70 mt-1 max-w-[200px]">
+              <p className="text-xs text-muted-foreground mt-1 max-w-[200px]">
                 Create your first post to start tracking your activity.
               </p>
             </div>
@@ -107,7 +107,7 @@ export function AnalyticsCharts({ postStats, followerGrowth, activityStats }: Pr
         {/* Follower Growth Chart */}
         <div className="bg-card border border-border rounded-xl p-5 animate-fade-in-up">
           <div className="flex items-center gap-2 mb-4">
-            <UserPlus className="w-4 h-4 text-success" />
+            <UserPlus className="w-4 h-4 text-success-text" />
             <h3 className="text-sm font-semibold text-foreground">Follower Growth (30 days)</h3>
           </div>
           {(followerGrowth?.dailyData?.length ?? 0) > 0 ? (
@@ -140,7 +140,7 @@ export function AnalyticsCharts({ postStats, followerGrowth, activityStats }: Pr
                 <UserPlus className="w-5 h-5 text-muted-foreground" />
               </div>
               <p className="text-sm font-medium text-muted-foreground">No follower growth yet</p>
-              <p className="text-xs text-muted-foreground/70 mt-1 max-w-[200px]">
+              <p className="text-xs text-muted-foreground mt-1 max-w-[200px]">
                 Connect with developers and share your profile to start building your network.
               </p>
             </div>
@@ -186,7 +186,7 @@ export function AnalyticsCharts({ postStats, followerGrowth, activityStats }: Pr
               <Activity className="w-5 h-5 text-muted-foreground" />
             </div>
             <p className="text-sm font-medium text-muted-foreground">No activity yet</p>
-            <p className="text-xs text-muted-foreground/70 mt-1 max-w-[240px]">
+            <p className="text-xs text-muted-foreground mt-1 max-w-[240px]">
               Your posts, likes, comments, and follower activity will appear here.
             </p>
           </div>

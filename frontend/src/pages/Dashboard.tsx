@@ -93,7 +93,7 @@ function StatCard({
             <Icon className="w-4 h-4 text-muted-foreground" />
             <CardTitle className="text-[13px] font-medium text-foreground">{label}</CardTitle>
           </div>
-          <ArrowUpRight className="w-3.5 h-3.5 text-muted-foreground/40 opacity-0 group-hover:opacity-100 group-hover:text-foreground transition-all" />
+          <ArrowUpRight className="w-3.5 h-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 group-hover:text-foreground transition-all" />
         </div>
       </CardHeader>
       <CardContent>
@@ -332,7 +332,7 @@ export default function Dashboard() {
                           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                             <MemberStack members={p.members} />
                             <span>{p.memberCount} member{p.memberCount !== 1 ? "s" : ""}</span>
-                            <span className="text-muted-foreground/40">·</span>
+                            <span className="text-muted-foreground">·</span>
                             <span className="inline-flex items-center gap-1">
                               <Clock className="w-3 h-3" />
                               {timeAgo(p.updatedAt) || "Recently"}
@@ -346,7 +346,7 @@ export default function Dashboard() {
                           pinned={pinnedIds.has(p.id)}
                           onChanged={() => refetchPinned()}
                         />
-                        <ChevronRight className="w-4 h-4 text-muted-foreground/40 group-hover:text-foreground transition-colors" />
+                        <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" />
                       </div>
                     </div>
                   ))}

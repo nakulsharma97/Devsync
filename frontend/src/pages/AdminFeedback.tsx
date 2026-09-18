@@ -45,9 +45,9 @@ import { toast } from "sonner";
 const PAGE_SIZE = 10;
 
 const statusStyles: Record<string, string> = {
-  OPEN: "bg-info/10 text-info border-info/20",
+  OPEN: "bg-info/10 text-info-text border-info/20",
   IN_REVIEW: "bg-primary/10 text-primary border-primary/20",
-  RESOLVED: "bg-primary/10 text-success border-primary/20",
+  RESOLVED: "bg-primary/10 text-success-text border-primary/20",
   CLOSED: "bg-muted text-muted-foreground border-border/50",
 };
 

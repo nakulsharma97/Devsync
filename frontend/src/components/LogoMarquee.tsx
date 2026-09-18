@@ -15,7 +15,7 @@ export default function LogoMarquee() {
     <section className="relative z-10 py-10 md:py-14 border-y border-border/20 bg-background/40 backdrop-blur-sm">
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
         <ScrollReveal className="text-center mb-8">
-          <p className="text-[11px] md:text-xs font-mono text-muted-foreground/70">
+          <p className="text-[11px] md:text-xs font-mono text-muted-foreground">
             Built for modern development teams
           </p>
         </ScrollReveal>
@@ -27,7 +27,7 @@ export default function LogoMarquee() {
                 key={capability.label}
                 className="flex items-center gap-2.5 max-w-full opacity-70 hover:opacity-100 transition-opacity duration-300 select-none"
               >
-                <capability.icon className="w-5 h-5 shrink-0 text-primary/80 dark:text-primary/80" />
+                <capability.icon className="w-5 h-5 shrink-0 text-primary/80" />
                 <span className="text-sm md:text-lg font-bold tracking-tight text-foreground/80 leading-snug text-center">
                   {capability.label}
                 </span>

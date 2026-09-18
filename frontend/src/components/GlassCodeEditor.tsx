@@ -117,12 +117,18 @@ export default function GlassCodeEditor() {
     ? "0 0 0 1px rgba(255, 255, 255, 0.03), 0 20px 60px rgba(0, 0, 0, 0.45)"
     : "0 0 0 1px rgba(0, 0, 0, 0.03), 0 20px 60px rgba(0, 0, 0, 0.08)";
 
-  const lineNumColor = dark ? "rgba(161, 168, 176, 0.35)" : "rgba(139, 148, 158, 0.5)";
+  // Gutter + status text were too faint to read: at 0.35 alpha the dark-theme
+  // line numbers composited to #3f4347 on #0B0D0F — 1.99:1, roughly a fifth of
+  // the contrast AA needs. These alphas land at ~4.7–5.0:1 on the editor's own
+  // background in each theme while staying visibly quieter than the code.
+  const lineNumColor = dark ? "rgba(161, 168, 176, 0.72)" : "rgba(71, 85, 105, 0.85)";
   const activeLineBg = dark ? "rgba(217, 119, 50, 0.07)" : "rgba(197, 106, 43, 0.06)";
   const statusBarBg = dark ? "rgba(255, 255, 255, 0.02)" : "rgba(0, 0, 0, 0.02)";
   const statusBarBorder = dark ? "rgba(255, 255, 255, 0.06)" : "rgba(0, 0, 0, 0.06)";
-  const statusText = dark ? "rgba(167, 176, 190, 0.60)" : "rgba(71, 85, 105, 0.75)";
-  const readyColor = dark ? "#35C982" : "#059669";
+  const statusText = dark ? "rgba(167, 176, 190, 0.80)" : "rgba(71, 85, 105, 0.85)";
+  // #059669 reached only 3.21:1 on the light editor's Ready pill. #10664a is the
+  // light-theme success-text token, which clears AA there.
+  const readyColor = dark ? "#35C982" : "#10664a";
   const readyBg = dark ? "rgba(53, 201, 130, 0.10)" : "rgba(5, 150, 105, 0.06)";
 
   return (
@@ -161,7 +167,9 @@ export default function GlassCodeEditor() {
           <div
             className="flex items-center gap-1.5 ml-3 text-[11px] px-3 py-1.5 rounded-lg font-mono transition-colors"
             style={{
-              color: dark ? "rgba(217, 119, 50, 0.85)" : "rgba(197, 106, 43, 0.85)",
+              // Opaque accent tokens only — the 85–95% alphas used here
+              // composited down to 4.33:1 on the light editor, just under AA.
+              color: dark ? "#d97732" : "#8a4415",
               background: dark ? "rgba(217, 119, 50, 0.08)" : "rgba(197, 106, 43, 0.06)",
             }}
           >

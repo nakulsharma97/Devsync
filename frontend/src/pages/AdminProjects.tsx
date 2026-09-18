@@ -87,14 +87,14 @@ import { toast } from "sonner";
 const PAGE_SIZE = 10;
 
 const statusStyles: Record<string, string> = {
-  ACTIVE: "bg-primary/10 text-success border-primary/20",
+  ACTIVE: "bg-primary/10 text-success-text border-primary/20",
   ARCHIVED: "bg-primary/10 text-primary border-primary/20",
-  COMPLETED: "bg-info/10 text-info border-info/20",
+  COMPLETED: "bg-info/10 text-info-text border-info/20",
   DELETED: "bg-muted text-muted-foreground border-border/50",
 };
 
 const visibilityStyles: Record<string, string> = {
-  PUBLIC: "bg-info/10 text-info border-info/20",
+  PUBLIC: "bg-info/10 text-info-text border-info/20",
   PRIVATE: "bg-primary/10 text-primary border-primary/20",
 };
 
@@ -281,9 +281,9 @@ export default function AdminProjects() {
 
   const statCards = [
     { label: "Total Projects", value: stats?.total ?? 0, icon: FolderGit2, color: "text-primary" },
-    { label: "Active", value: stats?.active ?? 0, icon: CircleCheck, color: "text-success" },
+    { label: "Active", value: stats?.active ?? 0, icon: CircleCheck, color: "text-success-text" },
     { label: "Archived", value: stats?.archived ?? 0, icon: Archive, color: "text-primary" },
-    { label: "Public", value: stats?.publicCount ?? 0, icon: Globe, color: "text-info" },
+    { label: "Public", value: stats?.publicCount ?? 0, icon: Globe, color: "text-info-text" },
     { label: "Private", value: stats?.privateCount ?? 0, icon: Lock, color: "text-primary" },
   ];
 
@@ -521,7 +521,7 @@ export default function AdminProjects() {
                                   <DropdownMenuItem
                                     onClick={() => handleRestore(p)}
                                     disabled={busyId === p.id || isDeleted}
-                                    className="text-success focus:text-success"
+                                    className="text-success-text focus:text-success-text"
                                   >
                                     <ArchiveRestore className="w-3.5 h-3.5 mr-2" /> Restore
                                   </DropdownMenuItem>
@@ -641,7 +641,7 @@ export default function AdminProjects() {
             <AlertDialogAction
               onClick={handleDelete}
               disabled={busyId === deleteTarget?.id}
-              className="bg-destructive hover:bg-destructive/90 text-white"
+              className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
             >
               {busyId === deleteTarget?.id ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
               Delete Project
@@ -727,7 +727,7 @@ export default function AdminProjects() {
                     <p className="text-[11px] text-muted-foreground">Total Tasks</p>
                   </div>
                   <div className="border border-border/50 rounded-lg p-3">
-                    <CircleCheck className="w-4 h-4 text-success mb-1" />
+                    <CircleCheck className="w-4 h-4 text-success-text mb-1" />
                     <p className="text-lg font-bold">{detail.kanbanStats.completedTasks}</p>
                     <p className="text-[11px] text-muted-foreground">Completed</p>
                   </div>
@@ -750,7 +750,7 @@ export default function AdminProjects() {
                 </div>
                 <div className="border border-border/50 rounded-lg p-3">
                   <div className="flex items-center gap-2 mb-1">
-                    <MessagesSquare className="w-3.5 h-3.5 text-cyan-400" />
+                    <MessagesSquare className="w-3.5 h-3.5 text-info-text" />
                     <p className="text-[11px] text-muted-foreground">Messages</p>
                   </div>
                   <p className="text-lg font-bold">{detail.messagesCount.toLocaleString()}</p>
@@ -796,8 +796,8 @@ export default function AdminProjects() {
                           variant="outline"
                           className={
                             a.type === "TASK"
-                              ? "bg-info/10 text-info border-info/20 text-[10px]"
-                              : "bg-info/10 text-info border-info/20 text-[10px]"
+                              ? "bg-info/10 text-info-text border-info/20 text-[10px]"
+                              : "bg-info/10 text-info-text border-info/20 text-[10px]"
                           }
                         >
                           {a.type}

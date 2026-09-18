@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router";
+import RouteErrorBoundary from "@/components/RouteErrorBoundary";
 import AdminPageTransition from "@/components/AdminPageTransition";
 import { LogoMark } from "@/components/Logo";
 import { prefetchRoute } from "@/lib/routePrefetch";
@@ -104,10 +105,14 @@ function SidebarLink({ to, icon: Icon, label, onNavigate }: SidebarLinkProps) {
       onFocus={() => prefetchRoute(to)}
       className={({ isActive }) =>
         cn(
-          "group relative flex items-center gap-3 px-3 py-2 rounded-xl text-sm transition-all duration-200 border",
+          "group relative flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors duration-150",
+          // Matches the app shell's active treatment (DashboardLayout): a neutral
+          // raised surface with an orange indicator. The previous orange-on-orange
+          // gradient put --primary text on a --primary tint, which only reached
+          // 3.58:1 in light mode, and spent the accent on every active row.
           isActive
-            ? "bg-gradient-to-r from-primary/15 to-primary/5 text-primary dark:text-primary font-medium border-primary/20 shadow-sm"
-            : "text-muted-foreground hover:text-foreground hover:bg-accent/5 border-transparent"
+            ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+            : "text-muted-foreground hover:text-foreground hover:bg-muted"
         )
       }
     >
@@ -123,10 +128,10 @@ function SidebarLink({ to, icon: Icon, label, onNavigate }: SidebarLinkProps) {
           />
           <div
             className={cn(
-              "relative w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-all duration-200",
+              "relative w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-colors duration-150",
               isActive
-                ? "bg-primary text-primary-foreground shadow-md shadow-primary/20"
-                : "bg-muted/50 text-muted-foreground group-hover:text-primary group-hover:bg-primary/10"
+                ? "bg-primary/15 text-primary"
+                : "bg-muted/50 text-muted-foreground group-hover:text-foreground group-hover:bg-muted"
             )}
           >
             <Icon className="w-4 h-4" />
@@ -141,7 +146,7 @@ function SidebarLink({ to, icon: Icon, label, onNavigate }: SidebarLinkProps) {
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <p className="px-3 pt-5 pb-1.5 text-[10px] font-medium text-muted-foreground/50">
+    <p className="px-3 pt-5 pb-1.5 text-[10px] font-medium text-muted-foreground">
       {children}
     </p>
   );
@@ -280,13 +285,13 @@ export default function AdminLayout() {
                   {user?.avatarUrl ? (
                     <img src={user.avatarUrl} alt={user.fullName || ""} className="w-full h-full object-cover" />
                   ) : (
-                    <span className="text-sm font-bold bg-primary bg-clip-text text-transparent">
+                    <span className="text-sm font-bold text-primary">
                       {user?.fullName?.charAt(0) || "U"}
                     </span>
                   )}
                 </div>
               </div>
-              <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-500 ring-2 ring-background" />
+              <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-success ring-2 ring-background" />
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium truncate">{user?.fullName || "Admin"}</p>
@@ -297,7 +302,7 @@ export default function AdminLayout() {
             variant="ghost"
             size="sm"
             onClick={logout}
-            className="w-full justify-start text-muted-foreground hover:text-foreground hover:bg-red-500/5"
+            className="w-full justify-start text-muted-foreground hover:text-foreground hover:bg-danger/5"
           >
             <LogOut className="w-4 h-4 mr-2" /> Sign out
           </Button>
@@ -333,7 +338,10 @@ export default function AdminLayout() {
         </header>
         <main className="p-4 md:p-6">
           <AdminPageTransition>
-            <Outlet />
+            {/* keyed by pathname so a failed page resets on navigation */}
+            <RouteErrorBoundary key={location.pathname} label="This admin page">
+              <Outlet />
+            </RouteErrorBoundary>
           </AdminPageTransition>
         </main>
       </div>

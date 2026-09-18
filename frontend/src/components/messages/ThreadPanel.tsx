@@ -85,7 +85,7 @@ export function ThreadPanel({ parent, myId, isRoom, onClose, onReplySent }: Thre
       {/* Parent preview */}
       <div className="shrink-0 px-3 py-2.5 border-b border-border/30 bg-muted/30">
         <div className="flex items-start gap-2.5">
-          <span className="w-7 h-7 mt-0.5 rounded-full bg-gradient-to-br from-primary/20 to-primary/20 flex items-center justify-center text-[10px] font-bold text-primary shrink-0 overflow-hidden">
+          <span className="w-7 h-7 mt-0.5 rounded-full bg-primary flex items-center justify-center text-[10px] font-bold text-primary-foreground shrink-0 overflow-hidden">
             {parent.senderAvatar ? (
               <img src={parent.senderAvatar} alt={parent.senderName} className="w-full h-full object-cover" />
             ) : (
@@ -93,7 +93,7 @@ export function ThreadPanel({ parent, myId, isRoom, onClose, onReplySent }: Thre
             )}
           </span>
           <div className="min-w-0">
-            <p className="text-[11px] font-medium text-primary dark:text-primary">{parent.senderName}</p>
+            <p className="text-[11px] font-medium text-primary">{parent.senderName}</p>
             <p className="text-sm text-foreground/85 break-words">{parent.content}</p>
           </div>
         </div>
@@ -131,7 +131,7 @@ export function ThreadPanel({ parent, myId, isRoom, onClose, onReplySent }: Thre
             placeholder="Reply to thread..."
             aria-label="Reply to thread"
             rows={1}
-            className="flex-1 resize-none bg-transparent text-sm outline-none py-1 max-h-[96px] leading-relaxed placeholder:text-muted-foreground/60"
+            className="flex-1 resize-none bg-transparent text-sm outline-none py-1 max-h-[96px] leading-relaxed placeholder:text-muted-foreground"
           />
           <button
             onClick={sendReply}
@@ -145,7 +145,7 @@ export function ThreadPanel({ parent, myId, isRoom, onClose, onReplySent }: Thre
             {sending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
           </button>
         </div>
-        <p className="text-[10px] text-muted-foreground/50 mt-1 px-1">
+        <p className="text-[10px] text-muted-foreground mt-1 px-1">
           Enter to send · Shift + Enter for a new line
         </p>
       </div>

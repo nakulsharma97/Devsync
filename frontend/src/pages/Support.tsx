@@ -46,18 +46,18 @@ import { getErrorMessage } from "@/lib/utils";
 import { toast } from "sonner";
 
 const STATUS_META: Record<string, { label: string; badge: string }> = {
-  OPEN: { label: "Open", badge: "bg-info/10 text-info dark:text-blue-400" },
-  IN_PROGRESS: { label: "In Progress", badge: "bg-primary/10 text-primary dark:text-primary" },
-  WAITING_USER: { label: "Waiting for You", badge: "bg-primary/10 text-primary dark:text-primary" },
-  RESOLVED: { label: "Resolved", badge: "bg-primary/10 text-primary dark:text-primary" },
-  CLOSED: { label: "Closed", badge: "bg-slate-500/10 text-slate-600 dark:text-slate-400" },
+  OPEN: { label: "Open", badge: "bg-info/10 text-info-text" },
+  IN_PROGRESS: { label: "In Progress", badge: "bg-primary/10 text-primary" },
+  WAITING_USER: { label: "Waiting for You", badge: "bg-primary/10 text-primary" },
+  RESOLVED: { label: "Resolved", badge: "bg-primary/10 text-primary" },
+  CLOSED: { label: "Closed", badge: "bg-slate-500/10 text-muted-foreground" },
 };
 
 const PRIORITY_META: Record<string, { label: string; badge: string }> = {
-  LOW: { label: "Low", badge: "bg-slate-500/10 text-slate-600 dark:text-slate-400" },
-  MEDIUM: { label: "Medium", badge: "bg-info/10 text-info dark:text-blue-400" },
-  HIGH: { label: "High", badge: "bg-primary/10 text-primary dark:text-primary" },
-  URGENT: { label: "Urgent", badge: "bg-red-500/10 text-red-600 dark:text-red-400" },
+  LOW: { label: "Low", badge: "bg-slate-500/10 text-muted-foreground" },
+  MEDIUM: { label: "Medium", badge: "bg-info/10 text-info-text" },
+  HIGH: { label: "High", badge: "bg-primary/10 text-primary" },
+  URGENT: { label: "Urgent", badge: "bg-danger/10 text-danger-text" },
 };
 
 const FAQ_ITEMS = [
@@ -355,10 +355,10 @@ export default function Support() {
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-                          <span className="text-xs font-mono text-primary dark:text-primary font-medium">
+                          <span className="text-xs font-mono text-primary font-medium">
                             {ticket.ticketNumber}
                           </span>
-                          <h3 className="font-medium text-sm text-foreground group-hover:text-primary dark:group-hover:text-primary transition-colors truncate">
+                          <h3 className="font-medium text-sm text-foreground group-hover:text-primary transition-colors truncate">
                             {ticket.subject}
                           </h3>
                         </div>
@@ -391,7 +391,7 @@ export default function Support() {
                         <span className="text-[11px] text-muted-foreground">
                           {timeAgo(ticket.createdAt)}
                         </span>
-                        <ChevronRight className="w-4 h-4 text-muted-foreground/50 group-hover:text-primary transition-colors" />
+                        <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
                       </div>
                     </div>
                   </div>
@@ -598,7 +598,7 @@ export default function Support() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Ticket className="w-4 h-4 text-primary shrink-0" />
-                  <span className="text-xs font-mono text-primary dark:text-primary font-medium">
+                  <span className="text-xs font-mono text-primary font-medium">
                     {selected?.ticketNumber}
                   </span>
                 </div>
@@ -692,7 +692,7 @@ export default function Support() {
                       {reply.adminReply && (
                         <Badge
                           variant="secondary"
-                          className="text-[10px] bg-primary/10 text-primary dark:text-primary"
+                          className="text-[10px] bg-primary/10 text-primary"
                         >
                           Support
                         </Badge>

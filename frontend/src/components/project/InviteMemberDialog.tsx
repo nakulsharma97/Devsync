@@ -149,11 +149,11 @@ export function InviteMemberDialog({
                   key={user.id}
                   className="flex items-center gap-3 p-2 rounded-lg hover:bg-accent/5 transition-colors"
                 >
-                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary/20 to-primary/20 flex items-center justify-center shrink-0 overflow-hidden">
+                  <div className="w-9 h-9 rounded-full bg-primary flex items-center justify-center shrink-0 overflow-hidden">
                     {user.avatarUrl ? (
                       <img src={user.avatarUrl} alt="" className="w-full h-full object-cover" />
                     ) : (
-                      <span className="text-xs font-bold text-primary">
+                      <span className="text-xs font-bold text-primary-foreground">
                         {user.fullName?.charAt(0) || "?"}
                       </span>
                     )}

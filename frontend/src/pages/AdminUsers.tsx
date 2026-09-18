@@ -79,14 +79,14 @@ import { toast } from "sonner";
 const PAGE_SIZE = 10;
 
 const statusStyles: Record<string, string> = {
-  ACTIVE: "bg-primary/10 text-success border-primary/20",
-  BLOCKED: "bg-red-500/10 text-red-500 border-red-500/20",
+  ACTIVE: "bg-primary/10 text-success-text border-primary/20",
+  BLOCKED: "bg-danger/10 text-danger-text border-danger/20",
   DELETED: "bg-muted text-muted-foreground border-border/50",
 };
 
 const roleStyles: Record<string, string> = {
   ADMIN: "bg-primary/10 text-primary border-primary/20",
-  USER: "bg-info/10 text-info border-info/20",
+  USER: "bg-info/10 text-info-text border-info/20",
 };
 
 function fmtDate(value?: string | null): string {
@@ -511,7 +511,7 @@ export default function AdminUsers() {
                                 <DropdownMenuItem
                                   onClick={() => confirmUnblock(u)}
                                   disabled={busyId === u.id || isSelf(u.id)}
-                                  className="text-success focus:text-success"
+                                  className="text-success-text focus:text-success-text"
                                 >
                                   <ShieldCheck className="w-3.5 h-3.5 mr-2" /> Unblock
                                 </DropdownMenuItem>
@@ -623,7 +623,7 @@ export default function AdminUsers() {
             <AlertDialogAction
               onClick={confirmDelete}
               disabled={busyId === deleteTarget?.id}
-              className="bg-destructive hover:bg-destructive/90 text-white"
+              className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
             >
               {busyId === deleteTarget?.id ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
               Delete User
@@ -683,7 +683,7 @@ export default function AdminUsers() {
                     {detail.status}
                   </Badge>
                   {detail.emailVerified ? (
-                    <Badge variant="outline" className="bg-primary/10 text-success border-primary/20">
+                    <Badge variant="outline" className="bg-primary/10 text-success-text border-primary/20">
                       Verified
                     </Badge>
                   ) : (
@@ -718,10 +718,10 @@ export default function AdminUsers() {
                 <div className="grid grid-cols-2 gap-3">
                   {[
                     { icon: FolderGit2, label: "Projects Owned", value: detail.projectsOwned.length, color: "text-primary" },
-                    { icon: UserCog, label: "Projects Joined", value: detail.projectsJoined.length, color: "text-blue-400" },
+                    { icon: UserCog, label: "Projects Joined", value: detail.projectsJoined.length, color: "text-info-text" },
                     { icon: Users, label: "Teams", value: detail.teams.length, color: "text-primary" },
                     { icon: Rss, label: "Posts", value: detail.postsCount, color: "text-primary" },
-                    { icon: MessagesSquare, label: "Messages", value: detail.messagesCount, color: "text-cyan-400" },
+                    { icon: MessagesSquare, label: "Messages", value: detail.messagesCount, color: "text-info-text" },
                   ].map((s) => (
                     <div key={s.label} className="border border-border/50 rounded-xl p-4 bg-card/50">
                       <div className="flex items-center gap-2.5 mb-2">

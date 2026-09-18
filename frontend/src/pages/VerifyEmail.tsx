@@ -66,8 +66,8 @@ export default function VerifyEmail() {
           <>
             <div className="text-center mb-6">
               <div className="flex justify-center mb-4">
-                <div className="w-16 h-16 rounded-2xl bg-primary/10 ring-1 ring-emerald-500/25 flex items-center justify-center">
-                  <CheckCircle2 className="w-8 h-8 text-emerald-400" />
+                <div className="w-16 h-16 rounded-2xl bg-primary/10 ring-1 ring-success/25 flex items-center justify-center">
+                  <CheckCircle2 className="w-8 h-8 text-success-text" />
                 </div>
               </div>
               <h1 className="text-2xl font-bold tracking-tight">
@@ -108,7 +108,7 @@ export default function VerifyEmail() {
             {resendDone ? (
               <div className="text-center space-y-4">
                 <div className="flex flex-col items-center gap-2 text-sm text-white/60 bg-white/5 border border-white/10 rounded-xl px-4 py-5">
-                  <MailCheck className="w-6 h-6 text-emerald-400" />
+                  <MailCheck className="w-6 h-6 text-success-text" />
                   <span>
                     If your account exists and is unverified, a new link is on
                     its way.

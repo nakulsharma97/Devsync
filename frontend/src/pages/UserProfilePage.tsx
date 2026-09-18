@@ -161,7 +161,7 @@ function FollowListDialog({
                 >
                   <Avatar className="w-9 h-9 shrink-0 ring-1 ring-primary/10">
                     <AvatarImage src={u.avatarUrl || undefined} />
-                    <AvatarFallback className="text-[10px] font-bold bg-gradient-to-br from-primary/20 to-primary/20 text-primary dark:text-primary">
+                    <AvatarFallback className="text-[10px] font-bold bg-primary text-primary-foreground">
                       {u.fullName?.charAt(0) || "?"}
                     </AvatarFallback>
                   </Avatar>
@@ -171,7 +171,7 @@ function FollowListDialog({
                       @{u.username}
                       {u.isSelf && <span className="text-primary"> · You</span>}
                       {u.followsYou && !u.isSelf && (
-                        <span className="text-green-600 dark:text-green-400"> · Follows you</span>
+                        <span className="text-success-text"> · Follows you</span>
                       )}
                     </p>
                   </div>
@@ -185,7 +185,7 @@ function FollowListDialog({
                     className={cn(
                       "text-xs shrink-0",
                       u.isFollowing
-                        ? "border-border/60 text-foreground hover:border-red-500/50 hover:text-red-600 hover:bg-red-500/5 dark:hover:border-red-400/50 dark:hover:text-red-400 dark:hover:bg-red-500/10"
+                        ? "border-border/60 text-foreground hover:border-danger/50 hover:text-danger-text hover:bg-danger/5"
                         : "border-primary/30 bg-primary text-primary-foreground hover:bg-primary dark:bg-primary dark:hover:bg-accent"
                     )}
                   >
@@ -467,7 +467,7 @@ export default function UserProfilePage() {
                 {badges.map((b) => (
                   <span
                     key={b}
-                    className="text-[10px] px-2 py-1 rounded-full bg-primary/10 text-primary dark:text-primary border border-primary/20 font-medium"
+                    className="text-[10px] px-2 py-1 rounded-full bg-primary/10 text-primary border border-primary/20 font-medium"
                   >
                     {b}
                   </span>
@@ -520,7 +520,7 @@ export default function UserProfilePage() {
                 className={cn(
                   "text-xs gap-1.5 min-w-[100px] justify-center",
                   social.isFollowing
-                    ? "border-border/60 text-foreground hover:border-red-500/50 hover:text-red-600 hover:bg-red-500/5 dark:hover:border-red-400/50 dark:hover:text-red-400 dark:hover:bg-red-500/10"
+                    ? "border-border/60 text-foreground hover:border-danger/50 hover:text-danger-text hover:bg-danger/5"
                     : "border-primary/30 bg-primary text-primary-foreground hover:bg-primary dark:bg-primary dark:hover:bg-accent"
                 )}
               >
@@ -559,7 +559,7 @@ export default function UserProfilePage() {
                 variant="ghost"
                 onClick={() => setReportOpen(true)}
                 aria-label="Report user"
-                className="text-xs gap-1.5 text-muted-foreground hover:text-red-500 hover:bg-red-500/5"
+                className="text-xs gap-1.5 text-muted-foreground hover:text-danger-text hover:bg-danger/5"
               >
                 <Flag className="w-3.5 h-3.5" />
                 Report

@@ -91,14 +91,14 @@ export default function Admin() {
     role === "ADMIN" ? (
       <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">ADMIN</Badge>
     ) : (
-      <Badge variant="outline" className="bg-info/10 text-info border-info/20">USER</Badge>
+      <Badge variant="outline" className="bg-info/10 text-info-text border-info/20">USER</Badge>
     );
 
   const statusBadge = (status: string) => {
     const styles: Record<string, string> = {
-      ACTIVE: "bg-primary/10 text-success border-primary/20",
+      ACTIVE: "bg-primary/10 text-success-text border-primary/20",
       ARCHIVED: "bg-primary/10 text-primary border-primary/20",
-      COMPLETED: "bg-info/10 text-info border-info/20",
+      COMPLETED: "bg-info/10 text-info-text border-info/20",
     };
     return (
       <Badge variant="outline" className={styles[status] || "bg-secondary text-secondary-foreground"}>{status}</Badge>
@@ -107,14 +107,14 @@ export default function Admin() {
 
   const statCards = dashboard
     ? [
-        { icon: Users, label: "Total Users", value: dashboard.totalUsers, color: "text-info" },
-        { icon: Activity, label: "Active Users", value: dashboard.activeUsers, color: "text-success" },
-        { icon: Ban, label: "Blocked Users", value: dashboard.blockedUsers, color: "text-red-500" },
+        { icon: Users, label: "Total Users", value: dashboard.totalUsers, color: "text-info-text" },
+        { icon: Activity, label: "Active Users", value: dashboard.activeUsers, color: "text-success-text" },
+        { icon: Ban, label: "Blocked Users", value: dashboard.blockedUsers, color: "text-danger-text" },
         { icon: FolderGit2, label: "Projects", value: dashboard.totalProjects, color: "text-primary" },
         { icon: UserPlus, label: "Teams", value: dashboard.totalTeams, color: "text-primary" },
-        { icon: ListTodo, label: "Tasks", value: dashboard.totalTasks, color: "text-info" },
+        { icon: ListTodo, label: "Tasks", value: dashboard.totalTasks, color: "text-info-text" },
         { icon: Rss, label: "Posts", value: dashboard.totalPosts, color: "text-primary" },
-        { icon: MessagesSquare, label: "Messages", value: dashboard.totalMessages, color: "text-info" },
+        { icon: MessagesSquare, label: "Messages", value: dashboard.totalMessages, color: "text-info-text" },
       ]
     : [];
 
@@ -356,7 +356,7 @@ export default function Admin() {
                   <Button
                     size="sm"
                     variant="ghost"
-                    className={user.blocked ? "text-success hover:text-primary" : "text-muted-foreground hover:text-destructive"}
+                    className={user.blocked ? "text-success-text hover:text-primary" : "text-muted-foreground hover:text-destructive"}
                     onClick={() => handleToggleBlock(user)}
                     disabled={togglingBlock === user.id}
                   >

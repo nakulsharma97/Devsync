@@ -67,8 +67,8 @@ export default function ResetPassword() {
           <>
             <div className="text-center mb-6">
               <div className="flex justify-center mb-4">
-                <div className="w-16 h-16 rounded-2xl bg-primary/10 ring-1 ring-emerald-500/25 flex items-center justify-center">
-                  <CheckCircle2 className="w-8 h-8 text-emerald-400" />
+                <div className="w-16 h-16 rounded-2xl bg-primary/10 ring-1 ring-success/25 flex items-center justify-center">
+                  <CheckCircle2 className="w-8 h-8 text-success-text" />
                 </div>
               </div>
               <h1 className="text-2xl font-bold tracking-tight">
@@ -148,7 +148,7 @@ export default function ResetPassword() {
               </div>
 
               {error && (
-                <p className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">
+                <p className="text-xs text-red-400 bg-danger/10 border border-danger/20 rounded-lg px-3 py-2">
                   {error}
                 </p>
               )}

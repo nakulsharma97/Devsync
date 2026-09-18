@@ -203,8 +203,8 @@ export default function ProjectWorkspace() {
                 className={cn(
                   "inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full border",
                   project.visibility === "PUBLIC"
-                    ? "text-primary dark:text-primary border-primary/25 bg-accent/[0.07]"
-                    : "text-primary dark:text-primary border-primary/25 bg-primary/[0.07]"
+                    ? "text-primary border-primary/25 bg-accent/[0.07]"
+                    : "text-primary border-primary/25 bg-primary/[0.07]"
                 )}
               >
                 {project.visibility === "PUBLIC" ? (
@@ -233,7 +233,7 @@ export default function ProjectWorkspace() {
                   </span>
                 </span>
               )}
-              <span className="text-muted-foreground/60">
+              <span className="text-muted-foreground">
                 Updated {timeAgo(project.updatedAt) || "recently"}
               </span>
             </div>
@@ -245,7 +245,7 @@ export default function ProjectWorkspace() {
               variant="ghost"
               onClick={() => setReportOpen(true)}
               aria-label="Report project"
-              className="text-xs gap-1.5 text-muted-foreground hover:text-red-500 hover:bg-red-500/5"
+              className="text-xs gap-1.5 text-muted-foreground hover:text-danger-text hover:bg-danger/5"
             >
               <Flag className="w-3.5 h-3.5" />
               Report
@@ -430,7 +430,7 @@ function PublicProjectJoinView({
           </div>
           <h1 className="text-xl font-bold tracking-tight">{project.name}</h1>
           <StatusPill status={project.status} />
-          <span className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full border border-primary/25 bg-accent/[0.07] text-primary dark:text-primary">
+          <span className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full border border-primary/25 bg-accent/[0.07] text-primary">
             <Globe className="w-2.5 h-2.5" />
             Public
           </span>
@@ -453,7 +453,7 @@ function PublicProjectJoinView({
               <span className="text-foreground font-medium">{owner.fullName}</span>
             </span>
           )}
-          <span className="text-muted-foreground/60">
+          <span className="text-muted-foreground">
             Updated {timeAgo(project.updatedAt) || "recently"}
           </span>
         </div>
@@ -463,7 +463,7 @@ function PublicProjectJoinView({
             <>
               <Button
                 disabled
-                className="inline-flex items-center gap-2 text-xs border border-primary/30 bg-primary/[0.08] text-primary dark:text-primary shadow-sm"
+                className="inline-flex items-center gap-2 text-xs border border-primary/30 bg-primary/[0.08] text-primary shadow-sm"
               >
                 <Clock className="w-4 h-4" />
                 Request Pending
@@ -477,7 +477,7 @@ function PublicProjectJoinView({
                 {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <X className="w-4 h-4 mr-1" />}
                 Cancel Request
               </Button>
-              <p className="text-[11px] text-muted-foreground/70 sm:max-w-xs">
+              <p className="text-[11px] text-muted-foreground sm:max-w-xs">
                 The owner hasn&apos;t reviewed your request yet. You&apos;ll get a
                 notification once it&apos;s accepted or declined.
               </p>
@@ -496,7 +496,7 @@ function PublicProjectJoinView({
                 )}
                 {busy ? "Sending…" : "Request to Join"}
               </Button>
-              <p className="text-[11px] text-muted-foreground/70 sm:max-w-xs">
+              <p className="text-[11px] text-muted-foreground sm:max-w-xs">
                 Send a join request — the owner approves it before you get access
                 to the board, team chat, files and docs.
               </p>
@@ -517,11 +517,11 @@ function PublicProjectJoinView({
 function JoinFeature({ icon, label }: { icon: React.ReactNode; label: string }) {
   return (
     <div className="flex items-center gap-2 rounded-xl border border-border/40 bg-card px-3.5 py-3 text-sm font-medium text-muted-foreground">
-      <span className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary/15 to-primary/10 flex items-center justify-center text-primary shrink-0">
+      <span className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center text-primary-foreground shrink-0">
         {icon}
       </span>
       {label}
-      <Check className="w-3.5 h-3.5 ml-auto text-success" />
+      <Check className="w-3.5 h-3.5 ml-auto text-success-text" />
     </div>
   );
 }
@@ -603,11 +603,11 @@ function OverviewTab({
           <div className="space-y-2">
             {project.members.slice(0, 6).map((m) => (
               <div key={m.userId} className="flex items-center gap-2.5">
-                <div className="w-7 h-7 rounded-full bg-gradient-to-br from-primary/20 to-primary/20 flex items-center justify-center shrink-0 overflow-hidden">
+                <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center shrink-0 overflow-hidden">
                   {m.avatarUrl ? (
                     <img src={m.avatarUrl} alt="" className="w-full h-full object-cover" />
                   ) : (
-                    <span className="text-[10px] font-bold text-primary">
+                    <span className="text-[10px] font-bold text-primary-foreground">
                       {m.fullName?.charAt(0) || "?"}
                     </span>
                   )}
@@ -617,9 +617,9 @@ function OverviewTab({
                   className={cn(
                     "text-[9px] font-medium px-1.5 py-0.5 rounded-full",
                     m.role === "OWNER"
-                      ? "bg-primary/10 text-primary dark:text-primary"
+                      ? "bg-primary/10 text-primary"
                       : m.role === "ADMIN"
-                        ? "bg-primary/10 text-primary dark:text-primary"
+                        ? "bg-primary/10 text-primary"
                         : "bg-muted/60 text-muted-foreground"
                   )}
                 >
@@ -645,7 +645,7 @@ function OverviewTab({
                   <span className="w-1.5 h-1.5 rounded-full bg-primary mt-1.5 shrink-0" />
                   <div className="min-w-0">
                     <p className="text-xs truncate">{a.title}</p>
-                    <p className="text-[10px] text-muted-foreground/70">
+                    <p className="text-[10px] text-muted-foreground">
                       {a.user?.fullName || "Someone"} · {timeAgo(a.createdAt, "")}
                     </p>
                   </div>
@@ -665,11 +665,11 @@ function QuickAction({ icon, label, onClick }: { icon: React.ReactNode; label: s
       onClick={onClick}
       className="flex items-center gap-2.5 rounded-xl border border-border/40 bg-card p-3.5 text-sm font-medium hover:border-primary/30 hover:bg-primary/[0.03] transition-all text-left group"
     >
-      <span className="w-9 h-9 rounded-lg bg-gradient-to-br from-primary/15 to-primary/10 flex items-center justify-center text-primary group-hover:scale-105 transition-transform">
+      <span className="w-9 h-9 rounded-lg bg-primary flex items-center justify-center text-primary-foreground group-hover:scale-105 transition-transform">
         {icon}
       </span>
       {label}
-      <ArrowUpRight className="w-3.5 h-3.5 ml-auto text-muted-foreground/40 group-hover:text-primary transition-colors" />
+      <ArrowUpRight className="w-3.5 h-3.5 ml-auto text-muted-foreground group-hover:text-primary transition-colors" />
     </button>
   );
 }
@@ -695,7 +695,7 @@ function TasksTab({ projectId }: { projectId: string }) {
   if (!board) {
     return (
       <div className="text-center py-12 rounded-xl border border-border/40 bg-card">
-        <ClipboardList className="w-8 h-8 text-muted-foreground/40 mx-auto mb-3" />
+        <ClipboardList className="w-8 h-8 text-muted-foreground mx-auto mb-3" />
         <p className="text-sm text-muted-foreground mb-4">No tasks yet</p>
         <Button
           size="sm"
@@ -733,9 +733,9 @@ function TasksTab({ projectId }: { projectId: string }) {
                   className={cn(
                     "text-[9px] font-semibold uppercase px-1.5 py-0.5 rounded-full",
                     /done|completed/i.test(t.columnName)
-                      ? "bg-primary/10 text-primary dark:text-primary"
+                      ? "bg-primary/10 text-primary"
                       : /progress/i.test(t.columnName)
-                        ? "bg-primary/10 text-primary dark:text-primary"
+                        ? "bg-primary/10 text-primary"
                         : "bg-muted/60 text-muted-foreground"
                   )}
                 >
@@ -786,7 +786,7 @@ function ChatTab({ project }: { project: ProjectDto }) {
   if (error || !room) {
     return (
       <div className="text-center py-12 rounded-xl border border-border/40 bg-card">
-        <MessageSquare className="w-8 h-8 text-muted-foreground/40 mx-auto mb-3" />
+        <MessageSquare className="w-8 h-8 text-muted-foreground mx-auto mb-3" />
         <p className="text-sm text-muted-foreground mb-4">{error || "Could not open team chat"}</p>
         <Button size="sm" variant="outline" onClick={ensureRoom}>
           Retry
@@ -1102,7 +1102,7 @@ function DocsTab({ projectId }: { projectId: string }) {
             onChange={(e) => onChange(e.target.value)}
             placeholder={"# Project docs\n\nWrite in **Markdown**. Headings, lists, code blocks and links are supported.\n\nSave to share with your team."}
             aria-label="Project document (Markdown)"
-            className="w-full min-h-[420px] p-4 text-sm leading-relaxed bg-transparent resize-none focus:outline-none font-mono placeholder:text-muted-foreground/40"
+            className="w-full min-h-[420px] p-4 text-sm leading-relaxed bg-transparent resize-none focus:outline-none font-mono placeholder:text-muted-foreground"
           />
         ) : text.trim() ? (
           <div className="p-5 text-sm">
@@ -1110,7 +1110,7 @@ function DocsTab({ projectId }: { projectId: string }) {
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center h-[420px] text-center px-6">
-            <BookOpen className="w-8 h-8 text-muted-foreground/40 mb-3" />
+            <BookOpen className="w-8 h-8 text-muted-foreground mb-3" />
             <p className="text-sm text-muted-foreground">Nothing written yet — switch to Edit and start typing.</p>
           </div>
         )}
@@ -1262,11 +1262,11 @@ function MembersTab({
                     key={req.id}
                     className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-accent/5"
                   >
-                    <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary/20 to-primary/20 flex items-center justify-center shrink-0 overflow-hidden">
+                    <div className="w-9 h-9 rounded-full bg-primary flex items-center justify-center shrink-0 overflow-hidden">
                       {req.userAvatar ? (
                         <img src={req.userAvatar} alt="" className="w-full h-full object-cover" />
                       ) : (
-                        <span className="text-xs font-bold text-primary">
+                        <span className="text-xs font-bold text-primary-foreground">
                           {req.userName?.charAt(0) || "?"}
                         </span>
                       )}
@@ -1331,11 +1331,11 @@ function MembersTab({
             const isOwnerRow = m.role === "OWNER";
             return (
               <div key={m.userId} className="flex items-center gap-3 p-3.5">
-                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary/20 to-primary/20 flex items-center justify-center shrink-0 overflow-hidden">
+                <div className="w-9 h-9 rounded-full bg-primary flex items-center justify-center shrink-0 overflow-hidden">
                   {m.avatarUrl ? (
                     <img src={m.avatarUrl} alt="" className="w-full h-full object-cover" />
                   ) : (
-                    <span className="text-xs font-bold text-primary">
+                    <span className="text-xs font-bold text-primary-foreground">
                       {m.fullName?.charAt(0) || "?"}
                     </span>
                   )}
@@ -1346,7 +1346,7 @@ function MembersTab({
                   </p>
                   <p className="text-[11px] text-muted-foreground truncate">@{m.username ?? "member"}</p>
                   {m.joinedAt && (
-                    <p className="text-[10px] text-muted-foreground/60 truncate">
+                    <p className="text-[10px] text-muted-foreground truncate">
                       Joined {timeAgo(m.joinedAt, "")}
                     </p>
                   )}
@@ -1357,9 +1357,9 @@ function MembersTab({
                   className={cn(
                     "text-[9px] font-medium px-2 py-1 rounded-full shrink-0",
                     isOwnerRow
-                      ? "bg-primary/10 text-primary dark:text-primary"
+                      ? "bg-primary/10 text-primary"
                       : m.role === "ADMIN"
-                        ? "bg-primary/10 text-primary dark:text-primary"
+                        ? "bg-primary/10 text-primary"
                         : "bg-muted/60 text-muted-foreground"
                   )}
                 >
@@ -1434,11 +1434,11 @@ function MembersTab({
               <div className="space-y-1">
                 {pendingInvites.map((inv) => (
                   <div key={inv.id} className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-accent/5">
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary/20 to-primary/20 flex items-center justify-center shrink-0 overflow-hidden">
+                    <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center shrink-0 overflow-hidden">
                       {inv.receiverAvatar ? (
                         <img src={inv.receiverAvatar} alt="" className="w-full h-full object-cover" />
                       ) : (
-                        <span className="text-[10px] font-bold text-primary">
+                        <span className="text-[10px] font-bold text-primary-foreground">
                           {inv.receiverName?.charAt(0) || "?"}
                         </span>
                       )}
@@ -1471,7 +1471,7 @@ function MembersTab({
             <AlertDialogAction
               onClick={handleRemove}
               disabled={busyId === removingId}
-              className="bg-red-600 hover:bg-red-700 text-white"
+              className="bg-danger text-danger-foreground hover:bg-danger/90"
             >
               {busyId === removingId ? <Loader2 className="w-4 h-4 animate-spin" /> : "Remove Member"}
             </AlertDialogAction>
@@ -1509,25 +1509,25 @@ function MembersTab({
 // ── Activity ───────────────────────────────────────────────
 
 const ACTIVITY_LABELS: Record<string, { label: string; tone: string }> = {
-  PROJECT_CREATED: { label: "Project created", tone: "text-success" },
-  PROJECT_UPDATED: { label: "Project updated", tone: "text-info" },
+  PROJECT_CREATED: { label: "Project created", tone: "text-success-text" },
+  PROJECT_UPDATED: { label: "Project updated", tone: "text-info-text" },
   PROJECT_ARCHIVED: { label: "Project archived", tone: "text-primary" },
-  PROJECT_RESTORED: { label: "Project restored", tone: "text-success" },
+  PROJECT_RESTORED: { label: "Project restored", tone: "text-success-text" },
   PROJECT_VISIBILITY_CHANGED: { label: "Visibility changed", tone: "text-primary" },
-  TASK_CREATED: { label: "Task created", tone: "text-info" },
-  TASK_UPDATED: { label: "Task updated", tone: "text-info" },
+  TASK_CREATED: { label: "Task created", tone: "text-info-text" },
+  TASK_UPDATED: { label: "Task updated", tone: "text-info-text" },
   TASK_MOVED: { label: "Task moved", tone: "text-primary" },
-  TASK_COMPLETED: { label: "Task completed", tone: "text-success" },
+  TASK_COMPLETED: { label: "Task completed", tone: "text-success-text" },
   TASK_ASSIGNED: { label: "Task assigned", tone: "text-primary" },
-  USER_JOINED_PROJECT: { label: "Member joined", tone: "text-success" },
-  USER_LEFT_PROJECT: { label: "Member removed", tone: "text-red-500" },
+  USER_JOINED_PROJECT: { label: "Member joined", tone: "text-success-text" },
+  USER_LEFT_PROJECT: { label: "Member removed", tone: "text-danger-text" },
   INVITATION_SENT: { label: "Invitation sent", tone: "text-primary" },
-  INVITATION_ACCEPTED: { label: "Invitation accepted", tone: "text-success" },
+  INVITATION_ACCEPTED: { label: "Invitation accepted", tone: "text-success-text" },
   MEMBER_ROLE_CHANGED: { label: "Role changed", tone: "text-primary" },
   OWNERSHIP_TRANSFERRED: { label: "Ownership transferred", tone: "text-primary" },
-  MESSAGE_SENT: { label: "Message sent", tone: "text-info" },
+  MESSAGE_SENT: { label: "Message sent", tone: "text-info-text" },
   FILE_UPLOADED: { label: "File uploaded", tone: "text-primary" },
-  REPORT_RESOLVED: { label: "Report resolved", tone: "text-success" },
+  REPORT_RESOLVED: { label: "Report resolved", tone: "text-success-text" },
 };
 
 function ActivityTab({ projectId }: { projectId: string }) {
@@ -1578,7 +1578,7 @@ function ActivityTab({ projectId }: { projectId: string }) {
                       <span className="text-muted-foreground"> — {a.description}</span>
                     )}
                   </p>
-                  <p className="text-[11px] text-muted-foreground/70 mt-0.5">
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
                     {timeAgo(a.createdAt, "")} · {a.title}
                   </p>
                 </div>
@@ -1661,7 +1661,7 @@ function SettingsTab({
   if (!canManage) {
     return (
       <div className="rounded-xl border border-border/40 bg-card p-6 text-center">
-        <Lock className="w-8 h-8 text-muted-foreground/40 mx-auto mb-3" />
+        <Lock className="w-8 h-8 text-muted-foreground mx-auto mb-3" />
         <p className="text-sm text-muted-foreground">
           Only the project owner or an admin member can change project settings.
         </p>
@@ -1717,7 +1717,7 @@ function SettingsTab({
             </>
           )}
         </Button>
-        <p className="text-[11px] text-muted-foreground/70 mt-3">
+        <p className="text-[11px] text-muted-foreground mt-3">
           {project.visibility === "PUBLIC"
             ? "Switching to private keeps current members but blocks new access."
             : "Making it public lets any authenticated user join."}
@@ -1725,16 +1725,16 @@ function SettingsTab({
       </div>
 
       {/* Danger zone */}
-      <div className="rounded-xl border border-red-500/25 bg-red-500/[0.02] p-5 lg:col-span-2">
-        <h3 className="text-sm font-semibold text-red-600 dark:text-red-400 mb-1">Danger Zone</h3>
+      <div className="rounded-xl border border-danger/25 bg-danger/[0.02] p-5 lg:col-span-2">
+        <h3 className="text-sm font-semibold text-danger-text mb-1">Danger Zone</h3>
         <p className="text-xs text-muted-foreground mb-4">
           These actions cannot be undone.
         </p>
         <div className="flex items-center gap-2">
-          <Button size="sm" variant="outline" className="text-primary dark:text-primary border-primary/30" onClick={() => setConfirmOpen("archive")}>
+          <Button size="sm" variant="outline" className="text-primary border-primary/30" onClick={() => setConfirmOpen("archive")}>
             <Archive className="w-3.5 h-3.5 mr-1.5" /> Archive Project
           </Button>
-          <Button size="sm" variant="outline" className="text-red-600 dark:text-red-400 border-red-500/30" onClick={() => setConfirmOpen("delete")}>
+          <Button size="sm" variant="outline" className="text-danger-text border-danger/30" onClick={() => setConfirmOpen("delete")}>
             <Trash2 className="w-3.5 h-3.5 mr-1.5" /> Delete Project
           </Button>
         </div>
@@ -1757,7 +1757,7 @@ function SettingsTab({
             <AlertDialogAction
               onClick={handleDanger}
               disabled={dangerBusy}
-              className={confirmOpen === "delete" ? "bg-red-600 hover:bg-red-700 text-white" : undefined}
+              className={confirmOpen === "delete" ? "bg-danger text-danger-foreground hover:bg-danger/90" : undefined}
             >
               {dangerBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : confirmOpen === "archive" ? "Archive" : "Delete"}
             </AlertDialogAction>

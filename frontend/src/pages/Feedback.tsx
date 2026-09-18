@@ -46,14 +46,14 @@ const FEEDBACK_CATEGORIES = [
 
 const REVIEW_STATUS_STYLES: Record<string, string> = {
   PENDING: "bg-primary/10 text-primary border-primary/20",
-  APPROVED: "bg-primary/10 text-success border-primary/20",
-  REJECTED: "bg-red-500/10 text-red-500 border-red-500/20",
+  APPROVED: "bg-primary/10 text-success-text border-primary/20",
+  REJECTED: "bg-danger/10 text-danger-text border-danger/20",
 };
 
 const FEEDBACK_STATUS_STYLES: Record<string, string> = {
-  OPEN: "bg-info/10 text-info border-info/20",
+  OPEN: "bg-info/10 text-info-text border-info/20",
   IN_REVIEW: "bg-primary/10 text-primary border-primary/20",
-  RESOLVED: "bg-primary/10 text-success border-primary/20",
+  RESOLVED: "bg-primary/10 text-success-text border-primary/20",
   CLOSED: "bg-muted text-muted-foreground border-border/50",
 };
 
@@ -85,7 +85,7 @@ function StarInput({
             className={`w-7 h-7 transition-colors ${
               star <= value
                 ? "fill-primary text-primary"
-                : "text-muted-foreground/40 hover:text-primary/70"
+                : "text-muted-foreground hover:text-primary/70"
             }`}
           />
         </button>
@@ -481,7 +481,7 @@ export default function Feedback() {
                               className={`w-3 h-3 ${
                                 i <= (f.rating ?? 0)
                                   ? "fill-primary text-primary"
-                                  : "text-muted-foreground/30"
+                                  : "text-muted-foreground"
                               }`}
                             />
                           ))}

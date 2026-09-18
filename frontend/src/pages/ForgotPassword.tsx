@@ -51,7 +51,7 @@ export default function ForgotPassword() {
         {sent ? (
           <div className="text-center space-y-5">
             <div className="flex flex-col items-center gap-2 text-sm text-white/60 bg-white/5 border border-white/10 rounded-xl px-4 py-5">
-              <MailCheck className="w-6 h-6 text-emerald-400" />
+              <MailCheck className="w-6 h-6 text-success-text" />
               <span>
                 Didn&apos;t get the email? Check your spam folder, or{" "}
                 <button
@@ -89,7 +89,7 @@ export default function ForgotPassword() {
             </div>
 
             {error && (
-              <p className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">
+              <p className="text-xs text-red-400 bg-danger/10 border border-danger/20 rounded-lg px-3 py-2">
                 {error}
               </p>
             )}

@@ -108,7 +108,7 @@ export function NotificationBell({
         >
           <Bell className="w-4 h-4" />
           {unreadCount > 0 && (
-            <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full bg-red-500 text-[9px] font-bold text-white flex items-center justify-center shadow-sm ring-2 ring-background animate-badge-pop">
+            <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full bg-danger text-[9px] font-bold text-danger-foreground flex items-center justify-center shadow-sm ring-2 ring-background animate-badge-pop">
               {unreadCount > 99 ? "99+" : unreadCount}
             </span>
           )}
@@ -133,7 +133,7 @@ export function NotificationBell({
           {unreadCount > 0 && (
             <button
               onClick={markAllRead}
-              className="inline-flex items-center gap-1 text-[11px] font-medium text-primary dark:text-primary hover:text-primary dark:hover:text-primary transition-colors"
+              className="inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:text-primary transition-colors"
             >
               <CheckCheck className="w-3.5 h-3.5" /> Mark all read
             </button>
@@ -148,7 +148,7 @@ export function NotificationBell({
             </div>
           ) : loadError ? (
             <div className="flex flex-col items-center gap-2 py-10 text-center px-6">
-              <AlertCircle className="w-6 h-6 text-muted-foreground/50" />
+              <AlertCircle className="w-6 h-6 text-muted-foreground" />
               <p className="text-xs text-muted-foreground">Couldn&apos;t load notifications</p>
               <button
                 onClick={() => {
@@ -163,7 +163,7 @@ export function NotificationBell({
             </div>
           ) : notifications.length === 0 ? (
             <div className="flex flex-col items-center gap-2 py-10 text-center px-6">
-              <Inbox className="w-6 h-6 text-muted-foreground/50" />
+              <Inbox className="w-6 h-6 text-muted-foreground" />
               <p className="text-xs text-muted-foreground">No notifications yet</p>
             </div>
           ) : (
@@ -198,11 +198,11 @@ export function NotificationBell({
                           {n.title}
                         </span>
                         {n.message && (
-                          <span className="block text-[11px] text-muted-foreground/80 mt-0.5 line-clamp-2">
+                          <span className="block text-[11px] text-muted-foreground mt-0.5 line-clamp-2">
                             {n.message}
                           </span>
                         )}
-                        <span className="block text-[10px] text-muted-foreground/60 mt-1">
+                        <span className="block text-[10px] text-muted-foreground mt-1">
                           {timeAgo(n.createdAt, "recently")}
                         </span>
                       </span>

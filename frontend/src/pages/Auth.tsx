@@ -382,7 +382,7 @@ export default function Auth() {
                 <div className="w-full border-t border-gray-200" />
               </div>
               <div className="relative flex justify-center text-xs">
-                <span className="bg-white px-3 text-gray-400 uppercase tracking-wider font-medium">OR</span>
+                <span className="bg-white px-3 text-gray-500 uppercase tracking-wider font-medium">OR</span>
               </div>
             </div>
 
@@ -398,7 +398,7 @@ export default function Auth() {
                       placeholder="John Doe"
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
-                      className="h-12 bg-gray-50 border-gray-200 text-gray-900 placeholder:text-gray-400 focus:border-[#A6532D] focus:ring-[#A6532D]/20 rounded-xl"
+                      className="h-12 bg-gray-50 border-gray-200 text-gray-900 placeholder:text-gray-500 focus:border-[#A6532D] focus:ring-[#A6532D]/20 rounded-xl"
                       required
                     />
                   </div>
@@ -409,7 +409,7 @@ export default function Auth() {
                       placeholder="johndoe"
                       value={username}
                       onChange={(e) => setUsername(e.target.value)}
-                      className="h-12 bg-gray-50 border-gray-200 text-gray-900 placeholder:text-gray-400 focus:border-[#A6532D] focus:ring-[#A6532D]/20 rounded-xl"
+                      className="h-12 bg-gray-50 border-gray-200 text-gray-900 placeholder:text-gray-500 focus:border-[#A6532D] focus:ring-[#A6532D]/20 rounded-xl"
                     />
                   </div>
                 </>
@@ -419,7 +419,7 @@ export default function Auth() {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Enter verification code</label>
                   <OtpInput value={otpCode} onChange={setOtpCode} />
-                  <p className="text-xs text-gray-400 mt-3 text-center">
+                  <p className="text-xs text-gray-500 mt-3 text-center">
                     Sent to <span className="text-[#A6532D] font-medium">{email || "your email"}</span>
                   </p>
                   <div className="mt-3 text-center">
@@ -444,7 +444,7 @@ export default function Auth() {
                       placeholder={mode === "login" ? "you@example.com or username" : "you@example.com"}
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className="h-12 bg-gray-50 border-gray-200 text-gray-900 placeholder:text-gray-400 focus:border-[#A6532D] focus:ring-[#A6532D]/20 rounded-xl"
+                      className="h-12 bg-gray-50 border-gray-200 text-gray-900 placeholder:text-gray-500 focus:border-[#A6532D] focus:ring-[#A6532D]/20 rounded-xl"
                       required
                     />
                   </div>
@@ -466,7 +466,7 @@ export default function Auth() {
                       placeholder={mode === "register" ? "Min 8 characters" : "Enter your password"}
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="h-12 bg-gray-50 border-gray-200 text-gray-900 placeholder:text-gray-400 focus:border-[#A6532D] focus:ring-[#A6532D]/20 rounded-xl"
+                      className="h-12 bg-gray-50 border-gray-200 text-gray-900 placeholder:text-gray-500 focus:border-[#A6532D] focus:ring-[#A6532D]/20 rounded-xl"
                       required
                       minLength={mode === "register" ? 8 : 1}
                     />
@@ -474,7 +474,7 @@ export default function Auth() {
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        className="text-xs text-gray-400 hover:text-gray-600 mt-1.5 transition-colors"
+                        className="text-xs text-gray-500 hover:text-gray-600 mt-1.5 transition-colors"
                       >
                         {showPassword ? "Hide" : "Show"} password
                       </button>
@@ -540,7 +540,7 @@ export default function Auth() {
               <button
                 type="button"
                 onClick={() => setUseOtp(true)}
-                className="w-full mt-4 text-sm text-gray-400 hover:text-[#A6532D] transition-colors flex items-center justify-center gap-1.5"
+                className="w-full mt-4 text-sm text-gray-500 hover:text-[#A6532D] transition-colors flex items-center justify-center gap-1.5"
               >
                 <Mail className="w-3.5 h-3.5" />
                 Sign in with a magic code instead
@@ -551,7 +551,7 @@ export default function Auth() {
               <button
                 type="button"
                 onClick={() => setUseOtp(false)}
-                className="w-full mt-4 text-sm text-gray-400 hover:text-[#A6532D] transition-colors"
+                className="w-full mt-4 text-sm text-gray-500 hover:text-[#A6532D] transition-colors"
               >
                 Back to password sign in
               </button>
@@ -584,7 +584,7 @@ export default function Auth() {
             </div>
 
             {/* Terms */}
-            <p className="text-[11px] text-gray-400 text-center mt-6 leading-relaxed">
+            <p className="text-[11px] text-gray-500 text-center mt-6 leading-relaxed">
               By signing in, you agree to our{" "}
               <button className="underline hover:text-gray-600">Terms of Service</button>
               {" "}and{" "}

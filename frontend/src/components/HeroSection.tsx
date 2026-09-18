@@ -171,7 +171,7 @@ export default function HeroSection({ stats }: { stats: PublicStats | null }) {
           showScrollHint ? "opacity-100" : "opacity-0 pointer-events-none"
         }`}
       >
-        <span className="text-[11px] font-mono text-muted-foreground/60">
+        <span className="text-[11px] font-mono text-muted-foreground">
           scroll
         </span>
         <div className="w-4 h-7 rounded-full flex items-start justify-center p-1 border border-border scroll-indicator">

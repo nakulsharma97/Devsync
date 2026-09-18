@@ -58,7 +58,7 @@ export default function PricingSection() {
     >
       <div className="mx-auto max-w-7xl">
         <ScrollReveal className="text-center mb-12">
-          <span className="text-xs font-semibold tracking-[0.2em] uppercase bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 dark:from-emerald-400 dark:via-teal-400 dark:to-cyan-400 bg-clip-text text-transparent mb-6 block">
+          <span className="text-xs font-semibold tracking-[0.2em] uppercase text-accent-color mb-6 block">
             Pricing
           </span>
           <h2 className="text-4xl sm:text-5xl md:text-6xl font-black tracking-tight">
@@ -86,7 +86,7 @@ export default function PricingSection() {
                   <div
                     className={`relative h-full rounded-2xl border p-8 transition-all duration-300 backdrop-blur-sm overflow-hidden group ${
                       popular
-                        ? "border-primary/50 bg-gradient-to-b from-primary/15 to-primary/10 shadow-xl shadow-primary/10 scale-105 hover:shadow-2xl hover:shadow-primary/20 hover:-translate-y-1"
+                        ? "border-primary/50 bg-gradient-to-b from-primary/10 to-primary/5 shadow-xl shadow-primary/10 scale-105 hover:shadow-2xl hover:shadow-primary/20 hover:-translate-y-1"
                         : "border-border/40 bg-card/70 hover:border-primary/30 hover:shadow-lg hover:-translate-y-1"
                     }`}
                   >
@@ -112,7 +112,7 @@ export default function PricingSection() {
                     <ul className="relative space-y-3 mb-8">
                       {featuresFor(plan).map((f) => (
                         <li key={f} className="flex items-start gap-2.5 text-sm">
-                          <Check className="w-4 h-4 text-primary dark:text-primary mt-0.5 shrink-0 transition-transform duration-200 group-hover:scale-110" />
+                          <Check className="w-4 h-4 text-primary mt-0.5 shrink-0 transition-transform duration-200 group-hover:scale-110" />
                           <span>{f}</span>
                         </li>
                       ))}

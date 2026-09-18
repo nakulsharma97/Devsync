@@ -21,7 +21,7 @@ export default function FooterSection() {
                 { icon: Twitter, href: "https://twitter.com/devsync", label: "Twitter" },
                 { icon: MessageCircle, href: "https://discord.gg/devsync", label: "Discord" },
               ].map(({ icon: Icon, href, label }) => (
-                <a key={label} href={href} target="_blank" rel="noopener noreferrer" aria-label={label} className="w-9 h-9 rounded-xl bg-muted/50 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-primary/10 hover:text-primary dark:hover:text-primary transition-all duration-200">
+                <a key={label} href={href} target="_blank" rel="noopener noreferrer" aria-label={label} className="w-9 h-9 rounded-xl bg-muted/50 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-primary/10 hover:text-primary transition-all duration-200">
                   <Icon className="w-4 h-4" />
                 </a>
               ))}

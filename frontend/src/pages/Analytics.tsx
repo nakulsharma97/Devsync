@@ -55,10 +55,10 @@ export default function Analytics() {
   }, []);
 
   const summary = [
-    { icon: Rss, label: "Total Posts", value: postStats?.totalPosts ?? 0, color: "text-info" },
-    { icon: Heart, label: "Total Likes", value: postStats?.totalLikes ?? 0, color: "text-danger" },
-    { icon: MessageCircle, label: "Comments", value: postStats?.totalComments ?? 0, color: "text-info" },
-    { icon: Users, label: "Followers", value: followerGrowth?.totalFollowers ?? 0, color: "text-success" },
+    { icon: Rss, label: "Total Posts", value: postStats?.totalPosts ?? 0, color: "text-info-text" },
+    { icon: Heart, label: "Total Likes", value: postStats?.totalLikes ?? 0, color: "text-danger-text" },
+    { icon: MessageCircle, label: "Comments", value: postStats?.totalComments ?? 0, color: "text-info-text" },
+    { icon: Users, label: "Followers", value: followerGrowth?.totalFollowers ?? 0, color: "text-success-text" },
   ];
 
   return (

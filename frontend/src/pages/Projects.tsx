@@ -41,14 +41,6 @@ import {
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
-const projectGradients = [
-  "from-primary to-primary",
-  "from-primary to-primary",
-  "from-accent to-primary",
-  "from-primary to-primary",
-  "from-accent to-primary",
-];
-
 type Visibility = "PRIVATE" | "PUBLIC";
 
 type Template = "" | "SPRINT_BOARD" | "BUG_TRACKER" | "FEATURE_BACKLOG";
@@ -178,10 +170,10 @@ export default function Projects() {
             Manage your development projects
           </p>
           {projects && (
-            <p className="text-xs text-muted-foreground/70 mt-2 inline-flex items-center gap-1.5">
+            <p className="text-xs text-muted-foreground mt-2 inline-flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-primary" />
               {projects.length} total
-              <span className="text-muted-foreground/40">·</span>
+              <span className="text-muted-foreground">·</span>
               {projects.filter((p) => p.status === "ACTIVE").length} active
             </p>
           )}
@@ -231,7 +223,7 @@ export default function Projects() {
                   placeholder="What is this project about?"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  className="min-h-[84px] w-full resize-none text-sm bg-transparent border border-border/40 rounded-lg p-3 focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 placeholder:text-muted-foreground/50 transition-all"
+                  className="min-h-[84px] w-full resize-none text-sm bg-transparent border border-border/40 rounded-lg p-3 focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 placeholder:text-muted-foreground transition-all"
                 />
               </div>
               <div className="space-y-1.5">
@@ -284,7 +276,7 @@ export default function Projects() {
                       <span
                         className={cn(
                           "text-sm font-medium",
-                          template === t.code ? "text-primary dark:text-primary" : "text-foreground"
+                          template === t.code ? "text-primary" : "text-foreground"
                         )}
                       >
                         {t.label}
@@ -326,11 +318,11 @@ export default function Projects() {
                 key={inv.id}
                 className="flex items-center gap-3 bg-card/70 border border-border/40 rounded-xl p-3"
               >
-                <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-primary/20 to-primary/20 flex items-center justify-center shrink-0 overflow-hidden">
+                <div className="w-9 h-9 rounded-lg bg-primary flex items-center justify-center shrink-0 overflow-hidden">
                   {inv.senderAvatar ? (
                     <img src={inv.senderAvatar} alt="" className="w-full h-full object-cover" />
                   ) : (
-                    <span className="text-xs font-bold text-primary">
+                    <span className="text-xs font-bold text-primary-foreground">
                       {inv.senderName?.charAt(0) || "?"}
                     </span>
                   )}
@@ -448,7 +440,7 @@ function VisibilityOption({
         <span className={cn("w-8 h-8 rounded-lg flex items-center justify-center", active ? "bg-primary/15 text-primary" : "bg-muted/60 text-muted-foreground")}>
           {icon}
         </span>
-        <span className={cn("text-sm font-medium", active ? "text-primary dark:text-primary" : "text-foreground")}>
+        <span className={cn("text-sm font-medium", active ? "text-primary" : "text-foreground")}>
           {title}
         </span>
       </div>
@@ -489,15 +481,11 @@ function ProjectCard({
       <CardHeader className="pb-2 relative">
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-3 min-w-0">
-            <div
-              className={`w-10 h-10 rounded-xl bg-gradient-to-br ${
-                projectGradients[index % projectGradients.length]
-              } flex items-center justify-center shadow-md transition-transform duration-200 group-hover:scale-110 group-hover:-rotate-3 shrink-0`}
-            >
-              <FolderKanban className="w-5 h-5 text-white" />
+            <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center shadow-md transition-transform duration-200 group-hover:scale-110 group-hover:-rotate-3 shrink-0">
+              <FolderKanban className="w-5 h-5 text-primary-foreground" />
             </div>
             <div className="min-w-0">
-              <CardTitle className="text-sm font-semibold truncate group-hover:text-primary dark:group-hover:text-primary transition-colors">
+              <CardTitle className="text-sm font-semibold truncate group-hover:text-primary transition-colors">
                 {project.name}
               </CardTitle>
               <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-0.5">
@@ -517,8 +505,8 @@ function ProjectCard({
               className={cn(
                 "inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-full border",
                 isPublic
-                  ? "text-primary dark:text-primary border-primary/25 bg-accent/[0.07]"
-                  : "text-primary dark:text-primary border-primary/25 bg-primary/[0.07]"
+                  ? "text-primary border-primary/25 bg-accent/[0.07]"
+                  : "text-primary border-primary/25 bg-primary/[0.07]"
               )}
             >
               {isPublic ? <Globe className="w-2.5 h-2.5" /> : <Lock className="w-2.5 h-2.5" />}
@@ -533,7 +521,7 @@ function ProjectCard({
           </p>
         )}
 
-        <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground/60 mt-2">
+        <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground mt-2">
           <Clock className="w-3 h-3" />
           Updated {timeAgo(project.updatedAt) || "Recently updated"}
         </div>

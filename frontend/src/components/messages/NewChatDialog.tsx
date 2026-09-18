@@ -75,14 +75,14 @@ export function NewChatDialog({ open, onOpenChange, onSelectUser }: NewChatDialo
         </DialogHeader>
 
         <div className="relative px-5 pt-4">
-          <Search className="absolute left-8 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/60 pointer-events-none" />
+          <Search className="absolute left-8 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
           <input
             ref={inputRef}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search people..."
             aria-label="Search people"
-            className="w-full h-10 pl-9 pr-3 rounded-lg text-sm bg-muted/40 border border-border/50 focus:border-primary/50 focus:ring-2 focus:ring-primary/20 outline-none transition-all placeholder:text-muted-foreground/60"
+            className="w-full h-10 pl-9 pr-3 rounded-lg text-sm bg-muted/40 border border-border/50 focus:border-primary/50 focus:ring-2 focus:ring-primary/20 outline-none transition-all placeholder:text-muted-foreground"
           />
         </div>
 
@@ -108,7 +108,7 @@ export function NewChatDialog({ open, onOpenChange, onSelectUser }: NewChatDialo
                     className="w-full text-left flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-accent/5 transition-colors"
                   >
                     <span className="relative shrink-0">
-                      <span className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/20 to-info/20 text-primary flex items-center justify-center overflow-hidden text-sm font-bold">
+                      <span className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center overflow-hidden text-sm font-bold">
                         {u.avatarUrl ? (
                           <img src={u.avatarUrl} alt={u.fullName} className="w-full h-full object-cover" />
                         ) : (

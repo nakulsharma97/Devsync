@@ -55,7 +55,7 @@ export function PinButton({
         size === "sm" ? "h-6 w-6" : "h-7 w-7",
         pinned
           ? "text-primary bg-primary/10 hover:bg-primary/20"
-          : "text-muted-foreground/40 hover:text-primary hover:bg-primary/5",
+          : "text-muted-foreground hover:text-primary hover:bg-primary/5",
         className
       )}
     >
