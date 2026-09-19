@@ -64,7 +64,10 @@ services:
       # TLS to MySQL: VERIFY_CA against the generated CA (see scripts/generate-db-certs.sh).
       # For a local non-TLS MySQL, override with:
       #   SPRING_DATASOURCE_URL="jdbc:mysql://localhost:3306/devsync_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC"
-      SPRING_DATASOURCE_URL: "jdbc:mysql://mysql:3306/devsync_db?useSSL=true&sslMode=VERIFY_CA&trustCertificateKeyStoreUrl=file:/certs/backend-truststore.p12&trustCertificateKeyStorePassword=changeit&serverTimezone=UTC"
+      # trustCertificateKeyStoreType must be declared: Connector/J defaults to
+      # JKS, so without it the driver tries to read the PKCS12 truststore as JKS
+      # and the backend dies with "Could not load trustJKS keystore".
+      SPRING_DATASOURCE_URL: "jdbc:mysql://mysql:3306/devsync_db?useSSL=true&sslMode=VERIFY_CA&trustCertificateKeyStoreUrl=file:/certs/backend-truststore.p12&trustCertificateKeyStoreType=PKCS12&trustCertificateKeyStorePassword=changeit&serverTimezone=UTC"
       SPRING_DATASOURCE_USERNAME: devsync
       SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD:?MYSQL_PASSWORD is required}
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
