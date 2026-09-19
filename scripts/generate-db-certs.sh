@@ -50,12 +50,32 @@ openssl x509 -req \
 rm -f "${CERT_DIR}/server.csr" "${CERT_DIR}/server-ext.cnf"
 
 # 4. PKCS12 truststore for the Java client (password is "changeit" — public CA
-#    material only; the truststore contains no private keys)
-openssl pkcs12 -export -nokeys \
-    -in "${CERT_DIR}/ca.pem" \
-    -out "${CERT_DIR}/backend-truststore.p12" \
-    -passout pass:changeit \
-    -name "devsync-ca"
+#    material only; the truststore contains no private keys).
+#
+#    It must be written by keytool, not by `openssl pkcs12`. A truststore
+#    exported by OpenSSL is invisible to the JDK — `keytool -list` reports
+#    "Your keystore contains 0 entries" — so the driver fails with
+#    "InvalidAlgorithmParameterException: the trustAnchors parameter must be
+#    non-empty" and the backend never connects. Verified against JDK 21: the
+#    OpenSSL export yields 0 entries (with or without -name/-legacy), whereas
+#    keytool yields a trustedCertEntry.
+#
+#    Prefer a local JDK; fall back to borrowing one from a container, since the
+#    deploy host runs Docker anyway and may have no JDK of its own.
+TRUSTSTORE="${CERT_DIR}/backend-truststore.p12"
+rm -f "${TRUSTSTORE}"
+if command -v keytool >/dev/null 2>&1; then
+    keytool -importcert -alias devsync-ca -file "${CERT_DIR}/ca.pem" \
+        -keystore "${TRUSTSTORE}" -storetype PKCS12 \
+        -storepass changeit -noprompt
+else
+    echo "ℹ️  keytool not found — using a JDK container to build the truststore"
+    docker run --rm --user "$(id -u):$(id -g)" \
+        -v "${CERT_DIR}:/certs" eclipse-temurin:21-jre \
+        keytool -importcert -alias devsync-ca -file /certs/ca.pem \
+            -keystore /certs/backend-truststore.p12 -storetype PKCS12 \
+            -storepass changeit -noprompt
+fi
 
 # Ownership matters more than it looks here. The MySQL container runs as an
 # unprivileged user (uid 999 in mysql:8.0) and must read the server key, or TLS
