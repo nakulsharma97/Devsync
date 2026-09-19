@@ -136,8 +136,6 @@ jobs:
       url: ${{ vars.DEPLOY_URL }}
     permissions:
       contents: read
-    env:
-      DEVSYNC_DEPLOY_DIR: /opt/devsync
     steps:
       - uses: actions/checkout@v7
 
@@ -156,17 +154,19 @@ jobs:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_KEY }}
-          envs: DEVSYNC_DEPLOY_PAYLOAD_B64,DEVSYNC_DEPLOY_DIR
-          env:
-            DEVSYNC_DEPLOY_PAYLOAD_B64: ${{ steps.payload.outputs.b64 }}
           script_stop: true
           # The payload may build images on the host, so allow well past the
           # action's 10-minute default.
           command_timeout: 40m
+          # NOTE: `with:` values must be scalars — GitHub rejects nested
+          # mappings here, so the payload and deploy dir are interpolated into
+          # the script itself rather than passed via the action's env inputs.
+          # base64 output is shell-safe, so this needs no quoting.
           script: |
             set -euo pipefail
+            export DEVSYNC_DEPLOY_DIR='/opt/devsync'
             echo "deploy host: $(hostname)"
-            echo "$DEVSYNC_DEPLOY_PAYLOAD_B64" | base64 -d > /tmp/devsync-deploy.sh
+            echo "${{ steps.payload.outputs.b64 }}" | base64 -d > /tmp/devsync-deploy.sh
             bash /tmp/devsync-deploy.sh
 
   # ── Deployment rehearsal (no real infrastructure) ────────────────
@@ -192,9 +192,6 @@ jobs:
           && contains(github.ref_name, '-rehearsal'))
     permissions:
       contents: read
-    env:
-      # Stands in for /opt/devsync on a real host.
-      DEVSYNC_DEPLOY_DIR: ${{ github.workspace }}
     steps:
       - uses: actions/checkout@v7
 
@@ -282,15 +279,15 @@ jobs:
           port: 2222
           username: runner
           key: ${{ steps.sandbox.outputs.key }}
-          envs: DEVSYNC_DEPLOY_PAYLOAD_B64,DEVSYNC_DEPLOY_DIR
-          env:
-            DEVSYNC_DEPLOY_PAYLOAD_B64: ${{ steps.payload.outputs.b64 }}
           script_stop: true
           command_timeout: 40m
+          # Same constraint as the production step: `with:` takes scalars only.
+          # The deploy dir points at this checkout, standing in for /opt/devsync.
           script: |
             set -euo pipefail
+            export DEVSYNC_DEPLOY_DIR='${{ github.workspace }}'
             echo "rehearsal host: $(hostname)"
-            echo "$DEVSYNC_DEPLOY_PAYLOAD_B64" | base64 -d > /tmp/devsync-deploy.sh
+            echo "${{ steps.payload.outputs.b64 }}" | base64 -d > /tmp/devsync-deploy.sh
             bash /tmp/devsync-deploy.sh
 
       - name: Assert the deployed stack is actually serving
