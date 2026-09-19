@@ -157,7 +157,9 @@ jobs:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_KEY }}
-          script_stop: true
+          # No `script_stop` input exists on this action; the remote block below
+          # runs under `set -euo pipefail`, so a failing command still aborts
+          # and surfaces as a non-zero exit.
           # The payload may build images on the host, so allow well past the
           # action's 10-minute default.
           command_timeout: 40m
@@ -285,7 +287,6 @@ jobs:
           port: 2222
           username: runner
           key: ${{ steps.sandbox.outputs.key }}
-          script_stop: true
           command_timeout: 40m
           # Same constraint as the production step: `with:` takes scalars only.
           # The deploy dir points at this checkout, standing in for /opt/devsync.
