@@ -134,6 +134,12 @@ jobs:
     env:
       MYSQL_ROOT_PASSWORD: devsync-ci-root-password
       MYSQL_PASSWORD: devsync-ci-mysql-password
+      # docker-compose.yml requires these (they have no default in
+      # application-prod.yml), so `docker compose config` cannot interpolate
+      # without them. Fake CI-only values — never used to talk to Razorpay.
+      RAZORPAY_KEY_ID: rzp_test_devsync_ci
+      RAZORPAY_KEY_SECRET: devsync-ci-razorpay-secret
+      RAZORPAY_WEBHOOK_SECRET: devsync-ci-razorpay-webhook-secret
 
     steps:
       - uses: actions/checkout@v7

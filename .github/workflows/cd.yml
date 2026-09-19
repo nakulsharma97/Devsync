@@ -1,7 +1,18 @@
 name: CD
 
 # Deployment runs ONLY after the CI workflow completes successfully on main.
-# Tag pushes (v*) additionally trigger the server deploy step.
+#
+# Tag conventions:
+#   v1.2.3              → release.  build-and-push, then `deploy-server`
+#                         (SSH to the real host, gated by the `production`
+#                         environment's required reviewers).
+#   v1.2.3-rehearsal    → rehearsal. build-and-push, then `deploy-rehearsal`,
+#                         which runs the SAME deploy payload over the SAME
+#                         SSH action against a throwaway stack on the runner.
+#   manual dispatch     → rehearsal (same as a rehearsal tag).
+#
+# `deploy-server` explicitly refuses rehearsal tags, so creating a test tag
+# can never reach a real host.
 on:
   workflow_run:
     workflows: ["CI"]
@@ -9,6 +20,7 @@ on:
     branches: [main]
   push:
     tags: ["v*"]
+  workflow_dispatch:
 
 jobs:
   build-and-push:
@@ -17,6 +29,7 @@ jobs:
     if: >-
       (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
       || (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v'))
+      || github.event_name == 'workflow_dispatch'
     # GITHUB_TOKEN needs packages: write to push images to GHCR; contents: read
     # for actions/checkout. No external secrets (DOCKER_USERNAME etc.) required.
     permissions:
@@ -28,16 +41,36 @@ jobs:
           # For workflow_run events this checks out the commit that CI validated.
           ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
-      - name: Resolve image tag
+      - name: Resolve image metadata
         id: meta
         run: |
           SHA="${{ github.event.workflow_run.head_sha || github.sha }}"
-          echo "sha=${SHA}" >> "$GITHUB_OUTPUT"
-          echo "sha_short=${SHA:0:12}" >> "$GITHUB_OUTPUT"
           # GHCR image names must be lowercase. github.repository is always
           # lowercase (owner/repo); github.actor / repository_owner are not.
-          echo "owner=$(echo '${{ github.repository }}' | cut -d/ -f1)" >> "$GITHUB_OUTPUT"
-          echo "registry=ghcr.io" >> "$GITHUB_OUTPUT"
+          OWNER="$(echo '${{ github.repository }}' | cut -d/ -f1)"
+          echo "sha=${SHA}" >> "$GITHUB_OUTPUT"
+          echo "sha_short=${SHA:0:12}" >> "$GITHUB_OUTPUT"
+          echo "owner=${OWNER}" >> "$GITHUB_OUTPUT"
+
+          # A rehearsal must not repoint the `:latest` tags a real deployment
+          # consumes — rehearsals publish sha-pinned tags only.
+          if [[ "${{ github.ref_name }}" == *-rehearsal ]]; then
+            REHEARSAL="true"
+          else
+            REHEARSAL="false"
+          fi
+          echo "rehearsal=${REHEARSAL}" >> "$GITHUB_OUTPUT"
+
+          for SERVICE in backend frontend; do
+            {
+              echo "${SERVICE}_tags<<TAGS_EOF"
+              if [[ "${REHEARSAL}" == "false" ]]; then
+                echo "ghcr.io/${OWNER}/devsync-${SERVICE}:latest"
+              fi
+              echo "ghcr.io/${OWNER}/devsync-${SERVICE}:${SHA}"
+              echo "TAGS_EOF"
+            } >> "$GITHUB_OUTPUT"
+          done
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
@@ -56,9 +89,7 @@ jobs:
           context: ./backend
           file: ./backend/Dockerfile
           push: true
-          tags: |
-            ghcr.io/${{ steps.meta.outputs.owner }}/devsync-backend:latest
-            ghcr.io/${{ steps.meta.outputs.owner }}/devsync-backend:${{ steps.meta.outputs.sha }}
+          tags: ${{ steps.meta.outputs.backend_tags }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -68,17 +99,16 @@ jobs:
           context: ./frontend
           file: ./frontend/Dockerfile
           push: true
-          tags: |
-            ghcr.io/${{ steps.meta.outputs.owner }}/devsync-frontend:latest
-            ghcr.io/${{ steps.meta.outputs.owner }}/devsync-frontend:${{ steps.meta.outputs.sha }}
+          tags: ${{ steps.meta.outputs.frontend_tags }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
   # ── Deployment gate ──────────────────────────────────────────────
   # Deploy to production requires ALL of:
-  #   1. CI passed (workflow_run success OR tag push)
+  #   1. a release tag push (v*) — rehearsal tags (v*-rehearsal) are refused
+  #      by the `if` below and rehearse instead
   #   2. build-and-push succeeded
-  #   3. Manual approval via GitHub Environments (configure a "production"
+  #   3. manual approval via GitHub Environments (configure a "production"
   #      environment with required reviewers in repo Settings → Environments)
   #
   # To deploy:
@@ -88,18 +118,37 @@ jobs:
   #
   # If the "production" environment does not exist or has no reviewers
   # configured, this job will be BLOCKED until approval is granted.
+  #
+  # The payload itself lives in scripts/server-deploy.sh — the same file the
+  # rehearsal runs — so the two paths cannot drift. It is shipped to the host
+  # by this workflow (rather than read from the host's checkout) so a stale
+  # checkout on the host cannot silently deploy something else.
   deploy-server:
     name: Deploy to Production
     runs-on: ubuntu-latest
     needs: [build-and-push]
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    if: >-
+      github.event_name == 'push'
+      && startsWith(github.ref, 'refs/tags/v')
+      && !contains(github.ref_name, '-rehearsal')
     environment:
       name: production
       url: ${{ vars.DEPLOY_URL }}
     permissions:
       contents: read
+    env:
+      DEVSYNC_DEPLOY_DIR: /opt/devsync
     steps:
       - uses: actions/checkout@v7
+
+      - name: Encode the deploy payload
+        id: payload
+        run: |
+          {
+            echo "b64<<PAYLOAD_EOF"
+            base64 -w0 scripts/server-deploy.sh
+            echo "PAYLOAD_EOF"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1
@@ -107,8 +156,191 @@ jobs:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_KEY }}
+          envs: DEVSYNC_DEPLOY_PAYLOAD_B64,DEVSYNC_DEPLOY_DIR
+          env:
+            DEVSYNC_DEPLOY_PAYLOAD_B64: ${{ steps.payload.outputs.b64 }}
+          script_stop: true
+          # The payload may build images on the host, so allow well past the
+          # action's 10-minute default.
+          command_timeout: 40m
           script: |
-            cd /opt/devsync
-            docker compose pull
-            docker compose up -d --remove-orphans
-            docker image prune -f
+            set -euo pipefail
+            echo "deploy host: $(hostname)"
+            echo "$DEVSYNC_DEPLOY_PAYLOAD_B64" | base64 -d > /tmp/devsync-deploy.sh
+            bash /tmp/devsync-deploy.sh
+
+  # ── Deployment rehearsal (no real infrastructure) ────────────────
+  # Runs the real deploy payload (scripts/server-deploy.sh) through the real
+  # SSH action against a throwaway stack on this runner. Three independent
+  # things keep it away from production:
+  #   * it does not use the `production` environment, so DEPLOY_HOST /
+  #     DEPLOY_USER / DEPLOY_KEY are not in scope at all;
+  #   * SSH connects to a sandbox sshd on 127.0.0.1 with a key generated in
+  #     this job, not to a host from secrets;
+  #   * the stack comes up from this checkout with a throwaway .env, not the
+  #     host's real secrets.
+  #
+  # Triggered by a rehearsal tag (v0.0.0-rehearsal) or a manual dispatch.
+  deploy-rehearsal:
+    name: Deploy Rehearsal (no infrastructure)
+    runs-on: ubuntu-latest
+    needs: [build-and-push]
+    if: >-
+      github.event_name == 'workflow_dispatch'
+      || (github.event_name == 'push'
+          && startsWith(github.ref, 'refs/tags/v')
+          && contains(github.ref_name, '-rehearsal'))
+    permissions:
+      contents: read
+    env:
+      # Stands in for /opt/devsync on a real host.
+      DEVSYNC_DEPLOY_DIR: ${{ github.workspace }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Generate the TLS material the stack requires
+        # Exactly what an operator runs on the host, unmodified.
+        run: bash scripts/generate-db-certs.sh
+
+      - name: Write the rehearsal .env
+        # Stands in for the host's /opt/devsync/.env. `docker compose` picks
+        # this up automatically, which is also how production gets its
+        # secrets — so the rehearsal exercises the same mechanism.
+        run: |
+          {
+            echo "MYSQL_ROOT_PASSWORD=devsync-rehearsal-root-password"
+            echo "MYSQL_PASSWORD=devsync-rehearsal-app-password"
+            # Long enough for ProductionConfigValidator and not a known
+            # development fallback, so the prod profile really does start.
+            echo "JWT_SECRET=devsync-rehearsal-jwt-secret-not-for-production-use-at-all"
+            # Razorpay keys are required by docker-compose.yml; these are
+            # throwaway values, never used against the real API.
+            echo "RAZORPAY_KEY_ID=rzp_test_rehearsal"
+            echo "RAZORPAY_KEY_SECRET=rehearsal-secret"
+            echo "RAZORPAY_WEBHOOK_SECRET=rehearsal-webhook-secret"
+            echo "DEVSYNC_ADMIN_SEED_ENABLED=false"
+            echo "DEVSYNC_COOKIE_SECURE=false"
+            echo "DEVSYNC_CORS_ORIGINS=http://localhost:80"
+          } > .env
+
+      - name: Start a throwaway SSH server
+        id: sandbox
+        # The deploy job's only transport is SSH, so the rehearsal needs a
+        # host to SSH into. This one is local, ephemeral, and reachable only
+        # on 127.0.0.1:2222.
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq openssh-server
+          sudo mkdir -p /run/sshd
+          sudo ssh-keygen -A
+
+          KEY="${RUNNER_TEMP}/rehearsal_key"
+          ssh-keygen -t ed25519 -N '' -f "${KEY}" -q
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          cat "${KEY}.pub" >> ~/.ssh/authorized_keys
+          chmod 600 ~/.ssh/authorized_keys
+
+          sudo /usr/sbin/sshd -p 2222
+
+          # Prove the sandbox accepts connections BEFORE handing it to the
+          # deploy action, so a harness problem can never be reported as a
+          # deploy failure.
+          READY=""
+          for _ in $(seq 1 15); do
+            if ssh -i "${KEY}" -p 2222 -o StrictHostKeyChecking=no \
+                   -o UserKnownHostsFile=/dev/null -o BatchMode=yes \
+                   runner@127.0.0.1 'echo ssh-ready'; then
+              READY="1"
+              break
+            fi
+            sleep 2
+          done
+          if [ -z "${READY}" ]; then
+            echo "✖ the sandbox SSH server never became reachable" >&2
+            exit 1
+          fi
+
+          {
+            echo "key<<REHEARSAL_KEY_EOF"
+            cat "${KEY}"
+            echo "REHEARSAL_KEY_EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Encode the deploy payload
+        id: payload
+        run: |
+          {
+            echo "b64<<PAYLOAD_EOF"
+            base64 -w0 scripts/server-deploy.sh
+            echo "PAYLOAD_EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Run the real deploy payload over the real SSH action
+        uses: appleboy/ssh-action@v1
+        with:
+          host: 127.0.0.1
+          port: 2222
+          username: runner
+          key: ${{ steps.sandbox.outputs.key }}
+          envs: DEVSYNC_DEPLOY_PAYLOAD_B64,DEVSYNC_DEPLOY_DIR
+          env:
+            DEVSYNC_DEPLOY_PAYLOAD_B64: ${{ steps.payload.outputs.b64 }}
+          script_stop: true
+          command_timeout: 40m
+          script: |
+            set -euo pipefail
+            echo "rehearsal host: $(hostname)"
+            echo "$DEVSYNC_DEPLOY_PAYLOAD_B64" | base64 -d > /tmp/devsync-deploy.sh
+            bash /tmp/devsync-deploy.sh
+
+      - name: Assert the deployed stack is actually serving
+        run: |
+          set -euo pipefail
+
+          echo "── waiting for every container to report healthy ──"
+          UNHEALTHY=""
+          for _ in $(seq 1 60); do
+            UNHEALTHY="$(docker compose ps --format '{{.Name}}|{{.State}}|{{.Health}}' \
+              | grep -v '|running|healthy' || true)"
+            [ -z "${UNHEALTHY}" ] && break
+            sleep 10
+          done
+          docker compose ps
+          if [ -n "${UNHEALTHY}" ]; then
+            echo "✖ containers never became healthy:" >&2
+            echo "${UNHEALTHY}" >&2
+            exit 1
+          fi
+
+          echo "── frontend over HTTP (published on host :80) ──"
+          curl -fsS --retry 10 --retry-delay 3 --retry-all-errors \
+            -o /dev/null -w 'frontend HTTP %{http_code}\n' http://localhost/
+
+          echo "── backend health, through the nginx reverse proxy ──"
+          curl -fsS --retry 10 --retry-delay 3 --retry-all-errors \
+            http://localhost/api/health
+          echo
+
+          echo "── proof the backend reached MySQL over TLS ──"
+          # Flyway only creates this table by running migrations from the
+          # backend through the prod datasource URL (sslMode=VERIFY_CA). If it
+          # exists, the app really did connect and migrate.
+          MIGRATED="$(docker compose exec -T mysql bash -s <<'SQL' | tr -d '\r'
+          mysql -u devsync -p"$MYSQL_PASSWORD" -h 127.0.0.1 \
+            --ssl-ca=/etc/mysql/certs/ca.pem -N -B \
+            -e "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='devsync_db' AND table_name='flyway_schema_history';"
+          SQL
+          )"
+          if [ "${MIGRATED:-0}" != "1" ]; then
+            echo "✖ flyway_schema_history absent — the backend never migrated devsync_db" >&2
+            exit 1
+          fi
+          echo "✅ flyway_schema_history present — backend migrated devsync_db over TLS"
+
+      - name: Tear down the rehearsal stack
+        if: always()
+        run: |
+          echo "── backend logs (tail) ──"
+          docker compose logs --tail=120 backend || true
+          echo "── tearing down ──"
+          docker compose down -v --remove-orphans || true

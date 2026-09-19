@@ -4,6 +4,9 @@
 #   MYSQL_ROOT_PASSWORD   root password for the MySQL container (never commit)
 #   MYSQL_PASSWORD        password for the dedicated `devsync` DB user
 #   JWT_SECRET            256-bit+ secret for signing JWTs (openssl rand -base64 64)
+#   RAZORPAY_KEY_ID       Razorpay API key        (test mode: rzp_test_*)
+#   RAZORPAY_KEY_SECRET   Razorpay API secret
+#   RAZORPAY_WEBHOOK_SECRET  verifies X-Razorpay-Signature on webhooks
 #
 # Optional:
 #   DEVSYNC_ADMIN_SEED_ENABLED / DEVSYNC_ADMIN_EMAIL / DEVSYNC_ADMIN_PASSWORD
@@ -90,6 +93,19 @@ services:
       GITHUB_REDIRECT_URI: ${GITHUB_REDIRECT_URI:-http://localhost:8080/api/github/callback}
       GITHUB_WEBHOOK_SECRET: ${GITHUB_WEBHOOK_SECRET:-}
       GITHUB_TOKEN_ENCRYPTION_KEY: ${GITHUB_TOKEN_ENCRYPTION_KEY:-}
+      # Billing. application-prod.yml declares the Razorpay keys as ${VAR}
+      # with NO default (deliberate fail-fast), so they must be supplied here
+      # or the prod backend cannot resolve its config and crash-loops on
+      # startup. Checkout returns 503 until real keys are set.
+      RAZORPAY_KEY_ID: ${RAZORPAY_KEY_ID:?RAZORPAY_KEY_ID is required}
+      RAZORPAY_KEY_SECRET: ${RAZORPAY_KEY_SECRET:?RAZORPAY_KEY_SECRET is required}
+      RAZORPAY_WEBHOOK_SECRET: ${RAZORPAY_WEBHOOK_SECRET:?RAZORPAY_WEBHOOK_SECRET is required}
+      RAZORPAY_BASE_URL: ${RAZORPAY_BASE_URL:-https://api.razorpay.com}
+      # Stripe is optional (defaults allow an empty value), but it still has to
+      # be forwarded or setting it in .env would silently do nothing.
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+      STRIPE_PUBLISHABLE_KEY: ${STRIPE_PUBLISHABLE_KEY:-}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
     volumes:
       - uploads:/app/uploads
       - ./certs:/certs:ro
