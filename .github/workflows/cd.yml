@@ -320,6 +320,21 @@ jobs:
             exit 1
           fi
 
+          echo "── MySQL is actually serving TLS ──"
+          # `mysqladmin ping` succeeds even when TLS failed to initialize, so the
+          # compose healthcheck cannot catch a broken certificate setup — it has
+          # to be asserted directly. A failure here means the server key is not
+          # readable by the container's uid.
+          HAVE_SSL="$(docker compose exec -T mysql bash -s <<'SQL' | tr -d '\r'
+          mysql -u root -p"$MYSQL_ROOT_PASSWORD" -h 127.0.0.1 -N -B -e "SHOW VARIABLES LIKE 'have_ssl';"
+          SQL
+          )"
+          echo "${HAVE_SSL}"
+          case "${HAVE_SSL}" in
+            *YES*) echo "✅ MySQL reports have_ssl=YES" ;;
+            *) echo "✖ MySQL is not serving TLS (${HAVE_SSL}) — the backend's VERIFY_CA connection cannot work" >&2; exit 1 ;;
+          esac
+
           echo "── frontend over HTTP (published on host :80) ──"
           curl -fsS --retry 10 --retry-delay 3 --retry-all-errors \
             -o /dev/null -w 'frontend HTTP %{http_code}\n' http://localhost/
@@ -355,20 +370,22 @@ jobs:
           # GitHub shows only a handful of annotations per step, so keep this
           # short and front-load the payload tail — compose prints the actual
           # error last.
+          # Every line needs the workflow-command prefix to become an
+          # annotation; a bare echo would stay in the (sign-in-only) step log.
           echo "::error::── payload output (last 8 lines) ──"
           if [ -f /tmp/devsync-deploy.log ]; then
-            tail -n 8 /tmp/devsync-deploy.log
+            tail -n 8 /tmp/devsync-deploy.log | sed 's/^/::error::payload: /'
           else
-            echo "(the payload never ran — the SSH step failed before it)"
+            echo "::error::(the payload never ran — the SSH step failed before it)"
           fi
 
           echo "::error::── container states ──"
-          docker compose ps || true
+          docker compose ps 2>/dev/null | sed 's/^/::error::state: /' || true
 
           echo "::error::── failing service log lines ──"
           docker compose logs --tail=200 2>/dev/null \
             | grep -iE "error|fail|denied|refus|cannot|unable" \
-            | tail -n 4 || true
+            | tail -n 4 | sed 's/^/::error::service: /' || true
 
       - name: Tear down the rehearsal stack
         if: always()

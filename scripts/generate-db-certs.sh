@@ -57,7 +57,23 @@ openssl pkcs12 -export -nokeys \
     -passout pass:changeit \
     -name "devsync-ca"
 
-chmod 600 "${CERT_DIR}/ca-key.pem" "${CERT_DIR}/server-key.pem"
+# Ownership matters more than it looks here. The MySQL container runs as an
+# unprivileged user (uid 999 in mysql:8.0) and must read the server key, or TLS
+# never initializes — and the backend, which connects with sslMode=VERIFY_CA,
+# then refuses to start with "SSL Connection required, but not provided by
+# server". A 0600 key owned by the invoking user is unreadable to that uid, so:
+#   * hand the server key to the container's uid when we are root, else
+#   * relax its mode, since it is bind-mounted into the container either way.
+# The CA private key is never mounted read by MySQL, so it stays restricted.
+chmod 755 "${CERT_DIR}"
+chmod 644 "${CERT_DIR}/ca.pem" "${CERT_DIR}/server-cert.pem" "${CERT_DIR}/backend-truststore.p12"
+chmod 600 "${CERT_DIR}/ca-key.pem"
+if [ "$(id -u)" -eq 0 ]; then
+    chown 999:999 "${CERT_DIR}/server-key.pem"
+    chmod 600 "${CERT_DIR}/server-key.pem"
+else
+    chmod 644 "${CERT_DIR}/server-key.pem"
+fi
 echo "✅ Done:"
 ls -1 "${CERT_DIR}"
 echo ""
