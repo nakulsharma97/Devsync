@@ -144,7 +144,10 @@ jobs:
         run: |
           {
             echo "b64<<PAYLOAD_EOF"
+            # base64 -w0 writes no trailing newline, so the delimiter would be
+            # glued to the payload and GITHUB_OUTPUT rejects the value.
             base64 -w0 scripts/server-deploy.sh
+            echo
             echo "PAYLOAD_EOF"
           } >> "$GITHUB_OUTPUT"
 
@@ -268,7 +271,10 @@ jobs:
         run: |
           {
             echo "b64<<PAYLOAD_EOF"
+            # base64 -w0 writes no trailing newline, so the delimiter would be
+            # glued to the payload and GITHUB_OUTPUT rejects the value.
             base64 -w0 scripts/server-deploy.sh
+            echo
             echo "PAYLOAD_EOF"
           } >> "$GITHUB_OUTPUT"
 
@@ -337,7 +343,9 @@ jobs:
       - name: Tear down the rehearsal stack
         if: always()
         run: |
-          echo "── backend logs (tail) ──"
-          docker compose logs --tail=120 backend || true
+          echo "── container states ──"
+          docker compose ps || true
+          echo "── logs from every service (tail) ──"
+          docker compose logs --tail=60 || true
           echo "── tearing down ──"
           docker compose down -v --remove-orphans || true
