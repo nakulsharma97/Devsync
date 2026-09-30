@@ -88,7 +88,11 @@ export interface HowItWorksStep {
 
 export const howItWorksSteps: HowItWorksStep[] = [
   { step: "01", icon: FolderGit2, title: "Create your project", description: "Give your project a name, describe it, and choose who can see it — public and discoverable, or private and invite-only.", gradient: "from-primary to-primary" },
-  { step: "02", icon: Users, title: "Invite your team", description: "Search for people by name or email and send invitations. Members accept right from their notifications and join your workspace.", gradient: "from-accent" },
+  // `from-accent` is the near-white shadcn hover surface (#f2f2f0 in the light
+  // theme), so the white icon on it was invisible; with no `to-*` stop the tile
+  // also faded to transparent. The brand tokens below keep the tile opaque in
+  // every theme, matching the other steps.
+  { step: "02", icon: Users, title: "Invite your team", description: "Search for people by name or email and send invitations. Members accept right from their notifications and join your workspace.", gradient: "from-primary to-accent-hover" },
   { step: "03", icon: Rocket, title: "Collaborate and ship", description: "Plan on Kanban boards, chat in real time, share files, and link GitHub repositories — all from one project workspace.", gradient: "from-accent to-primary" },
 ];
 

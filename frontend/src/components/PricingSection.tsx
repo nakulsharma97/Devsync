@@ -84,10 +84,13 @@ export default function PricingSection() {
               return (
                 <ScrollReveal key={plan.code} delay={i * 0.1} className="h-full">
                   <div
-                    className={`relative h-full rounded-2xl border p-8 transition-all duration-300 backdrop-blur-sm overflow-hidden group ${
+                    // The Pro card must NOT clip its content: the "Most Popular" pill
+                    // straddles the top border from `-top-3`, so `overflow-hidden` here
+                    // cut the badge in half. Only the non-popular cards keep the clip.
+                    className={`relative h-full rounded-2xl border p-8 transition-all duration-300 backdrop-blur-sm group ${
                       popular
-                        ? "border-primary/50 bg-gradient-to-b from-primary/10 to-primary/5 shadow-xl shadow-primary/10 scale-105 hover:shadow-2xl hover:shadow-primary/20 hover:-translate-y-1"
-                        : "border-border/40 bg-card/70 hover:border-primary/30 hover:shadow-lg hover:-translate-y-1"
+                        ? "overflow-visible border-primary/50 bg-gradient-to-b from-primary/10 to-primary/5 shadow-xl shadow-primary/10 scale-105 hover:shadow-2xl hover:shadow-primary/20 hover:-translate-y-1"
+                        : "overflow-hidden border-border/40 bg-card/70 hover:border-primary/30 hover:shadow-lg hover:-translate-y-1"
                     }`}
                   >
                     {popular && (
