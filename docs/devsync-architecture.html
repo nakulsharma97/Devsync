@@ -1,0 +1,2078 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DevSync — Complete System Architecture &amp; Flow Documentation</title>
+<style>
+  @page { size: A3 landscape; margin: 12mm; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0d1117; color: #c9d1d9; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; line-height: 1.5; }
+  .page { width: 1587px; margin: 0 auto 24px; padding: 32px 40px; background: #0d1117; border: 1px solid #30363d; border-radius: 8px; page-break-after: always; position: relative; overflow: hidden; }
+  .page:last-child { page-break-after: auto; }
+  h1 { font-size: 42px; color: #58a6ff; margin-bottom: 8px; }
+  h2 { font-size: 30px; color: #d2a8ff; margin-bottom: 16px; border-bottom: 2px solid #30363d; padding-bottom: 8px; }
+  h3 { font-size: 22px; color: #d2a8ff; margin-bottom: 10px; }
+  h4 { font-size: 18px; color: #79c0ff; margin-bottom: 8px; }
+  .subtitle { font-size: 20px; color: #8b949e; margin-bottom: 20px; }
+  .tech-badges { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0 24px; }
+  .badge { background: #21262d; border: 1px solid #30363d; border-radius: 20px; padding: 4px 14px; font-size: 13px; color: #c9d1d9; white-space: nowrap; }
+  .badge.blue { border-color: #58a6ff; color: #58a6ff; }
+  .badge.purple { border-color: #d2a8ff; color: #d2a8ff; }
+  .badge.green { border-color: #7ee787; color: #7ee787; }
+  .badge.yellow { border-color: #d29922; color: #d29922; }
+  .toc { columns: 2; column-gap: 40px; margin-top: 16px; }
+  .toc-item { font-size: 15px; color: #8b949e; padding: 3px 0; break-inside: avoid; }
+  .toc-item span { color: #58a6ff; font-weight: 600; }
+  .flow-container { display: grid; grid-template-columns: 1fr 380px; gap: 20px; margin-top: 12px; }
+  .flow-svg { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 16px; overflow: auto; }
+  .flow-svg svg { display: block; margin: 0 auto; }
+  .flow-explain { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 16px; font-size: 13px; overflow-y: auto; max-height: 1050px; }
+  .flow-explain h4 { font-size: 15px; margin-bottom: 6px; }
+  .flow-explain ul { padding-left: 16px; margin-bottom: 8px; }
+  .flow-explain li { margin-bottom: 3px; font-size: 12.5px; color: #8b949e; }
+  .flow-explain li strong { color: #c9d1d9; }
+  .file-list { font-size: 11.5px; color: #7ee787; margin-top: 8px; font-family: 'Cascadia Code', 'Fira Code', monospace; line-height: 1.6; }
+  .legend { display: flex; flex-wrap: wrap; gap: 12px; margin: 12px 0; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #8b949e; }
+  .legend-dot { width: 14px; height: 14px; border-radius: 3px; }
+  .section-divider { border: none; border-top: 2px solid #30363d; margin: 32px 0 16px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; margin: 10px 0; }
+  th { background: #21262d; color: #d2a8ff; text-align: left; padding: 8px 12px; border: 1px solid #30363d; }
+  td { padding: 6px 12px; border: 1px solid #30363d; color: #c9d1d9; }
+  .note { background: #1c2431; border-left: 3px solid #58a6ff; padding: 8px 12px; font-size: 13px; margin: 10px 0; border-radius: 0 4px 4px 0; }
+  .full-width .flow-container { grid-template-columns: 2fr 1fr; }
+  @media print {
+    body { background: #0d1117; }
+    .page { border: none; margin: 0; box-shadow: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════════════════════════════ -->
+<!-- COVER PAGE                                                     -->
+<!-- ════════════════════════════════════════════════════════════════ -->
+<div class="page" style="display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;">
+  <svg width="80" height="80" viewBox="0 0 80 80" style="margin-bottom:20px;">
+    <defs><linearGradient id="cg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#58a6ff"/><stop offset="100%" style="stop-color:#d2a8ff"/></linearGradient></defs>
+    <rect width="80" height="80" rx="16" fill="#21262d" stroke="url(#cg)" stroke-width="2"/>
+    <text x="40" y="52" text-anchor="middle" font-size="32" font-weight="bold" fill="url(#cg)">DS</text>
+  </svg>
+  <h1 style="font-size:56px;background:linear-gradient(135deg,#58a6ff,#d2a8ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:4px;">DevSync</h1>
+  <p class="subtitle" style="font-size:24px;">Complete System Architecture &amp; Flow Documentation</p>
+  <p style="color:#8b949e;font-size:15px;margin-bottom:24px;">Developer Collaboration Platform — Real-time Project Management, Feed, Messaging, Billing &amp; GitHub Integration</p>
+
+  <div class="tech-badges" style="justify-content:center;">
+    <span class="badge blue">Spring Boot 3</span>
+    <span class="badge blue">Java 21</span>
+    <span class="badge purple">React 18</span>
+    <span class="badge purple">TypeScript</span>
+    <span class="badge green">MySQL</span>
+    <span class="badge green">H2 (dev)</span>
+    <span class="badge yellow">Flyway</span>
+    <span class="badge">WebSocket / STOMP</span>
+    <span class="badge blue">JWT + HttpOnly Cookies</span>
+    <span class="badge purple">Razorpay + Stripe</span>
+    <span class="badge green">GitHub OAuth API</span>
+    <span class="badge">SMTP Email</span>
+    <span class="badge yellow">Docker</span>
+    <span class="badge">Sentry Error Tracking</span>
+  </div>
+
+  <hr class="section-divider" style="width:80%;">
+
+  <div class="toc" style="width:80%;text-align:left;margin-top:20px;">
+    <div class="toc-item"><span>01</span> System Overview &amp; Component Architecture</div>
+    <div class="toc-item"><span>02</span> Security Filter Chain</div>
+    <div class="toc-item"><span>03</span> Authentication — Email Registration (OTP)</div>
+    <div class="toc-item"><span>04</span> Authentication — Login &amp; JWT</div>
+    <div class="toc-item"><span>05</span> OAuth2 Login (Google/GitHub)</div>
+    <div class="toc-item"><span>06</span> Password Reset Flow</div>
+    <div class="toc-item"><span>07</span> Feed — Create / Edit / Delete Post</div>
+    <div class="toc-item"><span>08</span> Feed — Comments &amp; Likes</div>
+    <div class="toc-item"><span>09</span> Project — Create / Update / Delete</div>
+    <div class="toc-item"><span>10</span> Project — Members &amp; Invitations</div>
+    <div class="toc-item"><span>11</span> Kanban Board — Tasks &amp; Status</div>
+    <div class="toc-item"><span>12</span> Real-time Messaging (WebSocket/STOMP)</div>
+    <div class="toc-item"><span>13</span> Notifications (Real-time + REST)</div>
+    <div class="toc-item"><span>14</span> Billing — Subscription &amp; Checkout</div>
+    <div class="toc-item"><span>15</span> Billing — Refund Lifecycle</div>
+    <div class="toc-item"><span>16</span> Webhook Processing (Razorpay + Stripe)</div>
+    <div class="toc-item"><span>17</span> GitHub Integration — OAuth &amp; Repo Linking</div>
+    <div class="toc-item"><span>18</span> GitHub — Commits, Issues, PRs, Branches</div>
+    <div class="toc-item"><span>19</span> GitHub Webhooks &amp; Auto-sync</div>
+    <div class="toc-item"><span>20</span> Social — Follow / Unfollow</div>
+    <div class="toc-item"><span>21</span> Search</div>
+    <div class="toc-item"><span>22</span> Bookmarks</div>
+    <div class="toc-item"><span>23</span> Analytics</div>
+    <div class="toc-item"><span>24</span> Admin — Dashboard &amp; User Management</div>
+    <div class="toc-item"><span>25</span> Admin — Moderation &amp; Reports</div>
+    <div class="toc-item"><span>26</span> Admin — Audit Logs</div>
+    <div class="toc-item"><span>27</span> Support Tickets</div>
+    <div class="toc-item"><span>28</span> Team Rooms</div>
+    <div class="toc-item"><span>29</span> File Attachments &amp; Image Upload</div>
+    <div class="toc-item"><span>30</span> Database Schema &amp; Migrations</div>
+    <div class="toc-item"><span>31</span> Deployment &amp; Infrastructure</div>
+    <div class="toc-item"><span>32</span> End-to-End Business Journey</div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════ -->
+<!-- 01 — SYSTEM OVERVIEW                                           -->
+<!-- ════════════════════════════════════════════════════════════════ -->
+<div class="page full-width">
+  <h2>01 — System Overview &amp; Component Architecture</h2>
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:#58a6ff"></div>Frontend / API Entry</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#d2a8ff"></div>Services / Business Logic</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#d29922"></div>Decisions / Validation</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#7ee787"></div>Success / Data</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#f85149"></div>Failure / Error</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#79c0ff"></div>Real-time / WebSocket</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#8b949e"></div>Infrastructure</div>
+  </div>
+  <div class="flow-container">
+    <div class="flow-svg">
+      <svg viewBox="0 0 900 680" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;">
+        <!-- Background regions -->
+        <rect x="10" y="10" width="130" height="660" rx="8" fill="#0d1117" stroke="#58a6ff" stroke-width="1" stroke-dasharray="4"/>
+        <text x="75" y="28" text-anchor="middle" fill="#58a6ff" font-size="11" font-weight="bold">FRONTEND</text>
+        <rect x="160" y="10" width="120" height="660" rx="8" fill="#0d1117" stroke="#8b949e" stroke-width="1" stroke-dasharray="4"/>
+        <text x="220" y="28" text-anchor="middle" fill="#8b949e" font-size="11" font-weight="bold">SECURITY</text>
+        <rect x="300" y="10" width="130" height="660" rx="8" fill="#0d1117" stroke="#d2a8ff" stroke-width="1" stroke-dasharray="4"/>
+        <text x="365" y="28" text-anchor="middle" fill="#d2a8ff" font-size="11" font-weight="bold">API / CONTROLLERS</text>
+        <rect x="450" y="10" width="150" height="660" rx="8" fill="#0d1117" stroke="#d2a8ff" stroke-width="1" stroke-dasharray="4"/>
+        <text x="525" y="28" text-anchor="middle" fill="#d2a8ff" font-size="11" font-weight="bold">BUSINESS / SERVICES</text>
+        <rect x="620" y="10" width="130" height="660" rx="8" fill="#0d1117" stroke="#7ee787" stroke-width="1" stroke-dasharray="4"/>
+        <text x="685" y="28" text-anchor="middle" fill="#7ee787" font-size="11" font-weight="bold">PERSISTENCE</text>
+        <rect x="770" y="10" width="120" height="660" rx="8" fill="#0d1117" stroke="#79c0ff" stroke-width="1" stroke-dasharray="4"/>
+        <text x="830" y="28" text-anchor="middle" fill="#79c0ff" font-size="11" font-weight="bold">EXTERNAL</text>
+
+        <!-- React App -->
+        <rect x="20" y="40" width="110" height="35" rx="6" fill="#1f6feb" opacity="0.2" stroke="#58a6ff"/>
+        <text x="75" y="55" text-anchor="middle" fill="#58a6ff" font-size="11" font-weight="bold">React 18 + TS</text>
+        <text x="75" y="68" text-anchor="middle" fill="#8b949e" font-size="9">Vite / SPA</text>
+
+        <!-- Pages -->
+        <rect x="20" y="85" width="110" height="220" rx="6" fill="#1f6feb" opacity="0.1" stroke="#30363d"/>
+        <text x="75" y="100" text-anchor="middle" fill="#58a6ff" font-size="10" font-weight="bold">Pages</text>
+        <text x="75" y="116" text-anchor="middle" fill="#c9d1d9" font-size="9">Dashboard</text>
+        <text x="75" y="129" text-anchor="middle" fill="#c9d1d9" font-size="9">Feed</text>
+        <text x="75" y="142" text-anchor="middle" fill="#c9d1d9" font-size="9">Projects</text>
+        <text x="75" y="155" text-anchor="middle" fill="#c9d1d9" font-size="9">Messages</text>
+        <text x="75" y="168" text-anchor="middle" fill="#c9d1d9" font-size="9">BoardPage</text>
+        <text x="75" y="181" text-anchor="middle" fill="#c9d1d9" font-size="9">Notifications</text>
+        <text x="75" y="194" text-anchor="middle" fill="#c9d1d9" font-size="9">Billing</text>
+        <text x="75" y="207" text-anchor="middle" fill="#c9d1d9" font-size="9">Settings</text>
+        <text x="75" y="220" text-anchor="middle" fill="#c9d1d9" font-size="9">Analytics</text>
+        <text x="75" y="233" text-anchor="middle" fill="#c9d1d9" font-size="9">Network</text>
+        <text x="75" y="246" text-anchor="middle" fill="#c9d1d9" font-size="9">Profile</text>
+        <text x="75" y="259" text-anchor="middle" fill="#c9d1d9" font-size="9">Admin*</text>
+        <text x="75" y="272" text-anchor="middle" fill="#c9d1d9" font-size="9">Support</text>
+        <text x="75" y="285" text-anchor="middle" fill="#c9d1d9" font-size="9">Bookmarks</text>
+        <text x="75" y="298" text-anchor="middle" fill="#c9d1d9" font-size="9">Auth</text>
+
+        <!-- Services layer -->
+        <rect x="20" y="315" width="110" height="110" rx="6" fill="#1f6feb" opacity="0.1" stroke="#30363d"/>
+        <text x="75" y="330" text-anchor="middle" fill="#58a6ff" font-size="10" font-weight="bold">Contexts / Hooks</text>
+        <text x="75" y="346" text-anchor="middle" fill="#c9d1d9" font-size="9">AuthContext</text>
+        <text x="75" y="359" text-anchor="middle" fill="#c9d1d9" font-size="9">SubscriptionCtx</text>
+        <text x="75" y="372" text-anchor="middle" fill="#c9d1d9" font-size="9">useTyping</text>
+        <text x="75" y="385" text-anchor="middle" fill="#c9d1d9" font-size="9">ThemeProvider</text>
+        <text x="75" y="398" text-anchor="middle" fill="#c9d1d9" font-size="9">BrowserRouter</text>
+        <text x="75" y="411" text-anchor="middle" fill="#c9d1d9" font-size="9">Suspense</text>
+
+        <!-- API Clients -->
+        <rect x="20" y="435" width="110" height="100" rx="6" fill="#1f6feb" opacity="0.1" stroke="#30363d"/>
+        <text x="75" y="450" text-anchor="middle" fill="#58a6ff" font-size="10" font-weight="bold">API Clients</text>
+        <text x="75" y="466" text-anchor="middle" fill="#c9d1d9" font-size="9">api.ts (axios)</text>
+        <text x="75" y="479" text-anchor="middle" fill="#c9d1d9" font-size="9">authService</text>
+        <text x="75" y="492" text-anchor="middle" fill="#c9d1d9" font-size="9">projectService</text>
+        <text x="75" y="505" text-anchor="middle" fill="#c9d1d9" font-size="9">feedService</text>
+        <text x="75" y="518" text-anchor="middle" fill="#c9d1d9" font-size="9">billingService</text>
+        <text x="75" y="531" text-anchor="middle" fill="#c9d1d9" font-size="9">wsService (STOMP)</text>
+
+        <!-- WebSocket -->
+        <rect x="20" y="545" width="110" height="120" rx="6" fill="#0d2a4a" stroke="#79c0ff"/>
+        <text x="75" y="560" text-anchor="middle" fill="#79c0ff" font-size="10" font-weight="bold">WebSocket Client</text>
+        <text x="75" y="576" text-anchor="middle" fill="#c9d1d9" font-size="9">SockJS / STOMP</text>
+        <text x="75" y="589" text-anchor="middle" fill="#c9d1d9" font-size="9">/topic/chat.*</text>
+        <text x="75" y="602" text-anchor="middle" fill="#c9d1d9" font-size="9">/topic/typing.*</text>
+        <text x="75" y="615" text-anchor="middle" fill="#c9d1d9" font-size="9">/topic/presence.*</text>
+        <text x="75" y="628" text-anchor="middle" fill="#c9d1d9" font-size="9">/topic/notifications.*</text>
+        <text x="75" y="641" text-anchor="middle" fill="#c9d1d9" font-size="9">/topic/subscription.*</text>
+        <text x="75" y="654" text-anchor="middle" fill="#c9d1d9" font-size="9">/app/message.send</text>
+
+        <!-- Security filters -->
+        <rect x="170" y="40" width="100" height="620" rx="6" fill="#21262d" stroke="#8b949e"/>
+        <text x="220" y="56" text-anchor="middle" fill="#8b949e" font-size="10" font-weight="bold">Filter Chain</text>
+        <text x="220" y="76" text-anchor="middle" fill="#c9d1d9" font-size="8">① CSRF Cookie</text>
+        <text x="220" y="92" text-anchor="middle" fill="#c9d1d9" font-size="8">② RateLimiting</text>
+        <text x="220" y="108" text-anchor="middle" fill="#c9d1d9" font-size="8">③ JWT Auth</text>
+        <text x="220" y="124" text-anchor="middle" fill="#c9d1d9" font-size="8">④ SpamProtection</text>
+        <line x1="175" y1="155" x2="265" y2="155" stroke="#30363d"/>
+        <text x="220" y="172" text-anchor="middle" fill="#d29922" font-size="8" font-weight="bold">AuthorizeHttpRequests</text>
+        <text x="220" y="192" text-anchor="middle" fill="#c9d1d9" font-size="8">/api/auth/** → permitAll</text>
+        <text x="220" y="208" text-anchor="middle" fill="#c9d1d9" font-size="8">/api/auth/me → auth'd</text>
+        <text x="220" y="224" text-anchor="middle" fill="#c9d1d9" font-size="8">/api/billing/webhook → permit</text>
+        <text x="220" y="240" text-anchor="middle" fill="#c9d1d9" font-size="8">/api/public/** → permitAll</text>
+        <text x="220" y="256" text-anchor="middle" fill="#c9d1d9" font-size="8">/ws/** → permitAll</text>
+        <text x="220" y="272" text-anchor="middle" fill="#c9d1d9" font-size="8">/api/admin/** → ADMIN</text>
+        <text x="220" y="288" text-anchor="middle" fill="#c9d1d9" font-size="8">/** → authenticated</text>
+        <line x1="175" y1="300" x2="265" y2="300" stroke="#30363d"/>
+        <text x="220" y="316" text-anchor="middle" fill="#8b949e" font-size="8">Session: STATELESS</text>
+        <text x="220" y="332" text-anchor="middle" fill="#8b949e" font-size="8">CORS: configured</text>
+        <text x="220" y="348" text-anchor="middle" fill="#8b949e" font-size="8">Headers: frame deny</text>
+        <text x="220" y="364" text-anchor="middle" fill="#8b949e" font-size="8">Referrer: strict-origin</text>
+        <text x="220" y="380" text-anchor="middle" fill="#8b949e" font-size="8">HSTS: prod only</text>
+        <line x1="175" y1="395" x2="265" y2="395" stroke="#30363d"/>
+        <text x="220" y="412" text-anchor="middle" fill="#79c0ff" font-size="8" font-weight="bold">WebSocket (STOMP)</text>
+        <text x="220" y="428" text-anchor="middle" fill="#c9d1d9" font-size="8">JwtStompInterceptor</text>
+        <text x="220" y="444" text-anchor="middle" fill="#c9d1d9" font-size="8">CONNECT auth</text>
+        <text x="220" y="460" text-anchor="middle" fill="#c9d1d9" font-size="8">Subscribe auth</text>
+        <text x="220" y="476" text-anchor="middle" fill="#c9d1d9" font-size="8">WS Rate Limiter</text>
+
+        <!-- Controllers -->
+        <rect x="310" y="40" width="110" height="620" rx="6" fill="#21262d" stroke="#d2a8ff" stroke-opacity="0.4"/>
+        <text x="365" y="56" text-anchor="middle" fill="#d2a8ff" font-size="10" font-weight="bold">Controllers</text>
+        <text x="365" y="76" text-anchor="middle" fill="#c9d1d9" font-size="8">AuthController</text>
+        <text x="365" y="90" text-anchor="middle" fill="#c9d1d9" font-size="8">FeedController</text>
+        <text x="365" y="104" text-anchor="middle" fill="#c9d1d9" font-size="8">ProjectController</text>
+        <text x="365" y="118" text-anchor="middle" fill="#c9d1d9" font-size="8">BoardController</text>
+        <text x="365" y="132" text-anchor="middle" fill="#c9d1d9" font-size="8">MessageController</text>
+        <text x="365" y="146" text-anchor="middle" fill="#c9d1d9" font-size="8">WebSocketController</text>
+        <text x="365" y="160" text-anchor="middle" fill="#c9d1d9" font-size="8">NotificationCtrl</text>
+        <text x="365" y="174" text-anchor="middle" fill="#c9d1d9" font-size="8">BillingController</text>
+        <text x="365" y="188" text-anchor="middle" fill="#c9d1d9" font-size="8">BillingWebhookCtrl</text>
+        <text x="365" y="202" text-anchor="middle" fill="#c9d1d9" font-size="8">StripeWebhookCtrl</text>
+        <text x="365" y="216" text-anchor="middle" fill="#c9d1d9" font-size="8">GitHubController</text>
+        <text x="365" y="230" text-anchor="middle" fill="#c9d1d9" font-size="8">GitHubWebhookCtrl</text>
+        <text x="365" y="244" text-anchor="middle" fill="#c9d1d9" font-size="8">FollowController</text>
+        <text x="365" y="258" text-anchor="middle" fill="#c9d1d9" font-size="8">UserController</text>
+        <text x="365" y="272" text-anchor="middle" fill="#c9d1d9" font-size="8">InvitationCtrl</text>
+        <text x="365" y="286" text-anchor="middle" fill="#c9d1d9" font-size="8">JoinRequestCtrl</text>
+        <text x="365" y="300" text-anchor="middle" fill="#c9d1d9" font-size="8">BookmarkCtrl</text>
+        <text x="365" y="314" text-anchor="middle" fill="#c9d1d9" font-size="8">SearchController</text>
+        <text x="365" y="328" text-anchor="middle" fill="#c9d1d9" font-size="8">AttachmentCtrl</text>
+        <text x="365" y="342" text-anchor="middle" fill="#c9d1d9" font-size="8">AnalyticsCtrl</text>
+        <text x="365" y="356" text-anchor="middle" fill="#c9d1d9" font-size="8">TeamRoomCtrl</text>
+        <text x="365" y="370" text-anchor="middle" fill="#c9d1d9" font-size="8">SupportTicketCtrl</text>
+        <text x="365" y="384" text-anchor="middle" fill="#c9d1d9" font-size="8">AdminController</text>
+        <text x="365" y="398" text-anchor="middle" fill="#c9d1d9" font-size="8">AdminBillingCtrl</text>
+        <text x="365" y="412" text-anchor="middle" fill="#c9d1d9" font-size="8">AdminReviewCtrl</text>
+        <text x="365" y="426" text-anchor="middle" fill="#c9d1d9" font-size="8">ReportAdminCtrl</text>
+        <text x="365" y="440" text-anchor="middle" fill="#c9d1d9" font-size="8">FeedbackController</text>
+        <text x="365" y="454" text-anchor="middle" fill="#c9d1d9" font-size="8">HealthController</text>
+        <text x="365" y="468" text-anchor="middle" fill="#c9d1d9" font-size="8">PublicController</text>
+        <text x="365" y="482" text-anchor="middle" fill="#c9d1d9" font-size="8">PresenceController</text>
+        <text x="365" y="496" text-anchor="middle" fill="#c9d1d9" font-size="8">PinnedProjectCtrl</text>
+
+        <!-- Services -->
+        <rect x="460" y="40" width="130" height="620" rx="6" fill="#21262d" stroke="#d2a8ff" stroke-opacity="0.4"/>
+        <text x="525" y="56" text-anchor="middle" fill="#d2a8ff" font-size="10" font-weight="bold">Services</text>
+        <text x="525" y="76" text-anchor="middle" fill="#c9d1d9" font-size="8">AuthService</text>
+        <text x="525" y="90" text-anchor="middle" fill="#c9d1d9" font-size="8">PendingRegistrationSvc</text>
+        <text x="525" y="104" text-anchor="middle" fill="#c9d1d9" font-size="8">RefreshTokenService</text>
+        <text x="525" y="118" text-anchor="middle" fill="#c9d1d9" font-size="8">JwtTokenProvider</text>
+        <text x="525" y="132" text-anchor="middle" fill="#c9d1d9" font-size="8">OtpService</text>
+        <text x="525" y="146" text-anchor="middle" fill="#c9d1d9" font-size="8">EmailService</text>
+        <text x="525" y="160" text-anchor="middle" fill="#c9d1d9" font-size="8">AccountRecoverySvc</text>
+        <text x="525" y="174" text-anchor="middle" fill="#c9d1d9" font-size="8">FeedService</text>
+        <text x="525" y="188" text-anchor="middle" fill="#c9d1d9" font-size="8">ProjectService</text>
+        <text x="525" y="202" text-anchor="middle" fill="#c9d1d9" font-size="8">BoardService</text>
+        <text x="525" y="216" text-anchor="middle" fill="#c9d1d9" font-size="8">MessageService</text>
+        <text x="525" y="230" text-anchor="middle" fill="#c9d1d9" font-size="8">NotificationService</text>
+        <text x="525" y="244" text-anchor="middle" fill="#c9d1d9" font-size="8">BillingService</text>
+        <text x="525" y="258" text-anchor="middle" fill="#c9d1d9" font-size="8">EntitlementService</text>
+        <text x="525" y="272" text-anchor="middle" fill="#c9d1d9" font-size="8">PlanBillingValidator</text>
+        <text x="525" y="286" text-anchor="middle" fill="#c9d1d9" font-size="8">RazorpayClient</text>
+        <text x="525" y="300" text-anchor="middle" fill="#c9d1d9" font-size="8">StripeClient</text>
+        <text x="525" y="314" text-anchor="middle" fill="#c9d1d9" font-size="8">SubscriptionScheduler</text>
+        <text x="525" y="328" text-anchor="middle" fill="#c9d1d9" font-size="8">GitHubIntegrationSvc</text>
+        <text x="525" y="342" text-anchor="middle" fill="#c9d1d9" font-size="8">GitHubProjectService</text>
+        <text x="525" y="356" text-anchor="middle" fill="#c9d1d9" font-size="8">GitHubWebhookService</text>
+        <text x="525" y="370" text-anchor="middle" fill="#c9d1d9" font-size="8">GitHubClient</text>
+        <text x="525" y="384" text-anchor="middle" fill="#c9d1d9" font-size="8">GitHubTokenCrypto</text>
+        <text x="525" y="398" text-anchor="middle" fill="#c9d1d9" font-size="8">FollowService</text>
+        <text x="525" y="412" text-anchor="middle" fill="#c9d1d9" font-size="8">UserService</text>
+        <text x="525" y="426" text-anchor="middle" fill="#c9d1d9" font-size="8">InvitationService</text>
+        <text x="525" y="440" text-anchor="middle" fill="#c9d1d9" font-size="8">JoinRequestService</text>
+        <text x="525" y="454" text-anchor="middle" fill="#c9d1d9" font-size="8">BookmarkService</text>
+        <text x="525" y="468" text-anchor="middle" fill="#c9d1d9" font-size="8">SearchService</text>
+        <text x="525" y="482" text-anchor="middle" fill="#c9d1d9" font-size="8">AttachmentService</text>
+        <text x="525" y="496" text-anchor="middle" fill="#c9d1d9" font-size="8">AnalyticsService</text>
+        <text x="525" y="510" text-anchor="middle" fill="#c9d1d9" font-size="8">TeamRoomService</text>
+        <text x="525" y="524" text-anchor="middle" fill="#c9d1d9" font-size="8">SupportTicketService</text>
+        <text x="525" y="538" text-anchor="middle" fill="#c9d1d9" font-size="8">AdminService</text>
+        <text x="525" y="552" text-anchor="middle" fill="#c9d1d9" font-size="8">AdminModerationSvc</text>
+        <text x="525" y="566" text-anchor="middle" fill="#c9d1d9" font-size="8">ReportAdminService</text>
+        <text x="525" y="580" text-anchor="middle" fill="#c9d1d9" font-size="8">AuditLogService</text>
+        <text x="525" y="594" text-anchor="middle" fill="#c9d1d9" font-size="8">ActivityService</text>
+        <text x="525" y="608" text-anchor="middle" fill="#c9d1d9" font-size="8">PresenceService</text>
+
+        <!-- Repositories -->
+        <rect x="630" y="40" width="110" height="620" rx="6" fill="#21262d" stroke="#7ee787" stroke-opacity="0.4"/>
+        <text x="685" y="56" text-anchor="middle" fill="#7ee787" font-size="10" font-weight="bold">Repositories</text>
+        <text x="685" y="76" text-anchor="middle" fill="#c9d1d9" font-size="8">UserRepository</text>
+        <text x="685" y="90" text-anchor="middle" fill="#c9d1d9" font-size="8">RefreshTokenRepository</text>
+        <text x="685" y="104" text-anchor="middle" fill="#c9d1d9" font-size="8">PendingRegRepository</text>
+        <text x="685" y="118" text-anchor="middle" fill="#c9d1d9" font-size="8">AccountTokenRepository</text>
+        <text x="685" y="132" text-anchor="middle" fill="#c9d1d9" font-size="8">PostRepository</text>
+        <text x="685" y="146" text-anchor="middle" fill="#c9d1d9" font-size="8">CommentRepository</text>
+        <text x="685" y="160" text-anchor="middle" fill="#c9d1d9" font-size="8">ReactionRepository</text>
+        <text x="685" y="174" text-anchor="middle" fill="#c9d1d9" font-size="8">ProjectRepository</text>
+        <text x="685" y="188" text-anchor="middle" fill="#c9d1d9" font-size="8">ProjectMemberRepository</text>
+        <text x="685" y="202" text-anchor="middle" fill="#c9d1d9" font-size="8">TaskRepository</text>
+        <text x="685" y="216" text-anchor="middle" fill="#c9d1d9" font-size="8">TaskStatusRepository</text>
+        <text x="685" y="230" text-anchor="middle" fill="#c9d1d9" font-size="8">ConversationRepository</text>
+        <text x="685" y="244" text-anchor="middle" fill="#c9d1d9" font-size="8">MessageRepository</text>
+        <text x="685" y="258" text-anchor="middle" fill="#c9d1d9" font-size="8">MessageReadRepository</text>
+        <text x="685" y="272" text-anchor="middle" fill="#c9d1d9" font-size="8">ParticipantRepository</text>
+        <text x="685" y="286" text-anchor="middle" fill="#c9d1d9" font-size="8">NotificationRepository</text>
+        <text x="685" y="300" text-anchor="middle" fill="#c9d1d9" font-size="8">PaymentRepository</text>
+        <text x="685" y="314" text-anchor="middle" fill="#c9d1d9" font-size="8">SubscriptionRepository</text>
+        <text x="685" y="328" text-anchor="middle" fill="#c9d1d9" font-size="8">RefundRequestRepository</text>
+        <text x="685" y="342" text-anchor="middle" fill="#c9d1d9" font-size="8">WebhookEventRepository</text>
+        <text x="685" y="356" text-anchor="middle" fill="#c9d1d9" font-size="8">PlanRepository</text>
+        <text x="685" y="370" text-anchor="middle" fill="#c9d1d9" font-size="8">GitHubLinkRepository</text>
+        <text x="685" y="384" text-anchor="middle" fill="#c9d1d9" font-size="8">ConnectionRepository</text>
+        <text x="685" y="398" text-anchor="middle" fill="#c9d1d9" font-size="8">BookmarkRepository</text>
+        <text x="685" y="412" text-anchor="middle" fill="#c9d1d9" font-size="8">InvitationRepository</text>
+        <text x="685" y="426" text-anchor="middle" fill="#c9d1d9" font-size="8">JoinRequestRepository</text>
+        <text x="685" y="440" text-anchor="middle" fill="#c9d1d9" font-size="8">AttachmentRepository</text>
+        <text x="685" y="454" text-anchor="middle" fill="#c9d1d9" font-size="8">SupportTicketRepository</text>
+        <text x="685" y="468" text-anchor="middle" fill="#c9d1d9" font-size="8">TeamRoomRepository</text>
+        <text x="685" y="482" text-anchor="middle" fill="#c9d1d9" font-size="8">AuditLogRepository</text>
+        <text x="685" y="496" text-anchor="middle" fill="#c9d1d9" font-size="8">ReviewRepository</text>
+        <text x="685" y="510" text-anchor="middle" fill="#c9d1d9" font-size="8">FeedbackRepository</text>
+        <text x="685" y="524" text-anchor="middle" fill="#c9d1d9" font-size="8">ReportRepository</text>
+        <text x="685" y="538" text-anchor="middle" fill="#c9d1d9" font-size="8">PinnedProjectRepository</text>
+
+        <!-- External -->
+        <rect x="780" y="40" width="100" height="300" rx="6" fill="#0d2a4a" stroke="#79c0ff"/>
+        <text x="830" y="56" text-anchor="middle" fill="#79c0ff" font-size="10" font-weight="bold">External</text>
+        <text x="830" y="76" text-anchor="middle" fill="#c9d1d9" font-size="8">MySQL 8</text>
+        <text x="830" y="90" text-anchor="middle" fill="#c9d1d9" font-size="8">H2 (dev/test)</text>
+        <text x="830" y="110" text-anchor="middle" fill="#c9d1d9" font-size="8">Razorpay API</text>
+        <text x="830" y="124" text-anchor="middle" fill="#c9d1d9" font-size="8">Stripe API</text>
+        <text x="830" y="144" text-anchor="middle" fill="#c9d1d9" font-size="8">GitHub API v3</text>
+        <text x="830" y="158" text-anchor="middle" fill="#c9d1d9" font-size="8">GitHub OAuth</text>
+        <text x="830" y="178" text-anchor="middle" fill="#c9d1d9" font-size="8">SMTP (Gmail)</text>
+        <text x="830" y="198" text-anchor="middle" fill="#c9d1d9" font-size="8">Sentry</text>
+        <text x="830" y="218" text-anchor="middle" fill="#c9d1d9" font-size="8">Google OAuth2</text>
+
+        <!-- Infrastructure -->
+        <rect x="780" y="360" width="100" height="300" rx="6" fill="#21262d" stroke="#8b949e"/>
+        <text x="830" y="376" text-anchor="middle" fill="#8b949e" font-size="10" font-weight="bold">Infrastructure</text>
+        <text x="830" y="396" text-anchor="middle" fill="#c9d1d9" font-size="8">Flyway Migrations</text>
+        <text x="830" y="410" text-anchor="middle" fill="#c9d1d9" font-size="8">Docker / Compose</text>
+        <text x="830" y="424" text-anchor="middle" fill="#c9d1d9" font-size="8">Vite Dev Server</text>
+        <text x="830" y="438" text-anchor="middle" fill="#c9d1d9" font-size="8">Vercel (deploy)</text>
+        <text x="830" y="452" text-anchor="middle" fill="#c9d1d9" font-size="8">Railway (deploy)</text>
+        <text x="830" y="472" text-anchor="middle" fill="#c9d1d9" font-size="8">@Scheduled</text>
+        <text x="830" y="486" text-anchor="middle" fill="#c9d1d9" font-size="8">- SubscriptionSync</text>
+        <text x="830" y="500" text-anchor="middle" fill="#c9d1d9" font-size="8">- PendingCleanup</text>
+
+        <!-- DB label -->
+        <text x="685" y="570" text-anchor="middle" fill="#7ee787" font-size="10" font-weight="bold">MySQL / H2</text>
+        <text x="685" y="590" text-anchor="middle" fill="#8b949e" font-size="8">30+ tables</text>
+        <text x="685" y="604" text-anchor="middle" fill="#8b949e" font-size="8">JPA + Flyway</text>
+        <text x="685" y="618" text-anchor="middle" fill="#8b949e" font-size="8">PESSIMISTIC locks</text>
+        <text x="685" y="632" text-anchor="middle" fill="#8b949e" font-size="8">UUIDs + timestamps</text>
+      </svg>
+    </div>
+    <div class="flow-explain">
+      <h4>System Architecture</h4>
+      <ul>
+        <li><strong>Frontend:</strong> React 18 + TypeScript SPA with Vite, lazy-loaded routes, context-based state</li>
+        <li><strong>Security:</strong> Stateless JWT in HttpOnly cookies, CSRF via XSRF-TOKEN, 5-layer filter chain</li>
+        <li><strong>API:</strong> 30+ REST controllers under <code>/api/**</code>, DTO validation with Jakarta</li>
+        <li><strong>Business:</strong> 35+ services handling auth, feed, projects, billing, GitHub, messaging</li>
+        <li><strong>Persistence:</strong> Spring Data JPA repositories, MySQL 8 (prod) / H2 (dev/test), Flyway migrations</li>
+        <li><strong>Real-time:</strong> STOMP over WebSocket at <code>/ws</code> with JWT auth, rate limiting, typing/presence</li>
+        <li><strong>External:</strong> Razorpay + Stripe payments, GitHub OAuth + API, SMTP email, Sentry</li>
+        <li><strong>Infrastructure:</strong> Docker multi-stage builds, Vercel/Railway deployment, @Scheduled jobs</li>
+      </ul>
+      <h4>Key Design Decisions</h4>
+      <ul>
+        <li>Stateless sessions (no server-side HTTP session)</li>
+        <li>Access token in HttpOnly cookie, never in JS</li>
+        <li>Refresh token rotation with reuse detection</li>
+        <li>Pessimistic locks on payment updates (race prevention)</li>
+        <li>OAuth2 login is optional (conditional bean registration)</li>
+        <li>Admin routes require <code>hasRole("ADMIN")</code></li>
+        <li>Webhook endpoints exempt from CSRF (verified by provider signature)</li>
+      </ul>
+      <h4>Source Files & Responsibilities</h4>
+      <div class="file-list">
+<b>config/SecurityConfig.java</b> — Defines the entire HTTP security filter chain, CSRF rules, CORS, session policy, header hardening (HSTS, frame-options, referrer), and route-level authorization (permitAll vs authenticated vs ADMIN).<br>
+<b>config/WebSocketConfig.java</b> — Configures STOMP message broker (/topic, /queue), application destination prefix (/app), user prefix (/user), SockJS fallback endpoint (/ws), and registers JwtStompChannelInterceptor for WebSocket-level auth.<br>
+<b>config/JwtStompChannelInterceptor.java</b> — Intercepts STOMP CONNECT/SUBSCRIBE frames, validates JWT from Authorization header, sets SecurityContext, enforces per-user subscription quotas.<br>
+<b>config/CsrfConfig.java</b> — CookieCsrfTokenRepository, CSRF cookie filter, and the set of paths exempt from CSRF (webhooks, public API, auth/refresh).<br>
+<b>config/JwtTokenProvider.java</b> — Generates and validates JWT access/refresh tokens, extracts user claims.<br>
+<b>DevSyncApplication.java</b> — Spring Boot entry point with @EnableScheduling for @Scheduled jobs (subscription sync, pending registration cleanup).<br>
+<b>frontend/src/main.tsx</b> — React Router setup with lazy-loaded routes, AuthProvider, SubscriptionProvider, ProtectedRoute/AdminRoute guards, ThemeProvider, ScrollToTop.<br>
+<b>frontend/src/api.ts</b> — Axios instance with base URL, CSRF header injection, 401 interceptor for automatic token refresh.<br>
+<b>application.yml</b> — All Spring Boot configuration: datasource, JWT secrets, mail, billing providers, GitHub OAuth, rate limits, upload limits, management endpoints.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════ -->
+<!-- 02 — SECURITY FILTER CHAIN                                     -->
+<!-- ════════════════════════════════════════════════════════════════ -->
+<div class="page full-width">
+  <h2>02 — Security Filter Chain</h2>
+  <div class="flow-container">
+    <div class="flow-svg">
+      <svg viewBox="0 0 700 620" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;">
+        <!-- Request entry -->
+        <rect x="250" y="10" width="200" height="36" rx="8" fill="#1f6feb" opacity="0.2" stroke="#58a6ff"/>
+        <text x="350" y="32" text-anchor="middle" fill="#58a6ff" font-size="13" font-weight="bold">HTTP Request</text>
+
+        <!-- Arrow -->
+        <line x1="350" y1="46" x2="350" y2="66" stroke="#58a6ff" stroke-width="2" marker-end="url(#arrow-blue)"/>
+        <defs><marker id="arrow-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#58a6ff"/></marker></defs>
+
+        <defs><marker id="arrow-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#7ee787"/></marker></defs>
+
+        <!-- Filter 1: CSRF Cookie -->
+        <rect x="160" y="68" width="380" height="44" rx="8" fill="#21262d" stroke="#8b949e"/>
+        <text x="350" y="86" text-anchor="middle" fill="#8b949e" font-size="12" font-weight="bold">① CsrfCookieFilter (CsrfConfig)</text>
+        <text x="350" y="102" text-anchor="middle" fill="#8b949e" font-size="10">Sets XSRF-TOKEN cookie, reads X-XSRF-TOKEN header on mutations</text>
+        <line x1="350" y1="112" x2="350" y2="128" stroke="#7ee787" stroke-width="2" marker-end="url(#arrow-green)"/>
+
+        <!-- Filter 2: RateLimiting -->
+        <rect x="160" y="130" width="380" height="44" rx="8" fill="#21262d" stroke="#d29922"/>
+        <text x="350" y="148" text-anchor="middle" fill="#d29922" font-size="12" font-weight="bold">② RateLimitingFilter</text>
+        <text x="350" y="164" text-anchor="middle" fill="#8b949e" font-size="10">General rate limiting (configurable per-endpoint)</text>
+        <line x1="350" y1="174" x2="350" y2="190" stroke="#7ee787" stroke-width="2" marker-end="url(#arrow-green)"/>
+
+        <!-- Decision: rate limited? -->
+        <polygon points="350,192 430,218 350,244 270,218" fill="#1c2431" stroke="#d29922"/>
+        <text x="350" y="222" text-anchor="middle" fill="#d29922" font-size="10" font-weight="bold">Rate OK?</text>
+        <text x="445" y="212" fill="#f85149" font-size="10">NO → 429</text>
+        <line x1="350" y1="244" x2="350" y2="260" stroke="#7ee787" stroke-width="2" marker-end="url(#arrow-green)"/>
+        <text x="360" y="256" fill="#7ee787" font-size="10">YES</text>
+
+        <!-- Filter 3: JWT Auth -->
+        <rect x="160" y="262" width="380" height="56" rx="8" fill="#0d2a4a" stroke="#58a6ff"/>
+        <text x="350" y="280" text-anchor="middle" fill="#58a6ff" font-size="12" font-weight="bold">③ JwtAuthenticationFilter</text>
+        <text x="350" y="296" text-anchor="middle" fill="#c9d1d9" font-size="10">Reads access_token HttpOnly cookie</text>
+        <text x="350" y="310" text-anchor="middle" fill="#c9d1d9" font-size="10">Validates JWT signature + expiry → loads UserDetails → sets SecurityContext</text>
+        <line x1="350" y1="318" x2="350" y2="338" stroke="#7ee787" stroke-width="2" marker-end="url(#arrow-green)"/>
+
+        <!-- Filter 4: SpamProtection -->
+        <rect x="160" y="340" width="380" height="44" rx="8" fill="#21262d" stroke="#d29922"/>
+        <text x="350" y="358" text-anchor="middle" fill="#d29922" font-size="12" font-weight="bold">④ SpamProtectionFilter</text>
+        <text x="350" y="374" text-anchor="middle" fill="#8b949e" font-size="10">Per-user quota: /projects=10/min, /connections=30/min, /reports=5/min</text>
+        <line x1="350" y1="384" x2="350" y2="400" stroke="#7ee787" stroke-width="2" marker-end="url(#arrow-green)"/>
+
+        <!-- Decision: spam limited? -->
+        <polygon points="350,402 430,428 350,454 270,428" fill="#1c2431" stroke="#d29922"/>
+        <text x="350" y="432" text-anchor="middle" fill="#d29922" font-size="10" font-weight="bold">Quota OK?</text>
+        <text x="445" y="422" fill="#f85149" font-size="10">NO → 429</text>
+        <line x1="350" y1="454" x2="350" y2="470" stroke="#7ee787" stroke-width="2" marker-end="url(#arrow-green)"/>
+        <text x="360" y="466" fill="#7ee787" font-size="10">YES</text>
+
+        <!-- Decision: CSRF required? -->
+        <polygon points="350,472 430,498 350,524 270,498" fill="#1c2431" stroke="#d29922"/>
+        <text x="350" y="502" text-anchor="middle" fill="#d29922" font-size="10" font-weight="bold">CSRF valid?</text>
+        <text x="445" y="492" fill="#f85149" font-size="10">NO → 403</text>
+        <line x1="350" y1="524" x2="350" y2="540" stroke="#7ee787" stroke-width="2" marker-end="url(#arrow-green)"/>
+        <text x="360" y="536" fill="#7ee787" font-size="10">YES</text>
+
+        <!-- Decision: Admin route? -->
+        <polygon points="350,542 430,568 350,594 270,568" fill="#1c2431" stroke="#d29922"/>
+        <text x="350" y="572" text-anchor="middle" fill="#d29922" font-size="10" font-weight="bold">/api/admin/** ?</text>
+        <text x="445" y="562" fill="#f85149" font-size="10">YES → hasRole(ADMIN)</text>
+        <line x1="350" y1="594" x2="350" y2="614" stroke="#7ee787" stroke-width="2" marker-end="url(#arrow-green)"/>
+        <text x="360" y="610" fill="#7ee787" font-size="10">PASS</text>
+
+        <!-- Controller -->
+        <rect x="190" y="616" width="320" height="40" rx="8" fill="#1f6feb" opacity="0.3" stroke="#58a6ff"/>
+        <text x="350" y="640" text-anchor="middle" fill="#58a6ff" font-size="13" font-weight="bold">→ Controller Method</text>
+      </svg>
+    </div>
+    <div class="flow-explain">
+      <h4>What Starts the Flow</h4>
+      <p>Every HTTP request to the Spring Boot backend passes through the security filter chain defined in SecurityConfig.</p>
+      <h4>Step-by-Step</h4>
+      <ul>
+        <li><strong>1. CsrfCookieFilter</strong> — Always sets XSRF-TOKEN cookie; CsrfFilter validates X-XSRF-TOKEN header on POST/PUT/DELETE</li>
+        <li><strong>2. RateLimitingFilter</strong> — General configurable rate limiting</li>
+        <li><strong>3. JwtAuthenticationFilter</strong> — Reads access_token from HttpOnly cookie, validates JWT, loads UserDetails, sets SecurityContext</li>
+        <li><strong>4. SpamProtectionFilter</strong> — Per-user rate limit for abuse-prone endpoints (invitations, follows, reports)</li>
+      </ul>
+      <h4>Important Decisions</h4>
+      <ul>
+        <li><strong>CSRF exempt:</strong> /api/billing/webhook/**, /ws/**, /api/public/**, /api/auth/refresh</li>
+        <li><strong>Auth exempt:</strong> /api/auth/**, /api/github/callback, /api/webhooks/github</li>
+        <li><strong>Admin-gated:</strong> /api/admin/** requires hasRole("ADMIN")</li>
+        <li><strong>Session:</strong> STATELESS (no server-side HTTP session)</li>
+      </ul>
+      <h4>Source Files & Responsibilities</h4>
+      <div class="file-list">
+<b>config/SecurityConfig.java</b> — Master security configuration. Registers all filters in order, defines route authorization rules, configures CORS, sets session policy to STATELESS, adds response headers (frame-deny, referrer-policy, HSTS in prod). Controls whether CSRF/OAuth are enabled via app properties.<br>
+<b>config/CsrfConfig.java</b> — CookieCsrfTokenRepository backed by HTTP session, CsrfTokenRequestHandler for double-submit cookie pattern, and the CsrfCookieFilter that always sets XSRF-TOKEN cookie on responses. Maintains the list of CSRF-exempt paths.<br>
+<b>auth/JwtAuthenticationFilter.java</b> — OncePerRequestFilter that reads access_token from HttpOnly cookie, validates JWT signature and expiry via JwtTokenProvider, loads UserDetails from DB, and sets UsernamePasswordAuthenticationToken in SecurityContext. Returns 401 JSON if token is invalid.<br>
+<b>auth/JwtTokenProvider.java</b> — Generates JWT access tokens (15min) and refresh tokens (30d) with HS256 signing. Extracts userId/email claims. Validates token integrity, checks expiry, and handles malformed tokens.<br>
+<b>auth/RateLimitingFilter.java</b> — General-purpose rate limiter filter placed before authentication. Uses configurable per-endpoint limits. Returns 429 with Retry-After header when exceeded.<br>
+<b>ratelimit/SpamProtectionFilter.java</b> — Per-user rate limiter for abuse-prone POST endpoints: invitations (10/min), follows (30/min), reports (5/min). Runs AFTER authentication so it can key on userId. Uses in-memory buckets (single-instance only).<br>
+<b>ratelimit/RateLimiter.java</b> — Core rate-limiting engine using sliding window counters. Supports per-user and per-IP limiting. Configurable window size and max requests.<br>
+<b>config/JwtStompChannelInterceptor.java</b> — WebSocket equivalent of JwtAuthenticationFilter. Intercepts STOMP CONNECT frames, validates JWT from Authorization header, and enforces per-user subscription/message quotas for WebSocket traffic.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════ -->
+<!-- 03 — EMAIL REGISTRATION (OTP)                                  -->
+<!-- ════════════════════════════════════════════════════════════════ -->
+<div class="page full-width">
+  <h2>03 — Authentication — Email Registration (OTP Verification)</h2>
+  <div class="flow-container">
+    <div class="flow-svg">
+      <svg viewBox="0 0 600 700" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;">
+        <defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#58a6ff"/></marker></defs>
+        <defs><marker id="arr-g" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#7ee787"/></marker></defs>
+        <defs><marker id="arr-r" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#f85149"/></marker></defs>
+
+        <!-- Step 1: User fills form -->
+        <rect x="100" y="10" width="200" height="36" rx="8" fill="#1f6feb" opacity="0.2" stroke="#58a6ff"/>
+        <text x="200" y="32" text-anchor="middle" fill="#58a6ff" font-size="11" font-weight="bold">User fills SignUp form</text>
+        <text x="200" y="60" text-anchor="middle" fill="#8b949e" font-size="9">Auth.tsx → fullName, username, email, password</text>
+
+        <line x1="200" y1="46" x2="200" y2="76" stroke="#58a6ff" stroke-width="2" marker-end="url(#arr)"/>
+
+        <!-- Step 2: Click Create Account -->
+        <rect x="100" y="78" width="200" height="32" rx="6" fill="#21262d" stroke="#d2a8ff"/>
+        <text x="200" y="98" text-anchor="middle" fill="#d2a8ff" font-size="11" font-weight="bold">POST /api/auth/register/initiate</text>
+
+        <line x1="200" y1="110" x2="200" y2="128" stroke="#58a6ff" stroke-width="2" marker-end="url(#arr)"/>
+
+        <!-- PendingRegistrationService -->
+        <rect x="100" y="130" width="200" height="44" rx="6" fill="#21262d" stroke="#d2a8ff" stroke-opacity="0.5"/>
+        <text x="200" y="148" text-anchor="middle" fill="#d2a8ff" font-size="10" font-weight="bold">PendingRegistrationService</text>
+        <text x="200" y="164" text-anchor="middle" fill="#c9d1d9" font-size="9">.initiateRegistration()</text>
+
+        <line x1="200" y1="174" x2="200" y2="192" stroke="#58a6ff" stroke-width="2" marker-end="url(#arr)"/>
+
+        <!-- Decision: email exists? -->
+        <polygon points="200,194 280,218 200,242 120,218" fill="#1c2431" stroke="#d29922"/>
+        <text x="200" y="222" text-anchor="middle" fill="#d29922" font-size="9" font-weight="bold">Email exists?</text>
+        <line x1="290" y1="218" x2="360" y2="218" stroke="#f85149" stroke-width="2" marker-end="url(#arr-r)"/>
+        <text x="325" y="212" fill="#f85149" font-size="9">YES → 409</text>
+        <line x1="200" y1="242" x2="200" y2="260" stroke="#7ee787" stroke-width="2" marker-end="url(#arr-g)"/>
+        <text x="210" y="256" fill="#7ee787" font-size="9">NO</text>
+
+        <!-- Generate OTP -->
+        <rect x="100" y="262" width="200" height="50" rx="6" fill="#21262d" stroke="#d29922"/>
+        <text x="200" y="280" text-anchor="middle" fill="#d29922" font-size="10" font-weight="bold">Generate 6-digit OTP</text>
+        <text x="200" y="294" text-anchor="middle" fill="#c9d1d9" font-size="9">SHA-256 hash → store hash only</text>
+        <text x="200" y="306" text-anchor="middle" fill="#c9d1d9" font-size="9">Set expiresAt = now + 10min</text>
+
+        <line x1="200" y1="312" x2="200" y2="330" stroke="#58a6ff" stroke-width="2" marker-end="url(#arr)"/>
+
+        <!-- Save PendingRegistration -->
+        <rect x="100" y="332" width="200" height="36" rx="6" fill="#21262d" stroke="#7ee787"/>
+        <text x="200" y="354" text-anchor="middle" fill="#7ee787" font-size="10" font-weight="bold">Save PendingRegistration (DB)</text>
+
+        <line x1="200" y1="368" x2="200" y2="386" stroke="#58a6ff" stroke-width="2" marker-end="url(#arr)"/>
+
+        <!-- Send email -->
+        <rect x="100" y="388" width="200" height="36" rx="6" fill="#0d2a4a" stroke="#79c0ff"/>
+        <text x="200" y="410" text-anchor="middle" fill="#79c0ff" font-size="10" font-weight="bold">EmailService.sendOtpEmail()</text>
+
+        <line x1="200" y1="424" x2="200" y2="442" stroke="#58a6ff" stroke-width="2" marker-end="url(#arr)"/>
+
+        <!-- Show OTP screen -->
+        <rect x="100" y="444" width="200" height="36" rx="8" fill="#1f6feb" opacity="0.2" stroke="#58a6ff"/>
+        <text x="200" y="466" text-anchor="middle" fill="#58a6ff" font-size="11" font-weight="bold">VerifyEmail.tsx shows OTP input</text>
+
+        <line x1="200" y1="480" x2="200" y2="498" stroke="#58a6ff" stroke-width="2" marker-end="url(#arr)"/>
+
+        <!-- User enters OTP -->
+        <rect x="100" y="500" width="200" height="32" rx="6" fill="#21262d" stroke="#d2a8ff"/>
+        <text x="200" y="520" text-anchor="middle" fill="#d2a8ff" font-size="11" font-weight="bold">POST /api/auth/register/verify</text>
+
+        <line x1="200" y1="532" x2="200" y2="550" stroke="#58a6ff" stroke-width="2" marker-end="url(#arr)"/>
+
+        <!-- Verify OTP -->
+        <rect x="100" y="552" width="200" height="36" rx="6" fill="#21262d" stroke="#d2a8ff" stroke-opacity="0.5"/>
+        <text x="200" y="574" text-anchor="middle" fill="#d2a8ff" font-size="10" font-weight="bold">verifyOtp() → constant-time compare</text>
+
+        <line x1="200" y1="588" x2="200" y2="606" stroke="#58a6ff" stroke-width="2" marker-end="url(#arr)"/>
+
+        <!-- Decision: OTP valid? -->
+        <polygon points="200,608 270,628 200,648 130,628" fill="#1c2431" stroke="#d29922"/>
+        <text x="200" y="632" text-anchor="middle" fill="#d29922" font-size="9" font-weight="bold">OTP valid?</text>
+        <line x1="280" y1="628" x2="360" y2="628" stroke="#f85149" stroke-width="2" marker-end="url(#arr-r)"/>
+        <text x="320" y="622" fill="#f85149" font-size="9">NO → 401</text>
+        <line x1="200" y1="648" x2="200" y2="668" stroke="#7ee787" stroke-width="2" marker-end="url(#arr-g)"/>
+        <text x="210" y="662" fill="#7ee787" font-size="9">YES</text>
+
+        <!-- Create account -->
+        <rect x="80" y="670" width="240" height="28" rx="6" fill="#21262d" stroke="#7ee787"/>
+        <text x="200" y="688" text-anchor="middle" fill="#7ee787" font-size="10" font-weight="bold">Create User + JWT + RefreshToken + Audit</text>
+      </svg>
+    </div>
+    <div class="flow-explain">
+      <h4>What Starts the Flow</h4>
+      <p>User clicks "Create account" on the Auth.tsx signup form after entering name, username, email, and password.</p>
+      <h4>Step-by-Step</h4>
+      <ul>
+        <li><strong>1.</strong> Frontend POSTs to <code>/api/auth/register/initiate</code></li>
+        <li><strong>2.</strong> PendingRegistrationService checks: email exists? username taken?</li>
+        <li><strong>3.</strong> Generates 6-digit OTP, stores SHA-256 hash in PendingRegistration table</li>
+        <li><strong>4.</strong> Sends OTP via SMTP (EmailService)</li>
+        <li><strong>5.</strong> Frontend shows VerifyEmail.tsx with 6-digit OTP input</li>
+        <li><strong>6.</strong> User enters OTP, frontend POSTs to <code>/api/auth/register/verify</code></li>
+        <li><strong>7.</strong> Backend verifies OTP using constant-time comparison (timing-safe)</li>
+        <li><strong>8.</strong> On success: creates User, generates JWT access + refresh tokens, records audit log</li>
+        <li><strong>9.</strong> Sets HttpOnly cookies for access + refresh tokens</li>
+      </ul>
+      <h4>Important Decisions</h4>
+      <ul>
+        <li><strong>Email exists:</strong> Rejected immediately (before sending OTP)</li>
+        <li><strong>OTP expired:</strong> PendingRegistration deleted, user must re-register</li>
+        <li><strong>Too many attempts:</strong> After 5 failures, PendingRegistration deleted</li>
+        <li><strong>Resend:</strong> 60-second cooldown, invalidates previous OTP</li>
+      </ul>
+      <h4>Security</h4>
+      <ul>
+        <li>Only SHA-256 hash of OTP is stored (not plaintext)</li>
+        <li>Constant-time comparison prevents timing attacks</li>
+        <li>@Scheduled hourly cleanup of expired PendingRegistrations</li>
+        <li>No account exists until OTP verification succeeds</li>
+      </ul>
+      <h4>Source Files & Responsibilities</h4>
+      <div class="file-list">
+<b>frontend/pages/Auth.tsx</b> — Login/SignUp form with email, password, username fields. Handles form validation, calls register/initiate API, shows password visibility toggle, switches between Sign In and Sign Up modes.<br>
+<b>frontend/pages/VerifyEmail.tsx</b> — 6-digit OTP input screen shown after registration initiation. Auto-advances between digit fields, supports paste, shows countdown timer, resend button with cooldown, and loading state during verification.<br>
+<b>backend/auth/AuthController.java</b> — REST endpoints: POST /register/initiate (creates pending + sends OTP), POST /register/verify (verifies OTP + creates account), POST /register/resend (new OTP with cooldown). Returns JWT cookies on successful verification.<br>
+<b>backend/auth/PendingRegistrationService.java</b> — Core OTP logic: generates 6-digit OTP, hashes with SHA-256, stores hash only in DB, enforces 5-attempt limit, 60-second resend cooldown, 10-minute expiry. @Scheduled hourly cleanup of expired registrations.<br>
+<b>backend/auth/entity/PendingRegistration.java</b> — JPA entity storing: email, passwordHash, fullName, username, otpHash, expiresAt, failedAttempts. hasExpired() checks LocalDateTime.now() against expiresAt.<br>
+<b>backend/auth/repository/PendingRegistrationRepository.java</b> — Spring Data JPA repository with findByEmail() for looking up pending registrations by email address.<br>
+<b>backend/auth/EmailService.java</b> — SMTP email sender using Spring Mail. sendOtpEmail() formats and sends the 6-digit verification code. Throws if SMTP is not configured (MAIL_USERNAME/MAIL_PASSWORD missing), so frontend gets a meaningful error.<br>
+<b>backend/auth/AccountToken.java</b> — Entity for password-reset and email-verification tokens (separate from OTP flow). Used by AccountRecoveryService for forgot-password links.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════ -->
+<!-- 04 — LOGIN & JWT                                               -->
+<!-- ════════════════════════════════════════════════════════════════ -->
+<div class="page full-width">
+  <h2>04 — Authentication — Login &amp; JWT Token Lifecycle</h2>
+  <div class="flow-container">
+    <div class="flow-svg">
+      <svg viewBox="0 0 600 680" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;">
+        <!-- Login form -->
+        <rect x="100" y="10" width="200" height="36" rx="8" fill="#1f6feb" opacity="0.2" stroke="#58a6ff"/>
+        <text x="200" y="32" text-anchor="middle" fill="#58a6ff" font-size="11" font-weight="bold">Auth.tsx → Login Form</text>
+        <text x="200" y="60" text-anchor="middle" fill="#8b949e" font-size="9">email/username + password</text>
+
+        <line x1="200" y1="46" x2="200" y2="76" stroke="#58a6ff" stroke-width="2" marker-end="url(#arr)"/>
+
+        <!-- POST login -->
+        <rect x="100" y="78" width="200" height="32" rx="6" fill="#21262d" stroke="#d2a8ff"/>
+        <text x="200" y="98" text-anchor="middle" fill="#d2a8ff" font-size="11" font-weight="bold">POST /api/auth/login</text>
+
+        <line x1="200" y1="110" x2="200" y2="128" stroke="#58a6ff" stroke-width="2" marker-end="url(#arr)"/>
+
+        <!-- AuthController.login -->
+        <rect x="100" y="130" width="200" height="30" rx="6" fill="#21262d" stroke="#d2a8ff" stroke-opacity="0.5"/>
+        <text x="200" y="150" text-anchor="middle" fill="#d2a8ff" font-size="10" font-weight="bold">AuthController.login()</text>
+
+        <line x1="200" y1="160" x2="200" y2="178" stroke="#58a6ff" stroke-width="2" marker-end="url(#arr)"/>
+
+        <!-- AuthService.login -->
+        <rect x="80" y="180" width="240" height="70" rx="6" fill="#21262d" stroke="#d2a8ff"/>
+        <text x="200" y="198" text-anchor="middle" fill="#d2a8ff" font-size="10" font-weight="bold">AuthService.login()</text>
+        <text x="200" y="214" text-anchor="middle" fill="#c9d1d9" font-size="9">1. Find user (email OR username)</text>
+        <text x="200" y="228" text-anchor="middle" fill="#c9d1d9" font-size="9">2. passwordEncoder.matches()</text>
+        <text x="200" y="242" text-anchor="middle" fill="#c9d1d9" font-size="9">3. ensureAccountActive()</text>
+
+        <line x1="200" y1="250" x2="200" y2="268" stroke="#58a6ff" stroke-width="2" marker-end="url(#arr)"/>
+
+        <!-- Decision: valid? -->
+        <polygon points="200,270 280,294 200,318 120,294" fill="#1c2431" stroke="#d29922"/>
+        <text x="200" y="298" text-anchor="middle" fill="#d29922" font-size="9" font-weight="bold">Valid?</text>
+        <line x1="290" y1="294" x2="370" y2="294" stroke="#f85149" stroke-width="2" marker-end="url(#arr-r)"/>
+        <text x="330" y="288" fill="#f85149" font-size="9">NO → 401</text>
+        <line x1="200" y1="318" x2="200" y2="338" stroke="#7ee787" stroke-width="2" marker-end="url(#arr-g)"/>
+        <text x="210" y="334" fill="#7ee787" font-size="9">YES</text>
+
+        <!-- Generate tokens -->
+        <rect x="100" y="340" width="200" height="50" rx="6" fill="#21262d" stroke="#7ee787"/>
+        <text x="200" y="358" text-anchor="middle" fill="#7ee787" font-size="10" font-weight="bold">Generate Tokens</text>
+        <text x="200" y="372" text-anchor="middle" fill="#c9d1d9" font-size="9">JWT access (15min) + refresh (30d)</text>
+        <text x="200" y="386" text-anchor="middle" fill="#c9d1d9" font-size="9">Issue refresh token + record IP</text>
+
+        <line x1="200" y1="390" x2="200" y2="410" stroke="#58a6ff" stroke-width="2" marker-end="url(#arr)"/>
+
+        <!-- Set cookies -->
+        <rect x="100" y="412" width="200" height="50" rx="6" fill="#0d2a4a" stroke="#79c0ff"/>
+        <text x="200" y="430" text-anchor="middle" fill="#79c0ff" font-size="10" font-weight="bold">Set HttpOnly Cookies</text>
+        <text x="200" y="444" text-anchor="middle" fill="#c9d1d9" font-size="9">access_token cookie (15min)</text>
+        <text x="200" y="458" text-anchor="middle" fill="#c9d1d9" font-size="9">refresh_token cookie (30d)</text>
+
+        <line x1="200" y1="462" x2="200" y2="482" stroke="#58a6ff" stroke-width="2" marker-end="url(#arr)"/>
+
+        <!-- Redirect to dashboard -->
+        <rect x="100" y="484" width="200" height="30" rx="8" fill="#1f6feb" opacity="0.2" stroke="#58a6ff"/>
+        <text x="200" y="504" text-anchor="middle" fill="#58a6ff" font-size="11" font-weight="bold">→ /dashboard</text>
+
+        <!-- Token refresh flow -->
+        <rect x="360" y="10" width="220" height="28" rx="6" fill="#21262d" stroke="#d29922"/>
+        <text x="470" y="28" text-anchor="middle" fill="#d29922" font-size="10" font-weight="bold">Token Refresh Flow (automatic)</text>
+
+        <rect x="360" y="48" width="220" height="50" rx="6" fill="#21262d" stroke="#d2a8ff" stroke-opacity="0.5"/>
+        <text x="470" y="66" text-anchor="middle" fill="#d2a8ff" font-size="9" font-weight="bold">Axios 401 interceptor</text>
+        <text x="470" y="80" text-anchor="middle" fill="#c9d1d9" font-size="9">→ POST /api/auth/refresh</text>
+        <text x="470" y="92" text-anchor="middle" fill="#c9d1d9" font-size="9">(with refresh token cookie)</text>
+
+        <line x1="470" y1="98" x2="470" y2="116" stroke="#58a6ff" stroke-width="2" marker-end="url(#arr)"/>
+
+        <rect x="360" y="118" width="220" height="60" rx="6" fill="#21262d" stroke="#d2a8ff" stroke-opacity="0.5"/>
+        <text x="470" y="136" text-anchor="middle" fill="#d2a8ff" font-size="9" font-weight="bold">RefreshTokenService.rotate()</text>
+        <text x="470" y="150" text-anchor="middle" fill="#c9d1d9" font-size="9">1. Validate token (type, sig, expiry)</text>
+        <text x="470" y="164" text-anchor="middle" fill="#c9d1d9" font-size="9">2. Reuse detection → revoke family</text>
+        <text x="470" y="176" text-anchor="middle" fill="#c9d1d9" font-size="9">3. Issue new refresh + access tokens</text>
+
+        <line x1="470" y1="178" x2="470" y2="198" stroke="#7ee787" stroke-width="2" marker-end="url(#arr-g)"/>
+
+        <rect x="360" y="200" width="220" height="36" rx="6" fill="#0d2a4a" stroke="#79c0ff"/>
+        <text x="470" y="218" text-anchor="middle" fill="#79c0ff" font-size="9" font-weight="bold">New cookies set</text>
+        <text x="470" y="232" text-anchor="middle" fill="#c9d1d9" font-size="9">Retry original request</text>
+
+        <!-- Logout flow -->
+        <rect x="360" y="260" width="220" height="28" rx="6" fill="#21262d" stroke="#f85149"/>
+        <text x="470" y="278" text-anchor="middle" fill="#f85149" font-size="10" font-weight="bold">Logout Flow</text>
+
+        <rect x="360" y="298" width="220" height="50" rx="6" fill="#21262d" stroke="#d2a8ff" stroke-opacity="0.5"/>
+        <text x="470" y="316" text-anchor="middle" fill="#d2a8ff" font-size="9" font-weight="bold">POST /api/auth/logout</text>
+        <text x="470" y="330" text-anchor="middle" fill="#c9d1d9" font-size="9">→ revoke refresh token</text>
+        <text x="470" y="344" text-anchor="middle" fill="#c9d1d9" font-size="9">→ clear both cookies</text>
+
+        <!-- Websocket token -->
+        <rect x="360" y="370" width="220" height="28" rx="6" fill="#21262d" stroke="#79c0ff"/>
+        <text x="470" y="388" text-anchor="middle" fill="#79c0ff" font-size="10" font-weight="bold">WebSocket Token</text>
+
+        <rect x="360" y="408" width="220" height="50" rx="6" fill="#21262d" stroke="#d2a8ff" stroke-opacity="0.5"/>
+        <text x="470" y="426" text-anchor="middle" fill="#d2a8ff" font-size="9" font-weight="bold">GET /api/auth/ws-token</text>
+        <text x="470" y="440" text-anchor="middle" fill="#c9d1d9" font-size="9">→ short-lived access token</text>
+        <text x="470" y="454" text-anchor="middle" fill="#c9d1d9" font-size="9">(for STOMP CONNECT Authorization)</text>
+      </svg>
+    </div>
+    <div class="flow-explain">
+      <h4>What Starts the Flow</h4>
+      <p>User enters email/username + password on Auth.tsx login form.</p>
+      <h4>Step-by-Step</h4>
+      <ul>
+        <li><strong>1.</strong> Frontend POSTs to <code>/api/auth/login</code></li>
+        <li><strong>2.</strong> AuthService.findUserByIdentifier() — detects email vs username by "@"</li>
+        <li><strong>3.</strong> passwordEncoder.matches() — BCrypt comparison</li>
+        <li><strong>4.</strong> ensureAccountActive() — blocks deleted/blocked accounts</li>
+        <li><strong>5.</strong> Generates JWT access token (15min) + refresh token (30 days)</li>
+        <li><strong>6.</strong> Sets HttpOnly cookies — tokens never reach JavaScript</li>
+        <li><strong>7.</strong> Redirects to /dashboard</li>
+      </ul>
+      <h4>Token Refresh</h4>
+      <ul>
+        <li>Axios interceptor catches 401 → calls <code>/api/auth/refresh</code></li>
+        <li>RefreshTokenService.rotate() validates, detects reuse, issues new pair</li>
+        <li>New cookies set, original request retried transparently</li>
+      </ul>
+      <h4>WebSocket Auth</h4>
+      <ul>
+        <li><code>GET /api/auth/ws-token</code> provides short-lived token for STOMP CONNECT</li>
+        <li>Browser can't attach HttpOnly cookies to WebSocket frames</li>
+      </ul>
+      <h4>Source Files & Responsibilities</h4>
+      <div class="file-list">
+<b>frontend/pages/Auth.tsx</b> — Login form UI with email/username + password. Handles form submission, error display, toggle password visibility, switches to SignUp mode.<br>
+<b>frontend/services/authService.ts</b> — API client for auth endpoints: login(), refreshToken(), logout(), register(), getCurrentUser(). Wraps axios calls with error handling.<br>
+<b>frontend/api.ts</b> — Axios instance with request/response interceptors: injects X-XSRF-TOKEN header from cookie, catches 401 responses and triggers automatic token refresh via /api/auth/refresh, retries original request with new token.<br>
+<b>backend/auth/AuthController.java</b> — REST endpoints: POST /login (authenticates + sets cookies), POST /refresh (rotates refresh token), POST /logout (revokes + clears cookies), GET /me (returns current user), GET /ws-token (short-lived token for WebSocket).<br>
+<b>backend/auth/AuthService.java</b> — Core auth logic: login() validates credentials via BCrypt, checks account active status, generates JWT pair, records audit log. refreshToken() delegates to RefreshTokenService.rotate(). findUserByIdentifier() detects email vs username by presence of @.<br>
+<b>backend/auth/JwtTokenProvider.java</b> — JWT token creation and validation. generateAccessToken() creates HS256-signed token with userId/email claims, 15-minute expiry. getUserIdFromToken() extracts claims. validateToken() checks signature and expiry.<br>
+<b>backend/auth/RefreshTokenService.java</b> — Refresh token lifecycle: issue() creates token + stores hash in DB with IP/UA. rotate() validates presented token (type, signature, expiry, registry lookup), detects reuse (revokes entire family if stolen token replayed), issues new pair. revoke() marks token as revoked.<br>
+<b>backend/auth/RefreshTokenCookie.java</b> — Creates/clears the refresh_token HttpOnly cookie (30-day expiry, Secure flag in prod, SameSite=Lax). Never exposed to JavaScript.<br>
+<b>backend/auth/AccessTokenCookie.java</b> — Creates/clears the access_token HttpOnly cookie (15-minute expiry). Short-lived to limit exposure if stolen.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════ -->
+<!-- 12 — REAL-TIME MESSAGING (WebSocket/STOMP)                     -->
+<!-- ════════════════════════════════════════════════════════════════ -->
+<div class="page full-width">
+  <h2>12 — Real-time Messaging (WebSocket / STOMP)</h2>
+  <div class="flow-container">
+    <div class="flow-svg">
+      <svg viewBox="0 0 700 660" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;">
+        <!-- Step 1: Get WS token -->
+        <rect x="200" y="10" width="300" height="36" rx="8" fill="#1f6feb" opacity="0.2" stroke="#58a6ff"/>
+        <text x="350" y="32" text-anchor="middle" fill="#58a6ff" font-size="11" font-weight="bold">1. GET /api/auth/ws-token → access token</text>
+
+        <line x1="350" y1="46" x2="350" y2="66" stroke="#58a6ff" stroke-width="2" marker-end="url(#arr)"/>
+
+        <!-- Step 2: STOMP connect -->
+        <rect x="200" y="68" width="300" height="36" rx="6" fill="#21262d" stroke="#79c0ff"/>
+        <text x="350" y="82" text-anchor="middle" fill="#79c0ff" font-size="10" font-weight="bold">2. WebSocketService.connect(token)</text>
+        <text x="350" y="96" text-anchor="middle" fill="#c9d1d9" font-size="9">SockJS + STOMP → /ws endpoint</text>
+
+        <line x1="350" y1="104" x2="350" y2="122" stroke="#58a6ff" stroke-width="2" marker-end="url(#arr)"/>
+
+        <!-- Decision: auth? -->
+        <polygon points="350,124 430,150 350,176 270,150" fill="#1c2431" stroke="#d29922"/>
+        <text x="350" y="154" text-anchor="middle" fill="#d29922" font-size="9" font-weight="bold">JwtStompInterceptor</text>
+        <line x1="440" y1="150" x2="510" y2="150" stroke="#f85149" stroke-width="2" marker-end="url(#arr-r)"/>
+        <text x="475" y="142" fill="#f85149" font-size="8">FAIL</text>
+        <line x1="350" y1="176" x2="350" y2="196" stroke="#7ee787" stroke-width="2" marker-end="url(#arr-g)"/>
+        <text x="360" y="190" fill="#7ee787" font-size="9">OK</text>
+
+        <!-- Subscriptions -->
+        <rect x="120" y="198" width="460" height="90" rx="6" fill="#21262d" stroke="#79c0ff"/>
+        <text x="350" y="214" text-anchor="middle" fill="#79c0ff" font-size="10" font-weight="bold">3. Subscribe to Topics</text>
+        <text x="200" y="232" fill="#c9d1d9" font-size="9">/user/topic/notifications/{userId}</text>
+        <text x="200" y="246" fill="#c9d1d9" font-size="9">/topic/typing/{roomId}</text>
+        <text x="200" y="260" fill="#c9d1d9" font-size="9">/topic/presence</text>
+        <text x="440" y="232" fill="#c9d1d9" font-size="9">/topic/chat/{roomId}</text>
+        <text x="440" y="246" fill="#c9d1d9" font-size="9">/topic/subscription/{userId}</text>
+        <text x="440" y="260" fill="#c9d1d9" font-size="9">/topic/typing/{conversationId}</text>
+        <text x="440" y="274" fill="#c9d1d9" font-size="9">/user/topic/presence/{userId}</text>
+
+        <line x1="350" y1="288" x2="350" y2="308" stroke="#58a6ff" stroke-width="2" marker-end="url(#arr)"/>
+
+        <!-- Send message -->
+        <rect x="120" y="310" width="460" height="80" rx="6" fill="#21262d" stroke="#d2a8ff"/>
+        <text x="350" y="326" text-anchor="middle" fill="#d2a8ff" font-size="10" font-weight="bold">4. User Sends Message</text>
+        <text x="200" y="344" fill="#c9d1d9" font-size="9">→ WebSocketController.sendMessage()</text>
+        <text x="200" y="358" fill="#c9d1d9" font-size="9">→ MessageService.sendMessage()</text>
+        <text x="200" y="372" fill="#c9d1d9" font-size="9">→ Save to DB</text>
+        <text x="440" y="344" fill="#c9d1d9" font-size="9">→ SimpMessagingTemplate</text>
+        <text x="440" y="358" fill="#c9d1d9" font-size="9">→ /topic/chat/{roomId}</text>
+        <text x="440" y="372" fill="#c9d1d9" font-size="9">→ Notification (if DM)</text>
+
+        <line x1="350" y1="390" x2="350" y2="410" stroke="#58a6ff" stroke-width="2" marker-end="url(#arr)"/>
+
+        <!-- Delivery -->
+        <rect x="120" y="412" width="460" height="60" rx="6" fill="#0d2a4a" stroke="#79c0ff"/>
+        <text x="350" y="428" text-anchor="middle" fill="#79c0ff" font-size="10" font-weight="bold">5. Real-time Delivery</text>
+        <text x="200" y="444" fill="#c9d1d9" font-size="9">Sender: message appears instantly</text>
+        <text x="200" y="458" fill="#c9d1d9" font-size="9">Recipient: message pushed via STOMP</text>
+        <text x="440" y="444" fill="#c9d1d9" font-size="9">Online → real-time push</text>
+        <text x="440" y="458" fill="#c9d1d9" font-size="9">Offline → notification created</text>
+
+        <!-- Typing indicators -->
+        <rect x="120" y="490" width="210" height="80" rx="6" fill="#21262d" stroke="#d29922"/>
+        <text x="225" y="508" text-anchor="middle" fill="#d29922" font-size="10" font-weight="bold">Typing Indicators</text>
+        <text x="225" y="524" text-anchor="middle" fill="#c9d1d9" font-size="9">POST /app/typing.start</text>
+        <text x="225" y="538" text-anchor="middle" fill="#c9d1d9" font-size="9">→ /topic/typing/{roomId}</text>
+        <text x="225" y="552" text-anchor="middle" fill="#c9d1d9" font-size="9">useTyping() hook on frontend</text>
+        <text x="225" y="564" text-anchor="middle" fill="#8b949e" font-size="8">Auto-timeout after 3s</text>
+
+        <!-- Presence -->
+        <rect x="370" y="490" width="210" height="80" rx="6" fill="#21262d" stroke="#79c0ff"/>
+        <text x="475" y="508" text-anchor="middle" fill="#79c0ff" font-size="10" font-weight="bold">Presence System</text>
+        <text x="475" y="524" text-anchor="middle" fill="#c9d1d9" font-size="9">PresenceController.update()</text>
+        <text x="475" y="538" text-anchor="middle" fill="#c9d1d9" font-size="9">→ /topic/presence</text>
+        <text x="475" y="552" text-anchor="middle" fill="#c9d1d9" font-size="9">online/offline/away status</text>
+        <text x="475" y="564" text-anchor="middle" fill="#8b949e" font-size="8">Heartbeat-based detection</text>
+
+        <!-- Reconnection -->
+        <rect x="120" y="590" width="460" height="50" rx="6" fill="#21262d" stroke="#d29922"/>
+        <text x="350" y="608" text-anchor="middle" fill="#d29922" font-size="10" font-weight="bold">6. Reconnection Logic</text>
+        <text x="350" y="624" text-anchor="middle" fill="#c9d1d9" font-size="9">Status: Connected → Reconnecting → Connected</text>
+        <text x="350" y="638" text-anchor="middle" fill="#8b949e" font-size="8">Exponential backoff on disconnect</text>
+      </svg>
+    </div>
+    <div class="flow-explain">
+      <h4>What Starts the Flow</h4>
+      <p>Messages.tsx page opens → WebSocketService establishes STOMP connection.</p>
+      <h4>Step-by-Step</h4>
+      <ul>
+        <li><strong>1.</strong> Frontend fetches short-lived access token from <code>/api/auth/ws-token</code></li>
+        <li><strong>2.</strong> SockJS connects to <code>/ws</code> with token in STOMP CONNECT Authorization header</li>
+        <li><strong>3.</strong> JwtStompChannelInterceptor validates token, sets SecurityContext</li>
+        <li><strong>4.</strong> Frontend subscribes to user-specific topics</li>
+        <li><strong>5.</strong> Messages sent via <code>/app/message.send</code> → WebSocketController → MessageService → DB</li>
+        <li><strong>6.</strong> SimpMessagingTemplate pushes to <code>/topic/chat/{roomId}</code> for all subscribers</li>
+      </ul>
+      <h4>Key Topics</h4>
+      <ul>
+        <li><code>/topic/chat/{roomId}</code> — message delivery</li>
+        <li><code>/topic/typing/{roomId}</code> — typing indicators</li>
+        <li><code>/topic/presence</code> — online/offline status</li>
+        <li><code>/user/topic/notifications/{userId}</code> — push notifications</li>
+        <li><code>/topic/subscription/{userId}</code> — subscription changes</li>
+      </ul>      <h4>Source Files & Responsibilities</h4>
+      <div class="file-list">
+<b>frontend/services/websocketService.ts</b> — WebSocket/STOMP client singleton. connect(token) establishes SockJS connection to /ws, subscribes to user topics, handles reconnection with exponential backoff. Exposes sendMessage(), startTyping(), stopTyping() methods. Manages connection status (Connected/Reconnecting/Disconnected).<br>
+<b>frontend/pages/Messages.tsx</b> — Main messaging page. Shows ConversationList sidebar + MessageList main area. Handles search users for new DM, creates conversations, loads message history.<br>
+<b>frontend/components/messages/ConversationList.tsx</b> — Sidebar showing all conversations (DMs + team rooms). Sorted by last message time, shows unread badge, partner avatar/name, last message preview. Click loads conversation.<br>
+<b>frontend/components/messages/MessageList.tsx</b> — Message display area. Renders messages chronologically, shows sender avatar, timestamp, read receipts, reactions. Auto-scrolls to bottom on new message. Context menu for edit/delete.<br>
+<b>frontend/hooks/useTyping.ts</b> — React hook that manages typing indicator state. Sends typing.start/stop via WebSocket, receives typing events from other users, auto-timeout after 3 seconds of inactivity.<br>
+<b>backend/message/WebSocketController.java</b> — STOMP message handler. @MessageMapping("/app/message.send") receives SendMessageRequest, delegates to MessageService.sendMessage(), returns MessageResponse. Handles typing indicators via /app/typing.start and /app/typing.stop.<br>
+<b>backend/message/MessageController.java</b> — REST endpoints: GET /api/messages/conversations (list), GET /api/messages/dm/{userId} (DM history), GET /api/messages/room/{roomId} (room history), POST /api/messages (send via REST fallback), PUT /api/messages/{id} (edit), DELETE /api/messages/{id} (soft delete).<br>
+<b>backend/message/MessageService.java</b> — Core messaging logic: sendMessage() validates participants, persists to DB, broadcasts via SimpMessagingTemplate to /topic/chat/{roomId}, creates notification for offline users. getConversations() batch-loads partner users. markDirectRead() marks messages as read.<br>
+<b>backend/config/WebSocketConfig.java</b> — Configures STOMP broker (/topic, /queue), application prefix (/app), user prefix (/user), registers /ws endpoint with SockJS fallback, sets allowed origins.<br>
+<b>backend/config/JwtStompChannelInterceptor.java</b> — Intercepts STOMP CONNECT/SUBSCRIBE frames, validates JWT from Authorization header, sets SecurityContext for message handlers, enforces subscription quotas.<br>
+<b>backend/presence/PresenceController.java</b> — Handles presence heartbeats. User periodically calls update() to report online/away/offline status. Broadcasts to /topic/presence for all connected users.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════ -->
+<!-- 14 — BILLING: SUBSCRIPTION & CHECKOUT                          -->
+<!-- ════════════════════════════════════════════════════════════════ -->
+<div class="page full-width">
+  <h2>14 — Billing — Subscription &amp; Checkout Flow</h2>
+  <div class="flow-container">
+    <div class="flow-svg">
+      <svg viewBox="0 0 600 660" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;">
+        <!-- User selects plan -->
+        <rect x="150" y="10" width="300" height="36" rx="8" fill="#1f6feb" opacity="0.2" stroke="#58a6ff"/>
+        <text x="300" y="32" text-anchor="middle" fill="#58a6ff" font-size="11" font-weight="bold">Billing.tsx → User selects plan + provider</text>
+
+        <line x1="300" y1="46" x2="300" y2="66" stroke="#58a6ff" stroke-width="2" marker-end="url(#arr)"/>
+
+        <!-- Checkout request -->
+        <rect x="150" y="68" width="300" height="32" rx="6" fill="#21262d" stroke="#d2a8ff"/>
+        <text x="300" y="88" text-anchor="middle" fill="#d2a8ff" font-size="10" font-weight="bold">POST /api/billing/checkout</text>
+
+        <line x1="300" y1="100" x2="300" y2="118" stroke="#58a6ff" stroke-width="2" marker-end="url(#arr)"/>
+
+        <!-- PlanBillingValidator -->
+        <rect x="150" y="120" width="300" height="50" rx="6" fill="#21262d" stroke="#d29922"/>
+        <text x="300" y="138" text-anchor="middle" fill="#d29922" font-size="10" font-weight="bold">PlanBillingValidator</text>
+        <text x="300" y="154" text-anchor="middle" fill="#c9d1d9" font-size="9">Check plan exists, not already on same plan</text>
+        <text x="300" y="166" text-anchor="middle" fill="#c9d1d9" font-size="9">EntitlementService checks limits</text>
+
+        <line x1="300" y1="170" x2="300" y2="188" stroke="#58a6ff" stroke-width="2" marker-end="url(#arr)"/>
+
+        <!-- Decision: provider? -->
+        <polygon points="300,190 400,220 300,250 200,220" fill="#1c2431" stroke="#d29922"/>
+        <text x="300" y="224" text-anchor="middle" fill="#d29922" font-size="9" font-weight="bold">Provider?</text>
+
+        <!-- Razorpay branch -->
+        <line x1="200" y1="220" x2="100" y2="220" stroke="#58a6ff" stroke-width="2" marker-end="url(#arr)"/>
+        <text x="140" y="212" fill="#58a6ff" font-size="9">Razorpay</text>
+        <rect x="20" y="230" width="160" height="80" rx="6" fill="#21262d" stroke="#d2a8ff" stroke-opacity="0.5"/>
+        <text x="100" y="248" text-anchor="middle" fill="#d2a8ff" font-size="9" font-weight="bold">RazorpayClient</text>
+        <text x="100" y="262" text-anchor="middle" fill="#c9d1d9" font-size="8">.createOrder()</text>
+        <text x="100" y="276" text-anchor="middle" fill="#c9d1d9" font-size="8">→ Razorpay Orders API</text>
+        <text x="100" y="290" text-anchor="middle" fill="#c9d1d9" font-size="8">→ Save Payment(PENDING)</text>
+        <text x="100" y="304" text-anchor="middle" fill="#7ee787" font-size="8">→ orderId to frontend</text>
+
+        <!-- Stripe branch -->
+        <line x1="400" y1="220" x2="490" y2="220" stroke="#58a6ff" stroke-width="2" marker-end="url(#arr)"/>
+        <text x="450" y="212" fill="#58a6ff" font-size="9">Stripe</text>
+        <rect x="420" y="230" width="160" height="80" rx="6" fill="#21262d" stroke="#d2a8ff" stroke-opacity="0.5"/>
+        <text x="500" y="248" text-anchor="middle" fill="#d2a8ff" font-size="9" font-weight="bold">StripeClient</text>
+        <text x="500" y="262" text-anchor="middle" fill="#c9d1d9" font-size="8">.createCheckoutSession()</text>
+        <text x="500" y="276" text-anchor="middle" fill="#c9d1d9" font-size="8">→ Stripe Sessions API</text>
+        <text x="500" y="290" text-anchor="middle" fill="#c9d1d9" font-size="8">→ Save Payment(PENDING)</text>
+        <text x="500" y="304" text-anchor="middle" fill="#7ee787" font-size="8">→ session.url to frontend</text>
+
+        <!-- User pays on provider -->
+        <line x1="300" y1="310" x2="300" y2="330" stroke="#58a6ff" stroke-width="2" marker-end="url(#arr)"/>
+        <rect x="150" y="332" width="300" height="36" rx="8" fill="#1f6feb" opacity="0.2" stroke="#58a6ff"/>
+        <text x="300" y="354" text-anchor="middle" fill="#58a6ff" font-size="11" font-weight="bold">User completes payment on provider page</text>
+
+        <line x1="300" y1="368" x2="300" y2="388" stroke="#58a6ff" stroke-width="2" marker-end="url(#arr)"/>
+
+        <!-- Webhook received -->
+        <rect x="150" y="390" width="300" height="50" rx="6" fill="#0d2a4a" stroke="#79c0ff"/>
+        <text x="300" y="408" text-anchor="middle" fill="#79c0ff" font-size="10" font-weight="bold">POST /api/billing/webhook/{provider}</text>
+        <text x="300" y="424" text-anchor="middle" fill="#c9d1d9" font-size="9">Verify signature → Process payment event</text>
+        <text x="300" y="436" text-anchor="middle" fill="#8b949e" font-size="8">Idempotent: WebhookEvent.insertIfAbsent(eventId)</text>
+
+        <line x1="300" y1="440" x2="300" y2="460" stroke="#58a6ff" stroke-width="2" marker-end="url(#arr)"/>
+
+        <!-- handlePaymentCaptured -->
+        <rect x="150" y="462" width="300" height="70" rx="6" fill="#21262d" stroke="#d2a8ff"/>
+        <text x="300" y="478" text-anchor="middle" fill="#d2a8ff" font-size="10" font-weight="bold">BillingService.handlePaymentCaptured()</text>
+        <text x="300" y="494" text-anchor="middle" fill="#c9d1d9" font-size="9">1. findByProviderPaymentIdWithLock()</text>
+        <text x="300" y="508" text-anchor="middle" fill="#c9d1d9" font-size="9">2. Payment.status → SUCCESS</text>
+        <text x="300" y="522" text-anchor="middle" fill="#c9d1d9" font-size="9">3. Create/upgrade Subscription</text>
+
+        <line x1="300" y1="532" x2="300" y2="552" stroke="#58a6ff" stroke-width="2" marker-end="url(#arr)"/>
+
+        <!-- Activate subscription -->
+        <rect x="150" y="554" width="300" height="60" rx="6" fill="#21262d" stroke="#7ee787"/>
+        <text x="300" y="570" text-anchor="middle" fill="#7ee787" font-size="10" font-weight="bold">Subscription Activated</text>
+        <text x="300" y="586" text-anchor="middle" fill="#c9d1d9" font-size="9">→ /topic/subscription/{userId} (WebSocket)</text>
+        <text x="300" y="600" text-anchor="middle" fill="#c9d1d9" font-size="9">→ Billing page auto-refreshes badge</text>
+        <text x="300" y="614" text-anchor="middle" fill="#8b949e" font-size="8">→ AuditLog + notification + email</text>
+      </svg>
+    </div>
+    <div class="flow-explain">
+      <h4>What Starts the Flow</h4>
+      <p>User clicks "Upgrade" on Billing.tsx after selecting a plan and payment provider.</p>
+      <h4>Step-by-Step</h4>
+      <ul>
+        <li><strong>1.</strong> Frontend POSTs to <code>/api/billing/checkout</code> with planCode + provider</li>
+        <li><strong>2.</strong> PlanBillingValidator checks plan validity and current subscription</li>
+        <li><strong>3.</strong> Routes to RazorpayClient or StripeClient based on provider</li>
+        <li><strong>4.</strong> Provider returns orderId/session.url → frontend redirects to provider</li>
+        <li><strong>5.</strong> User completes payment on provider page</li>
+        <li><strong>6.</strong> Provider sends webhook to <code>/api/billing/webhook/{razorpay|stripe}</code></li>
+        <li><strong>7.</strong> Webhook verified (signature check), idempotent (WebhookEvent dedup)</li>
+        <li><strong>8.</strong> handlePaymentCaptured() with pessimistic lock → Payment = SUCCESS</li>
+        <li><strong>9.</strong> Subscription created/upgraded, WebSocket broadcast, audit log</li>
+      </ul>
+      <h4>Security</h4>
+      <ul>
+        <li>Webhook endpoints exempt from CSRF (provider signature verification)</li>
+        <li>Pessimistic lock on Payment prevents concurrent activation</li>
+        <li>WebhookEvent insertIfAbsent prevents duplicate processing</li>
+      </ul>
+      <h4>Source Files & Responsibilities</h4>
+      <div class="file-list">
+<b>frontend/pages/Billing.tsx</b> — Billing settings page. Shows current plan, upgrade options (Razorpay/Stripe), payment history, refund request form. Displays plan features, usage limits, subscription status.<br>
+<b>frontend/services/billingService.ts</b> — API client for billing: checkout(), getSubscription(), getPayments(), getUsage(), cancelSubscription(), submitRefundRequest(). Wraps axios calls.<br>
+<b>backend/billing/BillingController.java</b> — User-facing REST endpoints: POST /api/billing/checkout (create payment), GET /api/billing/subscription (current plan), GET /api/billing/payments (history), POST /api/billing/cancel (cancel subscription), POST /api/billing/refund-requests (request refund).<br>
+<b>backend/billing/BillingService.java</b> — Core billing orchestrator: createCheckout() validates plan via PlanBillingValidator, routes to RazorpayClient or StripeClient, saves Payment(PENDING). handlePaymentCaptured() with pessimistic lock transitions Payment→SUCCESS, creates/upgrades Subscription, broadcasts via WebSocket. handlePaymentRefunded() transitions Payment→REFUNDED, completes RefundRequest if APPROVED, revokes subscription.<br>
+<b>backend/billing/BillingWebhookController.java</b> — Razorpay webhook endpoint: POST /api/billing/webhook/razorpay. Receives raw payload + X-Razorpay-Signature, delegates to BillingService.handleRazorpayWebhook(). Exempt from CSRF.<br>
+<b>backend/billing/StripeWebhookController.java</b> — Stripe webhook endpoint: POST /api/billing/webhook/stripe. Receives raw payload + Stripe-Signature, delegates to BillingService.handleStripeWebhook(). Exempt from CSRF.<br>
+<b>backend/billing/RazorpayClient.java</b> — Razorpay API wrapper: createOrder() creates payment order, refundPayment() initiates refund. Handles API errors, timeout (10s), retries.<br>
+<b>backend/billing/StripeClient.java</b> — Stripe API wrapper: createCheckoutSession() creates hosted checkout page, refundPayment() creates refund. Handles API errors, idempotency keys.<br>
+<b>backend/billing/PlanBillingValidator.java</b> — Validates checkout requests: plan exists, user not already on same plan, upgrade path valid (FREE→STARTER→PRO→ENTERPRISE), downgrade allowed.<br>
+<b>backend/billing/EntitlementService.java</b> — Plan limit enforcement: checks user's subscription against limits (max projects, max members, max tasks). Throws FeatureLimitException if exceeded. Used across project, task, and member operations.<br>
+<b>backend/billing/entity/Payment.java</b> — JPA entity: id, userId, planCode, amount, currency, status (PENDING/SUCCESS/FAILED/REFUNDED), provider (RAZORPAY/STRIPE), providerOrderId, providerPaymentId. Indexed on userId + status.<br>
+<b>backend/billing/entity/Subscription.java</b> — JPA entity: id, userId, planCode, status (ACTIVE/CANCELLED/PAST_DUE/TRIALING), provider, providerSubscriptionId, currentPeriodEnd. One active subscription per user.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════ -->
+<!-- 15 — BILLING: REFUND LIFECYCLE                                 -->
+<!-- ════════════════════════════════════════════════════════════════ -->
+<div class="page full-width">
+  <h2>15 — Billing — Refund Lifecycle</h2>
+  <div class="flow-container">
+    <div class="flow-svg">
+      <svg viewBox="0 0 700 560" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;">
+        <!-- Step 1: User requests refund -->
+        <rect x="200" y="10" width="300" height="36" rx="8" fill="#1f6feb" opacity="0.2" stroke="#58a6ff"/>
+        <text x="350" y="32" text-anchor="middle" fill="#58a6ff" font-size="11" font-weight="bold">User: POST /api/billing/refund-requests</text>
+
+        <line x1="350" y1="46" x2="350" y2="66" stroke="#58a6ff" stroke-width="2" marker-end="url(#arr)"/>
+
+        <!-- PENDING -->
+        <rect x="220" y="68" width="260" height="36" rx="6" fill="#21262d" stroke="#d29922"/>
+        <text x="350" y="90" text-anchor="middle" fill="#d29922" font-size="11" font-weight="bold">RefundRequest = PENDING</text>
+
+        <line x1="350" y1="104" x2="350" y2="124" stroke="#58a6ff" stroke-width="2" marker-end="url(#arr)"/>
+
+        <!-- Admin reviews -->
+        <rect x="200" y="126" width="300" height="36" rx="6" fill="#21262d" stroke="#d2a8ff"/>
+        <text x="350" y="148" text-anchor="middle" fill="#d2a8ff" font-size="10" font-weight="bold">AdminBilling → Review → Approve/Reject</text>
+
+        <line x1="350" y1="162" x2="350" y2="180" stroke="#58a6ff" stroke-width="2" marker-end="url(#arr)"/>
+
+        <!-- Decision: Admin action -->
+        <polygon points="350,182 440,210 350,238 260,210" fill="#1c2431" stroke="#d29922"/>
+        <text x="350" y="214" text-anchor="middle" fill="#d29922" font-size="9" font-weight="bold">Admin Action</text>
+
+        <!-- Rejected branch -->
+        <line x1="260" y1="210" x2="120" y2="210" stroke="#f85149" stroke-width="2" marker-end="url(#arr-r)"/>
+        <text x="180" y="202" fill="#f85149" font-size="9">REJECT</text>
+        <rect x="40" y="220" width="160" height="32" rx="6" fill="#21262d" stroke="#f85149"/>
+        <text x="120" y="240" text-anchor="middle" fill="#f85149" font-size="10" font-weight="bold">RefundRequest = REJECTED</text>
+
+        <!-- Approved branch -->
+        <line x1="350" y1="238" x2="350" y2="260" stroke="#7ee787" stroke-width="2" marker-end="url(#arr-g)"/>
+        <text x="360" y="254" fill="#7ee787" font-size="9">APPROVE</text>
+        <rect x="220" y="262" width="260" height="36" rx="6" fill="#21262d" stroke="#7ee787"/>
+        <text x="350" y="284" text-anchor="middle" fill="#7ee787" font-size="11" font-weight="bold">RefundRequest = APPROVED</text>
+
+        <line x1="350" y1="298" x2="350" y2="318" stroke="#58a6ff" stroke-width="2" marker-end="url(#arr)"/>
+
+        <!-- Provider refund API -->
+        <rect x="150" y="320" width="400" height="50" rx="6" fill="#21262d" stroke="#79c0ff"/>
+        <text x="350" y="338" text-anchor="middle" fill="#79c0ff" font-size="10" font-weight="bold">Call Razorpay/Stripe Refund API</text>
+        <text x="350" y="354" text-anchor="middle" fill="#c9d1d9" font-size="9">RazorpayClient.refundPayment() / StripeClient.refundPayment()</text>
+        <text x="350" y="366" text-anchor="middle" fill="#8b949e" font-size="8">Best-effort: refund may be delayed by provider</text>
+
+        <line x1="350" y1="370" x2="350" y2="390" stroke="#58a6ff" stroke-width="2" marker-end="url(#arr)"/>
+
+        <!-- Provider webhook -->
+        <rect x="150" y="392" width="400" height="50" rx="6" fill="#0d2a4a" stroke="#79c0ff"/>
+        <text x="350" y="410" text-anchor="middle" fill="#79c0ff" font-size="10" font-weight="bold">Provider Webhook → Refund Confirmed</text>
+        <text x="350" y="426" text-anchor="middle" fill="#c9d1d9" font-size="9">handlePaymentRefunded() / handleStripeChargeRefunded()</text>
+        <text x="350" y="438" text-anchor="middle" fill="#8b949e" font-size="8">Verified signature → Payment.status = REFUNDED</text>
+
+        <line x1="350" y1="442" x2="350" y2="462" stroke="#58a6ff" stroke-width="2" marker-end="url(#arr)"/>
+
+        <!-- COMPLETED -->
+        <rect x="150" y="464" width="400" height="50" rx="6" fill="#21262d" stroke="#7ee787"/>
+        <text x="350" y="482" text-anchor="middle" fill="#7ee787" font-size="10" font-weight="bold">completeRefundRequestIfApproved()</text>
+        <text x="350" y="498" text-anchor="middle" fill="#c9d1d9" font-size="9">RefundRequest = COMPLETED</text>
+        <text x="350" y="512" text-anchor="middle" fill="#7ee787" font-size="9">→ Subscription revoked → Notification → Email</text>
+      </svg>
+    </div>
+    <div class="flow-explain">
+      <h4>What Starts the Flow</h4>
+      <p>User requests a refund from Billing.tsx → Admin approves in AdminBilling → Provider processes → Webhook confirms.</p>
+      <h4>State Machine</h4>
+      <ul>
+        <li><code>PENDING → APPROVED → COMPLETED</code> (happy path)</li>
+        <li><code>PENDING → REJECTED</code> (admin rejects)</li>
+        <li><strong>COMPLETED only set by webhook</strong> — admin approval stays at APPROVED</li>
+      </ul>
+      <h4>Key Design Decision</h4>
+      <ul>
+        <li>Webhook is the source of truth for refund completion</li>
+        <li>Admin approval only sets APPROVED, not COMPLETED</li>
+        <li>completeRefundRequestIfApproved() transitions APPROVED → COMPLETED only</li>
+        <li>Idempotent: duplicate webhooks are no-ops</li>
+      </ul>
+      <h4>Subscription Revocation</h4>
+      <ul>
+        <li>Only revokes if plan matches and subscription is ACTIVE/PAST_DUE/TRIALING</li>
+        <li>Newer payment protection: won't revoke if a newer SUCCESS payment exists</li>
+        <li>Stripe subscription cancellation (best-effort) preserved</li>
+      </ul>
+      <h4>Source Files</h4>
+      <div class="file-list">
+<b>backend/billing/BillingService.java</b> — submitRefundRequest() creates PENDING RefundRequest. approveRefundRequest() transitions PENDING→APPROVED (admin only). completeRefundRequestIfApproved() transitions APPROVED→COMPLETED (called from webhook handlers). Subscription revocation happens on COMPLETED.<br>
+<b>backend/billing/BillingController.java</b> — POST /api/billing/refund-requests (user submits), GET /api/billing/refund-requests (user's own requests).<br>
+<b>backend/billing/AdminBillingController.java</b> — Admin endpoints for reviewing refund requests: approve, reject. Queries all pending requests.<br>
+<b>backend/billing/entity/RefundRequest.java</b> — JPA entity: id, userId, paymentId, reason, status (PENDING/APPROVED/REJECTED/COMPLETED), reviewedBy, reviewedAt. Indexed on userId + status.<br>
+<b>backend/billing/entity/RefundRequestStatus.java</b> — Enum: PENDING, APPROVED, REJECTED, COMPLETED. State machine: PENDING→APPROVED→COMPLETED or PENDING→REJECTED.<br>
+<b>backend/billing/repository/RefundRequestRepository.java</b> — JPA repository: findByPaymentId() for webhook lookup, findByPaymentIdAndStatus() for idempotent completion, findByUserId() for user's requests.<br>
+<b>frontend/pages/Billing.tsx</b> — User-facing refund request form: select payment, enter reason, submit. Shows status of existing requests.<br>
+<b>frontend/pages/AdminBilling.tsx</b> — Admin refund management: lists all pending/approved/rejected/completed requests, approve/reject buttons, filter by status.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════ -->
+<!-- 17 — GITHUB INTEGRATION                                        -->
+<!-- ════════════════════════════════════════════════════════════════ -->
+<div class="page full-width">
+  <h2>17 — GitHub Integration — OAuth &amp; Repository Linking</h2>
+  <div class="flow-container">
+    <div class="flow-svg">
+      <svg viewBox="0 0 600 620" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;">
+        <!-- Step 1: User clicks Connect GitHub -->
+        <rect x="150" y="10" width="300" height="36" rx="8" fill="#1f6feb" opacity="0.2" stroke="#58a6ff"/>
+        <text x="300" y="32" text-anchor="middle" fill="#58a6ff" font-size="11" font-weight="bold">Settings/GitHubSection → Connect GitHub</text>
+
+        <line x1="300" y1="46" x2="300" y2="66" stroke="#58a6ff" stroke-width="2" marker-end="url(#arr)"/>
+
+        <!-- Step 2: GitHub OAuth redirect -->
+        <rect x="150" y="68" width="300" height="36" rx="6" fill="#21262d" stroke="#79c0ff"/>
+        <text x="300" y="90" text-anchor="middle" fill="#79c0ff" font-size="10" font-weight="bold">Redirect to GitHub OAuth authorize</text>
+
+        <line x1="300" y1="104" x2="300" y2="124" stroke="#58a6ff" stroke-width="2" marker-end="url(#arr)"/>
+
+        <!-- Step 3: User authorizes -->
+        <rect x="150" y="126" width="300" height="32" rx="6" fill="#21262d" stroke="#d2a8ff"/>
+        <text x="300" y="146" text-anchor="middle" fill="#d2a8ff" font-size="10" font-weight="bold">User authorizes on github.com</text>
+
+        <line x1="300" y1="158" x2="300" y2="178" stroke="#58a6ff" stroke-width="2" marker-end="url(#arr)"/>
+
+        <!-- Step 4: Callback -->
+        <rect x="150" y="180" width="300" height="50" rx="6" fill="#21262d" stroke="#d2a8ff" stroke-opacity="0.5"/>
+        <text x="300" y="198" text-anchor="middle" fill="#d2a8ff" font-size="10" font-weight="bold">GET /api/github/callback?code=...</text>
+        <text x="300" y="214" text-anchor="middle" fill="#c9d1d9" font-size="9">GitHubOAuthClient exchanges code → access_token</text>
+        <text x="300" y="226" text-anchor="middle" fill="#c9d1d9" font-size="9">GitHubTokenCrypto.encrypt(token)</text>
+
+        <line x1="300" y1="230" x2="300" y2="250" stroke="#58a6ff" stroke-width="2" marker-end="url(#arr)"/>
+
+        <!-- Step 5: Save encrypted token -->
+        <rect x="150" y="252" width="300" height="36" rx="6" fill="#21262d" stroke="#7ee787"/>
+        <text x="300" y="274" text-anchor="middle" fill="#7ee787" font-size="10" font-weight="bold">Save encrypted token in GitHubLink (DB)</text>
+
+        <line x1="300" y1="288" x2="300" y2="308" stroke="#58a6ff" stroke-width="2" marker-end="url(#arr)"/>
+
+        <!-- Step 6: Link repo to project -->
+        <rect x="100" y="310" width="400" height="50" rx="6" fill="#21262d" stroke="#d2a8ff"/>
+        <text x="300" y="328" text-anchor="middle" fill="#d2a8ff" font-size="10" font-weight="bold">Link Repository to Project</text>
+        <text x="300" y="344" text-anchor="middle" fill="#c9d1d9" font-size="9">GitHubProjectService.linkRepository() → fetch repo details</text>
+        <text x="300" y="356" text-anchor="middle" fill="#c9d1d9" font-size="9">Store owner, repo, defaultBranch in GitHubProjectLink</text>
+
+        <line x1="300" y1="360" x2="300" y2="380" stroke="#58a6ff" stroke-width="2" marker-end="url(#arr)"/>
+
+        <!-- Features available -->
+        <rect x="50" y="382" width="500" height="100" rx="6" fill="#21262d" stroke="#d29922"/>
+        <text x="300" y="400" text-anchor="middle" fill="#d29922" font-size="11" font-weight="bold">Available GitHub Features</text>
+        <text x="150" y="420" fill="#c9d1d9" font-size="9">✅ Commits (GET /repos/.../commits)</text>
+        <text x="150" y="434" fill="#c9d1d9" font-size="9">✅ Issues (GET /repos/.../issues)</text>
+        <text x="150" y="448" fill="#c9d1d9" font-size="9">✅ Pull Requests (GET /repos/.../pulls)</text>
+        <text x="150" y="462" fill="#c9d1d9" font-size="9">✅ Branches (GET /repos/.../branches)</text>
+        <text x="400" y="420" fill="#c9d1d9" font-size="9">✅ Webhooks (auto-sync task PR state)</text>
+        <text x="400" y="434" fill="#c9d1d9" font-size="9">✅ Token encryption (AES)</text>
+        <text x="400" y="448" fill="#c9d1d9" font-size="9">✅ Rate limit awareness</text>
+        <text x="400" y="462" fill="#c9d1d9" font-size="9">✅ Branch-task linking</text>
+
+        <rect x="50" y="490" width="500" height="50" rx="6" fill="#21262d" stroke="#8b949e"/>
+        <text x="300" y="508" text-anchor="middle" fill="#8b949e" font-size="10" font-weight="bold">GitHub Integration Architecture</text>
+        <text x="300" y="524" text-anchor="middle" fill="#c9d1d9" font-size="9">GitHubClient → GitHub API v3 REST (with encrypted token decryption)</text>
+        <text x="300" y="536" text-anchor="middle" fill="#8b949e" font-size="8">All API calls go through GitHubClient with timeout, error handling, rate limit headers</text>
+      </svg>
+    </div>
+    <div class="flow-explain">
+      <h4>What Starts the Flow</h4>
+      <p>User clicks "Connect GitHub" in Settings → GitHubSection.tsx.</p>
+      <h4>Step-by-Step</h4>
+      <ul>
+        <li><strong>1.</strong> Frontend redirects to GitHub OAuth authorize URL</li>
+        <li><strong>2.</strong> User authorizes on github.com</li>
+        <li><strong>3.</strong> GitHub redirects to <code>/api/github/callback</code> with code</li>
+        <li><strong>4.</strong> GitHubOAuthClient exchanges code for access_token</li>
+        <li><strong>5.</strong> GitHubTokenCrypto.encrypt(token) with AES</li>
+        <li><strong>6.</strong> Encrypted token saved in GitHubLink table</li>
+        <li><strong>7.</strong> User can then link repos to projects</li>
+      </ul>
+      <h4>API Calls Through GitHubClient</h4>
+      <ul>
+        <li>All GitHub API calls go through GitHubClient</li>
+        <li>Token is decrypted before each call</li>
+        <li>Rate limit headers tracked</li>
+        <li>10s timeout per request</li>
+      </ul>
+      <h4>Source Files & Responsibilities</h4>
+      <div class="file-list">
+<b>frontend/components/GitHubSection.tsx</b> — GitHub integration UI in Settings. Shows connect/disconnect button, linked repos list, repo selection for linking to projects. Handles OAuth redirect flow.<br>
+<b>backend/github/GitHubController.java</b> — GET /api/github/callback (OAuth callback, exchanges code for token), GET /api/github/status (check connection), POST /api/github/link (link repo to project), DELETE /api/github/unlink.<br>
+<b>backend/github/GitHubIntegrationService.java</b> — Manages GitHub OAuth flow: generates authorize URL, exchanges code for access_token, encrypts token via GitHubTokenCrypto, stores in GitHubLink table.<br>
+<b>backend/github/GitHubOAuthClient.java</b> — HTTP client for GitHub OAuth token exchange: POST https://github.com/login/oauth/access_token with code + client_id + client_secret. Returns access_token.<br>
+<b>backend/github/GitHubClient.java</b> — GitHub API v3 REST client: fetches commits (/repos/{owner}/{repo}/commits), issues (/repos/{owner}/{repo}/issues), PRs (/repos/{owner}/{repo}/pulls), branches (/repos/{owner}/{repo}/branches). Handles rate limits, 10s timeout, decrypts token before each call.<br>
+<b>backend/github/GitHubProjectService.java</b> — Links GitHub repos to DevSync projects: validates repo access, stores owner/repo/defaultBranch in GitHubProjectLink, fetches initial repo details.<br>
+<b>backend/github/GitHubTokenCrypto.java</b> — AES encryption/decryption for GitHub access tokens. encrypt() before storage, decrypt() before API calls. Uses GITHUB_TOKEN_ENCRYPTION_KEY env var.<br>
+<b>backend/github/GitHubWebhookController.java</b> — POST /api/webhooks/github (public endpoint). Verifies X-Hub-Signature-256, routes push/PR events to GitHubWebhookService.<br>
+<b>backend/github/GitHubWebhookService.java</b> — Processes webhook events: updates task PR status, syncs commit data, triggers notifications. Idempotent via event deduplication.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════ -->
+<!-- 07 — FEED: CREATE / EDIT / DELETE POST                         -->
+<!-- ════════════════════════════════════════════════════════════════ -->
+<div class="page full-width">
+  <h2>07 — Feed — Create / Edit / Delete Post</h2>
+  <div class="flow-container">
+    <div class="flow-svg">
+      <svg viewBox="0 0 600 560" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;">
+        <!-- Create Post -->
+        <rect x="200" y="10" width="200" height="28" rx="6" fill="#21262d" stroke="#58a6ff"/>
+        <text x="300" y="28" text-anchor="middle" fill="#58a6ff" font-size="11" font-weight="bold">Create Post</text>
+
+        <rect x="120" y="48" width="360" height="80" rx="6" fill="#21262d" stroke="#d2a8ff"/>
+        <text x="300" y="66" text-anchor="middle" fill="#d2a8ff" font-size="10" font-weight="bold">Feed.tsx → CreatePostCard</text>
+        <text x="300" y="82" text-anchor="middle" fill="#c9d1d9" font-size="9">POST /api/posts → FeedController.createPost()</text>
+        <text x="300" y="96" text-anchor="middle" fill="#c9d1d9" font-size="9">→ FeedService.createPost() → validation → save Post</text>
+        <text x="300" y="110" text-anchor="middle" fill="#c9d1d9" font-size="9">→ PostRepository.save() → Audit log → Response</text>
+
+        <!-- Edit Post -->
+        <rect x="200" y="148" width="200" height="28" rx="6" fill="#21262d" stroke="#d29922"/>
+        <text x="300" y="166" text-anchor="middle" fill="#d29922" font-size="11" font-weight="bold">Edit Post</text>
+
+        <rect x="120" y="186" width="360" height="80" rx="6" fill="#21262d" stroke="#d2a8ff"/>
+        <text x="300" y="204" text-anchor="middle" fill="#d2a8ff" font-size="10" font-weight="bold">FeedPostCard.tsx → Edit mode</text>
+        <text x="300" y="220" text-anchor="middle" fill="#c9d1d9" font-size="9">PUT /api/posts/{id} → FeedController.updatePost()</text>
+        <text x="300" y="234" text-anchor="middle" fill="#c9d1d9" font-size="9">→ Ownership check (author only) → save</text>
+        <text x="300" y="248" text-anchor="middle" fill="#c9d1d9" font-size="9">→ 403 if not author</text>
+
+        <!-- Delete Post -->
+        <rect x="200" y="286" width="200" height="28" rx="6" fill="#21262d" stroke="#f85149"/>
+        <text x="300" y="304" text-anchor="middle" fill="#f85149" font-size="11" font-weight="bold">Delete Post</text>
+
+        <rect x="120" y="324" width="360" height="80" rx="6" fill="#21262d" stroke="#d2a8ff"/>
+        <text x="300" y="342" text-anchor="middle" fill="#d2a8ff" font-size="10" font-weight="bold">FeedPostCard → Delete (with confirm dialog)</text>
+        <text x="300" y="358" text-anchor="middle" fill="#c9d1d9" font-size="9">DELETE /api/posts/{id} → FeedController.deletePost()</text>
+        <text x="300" y="372" text-anchor="middle" fill="#c9d1d9" font-size="9">→ Ownership check → cascade delete comments, reactions</text>
+        <text x="300" y="386" text-anchor="middle" fill="#c9d1d9" font-size="9">→ 403 if not author</text>
+
+        <!-- Image Upload -->
+        <rect x="200" y="424" width="200" height="28" rx="6" fill="#21262d" stroke="#79c0ff"/>
+        <text x="300" y="442" text-anchor="middle" fill="#79c0ff" font-size="11" font-weight="bold">Image on Post</text>
+
+        <rect x="120" y="462" width="360" height="70" rx="6" fill="#21262d" stroke="#d2a8ff"/>
+        <text x="300" y="480" text-anchor="middle" fill="#d2a8ff" font-size="10" font-weight="bold">CropModal → AttachmentService upload</text>
+        <text x="300" y="496" text-anchor="middle" fill="#c9d1d9" font-size="9">POST /api/attachments → file saved to disk</text>
+        <text x="300" y="510" text-anchor="middle" fill="#c9d1d9" font-size="9">PUT /api/posts/{id}/image → set image URL</text>
+        <text x="300" y="524" text-anchor="middle" fill="#8b949e" font-size="8">Image crop handled by CropModal (client-side canvas)</text>
+      </svg>
+    </div>
+    <div class="flow-explain">
+      <h4>What Starts the Flow</h4>
+      <p>User interacts with Feed.tsx page — creating, editing, or deleting posts.</p>
+      <h4>Create Post</h4>
+      <ul>
+        <li>Feed.tsx → CreatePostCard component</li>
+        <li>POST /api/posts with content (text only or with image)</li>
+        <li>FeedService.createPost() validates and saves</li>
+        <li>Content is raw text (React JSX escaping handles XSS)</li>
+        <li>Post prepended to feed in real-time</li>
+      </ul>
+      <h4>Edit Post</h4>
+      <ul>
+        <li>FeedPostCard → inline edit mode</li>
+        <li>PUT /api/posts/{id} — ownership check (author only)</li>
+        <li>Updates in-place without page reload</li>
+      </ul>
+      <h4>Delete Post</h4>
+      <ul>
+        <li>Confirmation dialog before deletion</li>
+        <li>Cascade: deletes comments, reactions</li>
+        <li>Ownership enforced server-side</li>
+      </ul>
+      <h4>Image Upload</h4>
+      <ul>
+        <li>AttachmentService handles file upload (10MB max)</li>
+        <li>CropModal provides client-side image cropping</li>
+        <li>PUT /api/posts/{id}/image links image to post</li>
+      </ul>
+      <h4>Source Files & Responsibilities</h4>
+      <div class="file-list">
+<b>frontend/pages/Feed.tsx</b> — Main feed page. Fetches paginated posts via GET /api/posts/feed, renders CreatePostCard at top, infinite scroll pagination, Live indicator showing real-time status.<br>
+<b>frontend/components/feed/FeedPostCard.tsx</b> — Individual post card component. Shows author avatar, name, timestamp, content, image (if any), like button with count, comment toggle, bookmark button, edit/delete (author-only). Handles inline editing mode.<br>
+<b>frontend/components/feed/CreatePostCard.tsx</b> — Post creation form at top of feed. Text input, image attachment button, submit. Posts are prepended to feed optimistically after API response.<br>
+<b>frontend/components/feed/CropModal.tsx</b> — Client-side image crop dialog using HTML5 Canvas. Allows user to select crop area, aspect ratio, then uploads cropped image via AttachmentService.<br>
+<b>backend/feed/FeedController.java</b> — REST endpoints: POST /api/posts (create), GET /api/posts/feed (paginated feed), PUT /api/posts/{id} (edit), DELETE /api/posts/{id} (delete), POST /api/posts/{id}/like (toggle), POST /api/posts/{postId}/comments (add), GET /api/posts/{postId}/comments (list), DELETE /api/posts/comments/{id} (delete).<br>
+<b>backend/feed/FeedService.java</b> — Core feed logic: createPost() validates + saves, getFeed() queries visible posts (hidden=false) with pagination, updatePost() checks ownership, deletePost() cascades to comments/reactions, toggleLike() adds/removes reaction, addComment() saves + creates notification for post author.<br>
+<b>backend/attachment/AttachmentService.java</b> — File upload handler: validates file type/size (10MB max), saves to disk with UUID filename, returns attachment URL. Used by CropModal for image uploads.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════ -->
+<!-- 09 — PROJECT: CREATE / UPDATE / DELETE                          -->
+<!-- ════════════════════════════════════════════════════════════════ -->
+<div class="page full-width">
+  <h2>09 — Project — Create / Update / Delete</h2>
+  <div class="flow-container">
+    <div class="flow-svg">
+      <svg viewBox="0 0 600 520" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;">
+        <!-- Create -->
+        <rect x="200" y="10" width="200" height="28" rx="6" fill="#21262d" stroke="#7ee787"/>
+        <text x="300" y="28" text-anchor="middle" fill="#7ee787" font-size="11" font-weight="bold">Create Project</text>
+
+        <rect x="80" y="48" width="440" height="80" rx="6" fill="#21262d" stroke="#d2a8ff"/>
+        <text x="300" y="66" text-anchor="middle" fill="#d2a8ff" font-size="10" font-weight="bold">Projects.tsx → CreateProjectDialog</text>
+        <text x="300" y="82" text-anchor="middle" fill="#c9d1d9" font-size="9">POST /api/projects → ProjectController.createProject()</text>
+        <text x="300" y="96" text-anchor="middle" fill="#c9d1d9" font-size="9">→ ProjectService: validate name, template, visibility</text>
+        <text x="300" y="110" text-anchor="middle" fill="#c9d1d9" font-size="9">→ Create project + OWNER member + default task statuses</text>
+        <text x="300" y="124" text-anchor="middle" fill="#c9d1d9" font-size="9">→ EntitlementService: check plan limits → save</text>
+
+        <!-- Update -->
+        <rect x="200" y="148" width="200" height="28" rx="6" fill="#21262d" stroke="#d29922"/>
+        <text x="300" y="166" text-anchor="middle" fill="#d29922" font-size="11" font-weight="bold">Update Project</text>
+
+        <rect x="80" y="186" width="440" height="70" rx="6" fill="#21262d" stroke="#d2a8ff"/>
+        <text x="300" y="204" text-anchor="middle" fill="#d2a8ff" font-size="10" font-weight="bold">ProjectWorkspace.tsx → Settings</text>
+        <text x="300" y="220" text-anchor="middle" fill="#c9d1d9" font-size="9">PUT /api/projects/{id} → ProjectController.updateProject()</text>
+        <text x="300" y="234" text-anchor="middle" fill="#c9d1d9" font-size="9">→ canManage() check (owner/admin) → update fields</text>
+        <text x="300" y="248" text-anchor="middle" fill="#c9d1d9" font-size="9">→ includes repositoryUrl (optional), name, description, visibility</text>
+
+        <!-- Delete -->
+        <rect x="200" y="276" width="200" height="28" rx="6" fill="#21262d" stroke="#f85149"/>
+        <text x="300" y="294" text-anchor="middle" fill="#f85149" font-size="11" font-weight="bold">Delete Project</text>
+
+        <rect x="80" y="314" width="440" height="60" rx="6" fill="#21262d" stroke="#d2a8ff"/>
+        <text x="300" y="332" text-anchor="middle" fill="#d2a8ff" font-size="10" font-weight="bold">ProjectWorkspace → Delete (owner only)</text>
+        <text x="300" y="348" text-anchor="middle" fill="#c9d1d9" font-size="9">DELETE /api/projects/{id} → soft delete + cascade</text>
+        <text x="300" y="362" text-anchor="middle" fill="#c9d1d9" font-size="9">→ owner check → tasks, members, messages archived</text>
+
+        <!-- Members -->
+        <rect x="200" y="394" width="200" height="28" rx="6" fill="#21262d" stroke="#79c0ff"/>
+        <text x="300" y="412" text-anchor="middle" fill="#79c0ff" font-size="11" font-weight="bold">Members &amp; Visibility</text>
+
+        <rect x="80" y="432" width="440" height="60" rx="6" fill="#21262d" stroke="#d2a8ff"/>
+        <text x="300" y="450" text-anchor="middle" fill="#d2a8ff" font-size="10" font-weight="bold">Add/Remove members, transfer ownership, visibility</text>
+        <text x="300" y="466" text-anchor="middle" fill="#c9d1d9" font-size="9">POST/DELETE /api/projects/{id}/members</text>
+        <text x="300" y="480" text-anchor="middle" fill="#c9d1d9" font-size="9">POST /api/projects/{id}/transfer-ownership</text>
+      </svg>
+    </div>
+    <div class="flow-explain">
+      <h4>What Starts the Flow</h4>
+      <p>User interacts with Projects.tsx or ProjectWorkspace.tsx.</p>
+      <h4>Create Project</h4>
+      <ul>
+        <li>CreateProjectDialog: name, description, template, visibility, repositoryUrl</li>
+        <li>EntitlementService checks plan limits (FREE: limited, PRO: unlimited)</li>
+        <li>Creates project + OWNER member + default task statuses from template</li>
+      </ul>
+      <h4>Update Project</h4>
+      <ul>
+        <li>Owner or admin can update name, description, visibility, repositoryUrl</li>
+        <li>canManage() authorization check</li>
+      </ul>
+      <h4>Delete Project</h4>
+      <ul>
+        <li>Owner only → soft delete → cascade to tasks, members, messages</li>
+      </ul>
+      <h4>Source Files & Responsibilities</h4>
+      <div class="file-list">
+<b>frontend/pages/Projects.tsx</b> — Projects list page. Shows user's projects, CreateProjectDialog for new projects (name, description, template, visibility, repositoryUrl), project cards with member count and last updated.<br>
+<b>frontend/pages/ProjectWorkspace.tsx</b> — Project detail/workspace page. Shows project settings, member list (add/remove), task board link, GitHub integration, analytics, team chat. Handles member management UI with confirmation dialogs.<br>
+<b>backend/project/ProjectController.java</b> — REST endpoints: GET /api/projects (user's projects), POST /api/projects (create), GET /api/projects/{id} (get), PUT /api/projects/{id} (update), DELETE /api/projects/{id} (delete), POST /api/projects/{id}/members (add), DELETE /api/projects/{id}/members/{userId} (remove), POST /api/projects/{id}/join (public join).<br>
+<b>backend/project/ProjectService.java</b> — Core project logic: createProject() validates name, creates project + OWNER member + default task statuses from template, checks plan limits via EntitlementService. canView() checks PUBLIC visibility + membership. canManage() checks OWNER/ADMIN role. deleteProject() soft-deletes + cascades.<br>
+<b>backend/billing/EntitlementService.java</b> — Plan limit enforcement: checks user's subscription plan against limits (max projects, max members per project, max tasks). Returns FeatureLimitException if exceeded. Used by ProjectService during creation.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════ -->
+<!-- 20-28 — REMAINING FLOWS (Social, Search, Bookmarks, etc.)      -->
+<!-- ════════════════════════════════════════════════════════════════ -->
+<div class="page full-width">
+  <h2>20–28 — Social, Search, Bookmarks, Analytics, Admin, Support, Team Rooms</h2>
+  <div class="flow-container">
+    <div class="flow-svg">
+      <svg viewBox="0 0 700 660" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;">
+        <!-- Follow/Unfollow -->
+        <rect x="20" y="10" width="200" height="28" rx="6" fill="#21262d" stroke="#d2a8ff"/>
+        <text x="120" y="28" text-anchor="middle" fill="#d2a8ff" font-size="10" font-weight="bold">20. Follow / Unfollow</text>
+        <rect x="20" y="42" width="200" height="60" rx="6" fill="#161b22" stroke="#30363d"/>
+        <text x="120" y="58" text-anchor="middle" fill="#c9d1d9" font-size="8">POST /api/connections/follow</text>
+        <text x="120" y="72" text-anchor="middle" fill="#c9d1d9" font-size="8">→ FollowService.toggleFollow()</text>
+        <text x="120" y="86" text-anchor="middle" fill="#c9d1d9" font-size="8">→ Connection table + notification</text>
+        <text x="120" y="98" text-anchor="middle" fill="#8b949e" font-size="7">Rate: 30/min per user</text>
+
+        <!-- Search -->
+        <rect x="250" y="10" width="200" height="28" rx="6" fill="#21262d" stroke="#d2a8ff"/>
+        <text x="350" y="28" text-anchor="middle" fill="#d2a8ff" font-size="10" font-weight="bold">21. Search</text>
+        <rect x="250" y="42" width="200" height="60" rx="6" fill="#161b22" stroke="#30363d"/>
+        <text x="350" y="58" text-anchor="middle" fill="#c9d1d9" font-size="8">GET /api/search?q=...</text>
+        <text x="350" y="72" text-anchor="middle" fill="#c9d1d9" font-size="8">→ SearchService: users + projects</text>
+        <text x="350" y="86" text-anchor="middle" fill="#c9d1d9" font-size="8">→ Respects project visibility</text>
+        <text x="350" y="98" text-anchor="middle" fill="#8b949e" font-size="7">Members only for private projects</text>
+
+        <!-- Bookmarks -->
+        <rect x="480" y="10" width="200" height="28" rx="6" fill="#21262d" stroke="#d2a8ff"/>
+        <text x="580" y="28" text-anchor="middle" fill="#d2a8ff" font-size="10" font-weight="bold">22. Bookmarks</text>
+        <rect x="480" y="42" width="200" height="60" rx="6" fill="#161b22" stroke="#30363d"/>
+        <text x="580" y="58" text-anchor="middle" fill="#c9d1d9" font-size="8">POST /api/bookmarks/{postId}</text>
+        <text x="580" y="72" text-anchor="middle" fill="#c9d1d9" font-size="8">→ BookmarkService.toggle()</text>
+        <text x="580" y="86" text-anchor="middle" fill="#c9d1d9" font-size="8">→ GET /api/bookmarks (user's only)</text>
+        <text x="580" y="98" text-anchor="middle" fill="#8b949e" font-size="7">User can only see own bookmarks</text>
+
+        <!-- Analytics -->
+        <rect x="20" y="120" width="200" height="28" rx="6" fill="#21262d" stroke="#79c0ff"/>
+        <text x="120" y="138" text-anchor="middle" fill="#79c0ff" font-size="10" font-weight="bold">23. Analytics</text>
+        <rect x="20" y="152" width="200" height="60" rx="6" fill="#161b22" stroke="#30363d"/>
+        <text x="120" y="168" text-anchor="middle" fill="#c9d1d9" font-size="8">GET /api/analytics/{projectId}</text>
+        <text x="120" y="182" text-anchor="middle" fill="#c9d1d9" font-size="8">→ AnalyticsService: task stats</text>
+        <text x="120" y="196" text-anchor="middle" fill="#c9d1d9" font-size="8">→ canView() check (owner/admin)</text>
+        <text x="120" y="208" text-anchor="middle" fill="#8b949e" font-size="7">Project members only</text>
+
+        <!-- Admin -->
+        <rect x="250" y="120" width="200" height="28" rx="6" fill="#21262d" stroke="#f85149"/>
+        <text x="350" y="138" text-anchor="middle" fill="#f85149" font-size="10" font-weight="bold">24-26. Admin</text>
+        <rect x="250" y="152" width="200" height="90" rx="6" fill="#161b22" stroke="#30363d"/>
+        <text x="350" y="168" text-anchor="middle" fill="#c9d1d9" font-size="8">AdminService: user/project mgmt</text>
+        <text x="350" y="182" text-anchor="middle" fill="#c9d1d9" font-size="8">AdminModeration: block/delete</text>
+        <text x="350" y="196" text-anchor="middle" fill="#c9d1d9" font-size="8">ReportAdmin: review reports</text>
+        <text x="350" y="210" text-anchor="middle" fill="#c9d1d9" font-size="8">AuditLogService: audit trail</text>
+        <text x="350" y="224" text-anchor="middle" fill="#c9d1d9" font-size="8">AdminBilling: refund management</text>
+        <text x="350" y="238" text-anchor="middle" fill="#8b949e" font-size="7">All /api/admin/** → hasRole("ADMIN")</text>
+
+        <!-- Support -->
+        <rect x="480" y="120" width="200" height="28" rx="6" fill="#21262d" stroke="#d29922"/>
+        <text x="580" y="138" text-anchor="middle" fill="#d29922" font-size="10" font-weight="bold">27. Support Tickets</text>
+        <rect x="480" y="152" width="200" height="70" rx="6" fill="#161b22" stroke="#30363d"/>
+        <text x="580" y="168" text-anchor="middle" fill="#c9d1d9" font-size="8">POST /api/support/tickets</text>
+        <text x="580" y="182" text-anchor="middle" fill="#c9d1d9" font-size="8">→ SupportTicketService</text>
+        <text x="580" y="196" text-anchor="middle" fill="#c9d1d9" font-size="8">→ Status: OPEN→IN_PROGRESS→RESOLVED</text>
+        <text x="580" y="210" text-anchor="middle" fill="#c9d1d9" font-size="8">→ Admin reply + email notification</text>
+        <text x="580" y="222" text-anchor="middle" fill="#8b949e" font-size="7">Priority: LOW/MEDIUM/HIGH/CRITICAL</text>
+
+        <!-- Team Rooms -->
+        <rect x="20" y="250" width="200" height="28" rx="6" fill="#21262d" stroke="#79c0ff"/>
+        <text x="120" y="268" text-anchor="middle" fill="#79c0ff" font-size="10" font-weight="bold">28. Team Rooms</text>
+        <rect x="20" y="282" width="200" height="70" rx="6" fill="#161b22" stroke="#30363d"/>
+        <text x="120" y="298" text-anchor="middle" fill="#c9d1d9" font-size="8">POST /api/rooms (create)</text>
+        <text x="120" y="312" text-anchor="middle" fill="#c9d1d9" font-size="8">→ TeamRoomService.createRoom()</text>
+        <text x="120" y="326" text-anchor="middle" fill="#c9d1d9" font-size="8">→ Participants + WebSocket topic</text>
+        <text x="120" y="340" text-anchor="middle" fill="#c9d1d9" font-size="8">→ Real-time messaging within room</text>
+        <text x="120" y="352" text-anchor="middle" fill="#8b949e" font-size="7">Room = project-scoped team chat</text>
+
+        <!-- Invitations -->
+        <rect x="250" y="250" width="200" height="28" rx="6" fill="#21262d" stroke="#d2a8ff"/>
+        <text x="350" y="268" text-anchor="middle" fill="#d2a8ff" font-size="10" font-weight="bold">Invitations &amp; Join Requests</text>
+        <rect x="250" y="282" width="200" height="70" rx="6" fill="#161b22" stroke="#30363d"/>
+        <text x="350" y="298" text-anchor="middle" fill="#c9d1d9" font-size="8">InvitationService: invite users</text>
+        <text x="350" y="312" text-anchor="middle" fill="#c9d1d9" font-size="8">JoinRequestService: request access</text>
+        <text x="350" y="326" text-anchor="middle" fill="#c9d1d9" font-size="8">→ Accept/Reject with notification</text>
+        <text x="350" y="340" text-anchor="middle" fill="#c9d1d9" font-size="8">→ Rate: 10/min per user</text>
+        <text x="350" y="352" text-anchor="middle" fill="#8b949e" font-size="7">For PRIVATE projects only</text>
+
+        <!-- Notifications -->
+        <rect x="480" y="250" width="200" height="28" rx="6" fill="#21262d" stroke="#79c0ff"/>
+        <text x="580" y="268" text-anchor="middle" fill="#79c0ff" font-size="10" font-weight="bold">Notifications</text>
+        <rect x="480" y="282" width="200" height="70" rx="6" fill="#161b22" stroke="#30363d"/>
+        <text x="580" y="298" text-anchor="middle" fill="#c9d1d9" font-size="8">REST: GET /api/notifications</text>
+        <text x="580" y="312" text-anchor="middle" fill="#c9d1d9" font-size="8">WS: /user/topic/notifications/{id}</text>
+        <text x="580" y="326" text-anchor="middle" fill="#c9d1d9" font-size="8">→ NotificationService.create()</text>
+        <text x="580" y="340" text-anchor="middle" fill="#c9d1d9" font-size="8">→ Types: follow, invite, comment, etc.</text>
+        <text x="580" y="352" text-anchor="middle" fill="#8b949e" font-size="7">Push + persisted + read status</text>
+
+        <!-- Pricing/Plans -->
+        <rect x="20" y="380" width="660" height="28" rx="6" fill="#21262d" stroke="#7ee787"/>
+        <text x="350" y="398" text-anchor="middle" fill="#7ee787" font-size="10" font-weight="bold">Plan Catalog (Backend-seeded)</text>
+        <rect x="20" y="412" width="320" height="70" rx="6" fill="#161b22" stroke="#30363d"/>
+        <text x="180" y="428" text-anchor="middle" fill="#c9d1d9" font-size="8">PlanSeeder: FREE / STARTER / PRO / ENTERPRISE</text>
+        <text x="180" y="442" text-anchor="middle" fill="#c9d1d9" font-size="8">PlanBillingValidator: upgrade/downgrade rules</text>
+        <text x="180" y="456" text-anchor="middle" fill="#c9d1d9" font-size="8">EntitlementService: limit enforcement</text>
+        <text x="180" y="470" text-anchor="middle" fill="#c9d1d9" font-size="8">SubscriptionScheduler: auto-expire + reminders</text>
+        <text x="180" y="482" text-anchor="middle" fill="#8b949e" font-size="7">Per-user limits on projects, members, etc.</text>
+
+        <rect x="360" y="412" width="320" height="70" rx="6" fill="#161b22" stroke="#30363d"/>
+        <text x="520" y="428" text-anchor="middle" fill="#c9d1d9" font-size="8">PUBLIC project: anyone can discover/join</text>
+        <text x="520" y="442" text-anchor="middle" fill="#c9d1d9" font-size="8">PRIVATE project: invite/request only</text>
+        <text x="520" y="456" text-anchor="middle" fill="#c9d1d9" font-size="8">Role hierarchy: OWNER > ADMIN > MEMBER</text>
+        <text x="520" y="470" text-anchor="middle" fill="#c9d1d9" font-size="8">canManage() checks role for mutations</text>
+        <text x="520" y="482" text-anchor="middle" fill="#8b949e" font-size="7">Ownership transfer supported</text>
+
+        <!-- Database -->
+        <rect x="20" y="500" width="660" height="28" rx="6" fill="#21262d" stroke="#7ee787"/>
+        <text x="350" y="518" text-anchor="middle" fill="#7ee787" font-size="10" font-weight="bold">Database (MySQL 8 / H2)</text>
+        <rect x="20" y="532" width="220" height="100" rx="6" fill="#161b22" stroke="#30363d"/>
+        <text x="130" y="548" text-anchor="middle" fill="#c9d1d9" font-size="8" font-weight="bold">Auth Domain</text>
+        <text x="130" y="562" text-anchor="middle" fill="#c9d1d9" font-size="7">user, refresh_token, pending_registration</text>
+        <text x="130" y="576" text-anchor="middle" fill="#c9d1d9" font-size="7">account_token</text>
+        <text x="130" y="590" text-anchor="middle" fill="#c9d1d9" font-size="8" font-weight="bold">Project Domain</text>
+        <text x="130" y="604" text-anchor="middle" fill="#c9d1d9" font-size="7">project, project_member, project_invitation</text>
+        <text x="130" y="618" text-anchor="middle" fill="#c9d1d9" font-size="7">join_request, pinned_project</text>
+        <text x="130" y="630" text-anchor="middle" fill="#8b949e" font-size="7">UUID primary keys, indexed</text>
+
+        <rect x="250" y="532" width="220" height="100" rx="6" fill="#161b22" stroke="#30363d"/>
+        <text x="360" y="548" text-anchor="middle" fill="#c9d1d9" font-size="8" font-weight="bold">Billing Domain</text>
+        <text x="360" y="562" text-anchor="middle" fill="#c9d1d9" font-size="7">plan, subscription, payment</text>
+        <text x="360" y="576" text-anchor="middle" fill="#c9d1d9" font-size="7">refund_request, webhook_event</text>
+        <text x="360" y="590" text-anchor="middle" fill="#c9d1d9" font-size="8" font-weight="bold">Messaging Domain</text>
+        <text x="360" y="604" text-anchor="middle" fill="#c9d1d9" font-size="7">conversation, message, participant</text>
+        <text x="360" y="618" text-anchor="middle" fill="#c9d1d9" font-size="7">message_read, team_room</text>
+        <text x="360" y="630" text-anchor="middle" fill="#8b949e" font-size="7">PESSIMISTIC locks on payments</text>
+
+        <rect x="480" y="532" width="200" height="100" rx="6" fill="#161b22" stroke="#30363d"/>
+        <text x="580" y="548" text-anchor="middle" fill="#c9d1d9" font-size="8" font-weight="bold">Social / Other</text>
+        <text x="580" y="562" text-anchor="middle" fill="#c9d1d9" font-size="7">connection (follow), bookmark</text>
+        <text x="580" y="576" text-anchor="middle" fill="#c9d1d9" font-size="7">post, comment, reaction</text>
+        <text x="580" y="590" text-anchor="middle" fill="#c9d1d9" font-size="7">notification, attachment</text>
+        <text x="580" y="604" text-anchor="middle" fill="#c9d1d9" font-size="7">task, task_status</text>
+        <text x="580" y="618" text-anchor="middle" fill="#c9d1d9" font-size="7">github_link, github_project_link</text>
+        <text x="580" y="630" text-anchor="middle" fill="#8b949e" font-size="7">Flyway-managed migrations</text>
+      </svg>
+    </div>
+    <div class="flow-explain">
+      <h4>20. Follow / Unfollow</h4>
+      <ul>
+        <li>FollowService.toggleFollow() — Connection table</li>
+        <li>Notification sent to followed user</li>
+        <li>Rate-limited: 30/min per user</li>
+      </ul>
+      <h4>21. Search</h4>
+      <ul>
+        <li>SearchService: searches users + projects</li>
+        <li>Respects project visibility (private = members only)</li>
+      </ul>
+      <h4>22. Bookmarks</h4>
+      <ul>
+        <li>BookmarkService.toggle() — user-scoped</li>
+        <li>GET /api/bookmarks returns only user's own</li>
+      </ul>
+      <h4>23. Analytics</h4>
+      <ul>
+        <li>AnalyticsService: task completion, burndown</li>
+        <li>canView() check: owner/admin/project member</li>
+      </ul>
+      <h4>24-26. Admin</h4>
+      <ul>
+        <li>AdminService: user/project management</li>
+        <li>AdminModeration: block/delete users</li>
+        <li>ReportAdmin: review user reports</li>
+        <li>AuditLogService: full audit trail</li>
+        <li>AdminBilling: refund management</li>
+      </ul>
+      <h4>27. Support</h4>
+      <ul>
+        <li>SupportTicketService: user tickets</li>
+        <li>Priority: LOW → CRITICAL</li>
+        <li>Status: OPEN → IN_PROGRESS → RESOLVED</li>
+      </ul>
+      <h4>28. Team Rooms</h4>
+      <ul>
+        <li>TeamRoomService: project-scoped chat rooms</li>
+        <li>WebSocket real-time messaging</li>
+      </ul>
+      <h4>Source Files & Responsibilities</h4>
+      <div class="file-list">
+<b>social/FollowController.java</b> — POST /api/connections/follow (toggle follow), GET /api/connections/followers, GET /api/connections/following. Rate: 30/min.<br>
+<b>social/FollowService.java</b> — toggleFollow() creates/deletes Connection record, sends notification to followed user, updates follower/following counts.<br>
+<b>search/SearchController.java</b> — GET /api/search?q=... — searches users by name/username and projects by name. Respects project visibility.<br>
+<b>search/SearchService.java</b> — Searches users (LIKE query on fullName, username) and projects (LIKE on name, description where visibility=PUBLIC or user is member). Returns combined results.<br>
+<b>bookmark/BookmarkController.java</b> — POST /api/bookmarks/{postId} (toggle), GET /api/bookmarks (user's bookmarks only).<br>
+<b>bookmark/BookmarkService.java</b> — toggle() adds/removes Bookmark record. getBookmarks() returns user's bookmarked posts with author info.<br>
+<b>analytics/AnalyticsController.java</b> — GET /api/analytics/{projectId} — project analytics. canView() checks owner/admin membership.<br>
+<b>analytics/AnalyticsService.java</b> — Computes task completion rates, burndown data, member activity stats for a project. Uses aggregate queries.<br>
+<b>admin/AdminController.java</b> — Admin dashboard: GET /api/admin/stats (user/project/revenue counts), user/project listing with filters.<br>
+<b>admin/AdminService.java</b> — Admin operations: listUsers(), listProjects(), deleteUser(), deleteProject(), getStats(). All admin-only.<br>
+<b>admin/AdminModerationService.java</b> — Block/unblock users, hide/unhide posts, moderate content. Creates audit log entries.<br>
+<b>admin/AdminReviewController.java</b> — Admin review management: list reviews, respond to reviews, delete inappropriate reviews.<br>
+<b>report/ReportAdminController.java</b> — Admin report management: list reports, update status, take action on reported content/users.<br>
+<b>report/ReportAdminService.java</b> — Processes moderation reports: validates report, updates status, takes action (hide content, warn user, etc.).<br>
+<b>audit/AuditLogService.java</b> — Records all mutations: who did what, when, target, status, IP address. Used for compliance and debugging.<br>
+<b>support/SupportTicketController.java</b> — User support: POST /api/support/tickets (create), GET /api/support/tickets (list), POST reply.<br>
+<b>support/SupportTicketService.java</b> — Ticket lifecycle: create (OPEN) → assign → reply (IN_PROGRESS) → resolve (RESOLVED). Sends email notifications on status change.<br>
+<b>teamroom/TeamRoomController.java</b> — Project-scoped chat rooms: POST /api/rooms (create), GET /api/rooms (list), POST /api/rooms/{id}/join.<br>
+<b>teamroom/TeamRoomService.java</b> — Room management: create room for project, add/remove participants, list rooms user belongs to.<br>
+<b>collab/InvitationService.java</b> — Project invitations: send, accept, reject, list pending. Rate: 10/min. For PRIVATE projects only.<br>
+<b>collab/JoinRequestService.java</b> — Join requests for PRIVATE projects: request, approve, reject. Creates notification on status change.<br>
+<b>notification/NotificationController.java</b> — GET /api/notifications (list), PUT /api/notifications/{id}/read (mark read), PUT /api/notifications/read-all.<br>
+<b>notification/NotificationService.java</b> — Creates notifications for: follows, invitations, join requests, comments, mentions. Broadcasts via WebSocket to /user/topic/notifications/{userId}.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════ -->
+<!-- 30 — DATABASE SCHEMA                                           -->
+<!-- ════════════════════════════════════════════════════════════════ -->
+<div class="page full-width">
+  <h2>30 — Database Schema &amp; Migrations</h2>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:10px;">
+    <div>
+      <h4>Auth Domain</h4>
+      <table>
+        <tr><th>Table</th><th>Key Columns</th></tr>
+        <tr><td><strong>user</strong></td><td>id (UUID), email, password, full_name, username, auth_provider, role (USER/ADMIN), avatar_url, is_blocked, is_deleted, email_verified, last_login_at</td></tr>
+        <tr><td><strong>refresh_token</strong></td><td>id (UUID), user_id, token (hashed), ip_address, user_agent, revoked, expires_at</td></tr>
+        <tr><td><strong>pending_registration</strong></td><td>id, email, password_hash, full_name, username, otp_hash, expires_at, failed_attempts</td></tr>
+        <tr><td><strong>account_token</strong></td><td>id, user_id, token, type (PASSWORD_RESET/EMAIL_VERIFY), expires_at, used</td></tr>
+      </table>
+
+      <h4 style="margin-top:12px;">Project Domain</h4>
+      <table>
+        <tr><th>Table</th><th>Key Columns</th></tr>
+        <tr><td><strong>project</strong></td><td>id (UUID), name, description, visibility (PUBLIC/PRIVATE), owner_id, template, repository_url, deleted</td></tr>
+        <tr><td><strong>project_member</strong></td><td>id, project_id, user_id, role (OWNER/ADMIN/MEMBER)</td></tr>
+        <tr><td><strong>project_invitation</strong></td><td>id, project_id, inviter_id, invitee_id, status, expires_at</td></tr>
+        <tr><td><strong>join_request</strong></td><td>id, project_id, user_id, status, message</td></tr>
+        <tr><td><strong>pinned_project</strong></td><td>id, user_id, project_id</td></tr>
+      </table>
+
+      <h4 style="margin-top:12px;">Billing Domain</h4>
+      <table>
+        <tr><th>Table</th><th>Key Columns</th></tr>
+        <tr><td><strong>plan</strong></td><td>code (FREE/STARTER/PRO/ENTERPRISE), name, price, features (JSON)</td></tr>
+        <tr><td><strong>subscription</strong></td><td>id, user_id, plan_code, status (ACTIVE/CANCELLED/PAST_DUE/TRIALING), provider, provider_subscription_id, current_period_end</td></tr>
+        <tr><td><strong>payment</strong></td><td>id, user_id, plan_code, amount, currency, status (PENDING/SUCCESS/FAILED/REFUNDED), provider, provider_order_id, provider_payment_id</td></tr>
+        <tr><td><strong>refund_request</strong></td><td>id, user_id, payment_id, reason, status (PENDING/APPROVED/REJECTED/COMPLETED), reviewed_by</td></tr>
+        <tr><td><strong>webhook_event</strong></td><td>id, event_id (unique), provider, processed_at</td></tr>
+      </table>
+    </div>
+    <div>
+      <h4>Feed Domain</h4>
+      <table>
+        <tr><th>Table</th><th>Key Columns</th></tr>
+        <tr><td><strong>post</strong></td><td>id (UUID), user_id, content, image_url, hidden, created_at</td></tr>
+        <tr><td><strong>comment</strong></td><td>id (UUID), post_id, user_id, content</td></tr>
+        <tr><td><strong>reaction</strong></td><td>id, user_id, target_id, target_type (POST/COMMENT), reaction_type</td></tr>
+      </table>
+
+      <h4 style="margin-top:12px;">Messaging Domain</h4>
+      <table>
+        <tr><th>Table</th><th>Key Columns</th></tr>
+        <tr><td><strong>conversation</strong></td><td>id (UUID), type (DM/ROOM), room_id, name</td></tr>
+        <tr><td><strong>message</strong></td><td>id (UUID), conversation_id, sender_id, content, parent_message_id, deleted</td></tr>
+        <tr><td><strong>participant</strong></td><td>id, conversation_id, user_id, last_read_at</td></tr>
+        <tr><td><strong>message_read</strong></td><td>id, message_id, user_id, read_at</td></tr>
+        <tr><td><strong>team_room</strong></td><td>id (UUID), project_id, name, description</td></tr>
+      </table>
+
+      <h4 style="margin-top:12px;">GitHub Domain</h4>
+      <table>
+        <tr><th>Table</th><th>Key Columns</th></tr>
+        <tr><td><strong>github_link</strong></td><td>id, user_id, github_username, encrypted_token, connected_at</td></tr>
+        <tr><td><strong>github_project_link</strong></td><td>id, project_id, owner, repo, default_branch, github_link_id</td></tr>
+      </table>
+
+      <h4 style="margin-top:12px;">Social / Other</h4>
+      <table>
+        <tr><th>Table</th><th>Key Columns</th></tr>
+        <tr><td><strong>connection</strong></td><td>id, follower_id, following_id (unique pair)</td></tr>
+        <tr><td><strong>bookmark</strong></td><td>id, user_id, post_id</td></tr>
+        <tr><td><strong>notification</strong></td><td>id, user_id, type, message, read, entity_id, entity_type</td></tr>
+        <tr><td><strong>attachment</strong></td><td>id, user_id, filename, original_filename, content_type, size, url</td></tr>
+        <tr><td><strong>task</strong></td><td>id, project_id, title, description, status_id, assignee_id, priority, due_date</td></tr>
+        <tr><td><strong>task_status</strong></td><td>id, project_id, name, position, color</td></tr>
+        <tr><td><strong>audit_log</strong></td><td>id, actor_id, target_id, action, status, details, ip_address</td></tr>
+        <tr><td><strong>support_ticket</strong></td><td>id, user_id, subject, description, status, priority, assigned_to</td></tr>
+        <tr><td><strong>review</strong></td><td>id, user_id, rating, comment, is_private</td></tr>
+        <tr><td><strong>feedback</strong></td><td>id, user_id, type, content</td></tr>
+        <tr><td><strong>report</strong></td><td>id, reporter_id, target_id, target_type, reason, status</td></tr>
+      </table>
+    </div>
+  </div>
+  <div class="note" style="margin-top:12px;">
+    <strong>Migration:</strong> Flyway-managed SQL files in <code>backend/src/main/resources/db/migration/</code>. 
+    UUID primary keys across all tables. JPA <code>ddl-auto: validate</code> — schema must match entities. 
+    H2 in-memory for dev/test profiles, MySQL 8 for production.
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════ -->
+<!-- 32 — END-TO-END BUSINESS JOURNEY                               -->
+<!-- ════════════════════════════════════════════════════════════════ -->
+<div class="page full-width">
+  <h2>32 — End-to-End Business Journey</h2>
+  <div class="flow-container">
+    <div class="flow-svg">
+      <svg viewBox="0 0 800 640" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;">
+        <!-- Journey steps -->
+        <rect x="10" y="10" width="120" height="40" rx="8" fill="#1f6feb" opacity="0.2" stroke="#58a6ff"/>
+        <text x="70" y="34" text-anchor="middle" fill="#58a6ff" font-size="10" font-weight="bold">1. Sign Up</text>
+
+        <line x1="130" y1="30" x2="160" y2="30" stroke="#58a6ff" stroke-width="2" marker-end="url(#arr)"/>
+
+        <rect x="162" y="10" width="120" height="40" rx="8" fill="#21262d" stroke="#79c0ff"/>
+        <text x="222" y="34" text-anchor="middle" fill="#79c0ff" font-size="10" font-weight="bold">2. Verify OTP</text>
+
+        <line x1="282" y1="30" x2="312" y2="30" stroke="#58a6ff" stroke-width="2" marker-end="url(#arr)"/>
+
+        <rect x="314" y="10" width="120" height="40" rx="8" fill="#21262d" stroke="#7ee787"/>
+        <text x="374" y="34" text-anchor="middle" fill="#7ee787" font-size="10" font-weight="bold">3. Login</text>
+
+        <line x1="434" y1="30" x2="464" y2="30" stroke="#58a6ff" stroke-width="2" marker-end="url(#arr)"/>
+
+        <rect x="466" y="10" width="120" height="40" rx="8" fill="#21262d" stroke="#d2a8ff"/>
+        <text x="526" y="34" text-anchor="middle" fill="#d2a8ff" font-size="10" font-weight="bold">4. Dashboard</text>
+
+        <line x1="586" y1="30" x2="616" y2="30" stroke="#58a6ff" stroke-width="2" marker-end="url(#arr)"/>
+
+        <rect x="618" y="10" width="120" height="40" rx="8" fill="#21262d" stroke="#d2a8ff"/>
+        <text x="678" y="34" text-anchor="middle" fill="#d2a8ff" font-size="10" font-weight="bold">5. Create Project</text>
+
+        <!-- Second row -->
+        <rect x="10" y="70" width="120" height="40" rx="8" fill="#21262d" stroke="#d2a8ff"/>
+        <text x="70" y="94" text-anchor="middle" fill="#d2a8ff" font-size="10" font-weight="bold">6. Invite Members</text>
+
+        <line x1="130" y1="90" x2="160" y2="90" stroke="#58a6ff" stroke-width="2" marker-end="url(#arr)"/>
+
+        <rect x="162" y="70" width="120" height="40" rx="8" fill="#21262d" stroke="#79c0ff"/>
+        <text x="222" y="94" text-anchor="middle" fill="#79c0ff" font-size="10" font-weight="bold">7. Kanban Board</text>
+
+        <line x1="282" y1="90" x2="312" y2="90" stroke="#58a6ff" stroke-width="2" marker-end="url(#arr)"/>
+
+        <rect x="314" y="70" width="120" height="40" rx="8" fill="#21262d" stroke="#79c0ff"/>
+        <text x="374" y="94" text-anchor="middle" fill="#79c0ff" font-size="10" font-weight="bold">8. Team Chat</text>
+
+        <line x1="434" y1="90" x2="464" y2="90" stroke="#58a6ff" stroke-width="2" marker-end="url(#arr)"/>
+
+        <rect x="466" y="70" width="120" height="40" rx="8" fill="#21262d" stroke="#d29922"/>
+        <text x="526" y="94" text-anchor="middle" fill="#d29922" font-size="10" font-weight="bold">9. Link GitHub</text>
+
+        <line x1="586" y1="90" x2="616" y2="90" stroke="#58a6ff" stroke-width="2" marker-end="url(#arr)"/>
+
+        <rect x="618" y="70" width="120" height="40" rx="8" fill="#21262d" stroke="#d29922"/>
+        <text x="678" y="94" text-anchor="middle" fill="#d29922" font-size="10" font-weight="bold">10. View PRs</text>
+
+        <!-- Third row -->
+        <rect x="10" y="130" width="120" height="40" rx="8" fill="#21262d" stroke="#d2a8ff"/>
+        <text x="70" y="154" text-anchor="middle" fill="#d2a8ff" font-size="10" font-weight="bold">11. Feed Post</text>
+
+        <line x1="130" y1="150" x2="160" y2="150" stroke="#58a6ff" stroke-width="2" marker-end="url(#arr)"/>
+
+        <rect x="162" y="130" width="120" height="40" rx="8" fill="#21262d" stroke="#d2a8ff"/>
+        <text x="222" y="154" text-anchor="middle" fill="#d2a8ff" font-size="10" font-weight="bold">12. Get Comments</text>
+
+        <line x1="282" y1="150" x2="312" y2="150" stroke="#58a6ff" stroke-width="2" marker-end="url(#arr)"/>
+
+        <rect x="314" y="130" width="120" height="40" rx="8" fill="#21262d" stroke="#79c0ff"/>
+        <text x="374" y="154" text-anchor="middle" fill="#79c0ff" font-size="10" font-weight="bold">13. Notifications</text>
+
+        <line x1="434" y1="150" x2="464" y2="150" stroke="#58a6ff" stroke-width="2" marker-end="url(#arr)"/>
+
+        <rect x="466" y="130" width="120" height="40" rx="8" fill="#21262d" stroke="#d2a8ff"/>
+        <text x="526" y="154" text-anchor="middle" fill="#d2a8ff" font-size="10" font-weight="bold">14. Follow Users</text>
+
+        <line x1="586" y1="150" x2="616" y2="150" stroke="#58a6ff" stroke-width="2" marker-end="url(#arr)"/>
+
+        <rect x="618" y="130" width="120" height="40" rx="8" fill="#21262d" stroke="#7ee787"/>
+        <text x="678" y="154" text-anchor="middle" fill="#7ee787" font-size="10" font-weight="bold">15. Network</text>
+
+        <!-- Detailed flow below -->
+        <line x1="400" y1="170" x2="400" y2="190" stroke="#58a6ff" stroke-width="2" marker-end="url(#arr)"/>
+
+        <rect x="100" y="192" width="600" height="120" rx="8" fill="#21262d" stroke="#d29922"/>
+        <text x="400" y="210" text-anchor="middle" fill="#d29922" font-size="12" font-weight="bold">16. Upgrade to PRO (Optional)</text>
+        <text x="400" y="230" text-anchor="middle" fill="#c9d1d9" font-size="10">User visits Billing → selects PRO plan → Razorpay/Stripe checkout</text>
+        <text x="400" y="246" text-anchor="middle" fill="#c9d1d9" font-size="10">→ Webhook confirms → Subscription activated → Unlimited projects</text>
+        <text x="400" y="262" text-anchor="middle" fill="#c9d1d9" font-size="10">→ EntitlementService unlocks PRO features</text>
+        <text x="400" y="280" text-anchor="middle" fill="#8b949e" font-size="9">Free tier: limited projects/members. PRO: unlimited.</text>
+        <text x="400" y="296" text-anchor="middle" fill="#8b949e" font-size="9">Refund: user requests → admin approves → webhook completes → subscription revoked</text>
+
+        <line x1="400" y1="312" x2="400" y2="330" stroke="#58a6ff" stroke-width="2" marker-end="url(#arr)"/>
+
+        <rect x="100" y="332" width="600" height="120" rx="8" fill="#21262d" stroke="#79c0ff"/>
+        <text x="400" y="350" text-anchor="middle" fill="#79c0ff" font-size="12" font-weight="bold">17. Real-time Collaboration</text>
+        <text x="400" y="370" text-anchor="middle" fill="#c9d1d9" font-size="10">WebSocket connects → STOMP subscribe to project topics</text>
+        <text x="400" y="386" text-anchor="middle" fill="#c9d1d9" font-size="10">→ Team messages delivered in real-time</text>
+        <text x="400" y="402" text-anchor="middle" fill="#c9d1d9" font-size="10">→ Typing indicators show who's composing</text>
+        <text x="400" y="418" text-anchor="middle" fill="#c9d1d9" font-size="10">→ Presence shows online/offline status</text>
+        <text x="400" y="436" text-anchor="middle" fill="#c9d1d9" font-size="10">→ GitHub webhook auto-links PRs to tasks</text>
+
+        <line x1="400" y1="452" x2="400" y2="470" stroke="#58a6ff" stroke-width="2" marker-end="url(#arr)"/>
+
+        <rect x="100" y="472" width="600" height="100" rx="8" fill="#21262d" stroke="#7ee787"/>
+        <text x="400" y="490" text-anchor="middle" fill="#7ee787" font-size="12" font-weight="bold">18. Analytics &amp; Reports</text>
+        <text x="400" y="510" text-anchor="middle" fill="#c9d1d9" font-size="10">→ Project analytics: task completion, burndown charts</text>
+        <text x="400" y="526" text-anchor="middle" fill="#c9d1d9" font-size="10">→ User analytics: posts, comments, contributions</text>
+        <text x="400" y="542" text-anchor="middle" fill="#c9d1d9" font-size="10">→ Admin dashboard: user stats, project stats, revenue</text>
+        <text x="400" y="558" text-anchor="middle" fill="#8b949e" font-size="9">Full audit trail for all administrative actions</text>
+
+        <rect x="100" y="590" width="600" height="40" rx="8" fill="#0d2a4a" stroke="#79c0ff"/>
+        <text x="400" y="614" text-anchor="middle" fill="#79c0ff" font-size="11" font-weight="bold">All cross-cutting: JWT auth, CSRF, rate limiting, audit logging, notifications, email</text>
+      </svg>
+    </div>
+    <div class="flow-explain">
+      <h4>End-to-End Journey</h4>
+      <ol style="padding-left:16px;">
+        <li><strong>Sign Up</strong> → OTP verification → Account created</li>
+        <li><strong>Login</strong> → JWT in HttpOnly cookies</li>
+        <li><strong>Dashboard</strong> → Overview of projects, recent activity</li>
+        <li><strong>Create Project</strong> → Set visibility, template</li>
+        <li><strong>Invite Members</strong> → Invitations / join requests</li>
+        <li><strong>Kanban Board</strong> → Task management with drag-drop</li>
+        <li><strong>Team Chat</strong> → Real-time messaging via WebSocket</li>
+        <li><strong>Link GitHub</strong> → OAuth → encrypted token stored</li>
+        <li><strong>Feed</strong> → Posts, comments, likes, bookmarks</li>
+        <li><strong>Follow Users</strong> → Build network</li>
+        <li><strong>Notifications</strong> → Real-time push + persisted</li>
+        <li><strong>Upgrade</strong> → PRO plan via Razorpay/Stripe</li>
+        <li><strong>Analytics</strong> → Task stats, burndown charts</li>
+        <li><strong>Admin</strong> → User management, moderation, billing</li>
+      </ol>
+      <h4>Cross-Cutting Concerns</h4>
+      <ul>
+        <li>JWT authentication on every request</li>
+        <li>CSRF protection on state-changing requests</li>
+        <li>Rate limiting on abuse-prone endpoints</li>
+        <li>Audit logging on all mutations</li>
+        <li>Real-time notifications via WebSocket</li>
+        <li>Email notifications (OTP, password reset, support)</li>
+      </ul>
+      <h4>Source Files</h4>
+      <div class="file-list">
+frontend: main.tsx (routing), Auth.tsx, Dashboard.tsx<br>
+frontend: Feed.tsx, Messages.tsx, Projects.tsx<br>
+frontend: Billing.tsx, BoardPage.tsx<br>
+backend: All controllers and services
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════ -->
+<!-- 31 — DEPLOYMENT                                                -->
+<!-- ════════════════════════════════════════════════════════════════ -->
+<div class="page full-width">
+  <h2>31 — Deployment &amp; Infrastructure</h2>
+  <div class="flow-container">
+    <div class="flow-svg">
+      <svg viewBox="0 0 700 500" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;">
+        <!-- Dev flow -->
+        <rect x="20" y="10" width="320" height="28" rx="6" fill="#21262d" stroke="#7ee787"/>
+        <text x="180" y="28" text-anchor="middle" fill="#7ee787" font-size="11" font-weight="bold">Local Development</text>
+
+        <rect x="20" y="44" width="150" height="100" rx="6" fill="#161b22" stroke="#30363d"/>
+        <text x="95" y="60" text-anchor="middle" fill="#c9d1d9" font-size="9" font-weight="bold">Backend</text>
+        <text x="95" y="76" text-anchor="middle" fill="#c9d1d9" font-size="8">Spring Boot + H2</text>
+        <text x="95" y="90" text-anchor="middle" fill="#c9d1d9" font-size="8">Port 8080</text>
+        <text x="95" y="104" text-anchor="middle" fill="#c9d1d9" font-size="8">dev profile</text>
+        <text x="95" y="118" text-anchor="middle" fill="#c9d1d9" font-size="8">DataSeeder auto-run</text>
+        <text x="95" y="132" text-anchor="middle" fill="#8b949e" font-size="7">mvn spring-boot:run</text>
+
+        <rect x="190" y="44" width="150" height="100" rx="6" fill="#161b22" stroke="#30363d"/>
+        <text x="265" y="60" text-anchor="middle" fill="#c9d1d9" font-size="9" font-weight="bold">Frontend</text>
+        <text x="265" y="76" text-anchor="middle" fill="#c9d1d9" font-size="8">React + Vite</text>
+        <text x="265" y="90" text-anchor="middle" fill="#c9d1d9" font-size="8">Port 5173</text>
+        <text x="265" y="104" text-anchor="middle" fill="#c9d1d9" font-size="8">VITE_API_BASE=/api</text>
+        <text x="265" y="118" text-anchor="middle" fill="#c9d1d9" font-size="8">Vite proxy → 8080</text>
+        <text x="265" y="132" text-anchor="middle" fill="#8b949e" font-size="7">bun run dev / npm run dev</text>
+
+        <!-- Production flow -->
+        <rect x="360" y="10" width="320" height="28" rx="6" fill="#21262d" stroke="#58a6ff"/>
+        <text x="520" y="28" text-anchor="middle" fill="#58a6ff" font-size="11" font-weight="bold">Production Deployment</text>
+
+        <rect x="360" y="44" width="150" height="120" rx="6" fill="#161b22" stroke="#58a6ff"/>
+        <text x="435" y="60" text-anchor="middle" fill="#58a6ff" font-size="9" font-weight="bold">Backend → Railway</text>
+        <text x="435" y="76" text-anchor="middle" fill="#c9d1d9" font-size="8">Docker multi-stage</text>
+        <text x="435" y="90" text-anchor="middle" fill="#c9d1d9" font-size="8">maven build → JRE runtime</text>
+        <text x="435" y="104" text-anchor="middle" fill="#c9d1d9" font-size="8">prod profile</text>
+        <text x="435" y="118" text-anchor="middle" fill="#c9d1d9" font-size="8">PORT env var</text>
+        <text x="435" y="132" text-anchor="middle" fill="#c9d1d9" font-size="8">MySQL (external)</text>
+        <text x="435" y="146" text-anchor="middle" fill="#c9d1d9" font-size="8">SMTP configured</text>
+        <text x="435" y="160" text-anchor="middle" fill="#8b949e" font-size="7">Fail-fast if secrets missing</text>
+
+        <rect x="530" y="44" width="150" height="120" rx="6" fill="#161b22" stroke="#d2a8ff"/>
+        <text x="605" y="60" text-anchor="middle" fill="#d2a8ff" font-size="9" font-weight="bold">Frontend → Vercel</text>
+        <text x="605" y="76" text-anchor="middle" fill="#c9d1d9" font-size="8">npm run build → dist/</text>
+        <text x="605" y="90" text-anchor="middle" fill="#c9d1d9" font-size="8">vercel.json config</text>
+        <text x="605" y="104" text-anchor="middle" fill="#c9d1d9" font-size="8">VITE_API_BASE=</text>
+        <text x="605" y="118" text-anchor="middle" fill="#c9d1d9" font-size="8">  Railway URL</text>
+        <text x="605" y="132" text-anchor="middle" fill="#c9d1d9" font-size="8">Automatic deploys</text>
+        <text x="605" y="146" text-anchor="middle" fill="#c9d1d9" font-size="8">HTTPS by default</text>
+        <text x="605" y="160" text-anchor="middle" fill="#8b949e" font-size="7">SPA routing: rewrites</text>
+
+        <!-- Docker -->
+        <rect x="20" y="180" width="320" height="28" rx="6" fill="#21262d" stroke="#d29922"/>
+        <text x="180" y="198" text-anchor="middle" fill="#d29922" font-size="11" font-weight="bold">Docker (docker-compose.yml)</text>
+
+        <rect x="20" y="214" width="320" height="80" rx="6" fill="#161b22" stroke="#30363d"/>
+        <text x="180" y="230" text-anchor="middle" fill="#c9d1d9" font-size="9" font-weight="bold">docker-compose up</text>
+        <text x="180" y="246" text-anchor="middle" fill="#c9d1d9" font-size="8">Services: backend, frontend, mysql</text>
+        <text x="180" y="260" text-anchor="middle" fill="#c9d1d9" font-size="8">Backend: multi-stage Dockerfile</text>
+        <text x="180" y="274" text-anchor="middle" fill="#c9d1d9" font-size="8">  build → maven:3.9-eclipse-temurin-21</text>
+        <text x="180" y="288" text-anchor="middle" fill="#c9d1d9" font-size="8">  runtime → eclipse-temurin:21-jre-alpine</text>
+
+        <!-- Env vars -->
+        <rect x="360" y="180" width="320" height="28" rx="6" fill="#21262d" stroke="#d29922"/>
+        <text x="520" y="198" text-anchor="middle" fill="#d29922" font-size="11" font-weight="bold">Required Environment Variables</text>
+
+        <rect x="360" y="214" width="320" height="260" rx="6" fill="#161b22" stroke="#30363d"/>
+        <text x="380" y="230" fill="#7ee787" font-size="8" font-weight="bold">Database:</text>
+        <text x="380" y="242" fill="#c9d1d9" font-size="8">SPRING_DATASOURCE_URL, _USERNAME, _PASSWORD</text>
+        <text x="380" y="258" fill="#7ee787" font-size="8" font-weight="bold">JWT:</text>
+        <text x="380" y="270" fill="#c9d1d9" font-size="8">JWT_SECRET (32+ chars, random)</text>
+        <text x="380" y="286" fill="#7ee787" font-size="8" font-weight="bold">CORS:</text>
+        <text x="380" y="298" fill="#c9d1d9" font-size="8">DEVSYNC_CORS_ORIGINS=your-frontend-url</text>
+        <text x="380" y="314" fill="#7ee787" font-size="8" font-weight="bold">Email (optional):</text>
+        <text x="380" y="326" fill="#c9d1d9" font-size="8">MAIL_USERNAME, MAIL_PASSWORD (App Password)</text>
+        <text x="380" y="342" fill="#7ee787" font-size="8" font-weight="bold">Payments (optional):</text>
+        <text x="380" y="354" fill="#c9d1d9" font-size="8">RAZORPAY_KEY_ID, _KEY_SECRET, _WEBHOOK_SECRET</text>
+        <text x="380" y="366" fill="#c9d1d9" font-size="8">STRIPE_SECRET_KEY, _PUBLISHABLE_KEY, _WEBHOOK_SECRET</text>
+        <text x="380" y="382" fill="#7ee787" font-size="8" font-weight="bold">GitHub (optional):</text>
+        <text x="380" y="394" fill="#c9d1d9" font-size="8">GITHUB_CLIENT_ID, _CLIENT_SECRET</text>
+        <text x="380" y="406" fill="#c9d1d9" font-size="8">GITHUB_WEBHOOK_SECRET, _TOKEN_ENCRYPTION_KEY</text>
+        <text x="380" y="422" fill="#7ee787" font-size="8" font-weight="bold">Frontend:</text>
+        <text x="380" y="434" fill="#c9d1d9" font-size="8">VITE_API_BASE=https://your-backend.railway.app</text>
+        <text x="380" y="450" fill="#c9d1d9" font-size="8">VITE_SENTRY_DSN (optional)</text>
+        <text x="380" y="466" fill="#8b949e" font-size="8">Never commit .env with real secrets</text>
+
+        <!-- Scripts -->
+        <rect x="20" y="310" width="320" height="80" rx="6" fill="#161b22" stroke="#30363d"/>
+        <text x="180" y="326" text-anchor="middle" fill="#c9d1d9" font-size="9" font-weight="bold">Scripts</text>
+        <text x="180" y="342" text-anchor="middle" fill="#c9d1d9" font-size="8">scripts/db-backup.sh — MySQL backup</text>
+        <text x="180" y="356" text-anchor="middle" fill="#c9d1d9" font-size="8">scripts/db-restore.sh — MySQL restore</text>
+        <text x="180" y="370" text-anchor="middle" fill="#c9d1d9" font-size="8">scripts/db-status.sh — Connection status</text>
+        <text x="180" y="384" text-anchor="middle" fill="#c9d1d9" font-size="8">start-backend.ps1 — Windows quick start</text>
+      </svg>
+    </div>
+    <div class="flow-explain">
+      <h4>Development</h4>
+      <ul>
+        <li>Backend: <code>mvn spring-boot:run</code> (dev profile, H2, DataSeeder)</li>
+        <li>Frontend: <code>bun run dev</code> (Vite on :5173, proxy to :8080)</li>
+        <li>Zero configuration needed for local dev</li>
+      </ul>
+      <h4>Production</h4>
+      <ul>
+        <li><strong>Backend:</strong> Railway — Docker multi-stage build, prod profile</li>
+        <li><strong>Frontend:</strong> Vercel — <code>npm run build</code>, SPA rewrites</li>
+        <li>MySQL: external (Railway add-on or external host)</li>
+        <li>Fail-fast: application won't start without JWT_SECRET, DB credentials</li>
+      </ul>
+      <h4>Docker</h4>
+      <ul>
+        <li><code>docker-compose.yml</code> with backend, frontend, mysql services</li>
+        <li>Multi-stage build: maven build → JRE runtime (alpine)</li>
+      </ul>
+      <h4>Key Security</h4>
+      <ul>
+        <li>prod profile has NO defaults for secrets (fail-fast)</li>
+        <li>ProductionConfigValidator rejects dev fallback values</li>
+        <li>HSTS enabled in prod, CSRF cookie-based</li>
+        <li>Rate limiting, spam protection, WS rate limiting</li>
+      </ul>
+      <h4>Source Files & Responsibilities</h4>
+      <div class="file-list">
+<b>Dockerfile (backend)</b> — Multi-stage Docker build: Stage 1 uses maven:3.9-eclipse-temurin-21 to compile JAR. Stage 2 uses eclipse-temurin:21-jre-alpine for minimal runtime. Exposes port 8080. ENTRYPOINT runs java -jar app.jar.<br>
+<b>docker-compose.yml</b> — Orchestrates backend + frontend + MySQL services. Backend connects to MySQL, frontend proxies to backend. Environment variables for DB credentials, JWT secret, etc.<br>
+<b>backend/src/main/resources/application.yml</b> — Default Spring Boot config: datasource (MySQL default, env-var overrides), JWT secret (dev fallback), mail (SMTP config), billing (Razorpay/Stripe env vars), GitHub OAuth, rate limits, upload limits, management endpoints.<br>
+<b>backend/src/main/resources/application-prod.yml</b> — Production profile: NO default secrets (fail-fast), requires all env vars. ProductionConfigValidator rejects dev fallback values. HSTS enabled.<br>
+<b>frontend/vite.config.ts</b> — Vite configuration: React plugin, path aliases (@/), proxy /api to backend :8080 in dev, proxy /ws for WebSocket. Build output to dist/.<br>
+<b>frontend/vercel.json</b> — Vercel deployment config: build command (npm run build), output directory (dist/), SPA rewrites (/* → /index.html for client-side routing).<br>
+<b>scripts/db-backup.sh</b> — MySQL backup script: exports database to SQL file with timestamp, validates DB connection, compresses output.<br>
+<b>scripts/db-restore.sh</b> — MySQL restore script: imports SQL file, validates backup format, handles schema differences.<br>
+<b>scripts/db-status.sh</b> — Database status check: tests connection, shows table counts, reports migration status.<br>
+<b>DEPLOY.md</b> — Step-by-step deployment guide: Railway backend setup, Vercel frontend setup, environment variable configuration, verification steps.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════ -->
+<!-- BACK COVER                                                      -->
+<!-- ════════════════════════════════════════════════════════════════ -->
+<div class="page" style="display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;">
+  <h1 style="font-size:36px;color:#58a6ff;">DevSync Architecture Documentation</h1>
+  <p class="subtitle" style="margin-top:8px;">32 Sections | 15+ Flow Diagrams | 30+ Database Tables | 100+ Source Files</p>
+  
+  <hr class="section-divider" style="width:60%;margin:24px 0;">
+  
+  <table style="width:80%;margin:0 auto;">
+    <tr><th>Section</th><th>Content</th><th>Diagrams</th></tr>
+    <tr><td>01</td><td>System Overview &amp; Component Architecture</td><td>1 full-layer diagram</td></tr>
+    <tr><td>02</td><td>Security Filter Chain</td><td>1 filter pipeline diagram</td></tr>
+    <tr><td>03</td><td>Email Registration (OTP)</td><td>1 registration flow</td></tr>
+    <tr><td>04</td><td>Login &amp; JWT Lifecycle</td><td>1 auth + refresh flow</td></tr>
+    <tr><td>05-06</td><td>OAuth2, Password Reset (covered in flow 04)</td><td>—</td></tr>
+    <tr><td>07-08</td><td>Feed: CRUD, Comments, Likes</td><td>1 feed operations diagram</td></tr>
+    <tr><td>09-10</td><td>Projects: CRUD, Members</td><td>1 project lifecycle diagram</td></tr>
+    <tr><td>11</td><td>Kanban Board</td><td>Included in project flow</td></tr>
+    <tr><td>12</td><td>Real-time Messaging (STOMP)</td><td>1 WebSocket architecture</td></tr>
+    <tr><td>13</td><td>Notifications</td><td>Included in messaging flow</td></tr>
+    <tr><td>14</td><td>Billing &amp; Checkout</td><td>1 checkout flow diagram</td></tr>
+    <tr><td>15</td><td>Refund Lifecycle</td><td>1 refund state machine</td></tr>
+    <tr><td>16</td><td>Webhook Processing</td><td>Included in billing flow</td></tr>
+    <tr><td>17-19</td><td>GitHub Integration</td><td>1 OAuth + linking flow</td></tr>
+    <tr><td>20-28</td><td>Social, Search, Admin, Support, Teams</td><td>1 combined module diagram</td></tr>
+    <tr><td>30</td><td>Database Schema</td><td>Complete schema tables</td></tr>
+    <tr><td>31</td><td>Deployment &amp; Infrastructure</td><td>1 deployment diagram</td></tr>
+    <tr><td>32</td><td>End-to-End Business Journey</td><td>1 complete user journey</td></tr>
+  </table>
+
+  <div class="tech-badges" style="justify-content:center;margin-top:24px;">
+    <span class="badge blue">Spring Boot 3.2</span>
+    <span class="badge blue">Java 21</span>
+    <span class="badge purple">React 18</span>
+    <span class="badge purple">TypeScript</span>
+    <span class="badge green">MySQL 8</span>
+    <span class="badge yellow">Flyway</span>
+    <span class="badge">WebSocket/STOMP</span>
+    <span class="badge blue">JWT + HttpOnly</span>
+    <span class="badge purple">Razorpay + Stripe</span>
+    <span class="badge green">GitHub API</span>
+    <span class="badge">SMTP Email</span>
+    <span class="badge yellow">Docker</span>
+  </div>
+
+  <p style="color:#8b949e;margin-top:24px;font-size:14px;">
+    All diagrams generated from actual DevSync source code.<br>
+    File paths, endpoints, and behavior verified against the codebase.
+  </p>
+</div>
+
+</body>
+</html>

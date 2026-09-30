@@ -264,8 +264,13 @@ analytics, activity/audit, and moderation flows have integration-level tests.
 
 ## 🚢 Deployment
 
-- **CI** (`.github/workflows/ci.yml`): auth unit tests → backend integration against
-  MySQL with coverage → frontend typecheck/lint/build → Docker image builds.
+Every required API key, the host preparation steps, and the step-by-step deploy runbook:
+**👉 [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)**.
+
+- **CI** (`.github/workflows/ci.yml`): auth unit tests → full backend suite (runs on
+  H2 — the surefire system properties override `SPRING_DATASOURCE_URL`, so the CI
+  MySQL service is not actually used by the tests) with optional coverage →
+  frontend typecheck/lint/build → Docker image builds.
 - **CD** (`.github/workflows/cd.yml`): runs only after CI succeeds (`workflow_run`),
   pushes images tagged by commit SHA; tag pushes (`v*`) trigger the SSH deploy.
 

@@ -586,8 +586,10 @@ export default function Messages() {
   const showList = !isMobile || !conversationId;
   const showChat = isMobile ? !!conversationId : true;
 
+  // Negative margins cancel the shell's main padding so the two chat panes
+  // reach the viewport edges; 82px matches the shell header height.
   return (
-    <div className="flex h-[calc(100dvh-4rem)] -m-4 md:-m-6 overflow-hidden bg-background">
+    <div className="flex h-[calc(100dvh-82px)] -m-5 overflow-hidden bg-background md:-m-7 lg:-m-8">
       {/* ── Conversation list ─────────────────────────────── */}
       <div
         className={cn(

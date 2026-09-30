@@ -15,7 +15,7 @@ export function ThemeToggle() {
       <Button
         variant="ghost"
         size="icon"
-        className="relative text-muted-foreground hover:text-foreground hover:bg-accent/5"
+        className="relative size-10 rounded-[11px] text-muted-foreground hover:text-foreground"
         disabled
         aria-label="Loading theme toggle"
       >
@@ -32,22 +32,18 @@ export function ThemeToggle() {
         variant="ghost"
         size="icon"
         onClick={() => setTheme(isDark ? "light" : "dark")}
-        className={`relative w-9 h-9 rounded-lg transition-colors ${
-          isDark
-            ? "text-foreground/70 hover:text-foreground hover:bg-muted border border-transparent hover:border-border"
-            : "text-muted-foreground hover:text-foreground hover:bg-muted"
-        }`}
+        className={`relative w-10 h-10 rounded-[11px] transition-colors text-muted-foreground hover:text-foreground hover:bg-muted`}
         aria-label={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
       >
         <Sun
-          className={`w-[18px] h-[18px] absolute transition-all duration-200 ${
+          className={`w-5 h-5 absolute transition-all duration-200 ${
             isDark
               ? "opacity-0 scale-75 rotate-45"
               : "opacity-100 scale-100 rotate-0 text-foreground"
           }`}
         />
         <Moon
-          className={`w-[18px] h-[18px] absolute transition-all duration-200 ${
+          className={`w-5 h-5 absolute transition-all duration-200 ${
             isDark
               ? "opacity-100 scale-100 rotate-0 text-foreground"
               : "opacity-0 scale-75 -rotate-45"

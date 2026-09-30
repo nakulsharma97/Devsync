@@ -76,6 +76,40 @@
   --color-accent-color: var(--accent-color);
   --color-accent-soft: var(--accent-soft);
 
+  /* ── Soft surface tints ───────────────────────────
+     Pastel fills for tinted cards (stat tiles, the upgrade banner) and the
+     active navigation row. Each tint ships a matching hairline border and a
+     foreground colour that clears AA on the tint itself — the fill is never
+     used behind body copy, only behind titles and icons. */
+  --color-tint-warm: var(--tint-warm);
+  --color-tint-warm-border: var(--tint-warm-border);
+  --color-tint-warm-tile: var(--tint-warm-tile);
+  --color-tint-warm-fg: var(--tint-warm-fg);
+  --color-tint-blue: var(--tint-blue);
+  --color-tint-blue-border: var(--tint-blue-border);
+  --color-tint-blue-tile: var(--tint-blue-tile);
+  --color-tint-blue-fg: var(--tint-blue-fg);
+  --color-tint-green: var(--tint-green);
+  --color-tint-green-border: var(--tint-green-border);
+  --color-tint-green-tile: var(--tint-green-tile);
+  --color-tint-green-fg: var(--tint-green-fg);
+
+  /* ── Shell surfaces ─────────────────────────────
+     The app shell paints three surfaces that are NOT the generic card/muted
+     pair: the top navigation bar, the input/pill surface, and the avatar.
+     Each differs between themes by more than a tint, so they get their own
+     tokens rather than being derived from --card. */
+  --color-surface-nav: var(--surface-nav);
+  --color-surface-input: var(--surface-input);
+  --color-surface-inner: var(--surface-inner);
+  --color-accent-warm-surface: var(--accent-warm-surface);
+  --color-accent-warm-border: var(--accent-warm-border);
+  --color-avatar-bg: var(--avatar-bg);
+  --color-avatar-fg: var(--avatar-fg);
+  --color-chip-surface: var(--chip-surface);
+  --color-chip-border: var(--chip-border);
+  --color-chip-fg: var(--chip-fg);
+
   /* ── Typography ───────────────────────────────── */
   --font-display: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
@@ -99,11 +133,13 @@
   --brand: #d97732;
   --brand-foreground: #ffffff;
 
-  --bg-primary: #f7f8fa;
+  /* Warm off-white page, pure-white surfaces: the dashboard reads as a sheet
+     of cards floating on paper rather than a flat white field. */
+  --bg-primary: #f8f8f7;
   --bg-secondary: #ffffff;
   --bg-card: #ffffff;
-  --bg-card-hover: #f1f3f5;
-  --text-primary: #20242a;
+  --bg-card-hover: #f1f1ef;
+  --text-primary: #1f2937;
   /* Secondary/muted text is measured against the DARKEST surface it can land
      on (#f1f3f5 card-hover), not against white — secondary #626b76 / muted
      #8b949e only reached 5.08:1 and 4.38:1 there, and muted fell to 2.89:1 on
@@ -114,8 +150,8 @@
      popular" plan, CTA cards) pushed the old #5f6774 to 4.41:1. This clears
      AA on those tints as well as on plain white and grey surfaces. */
   --text-muted: #565e6b;
-  --border-color: #e1e5ea;
-  --border-subtle: #eceff2;
+  --border-color: #e8e8e8;
+  --border-subtle: #f0f0ee;
   /* The accent doubles as TEXT (active tabs, links, primary buttons carry a
      label). At #c56a2b it only reached 3.61–3.83:1 on white — below AA — so the
      light theme uses a deeper copper that clears 5.2:1 while staying the same
@@ -124,6 +160,30 @@
   --accent-hover: #8a4415;
   --accent-soft: rgba(161, 84, 31, 0.1);
   --shadow-card: 0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 3px rgba(16, 24, 40, 0.06);
+
+  --tint-warm: #fdf4ec;
+  --tint-warm-border: #f4e3d4;
+  --tint-warm-tile: #f8e7d8;
+  --tint-warm-fg: var(--accent-color);
+  --tint-blue: #eef4fe;
+  --tint-blue-border: #dbe6fa;
+  --tint-blue-tile: #dcebfd;
+  --tint-blue-fg: var(--info-text);
+  --tint-green: #edf8f1;
+  --tint-green-border: #d5ecdf;
+  --tint-green-tile: #d8f0e2;
+  --tint-green-fg: var(--success-text);
+
+  --surface-nav: #ffffff;
+  --surface-input: var(--muted);
+  --surface-inner: #ffffff;
+  --accent-warm-surface: #fdf4ec;
+  --accent-warm-border: #f4e3d4;
+  --avatar-bg: #f8e7d8;
+  --avatar-fg: var(--accent-color);
+  --chip-surface: #f2f2f0;
+  --chip-border: var(--border-color);
+  --chip-fg: var(--text-secondary);
 
   /* Status */
   --info: #4e8dd9;
@@ -155,11 +215,11 @@
   --popover-foreground: var(--text-primary);
   --primary: var(--accent-color);
   --primary-foreground: #ffffff;
-  --secondary: #f1f3f5;
+  --secondary: #f2f2f0;
   --secondary-foreground: #374151;
-  --muted: #f1f3f5;
+  --muted: #f2f2f0;
   --muted-foreground: var(--text-muted);
-  --accent: #f1f3f5;
+  --accent: #f2f2f0;
   --accent-foreground: var(--text-primary);
   --destructive: var(--danger);
   --border: var(--border-color);
@@ -176,9 +236,9 @@
   --sidebar-foreground: var(--text-secondary);
   --sidebar-primary: var(--accent-color);
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #f1f3f5;
+  --sidebar-accent: #f1f1ef;
   --sidebar-accent-foreground: var(--text-primary);
-  --sidebar-border: var(--border-subtle);
+  --sidebar-border: var(--border-color);
   --sidebar-ring: var(--accent-color);
 
   --scrollbar-thumb: #d3d8de;
@@ -193,25 +253,53 @@
    ═══════════════════════════════════════════════════ */
 .dark,
 .auth-dark {
-  /* Core design tokens */
-  --bg-primary: #0b0d0f;
-  --bg-secondary: #111418;
-  --bg-card: #171b20;
-  --bg-card-hover: #1c2127;
-  --text-primary: #f1f3f5;
-  --text-secondary: #a1a8b0;
-  /* #707983 scored only 3.67:1 on the elevated (#1c2127) surface. */
-  --text-muted: #8a939e;
-  --border-color: #292f36;
-  --border-subtle: #20252b;
-  --accent-color: #d97732;
-  --accent-hover: #e58b4b;
-  --accent-soft: rgba(217, 119, 63, 0.12);
-  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3), 0 2px 8px rgba(0, 0, 0, 0.2);
+  /* Core design tokens — charcoal stack, one step lighter per elevation:
+     page #090C0F → sidebar #0E1216 → nav #101419 → card #151A1F → input #181E24
+     → hover #1D242B. Shadows stay almost invisible; the steps carry the depth. */
+  --bg-primary: #090c0f;
+  --bg-secondary: #0e1216;
+  --bg-card: #151a1f;
+  --bg-card-hover: #1d242b;
+  --text-primary: #f5f7fa;
+  --text-secondary: #a4adb8;
+  /* #77818D keeps the "all caught up" captions readable but clearly tertiary. */
+  --text-muted: #77818d;
+  --border-color: #29313a;
+  --border-subtle: #222930;
+  --accent-color: #e8792f;
+  --accent-hover: #f2873b;
+  --accent-soft: rgba(232, 121, 47, 0.12);
+  --shadow-card: 0 6px 20px rgba(0, 0, 0, 0.12);
+
+  /* Tinted cards keep the standard card surface on dark: only the icon tile
+     carries the accent, so colour never floods a card body. */
+  --tint-warm: #151a1f;
+  --tint-warm-border: #29313a;
+  --tint-warm-tile: #2a1c15;
+  --tint-warm-fg: #e8792f;
+  --tint-blue: #151a1f;
+  --tint-blue-border: #29313a;
+  --tint-blue-tile: #15263d;
+  --tint-blue-fg: #6aaeff;
+  --tint-green: #151a1f;
+  --tint-green-border: #29313a;
+  --tint-green-tile: #0f2a22;
+  --tint-green-fg: #20d391;
+
+  --surface-nav: #101419;
+  --surface-input: #181e24;
+  --surface-inner: #171d23;
+  --accent-warm-surface: #1d1713;
+  --accent-warm-border: #70401f;
+  --avatar-bg: #5a321d;
+  --avatar-fg: #ffffff;
+  --chip-surface: #171c21;
+  --chip-border: #30363d;
+  --chip-fg: #a8b0ba;
 
   /* Status */
-  --info: #5b9cf6;
-  --success: #45b88a;
+  --info: #5fa8ff;
+  --success: #20d391;
   --success-foreground: #06130c;
   --warning: #d6a24a;
   --warning-foreground: #1c1505;
@@ -220,8 +308,8 @@
   --danger-foreground: #2a0b0b;
   /* On dark surfaces the fill values already clear AA as text, so these match
      them; the split exists for light mode. */
-  --info-text: #5b9cf6;
-  --success-text: #45b88a;
+  --info-text: #6aaeff;
+  --success-text: #20d391;
   --warning-text: #d6a24a;
   --danger-text: #d96b6b;
 
@@ -246,10 +334,10 @@
   --input: var(--border-subtle);
   --ring: var(--accent-color);
 
-  --chart-1: #d97732;
-  --chart-2: #e58b4b;
-  --chart-3: #45b88a;
-  --chart-4: #5b9cf6;
+  --chart-1: #e8792f;
+  --chart-2: #f2873b;
+  --chart-3: #20d391;
+  --chart-4: #5fa8ff;
   --chart-5: #d6a24a;
 
   --sidebar: var(--bg-secondary);
@@ -456,7 +544,8 @@
 
 html {
   scroll-behavior: smooth;
-  scroll-padding-top: 4.5rem;
+  /* Clears the app shell's sticky header (82px) when jumping to an anchor. */
+  scroll-padding-top: 5.5rem;
   scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
   scrollbar-width: thin;
 }
@@ -537,6 +626,32 @@ html {
   --accent-soft: rgba(138, 68, 21, 0.14);
   --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.18);
 
+  /* High contrast keeps the tints but pairs them with full-strength borders so
+     the card boundaries survive without relying on shadow. */
+  --tint-warm: #fdeee2;
+  --tint-warm-border: #8a4415;
+  --tint-warm-tile: #fbdcc3;
+  --tint-warm-fg: #6d3410;
+  --tint-blue: #e8f0fd;
+  --tint-blue-border: #0b4f9e;
+  --tint-blue-tile: #cfe1fb;
+  --tint-blue-fg: #0b4f9e;
+  --tint-green: #e7f6ef;
+  --tint-green-border: #0a6b4a;
+  --tint-green-tile: #cdeede;
+  --tint-green-fg: #0a6b4a;
+
+  --surface-nav: #ffffff;
+  --surface-input: #ffffff;
+  --surface-inner: #ffffff;
+  --accent-warm-surface: #fdeee2;
+  --accent-warm-border: #8a4415;
+  --avatar-bg: #fbdcc3;
+  --avatar-fg: #6d3410;
+  --chip-surface: #ffffff;
+  --chip-border: #6b7480;
+  --chip-fg: #1f2329;
+
   --info: #0b4f9e;
   --success: #0a6b4a;
   --warning: #7a5406;
@@ -591,6 +706,30 @@ html {
   --accent-hover: #ffb37f;
   --accent-soft: rgba(240, 160, 106, 0.18);
   --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.6);
+
+  --tint-warm: #2b1a10;
+  --tint-warm-border: #f0a06a;
+  --tint-warm-tile: #3d2415;
+  --tint-warm-fg: #ffb37f;
+  --tint-blue: #10233a;
+  --tint-blue-border: #8fc0ff;
+  --tint-blue-tile: #16324f;
+  --tint-blue-fg: #8fc0ff;
+  --tint-green: #0f2b22;
+  --tint-green-border: #6fdcae;
+  --tint-green-tile: #143a2d;
+  --tint-green-fg: #6fdcae;
+
+  --surface-nav: #0a0c0e;
+  --surface-input: #101316;
+  --surface-inner: #101316;
+  --accent-warm-surface: #1e1209;
+  --accent-warm-border: #f0a06a;
+  --avatar-bg: #3d2415;
+  --avatar-fg: #ffffff;
+  --chip-surface: #101316;
+  --chip-border: #8d959e;
+  --chip-fg: #e4e7ea;
 
   --info: #8fc0ff;
   --success: #6fdcae;

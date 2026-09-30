@@ -3,21 +3,47 @@ import { useNavigate } from "react-router";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Github, Mail, ArrowRight, Loader2, Shield, Users, Zap, Globe } from "lucide-react";
+import {
+  ArrowRight,
+  Check,
+  Github,
+  Globe,
+  KanbanSquare,
+  LayoutDashboard,
+  ListChecks,
+  Loader2,
+  Mail,
+  Settings,
+  Shield,
+  Users,
+  Zap,
+} from "lucide-react";
 import { LogoMark } from "@/components/Logo";
+import { cn } from "@/lib/utils";
+
+// This page pins its own light surface (`.auth-light` in index.css) so the
+// credential panel stays white while the marketing panel stays dark. The hex
+// values below are therefore written literally rather than through theme
+// tokens: #C9551E for interactive text and fills (hover #B94E1B), #E8792F for
+// the brand mark and hero accent.
+const ACCENT_TEXT = "text-[#C9551E] hover:text-[#B94E1B]";
+const ACCENT_FILL = "bg-[#C9551E] hover:bg-[#B94E1B]";
+const ACCENT_SPAN = "text-[#C9551E]";
+
+// ── OTP input ─────────────────────────────────────────────
 
 function OtpInput({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   const [focused, setFocused] = useState(true);
   const keyframesStyle = `
     @keyframes otp-blink {
-      0%, 50% { border-color: #A6532D; }
+      0%, 50% { border-color: #C9551E; }
       51%, 100% { border-color: transparent; }
     }
   `;
   return (
     <>
       <style>{keyframesStyle}</style>
-      <div className="flex gap-2 justify-center">
+      <div className="flex justify-center gap-2">
         {[0, 1, 2, 3, 4, 5].map((i) => (
           <div key={i} className="relative">
             <input
@@ -33,7 +59,7 @@ function OtpInput({ value, onChange }: { value: string; onChange: (v: string) =>
               }}
               onFocus={() => setFocused(true)}
               onBlur={() => setFocused(false)}
-              className="w-10 h-12 text-center text-lg font-mono bg-white border border-gray-200 rounded-lg focus:border-[#A6532D] focus:ring-2 focus:ring-[#A6532D]/20 outline-none transition-all"
+              className="h-12 w-11 rounded-[13px] border border-[#DDE2E7] bg-white text-center font-mono text-lg text-[#1F2937] outline-none transition-all focus:border-[#E8792F] focus:ring-[3px] focus:ring-[#E8792F]/10"
               style={i === value.length && focused ? { animation: "otp-blink 1s infinite" } : {}}
             />
           </div>
@@ -43,14 +69,112 @@ function OtpInput({ value, onChange }: { value: string; onChange: (v: string) =>
   );
 }
 
+// ── Left panel pieces ─────────────────────────────────────
+
 function FeatureBadge({ icon: Icon, label }: { icon: React.ElementType; label: string }) {
   return (
-    <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/5 border border-white/10">
-      <Icon className="w-4 h-4 text-[#F59A45]" />
-      <span className="text-xs font-medium text-white/80">{label}</span>
+    <div className="inline-flex h-11 items-center gap-[9px] rounded-full border border-[#30363D] bg-[#171C21] px-4 text-[13px] font-medium text-[#D6DCE3] transition-colors hover:border-[#3A434D] hover:bg-[#1D242B]">
+      <Icon className="h-[18px] w-[18px] shrink-0 text-[#E8792F]" strokeWidth={1.8} />
+      {label}
     </div>
   );
 }
+
+const BOARD_COLUMNS = [
+  { title: "To Do", count: 4, color: "#A7B0BB", task: "Design landing page", tag: "frontend" },
+  { title: "In Progress", count: 2, color: "#E8792F", task: "Build authentication", tag: "backend" },
+  { title: "Done", count: 3, color: "#20D391", task: "Project setup", tag: "infra", done: true },
+];
+
+const TAG_STYLES: Record<string, { bg: string; fg: string }> = {
+  frontend: { bg: "rgba(95,168,255,0.12)", fg: "#6AAEFF" },
+  backend: { bg: "rgba(232,121,47,0.12)", fg: "#E8792F" },
+  infra: { bg: "rgba(32,211,145,0.12)", fg: "#20D391" },
+};
+
+const BOARD_NAV = [
+  { label: "Dashboard", icon: LayoutDashboard },
+  { label: "Tasks", icon: ListChecks },
+  { label: "Kanban", icon: KanbanSquare },
+  { label: "Settings", icon: Settings },
+];
+
+/** Static product mockup — decorative, so it never mirrors live data. */
+function BoardPreview() {
+  return (
+    <div
+      aria-hidden
+      className="mt-3 flex h-[240px] w-full max-w-[820px] overflow-hidden rounded-2xl border border-[#29313A] bg-[#111820] shadow-[0_12px_30px_rgba(0,0,0,0.25)]"
+    >
+      {/* Mini sidebar */}
+      <div className="w-[205px] shrink-0 border-r border-[#29313A] bg-[#10151B] p-4">
+        <div className="mb-4 flex items-center gap-2">
+          <LogoMark size={22} />
+          <span className="text-[11px] font-semibold text-[#F5F7FA]">DevSync</span>
+        </div>
+        <div className="space-y-0.5">
+          {BOARD_NAV.map((item) => {
+            const active = item.label === "Kanban";
+            return (
+              <div
+                key={item.label}
+                className={cn(
+                  "flex items-center gap-2.5 rounded-[10px] px-2.5 py-2 text-[12px]",
+                  active ? "bg-[#3A2419] font-medium text-[#E8792F]" : "text-[#87919D]"
+                )}
+              >
+                <item.icon className="h-3.5 w-3.5 shrink-0" strokeWidth={1.8} />
+                {item.label}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Board */}
+      <div className="min-w-0 flex-1 p-5">
+        <h3 className="text-[18px] font-bold text-[#F5F7FA]">Project Board</h3>
+        <p className="mt-1 text-[12px] text-[#87919D]">Organize, track and ship your ideas.</p>
+
+        <div className="mt-4 grid grid-cols-3 gap-4">
+          {BOARD_COLUMNS.map((column) => {
+            const tag = TAG_STYLES[column.tag];
+            return (
+              <div key={column.title}>
+                <div className="flex items-center gap-2">
+                  <span className="text-[12px] font-medium" style={{ color: column.color }}>
+                    {column.title}
+                  </span>
+                  <span
+                    className="rounded-full px-1.5 py-0.5 text-[10px] font-medium"
+                    style={{ backgroundColor: `${column.color}1f`, color: column.color }}
+                  >
+                    {column.count}
+                  </span>
+                </div>
+
+                <div className="mt-2.5 rounded-[10px] border border-[#29313A] bg-[#18202A] p-3">
+                  <p className="text-[13px] text-[#E9EDF2]">{column.task}</p>
+                  <div className="mt-2 flex items-center gap-1.5">
+                    <span
+                      className="rounded px-1.5 py-0.5 text-[10px] font-medium"
+                      style={{ backgroundColor: tag.bg, color: tag.fg }}
+                    >
+                      {column.tag}
+                    </span>
+                    {column.done && <Check className="h-3 w-3 text-[#20D391]" strokeWidth={3} />}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Page ──────────────────────────────────────────────────
 
 export default function Auth() {
   const navigate = useNavigate();
@@ -156,8 +280,13 @@ export default function Auth() {
         ? email && password.length >= 8 && fullName
         : true;
 
+  // Shared field styling: 48px tall, 13px radius, warm focus ring.
+  const fieldClass =
+    "h-12 rounded-[13px] border-[#DDE2E7] bg-white px-3.5 text-[14px] text-[#1F2937] placeholder:text-[#9AA3AE] shadow-none focus-visible:border-[#E8792F] focus-visible:ring-[3px] focus-visible:ring-[#E8792F]/10";
+  const labelClass = "mb-2 block text-[14px] font-medium text-[#344054]";
+
   return (
-    <div className="auth-light min-h-screen flex bg-white">
+    <div className="auth-light flex min-h-screen bg-white">
       <style>{`
         @keyframes fade-in-up {
           from { opacity: 0; transform: translateY(12px); }
@@ -166,183 +295,97 @@ export default function Auth() {
         .animate-fade-in-up { animation: fade-in-up 0.5s ease-out both; }
       `}</style>
 
-      {/* ═══ LEFT: Product Showcase ═══ */}
-      <div
-        className="hidden lg:flex lg:w-[55%] flex-col justify-between p-10 xl:p-14 relative overflow-hidden text-white"
-        style={{ background: "linear-gradient(180deg, #080B10 0%, #0D1117 100%)" }}
+      {/* ═══ LEFT: marketing panel (56%) ═══ */}
+      <aside
+        className="relative hidden w-[56%] shrink-0 overflow-hidden lg:flex"
+        style={{
+          // Extremely subtle warm drift toward the seam — no glow, no blobs.
+          background: "linear-gradient(115deg, #090C0F 0%, #090C0F 52%, #120D0D 100%)",
+        }}
       >
-        {/* Subtle grid pattern */}
-        <div className="absolute inset-0 pointer-events-none opacity-[0.03]">
-          <div className="absolute inset-0" style={{ backgroundImage: "radial-gradient(circle at 1px 1px, rgba(255,255,255,0.3) 1px, transparent 0)", backgroundSize: "32px 32px" }} />
-        </div>
-
-        {/* Copper glow */}
-        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-[#A6532D]/10 rounded-full blur-[120px] pointer-events-none" />
-        <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-[#F59A45]/5 rounded-full blur-[100px] pointer-events-none" />
-
-        {/* DevSync logo */}
-        <div className="relative z-10">
-          <button onClick={() => navigate("/")} className="flex items-center gap-2.5 group">
-            <LogoMark size={36} />
-            <span className="font-display text-lg font-semibold tracking-tight">DevSync</span>
+        <div className="flex h-full w-full flex-col px-8 pb-10 pt-10 sm:px-12 xl:px-[60px] xl:pt-14 2xl:px-[84px] 2xl:pr-[55px] 2xl:pt-[70px]">
+          {/* Brand + community badge: a vertical stack in normal flow, never overlapping */}
+          <button
+            onClick={() => navigate("/")}
+            className="flex w-fit shrink-0 items-center gap-3"
+            aria-label="DevSync home"
+          >
+            <LogoMark size={50} />
+            <span className="text-[20px] font-bold tracking-tight text-[#F5F7FA]">DevSync</span>
           </button>
-        </div>
 
-        {/* Main content */}
-        <div className="relative z-10 space-y-8 max-w-xl">
-          {/* Badge */}
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs font-medium text-white/70">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#35C982] animate-pulse" />
-            {`5+ developers already building`}
+          <div className="mt-2.5 inline-flex h-8 w-fit shrink-0 items-center gap-[7px] rounded-full border border-[#30363D] bg-[#171C21] px-3 text-[12px] font-medium text-[#A8B0BA]">
+            <span aria-hidden className="h-1.5 w-1.5 shrink-0 rounded-full bg-[#20D391]" />
+            5+ developers already building
           </div>
 
-          {/* Headline */}
-          <h1 className="text-4xl xl:text-5xl font-extrabold font-display leading-[1.1] tracking-tight">
-            Build, Collaborate<br />
-            and <span className="bg-gradient-to-r from-[#A6532D] to-[#F59A45] bg-clip-text text-transparent">Ship Faster.</span>
+          <h1 className="mt-10 max-w-[820px] text-[44px] font-bold leading-[1.02] tracking-[-1.5px] text-[#F5F7FA] xl:text-[54px] xl:tracking-[-2px] 2xl:text-[62px]">
+            Build, Collaborate
+            <br />
+            and <span className="text-[#E8792F]">Ship Faster.</span>
           </h1>
 
-          {/* Description */}
-          <p className="text-base text-white/60 leading-relaxed max-w-md">
-            DevSync brings your code, tasks, team chat, file sharing and GitHub integration together — so your team can turn ideas into reality.
+          <p className="mt-7 max-w-[600px] text-[17px] leading-[1.55] text-[#9BA4AE]">
+            DevSync brings your code, tasks, team chat, file sharing and GitHub integration
+            together — so your team can turn ideas into reality.
           </p>
 
-          {/* Feature badges */}
-          <div className="flex flex-wrap gap-3">
+          <div className="mt-[34px] flex max-w-[820px] flex-wrap gap-3">
             <FeatureBadge icon={Zap} label="Real-time Collaboration" />
             <FeatureBadge icon={Shield} label="Kanban Boards" />
             <FeatureBadge icon={Users} label="Team Chat" />
             <FeatureBadge icon={Globe} label="GitHub Integration" />
           </div>
+
+          <BoardPreview />
+
+          <p className="mt-auto pt-6 text-[11px] italic text-[#5A6472]">
+            Good Developers Build Together
+          </p>
+        </div>
+      </aside>
+
+      {/* ═══ RIGHT: credential panel (44%) ═══ */}
+      {/* The panel fills the viewport (`min-h-screen`) and grows in normal flow if a
+          taller mode (registration / OTP) needs more room. At the target 856px
+          desktop height the whole form fits, so the page never grows a scrollbar;
+          nothing is ever clipped the way `overflow-hidden` would clip it. */}
+      <section className="auth-light flex w-full flex-col bg-white lg:min-h-screen lg:w-[44%]">
+        <div className="flex shrink-0 items-center justify-end gap-3 px-6 pt-7 sm:px-8 lg:px-10">
+          <span className="text-[14px] text-[#6B7280]">New here?</span>
+          <button
+            type="button"
+            onClick={() => setMode(mode === "register" ? "login" : "register")}
+            className={cn("text-[14px] font-medium transition-colors", ACCENT_TEXT)}
+          >
+            {mode === "register" ? "Sign in" : "Create account"}
+          </button>
         </div>
 
-        {/* Kanban preview card */}
-        <div className="relative z-10 mt-auto">
-          <div className="rounded-2xl border border-white/10 bg-[#151B24]/80 backdrop-blur-sm overflow-hidden shadow-2xl">
-            {/* Mini sidebar */}
-            <div className="flex h-[280px]">
-              <div className="w-44 border-r border-white/5 bg-[#0D1117]/60 p-3 flex flex-col gap-1">
-                <div className="flex items-center gap-2 px-2 py-1.5 mb-2">
-                  <LogoMark size={20} />
-                  <span className="text-[10px] font-semibold text-white/80">DevSync</span>
-                </div>
-                {["Dashboard", "Tasks", "Kanban", "Team Chat", "Files", "GitHub", "Settings"].map((item, i) => (
-                  <div key={item} className={`flex items-center gap-2 px-2 py-1.5 rounded-lg text-[10px] ${i === 2 ? "bg-[#F59A45]/10 text-[#F59A45]" : "text-white/40"}`}>
-                    <div className="w-3 h-3 rounded bg-current/20" />
-                    {item}
-                  </div>
-                ))}
-              </div>
-
-              {/* Kanban board */}
-              <div className="flex-1 p-4">
-                <div className="mb-3">
-                  <h3 className="text-sm font-semibold text-white/90">Project Board</h3>
-                  <p className="text-[10px] text-white/40">Organize, track and ship your ideas.</p>
-                </div>
-                <div className="grid grid-cols-3 gap-3">
-                  {/* To Do */}
-                  <div>
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="text-[10px] font-medium text-white/60">To Do</span>
-                      <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-white/5 text-white/40">4</span>
-                    </div>
-                    <div className="space-y-2">
-                      {["Design landing page", "Setup database"].map((task) => (
-                        <div key={task} className="p-2.5 rounded-lg bg-[#1A2030] border border-white/5">
-                          <p className="text-[10px] text-white/80 mb-1">{task}</p>
-                          <span className="text-[8px] px-1.5 py-0.5 rounded bg-[#5B9CF6]/10 text-[#5B9CF6]">frontend</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* In Progress */}
-                  <div>
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="text-[10px] font-medium text-[#F59A45]">In Progress</span>
-                      <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-[#F59A45]/10 text-[#F59A45]">2</span>
-                    </div>
-                    <div className="space-y-2">
-                      {["Build authentication", "Real-time chat"].map((task) => (
-                        <div key={task} className="p-2.5 rounded-lg bg-[#1A2030] border border-white/5">
-                          <p className="text-[10px] text-white/80 mb-1">{task}</p>
-                          <span className="text-[8px] px-1.5 py-0.5 rounded bg-[#A6532D]/10 text-[#F59A45]">backend</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Done */}
-                  <div>
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="text-[10px] font-medium text-[#35C982]">Done</span>
-                      <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-[#35C982]/10 text-[#35C982]">3</span>
-                    </div>
-                    <div className="space-y-2">
-                      {["Project setup", "UI components", "Deploy to production"].map((task) => (
-                        <div key={task} className="p-2.5 rounded-lg bg-[#1A2030] border border-white/5">
-                          <p className="text-[10px] text-white/80 mb-1">{task}</p>
-                          <div className="flex items-center gap-1">
-                            <span className="text-[8px] px-1.5 py-0.5 rounded bg-[#35C982]/10 text-[#35C982]">{task === "Project setup" ? "infra" : task === "UI components" ? "frontend" : "release"}</span>
-                            <span className="text-[8px] text-[#35C982]">✓</span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Footer text */}
-        <div className="relative z-10 mt-4">
-          <p className="text-[10px] text-white/30 italic font-display">Good Developers Build Together</p>
-        </div>
-      </div>
-
-      {/* ═══ RIGHT: Auth Form ═══ */}
-      <div className="auth-light w-full lg:w-[45%] flex flex-col relative bg-white">
-        {/* Top bar */}
-        <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-6 py-4 lg:px-8">
-          <div className="lg:hidden flex items-center gap-2">
-            <button onClick={() => navigate("/")} className="flex items-center gap-2">
-              <LogoMark size={32} />
-            </button>
-          </div>
-          <div className="flex items-center gap-3 ml-auto">
-            <span className="text-sm text-gray-500">New here?</span>
-            <button
-              onClick={() => setMode(mode === "register" ? "login" : "register")}
-              className="text-sm font-medium text-[#A6532D] hover:text-[#8B4526] transition-colors"
-            >
-              {mode === "register" ? "Sign in" : "Create account"}
-            </button>
-          </div>
-        </div>
-
-        {/* Form area */}
-        <div className="flex-1 flex items-center justify-center p-6 sm:p-8 lg:p-12">
-          <div className="w-full max-w-md animate-fade-in-up">
-            {/* Header icon */}
-            <div className="flex justify-center mb-6">
-              <LogoMark size={56} />
+        <div className="mx-auto w-full max-w-[560px] px-6 pb-8 pt-8 sm:px-8 lg:px-0 lg:pt-[70px]">
+          <div className="animate-fade-in-up">
+            {/* Brand mark */}
+            <div className="flex justify-center">
+              <LogoMark size={68} />
             </div>
 
-            {/* Heading */}
-            <div className="text-center mb-8">
-              <h1 className="text-2xl font-bold text-gray-900 font-display">
-                {useOtp
-                  ? "Check your email"
-                  : mode === "register" && registrationStep === "verify"
-                    ? "Verify your email"
-                    : mode === "login"
-                      ? <>Welcome back to <span className="text-[#A6532D]">DevSync</span></>
-                      : <>Join <span className="text-[#A6532D]">DevSync</span></>}
+            <div className="mt-6 text-center">
+              <h1 className="text-[28px] font-bold leading-[1.2] text-[#172033]">
+                {useOtp ? (
+                  "Check your email"
+                ) : mode === "register" && registrationStep === "verify" ? (
+                  "Verify your email"
+                ) : mode === "login" ? (
+                  <>
+                    Welcome back to <span className={ACCENT_SPAN}>DevSync</span>
+                  </>
+                ) : (
+                  <>
+                    Join <span className={ACCENT_SPAN}>DevSync</span>
+                  </>
+                )}
               </h1>
-              <p className="text-sm text-gray-500 mt-2">
+              <p className="mt-2 text-[15px] text-[#737B88]">
                 {useOtp
                   ? "We sent a code to your email"
                   : mode === "register" && registrationStep === "verify"
@@ -353,20 +396,20 @@ export default function Auth() {
               </p>
             </div>
 
-            {/* OAuth buttons */}
-            <div className="flex gap-3 mb-6">
+            {/* Social sign-in */}
+            <div className="mt-7 grid grid-cols-2 gap-3">
               <a
                 href={`${import.meta.env.VITE_API_URL || "/api"}/../oauth2/authorization/github`}
-                className="flex-1 flex items-center justify-center gap-2 h-12 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 hover:border-gray-300 transition-all text-sm font-medium text-gray-700"
+                className="flex h-12 items-center justify-center gap-2.5 rounded-[12px] border border-[#DCE1E7] bg-white text-[14px] font-medium text-[#344054] transition-colors hover:border-[#C9D0D8] hover:bg-[#F8FAFC]"
               >
-                <Github className="w-4 h-4" />
+                <Github className="h-5 w-5 shrink-0 text-[#111827]" />
                 <span>Continue with GitHub</span>
               </a>
               <a
                 href={`${import.meta.env.VITE_API_URL || "/api"}/../oauth2/authorization/google`}
-                className="flex-1 flex items-center justify-center gap-2 h-12 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 hover:border-gray-300 transition-all text-sm font-medium text-gray-700"
+                className="flex h-12 items-center justify-center gap-2.5 rounded-[12px] border border-[#DCE1E7] bg-white text-[14px] font-medium text-[#344054] transition-colors hover:border-[#C9D0D8] hover:bg-[#F8FAFC]"
               >
-                <svg className="w-4 h-4" viewBox="0 0 24 24">
+                <svg className="h-5 w-5 shrink-0" viewBox="0 0 24 24">
                   <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" />
                   <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
                   <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
@@ -376,97 +419,104 @@ export default function Auth() {
               </a>
             </div>
 
-            {/* Divider */}
-            <div className="relative mb-6">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-200" />
-              </div>
-              <div className="relative flex justify-center text-xs">
-                <span className="bg-white px-3 text-gray-500 uppercase tracking-wider font-medium">OR</span>
-              </div>
+            {/* OR divider */}
+            <div className="my-6 flex items-center gap-3">
+              <span className="h-px flex-1 bg-[#DDE2E7]" />
+              <span className="text-[13px] font-medium text-[#7A8490]">OR</span>
+              <span className="h-px flex-1 bg-[#DDE2E7]" />
             </div>
 
-            {/* Form */}
-            <form onSubmit={handleSubmit} className="space-y-4" noValidate>
-              {/* Register fields */}
+            <form onSubmit={handleSubmit} noValidate>
+              {/* Registration-only fields */}
               {mode === "register" && registrationStep === "form" && !useOtp && (
-                <>
+                <div className="space-y-5">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Full name</label>
+                    <label htmlFor="fullName" className={labelClass}>
+                      Full name
+                    </label>
                     <Input
+                      id="fullName"
                       type="text"
                       placeholder="John Doe"
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
-                      className="h-12 bg-gray-50 border-gray-200 text-gray-900 placeholder:text-gray-500 focus:border-[#A6532D] focus:ring-[#A6532D]/20 rounded-xl"
+                      className={fieldClass}
                       required
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Username</label>
+                    <label htmlFor="username" className={labelClass}>
+                      Username
+                    </label>
                     <Input
+                      id="username"
                       type="text"
                       placeholder="johndoe"
                       value={username}
                       onChange={(e) => setUsername(e.target.value)}
-                      className="h-12 bg-gray-50 border-gray-200 text-gray-900 placeholder:text-gray-500 focus:border-[#A6532D] focus:ring-[#A6532D]/20 rounded-xl"
+                      className={fieldClass}
                     />
                   </div>
-                </>
+                </div>
               )}
 
               {useOtp || (mode === "register" && registrationStep === "verify") ? (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Enter verification code</label>
+                  <label className={cn(labelClass, "text-center")}>Enter verification code</label>
                   <OtpInput value={otpCode} onChange={setOtpCode} />
-                  <p className="text-xs text-gray-500 mt-3 text-center">
-                    Sent to <span className="text-[#A6532D] font-medium">{email || "your email"}</span>
+                  <p className="mt-3 text-center text-[13px] text-[#7A8490]">
+                    Sent to <span className="font-medium text-[#344054]">{email || "your email"}</span>
                   </p>
                   <div className="mt-3 text-center">
                     <button
                       type="button"
                       onClick={handleResendOtp}
                       disabled={resendCooldown > 0 || localLoading}
-                      className="text-xs text-[#A6532D] hover:text-[#8B4526] font-medium transition-colors disabled:opacity-50"
+                      className={cn("text-[13px] font-medium transition-colors disabled:opacity-50", ACCENT_TEXT)}
                     >
                       {resendCooldown > 0 ? `Resend code in ${resendCooldown}s` : "Resend code"}
                     </button>
                   </div>
                 </div>
               ) : (
-                <>
+                <div className="space-y-5">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    <label htmlFor="email" className={labelClass}>
                       {mode === "login" ? "Email or username" : "Email address"}
                     </label>
                     <Input
+                      id="email"
                       type={mode === "login" ? "text" : "email"}
                       placeholder={mode === "login" ? "you@example.com or username" : "you@example.com"}
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className="h-12 bg-gray-50 border-gray-200 text-gray-900 placeholder:text-gray-500 focus:border-[#A6532D] focus:ring-[#A6532D]/20 rounded-xl"
+                      className={fieldClass}
                       required
                     />
                   </div>
+
                   <div>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <label className="text-sm font-medium text-gray-700">Password</label>
+                    <div className="mb-2 flex items-center justify-between">
+                      <label htmlFor="password" className="text-[13px] font-medium text-[#344054]">
+                        Password
+                      </label>
                       {mode === "login" && (
                         <button
                           type="button"
                           onClick={() => navigate("/forgot-password")}
-                          className="text-xs font-medium text-[#A6532D] hover:text-[#8B4526] transition-colors"
+                          className={cn("text-[13px] font-medium transition-colors", ACCENT_TEXT)}
                         >
                           Forgot password?
                         </button>
                       )}
                     </div>
                     <Input
+                      id="password"
                       type={showPassword ? "text" : "password"}
                       placeholder={mode === "register" ? "Min 8 characters" : "Enter your password"}
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="h-12 bg-gray-50 border-gray-200 text-gray-900 placeholder:text-gray-500 focus:border-[#A6532D] focus:ring-[#A6532D]/20 rounded-xl"
+                      className={fieldClass}
                       required
                       minLength={mode === "register" ? 8 : 1}
                     />
@@ -474,40 +524,40 @@ export default function Auth() {
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        className="text-xs text-gray-500 hover:text-gray-600 mt-1.5 transition-colors"
+                        className="mt-1.5 text-[13px] text-[#7A8490] transition-colors hover:text-[#344054]"
                       >
                         {showPassword ? "Hide" : "Show"} password
                       </button>
                     )}
                   </div>
-                </>
+                </div>
               )}
 
-              {/* Remember me */}
               {mode === "login" && !useOtp && (
-                <label className="flex items-center gap-2 cursor-pointer">
+                <label className="mt-3 flex cursor-pointer items-center gap-2">
                   <input
                     type="checkbox"
                     checked={rememberMe}
                     onChange={(e) => setRememberMe(e.target.checked)}
-                    className="w-4 h-4 rounded border-gray-300 text-[#A6532D] focus:ring-[#A6532D]/20 accent-[#A6532D]"
+                    className="h-[18px] w-[18px] shrink-0 rounded-[4px] border-[#C9D0D8] accent-[#C9551E]"
                   />
-                  <span className="text-sm text-gray-600">Remember me</span>
+                  <span className="text-[14px] text-[#4B5563]">Remember me</span>
                 </label>
               )}
 
-              {/* Error */}
               {error && (
-                <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-600">
+                <div className="mt-5 rounded-[12px] border border-[#F3C9C9] bg-[#FDF3F3] px-3.5 py-3 text-[13px] text-[#B02525]">
                   {error}
                 </div>
               )}
 
-              {/* Submit */}
               <Button
                 type="submit"
-                className="w-full h-12 text-sm font-semibold rounded-xl bg-gradient-to-r from-[#A6532D] to-[#8B4526] hover:from-[#8B4526] hover:to-[#703A1F] text-white shadow-lg shadow-[#A6532D]/20 transition-all disabled:opacity-50 mt-2"
                 disabled={localLoading || !isValid}
+                className={cn(
+                  "mt-5 h-[52px] w-full rounded-[13px] text-[15px] font-semibold text-white shadow-[0_4px_12px_rgba(201,85,30,0.15)] transition-colors hover:text-white",
+                  ACCENT_FILL
+                )}
               >
                 {localLoading ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -518,31 +568,30 @@ export default function Auth() {
                 ) : (
                   <>
                     {mode === "login" ? "Sign in" : "Create account"}
-                    <ArrowRight className="ml-2 h-4 w-4" />
+                    <ArrowRight className="ml-2 h-[18px] w-[18px]" />
                   </>
                 )}
               </Button>
 
-              {/* Back button for verification step */}
               {mode === "register" && registrationStep === "verify" && (
                 <button
                   type="button"
                   onClick={handleBackToForm}
-                  className="w-full text-sm text-gray-500 hover:text-[#A6532D] transition-colors"
+                  className="mt-4 w-full text-[13px] text-[#7A8490] transition-colors hover:text-[#344054]"
                 >
                   Back to registration form
                 </button>
               )}
             </form>
 
-            {/* OTP toggle */}
+            {/* Passwordless sign-in keeps its own path through the OTP endpoints */}
             {mode === "login" && !useOtp && (
               <button
                 type="button"
                 onClick={() => setUseOtp(true)}
-                className="w-full mt-4 text-sm text-gray-500 hover:text-[#A6532D] transition-colors flex items-center justify-center gap-1.5"
+                className="mt-4 flex w-full items-center justify-center gap-1.5 text-[13px] text-[#7A8490] transition-colors hover:text-[#344054]"
               >
-                <Mail className="w-3.5 h-3.5" />
+                <Mail className="h-3.5 w-3.5" />
                 Sign in with a magic code instead
               </button>
             )}
@@ -551,48 +600,26 @@ export default function Auth() {
               <button
                 type="button"
                 onClick={() => setUseOtp(false)}
-                className="w-full mt-4 text-sm text-gray-500 hover:text-[#A6532D] transition-colors"
+                className="mt-4 w-full text-[13px] text-[#7A8490] transition-colors hover:text-[#344054]"
               >
                 Back to password sign in
               </button>
             )}
 
-            {/* Divider */}
-            <div className="relative mt-8 mb-4">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-200" />
-              </div>
-            </div>
-
-            {/* Mode toggle */}
-            <div className="text-center">
-              <p className="text-sm text-gray-500">
-                {mode === "login" ? (
-                  <>Don&apos;t have an account?{" "}
-                    <button onClick={() => setMode("register")} className="font-semibold text-[#A6532D] hover:text-[#8B4526] transition-colors">
-                      Create one
-                    </button>
-                  </>
-                ) : (
-                  <>Already have an account?{" "}
-                    <button onClick={() => setMode("login")} className="font-semibold text-[#A6532D] hover:text-[#8B4526] transition-colors">
-                      Sign in
-                    </button>
-                  </>
-                )}
-              </p>
-            </div>
-
-            {/* Terms */}
-            <p className="text-[11px] text-gray-500 text-center mt-6 leading-relaxed">
+            <p className="mt-4 text-center text-[11px] leading-snug text-[#98A2AE]">
               By signing in, you agree to our{" "}
-              <button className="underline hover:text-gray-600">Terms of Service</button>
-              {" "}and{" "}
-              <button className="underline hover:text-gray-600">Privacy Policy</button>.
+              <button type="button" className="underline transition-colors hover:text-[#344054]">
+                Terms of Service
+              </button>{" "}
+              and{" "}
+              <button type="button" className="underline transition-colors hover:text-[#344054]">
+                Privacy Policy
+              </button>
+              .
             </p>
           </div>
         </div>
-      </div>
+      </section>
     </div>
   );
 }

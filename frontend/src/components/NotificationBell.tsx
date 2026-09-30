@@ -104,11 +104,11 @@ export function NotificationBell({
       <PopoverTrigger asChild>
         <button
           aria-label="Notifications"
-          className="relative inline-flex items-center justify-center w-9 h-9 rounded-lg text-muted-foreground hover:text-foreground hover:bg-primary/10 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 outline-none transition-colors"
+          className="relative inline-flex h-10 w-10 items-center justify-center rounded-[11px] text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
         >
-          <Bell className="w-4 h-4" />
+          <Bell className="h-5 w-5" />
           {unreadCount > 0 && (
-            <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full bg-danger text-[9px] font-bold text-danger-foreground flex items-center justify-center shadow-sm ring-2 ring-background animate-badge-pop">
+            <span className="animate-badge-pop absolute right-1.5 top-1.5 min-w-[16px] h-4 px-1 rounded-full bg-danger text-[9px] font-bold text-danger-foreground flex items-center justify-center ring-2 ring-surface-nav">
               {unreadCount > 99 ? "99+" : unreadCount}
             </span>
           )}
