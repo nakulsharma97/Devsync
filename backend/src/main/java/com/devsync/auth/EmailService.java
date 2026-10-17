@@ -1,26 +1,87 @@
 package com.devsync.auth;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
 
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.time.Duration;
+import java.util.List;
+import java.util.Map;
+
 @Service
 @Slf4j
 public class EmailService {
 
+    private static final String BREVO_URL = "https://api.brevo.com/v3/smtp/email";
+
     private final JavaMailSender mailSender;
     private final String fromEmail;
     private final boolean smtpConfigured;
+    private final String brevoApiKey;
+    private final HttpClient httpClient = HttpClient.newBuilder()
+            .connectTimeout(Duration.ofSeconds(5))
+            .build();
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
+    /**
+     * Email goes out over Brevo's HTTPS API when BREVO_API_KEY is set (required on
+     * hosts that block outbound SMTP ports, e.g. Render free tier). Otherwise it
+     * falls back to SMTP via MAIL_USERNAME / MAIL_PASSWORD.
+     * MAIL_FROM must be a sender verified in Brevo (defaults to MAIL_USERNAME).
+     */
     public EmailService(JavaMailSender mailSender,
-                        @Value("${spring.mail.username:}") String fromEmail) {
+                        @Value("${spring.mail.username:}") String smtpUser,
+                        @Value("${BREVO_API_KEY:}") String brevoApiKey,
+                        @Value("${MAIL_FROM:}") String mailFrom) {
         this.mailSender = mailSender;
-        this.fromEmail = fromEmail;
-        this.smtpConfigured = fromEmail != null && !fromEmail.isBlank();
+        this.brevoApiKey = brevoApiKey == null ? "" : brevoApiKey.trim();
+        String from = (mailFrom != null && !mailFrom.isBlank()) ? mailFrom.trim() : smtpUser;
+        this.fromEmail = from;
+        boolean hasApi = !this.brevoApiKey.isEmpty() && from != null && !from.isBlank();
+        boolean hasSmtp = smtpUser != null && !smtpUser.isBlank();
+        this.smtpConfigured = hasApi || hasSmtp;
         if (!this.smtpConfigured) {
-            log.warn("SMTP not configured (MAIL_USERNAME is empty) — emails will not be sent");
+            log.warn("Email not configured (set BREVO_API_KEY + MAIL_FROM, or MAIL_USERNAME + MAIL_PASSWORD) - emails will not be sent");
+        } else if (hasApi) {
+            log.info("Email delivery: Brevo HTTPS API (sender {})", from);
+        } else {
+            log.info("Email delivery: SMTP");
+        }
+    }
+
+    private boolean useApi() {
+        return !brevoApiKey.isEmpty() && fromEmail != null && !fromEmail.isBlank();
+    }
+
+    /** Single delivery point: HTTPS API when configured, SMTP otherwise. */
+    private void deliver(SimpleMailMessage message) throws Exception {
+        if (!useApi()) {
+            mailSender.send(message);
+            return;
+        }
+        String to = message.getTo() == null || message.getTo().length == 0 ? "" : message.getTo()[0];
+        String body = objectMapper.writeValueAsString(Map.of(
+                "sender", Map.of("email", fromEmail, "name", "DevSync"),
+                "to", List.of(Map.of("email", to)),
+                "subject", message.getSubject() == null ? "" : message.getSubject(),
+                "textContent", message.getText() == null ? "" : message.getText()));
+        HttpRequest request = HttpRequest.newBuilder(URI.create(BREVO_URL))
+                .timeout(Duration.ofSeconds(10))
+                .header("api-key", brevoApiKey)
+                .header("accept", "application/json")
+                .header("content-type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(body))
+                .build();
+        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+        if (response.statusCode() / 100 != 2) {
+            throw new IllegalStateException("Brevo API returned HTTP " + response.statusCode() + ": " + response.body());
         }
     }
 
@@ -41,7 +102,7 @@ public class EmailService {
                 "Email service is not configured. Please set MAIL_USERNAME and MAIL_PASSWORD.");
         }
         try {
-            mailSender.send(message);
+            deliver(message);
         } catch (Exception e) {
             log.error("Failed to send email to {}: {}", message.getTo(), e.getMessage());
             throw new EmailNotConfiguredException(
@@ -57,7 +118,7 @@ public class EmailService {
     private void trySend(SimpleMailMessage message) {
         if (!smtpConfigured) return;
         try {
-            mailSender.send(message);
+            deliver(message);
         } catch (Exception e) {
             log.error("Failed to send email to {}: {}", message.getTo(), e.getMessage());
         }
