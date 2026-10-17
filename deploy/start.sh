@@ -74,23 +74,15 @@ if ! nginx -t -c /tmp/nginx.conf -e /dev/stderr; then
     exit 1
 fi
 
-# ── 3. Start Spring Boot (loopback only) ────────────────────────
-JAVA_OPTS="${JAVA_OPTS:--XX:MaxRAMPercentage=50 -XX:+UseSerialGC -XX:+ExitOnOutOfMemoryError}"
-
-log "Starting backend on 127.0.0.1:${BACKEND_PORT} (uploads: ${UPLOAD_DIR})"
-# shellcheck disable=SC2086  # JAVA_OPTS is intentionally word-split
-java ${JAVA_OPTS} -Dserver.port="${BACKEND_PORT}" -jar /app/app.jar &
-JAVA_PID=$!
-
-# ── 4. Start nginx in the foreground of its own process ─────────
-nginx -c /tmp/nginx.conf -e /dev/stderr -g 'daemon off;' &
-NGINX_PID=$!
-
+# ── 3. Supervision helpers (defined before anything is started) ─
+JAVA_PID=""
+NGINX_PID=""
 STOP_REQUESTED=0
+
 shutdown() {
     STOP_REQUESTED=1
     log "Shutting down (SIGTERM)"
-    kill -TERM "$JAVA_PID" "$NGINX_PID" 2>/dev/null || true
+    kill -TERM $JAVA_PID $NGINX_PID 2>/dev/null || true
 }
 trap shutdown TERM INT QUIT
 
@@ -103,6 +95,44 @@ alive() {
     [ "$state" != "Z" ]
 }
 
+# ── 4. Start Spring Boot (loopback only) ────────────────────────
+JAVA_OPTS="${JAVA_OPTS:--XX:MaxRAMPercentage=60 -XX:+UseSerialGC -XX:TieredStopAtLevel=1 -XX:+ExitOnOutOfMemoryError}"
+
+log "Starting backend on 127.0.0.1:${BACKEND_PORT} (uploads: ${UPLOAD_DIR})"
+# shellcheck disable=SC2086  # JAVA_OPTS is intentionally word-split
+java ${JAVA_OPTS} -Dserver.port="${BACKEND_PORT}" -jar /app/app.jar &
+JAVA_PID=$!
+
+# ── 5. Wait for Spring Boot, THEN start nginx ───────────────────
+# nginx must not accept traffic before the backend is up, otherwise every
+# /api call during startup returns 502.
+log "Waiting for backend health on 127.0.0.1:${BACKEND_PORT}"
+WAITED=0
+until wget -qO- "http://127.0.0.1:${BACKEND_PORT}/api/health" >/dev/null 2>&1; do
+    if [ "$STOP_REQUESTED" = "1" ]; then
+        log "Stopped during startup"
+        wait 2>/dev/null || true
+        exit 0
+    fi
+    if ! alive "$JAVA_PID"; then
+        log "ERROR: backend exited during startup"
+        exit 1
+    fi
+    if [ "$WAITED" -ge 600 ]; then
+        log "ERROR: backend not healthy after 600s"
+        shutdown
+        wait 2>/dev/null || true
+        exit 1
+    fi
+    sleep 2
+    WAITED=$((WAITED + 2))
+done
+log "Backend healthy after ${WAITED}s; starting nginx"
+
+nginx -c /tmp/nginx.conf -e /dev/stderr -g 'daemon off;' &
+NGINX_PID=$!
+
+# ── 6. Supervise both processes ─────────────────────────────────
 while alive "$JAVA_PID" && alive "$NGINX_PID"; do
     sleep 5
 done
