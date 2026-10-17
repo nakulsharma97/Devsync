@@ -37,8 +37,17 @@ DROP TEMPORARY TABLE IF EXISTS tmp_room_keep;
 --    project survives). Self LEFT JOIN instead of ROW_NUMBER() for
 --    old-server compatibility; the comparison uses the column
 --    collation, matching unique-index equality semantics.
-CREATE TEMPORARY TABLE tmp_room_keep AS
-SELECT o.project_id, o.id AS keep_id
+-- NOTE: managed MySQL (Aiven) sets sql_require_primary_key=ON, which rejects
+-- CREATE TABLE ... AS SELECT (no primary key). So the temp table is created
+-- explicitly WITH a primary key and then filled with INSERT ... SELECT.
+CREATE TEMPORARY TABLE tmp_room_keep (
+    project_id VARCHAR(36) NOT NULL,
+    keep_id    VARCHAR(36) NOT NULL,
+    PRIMARY KEY (project_id)
+) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+INSERT INTO tmp_room_keep (project_id, keep_id)
+SELECT o.project_id, o.id
 FROM team_rooms o
 LEFT JOIN team_rooms e
        ON e.project_id = o.project_id
