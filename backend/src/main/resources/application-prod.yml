@@ -16,7 +16,7 @@
 #   FRONTEND_URL                     (origin used in reset/verify email links)
 #   MAIL_USERNAME / MAIL_PASSWORD    (SMTP — both together or neither)
 #   GITHUB_CLIENT_ID / GITHUB_CLIENT_SECRET / GITHUB_REDIRECT_URI / GITHUB_WEBHOOK_SECRET
-#   RAZORPAY_KEY_ID / RAZORPAY_KEY_SECRET / RAZORPAY_WEBHOOK_SECRET (fail-fast below)
+#   RAZORPAY_KEY_ID / RAZORPAY_KEY_SECRET / RAZORPAY_WEBHOOK_SECRET (optional, see below)
 #   STRIPE_SECRET_KEY / STRIPE_PUBLISHABLE_KEY / STRIPE_WEBHOOK_SECRET (optional)
 #
 # Additionally, ProductionConfigValidator (active only in this profile) aborts
@@ -46,11 +46,16 @@ app:
   jwt:
     secret: ${JWT_SECRET}
   billing:
-    # Fail-fast: production cannot boot without Razorpay credentials.
+    # Optional, but required to actually take payments. RazorpayClient.isConfigured()
+    # returns false while the pair is empty and checkout answers 503
+    # "Payment not configured" — the app itself boots and every non-billing
+    # feature works. Keeping these optional lets a free deployment start without
+    # a payment account; docker-compose.yml still declares them with `:?` for the
+    # VPS stack, so that path remains fail-fast.
     razorpay:
-      key-id: ${RAZORPAY_KEY_ID}
-      key-secret: ${RAZORPAY_KEY_SECRET}
-      webhook-secret: ${RAZORPAY_WEBHOOK_SECRET}
+      key-id: ${RAZORPAY_KEY_ID:}
+      key-secret: ${RAZORPAY_KEY_SECRET:}
+      webhook-secret: ${RAZORPAY_WEBHOOK_SECRET:}
     stripe:
       # Optional: Stripe is an alternative provider. Only needed if you want
       # to offer Stripe as a payment option alongside Razorpay.

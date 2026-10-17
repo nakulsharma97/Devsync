@@ -150,7 +150,8 @@ Internet ──443──▶ Caddy (TLS, host) ──▶ nginx :8080 (SPA + /api 
 |---|---|
 | **Docker Compose on a Linux VPS** (Hetzner / DigitalOcean / Lightsail / EC2) | **The designed path.** `docker-compose.yml`, `scripts/server-deploy.sh` and the CD workflow all assume it. 2 GB RAM, 2 vCPU is enough. |
 | GitHub Actions CD → that VPS | Already wired: tag `v*` → build/push to GHCR → SSH deploy, gated by manual approval. See [Step 13](#step-13--ongoing-deploys). |
-| Managed platforms (Fly.io / Render / Railway / ECS) | Possible, but you must externalise MySQL, replace the compose networking, and move uploads to object storage. Not turnkey. |
+| **Render Free + Aiven MySQL** (one Docker image, SPA + API in the same container) | Turnkey for this repo: root `Dockerfile`, `deploy/nginx.conf` and `deploy/start.sh`. No persistent uploads on the free plan. See [RENDER_AIVEN_DEPLOY.md](RENDER_AIVEN_DEPLOY.md). |
+| Other managed platforms (Fly.io / Railway / ECS) | Possible, but you must externalise MySQL, replace the compose networking, and move uploads to object storage. Not turnkey. |
 
 Only the **frontend** container publishes a port. MySQL and the backend stay on
 the internal `devsync-net` bridge. TLS is expected to terminate *in front of* the

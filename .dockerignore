@@ -1,0 +1,33 @@
+# ── Version control / tooling ─────────────────────────────────
+.git
+.gitignore
+.github
+.freebuff
+.vscode
+.idea
+
+# ── Secrets: never send .env files into an image layer ────────
+.env
+**/.env
+**/.env.*
+!**/.env.example
+
+# ── Build output that is rebuilt inside the image ─────────────
+dist
+**/dist
+backend/target
+**/target
+frontend/node_modules
+node_modules
+
+# ── Local-only state ──────────────────────────────────────────
+backend/uploads
+certs
+logs
+*.log
+*.tsbuildinfo
+
+# ── Docs / screenshots not needed at runtime ──────────────────
+docs
+*.md
+frontend/feed-screenshot.png

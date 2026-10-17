@@ -267,6 +267,9 @@ analytics, activity/audit, and moderation flows have integration-level tests.
 Every required API key, the host preparation steps, and the step-by-step deploy runbook:
 **👉 [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)**.
 
+Free single-container deployment (Render Free + Aiven MySQL, ₹0, no credit card):
+**👉 [docs/RENDER_AIVEN_DEPLOY.md](docs/RENDER_AIVEN_DEPLOY.md)**.
+
 - **CI** (`.github/workflows/ci.yml`): auth unit tests → full backend suite (runs on
   H2 — the surefire system properties override `SPRING_DATASOURCE_URL`, so the CI
   MySQL service is not actually used by the tests) with optional coverage →
