@@ -844,13 +844,8 @@ export default function BoardPage() {
   const members = (project?.members ?? []).map((m) => ({ id: m.userId, fullName: m.fullName }));
   const allTasks = (board?.columns ?? []).flatMap((col) => col.tasks);
   const taskId = searchParams.get("task");
-  const taskIdRef = useRef(taskId);
-  taskIdRef.current = taskId;
 
   useEffect(() => {
-    // Ignore an effect from the previous location when a task is opened before
-    // React flushes that render's effects.
-    if (taskIdRef.current !== taskId) return;
     if (!taskId) {
       setDetailTask(null);
       return;
