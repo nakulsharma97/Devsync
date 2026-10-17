@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { MemoryRouter } from "react-router";
 import { AuthProvider, useAuth } from "./AuthContext";
 
 const authMocks = vi.hoisted(() => ({
@@ -80,9 +81,11 @@ function Consumer() {
 
 function renderProvider() {
   return render(
-    <AuthProvider>
-      <Consumer />
-    </AuthProvider>
+    <MemoryRouter>
+      <AuthProvider>
+        <Consumer />
+      </AuthProvider>
+    </MemoryRouter>
   );
 }
 
@@ -217,9 +220,11 @@ describe("AuthContext", () => {
       authMocks.getStoredUser.mockReturnValue(null);
       authMocks.getMe.mockRejectedValue(new Error("Unauthorized"));
       return render(
-        <AuthProvider>
-          <ActionsConsumer />
-        </AuthProvider>
+        <MemoryRouter>
+          <AuthProvider>
+            <ActionsConsumer />
+          </AuthProvider>
+        </MemoryRouter>
       );
     }
 

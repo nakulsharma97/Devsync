@@ -45,6 +45,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { getErrorMessage } from "@/lib/utils";
 import { ReportDialog } from "@/components/ReportDialog";
+import { navigateBackOr } from "@/lib/navigation";
 
 const HEATMAP_DAYS = 13 * 7; // 13 weeks
 
@@ -211,6 +212,9 @@ function FollowListDialog({
 export default function UserProfilePage() {
   const { username } = useParams<{ username: string }>();
   const navigate = useNavigate();
+  const goBack = () => {
+    navigateBackOr(navigate, "/profile");
+  };
   const { user: currentUser } = useAuth();
 
   const [profile, setProfile] = useState<PublicProfileDto | null>(null);
@@ -372,7 +376,7 @@ export default function UserProfilePage() {
         </div>
         <h3 className="text-sm font-semibold text-foreground">Profile not found</h3>
         <p className="text-sm text-muted-foreground mt-1">This user doesn't exist or has been removed.</p>
-        <Button variant="outline" size="sm" onClick={() => navigate(-1)} className="mt-4">
+        <Button variant="outline" size="sm" onClick={goBack} className="mt-4">
           <ArrowLeft className="w-3.5 h-3.5 mr-1.5" /> Go back
         </Button>
       </div>
@@ -401,7 +405,7 @@ export default function UserProfilePage() {
 
       {/* Back button */}
       <button
-        onClick={() => navigate(-1)}
+        onClick={goBack}
         className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors mb-4"
       >
         <ArrowLeft className="w-3.5 h-3.5" /> Back

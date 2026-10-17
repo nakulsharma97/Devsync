@@ -101,6 +101,16 @@ export default defineConfig({
         secure: false,
         ws: true,
       },
+      '/oauth2': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+        secure: false,
+      },
+      '/login': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+        secure: false,
+      },
     },
   },
   // Performance hints
@@ -120,6 +130,16 @@ export default defineConfig({
         changeOrigin: true,
         secure: false,
         ws: true,
+      },
+      '/oauth2': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+        secure: false,
+      },
+      '/login': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+        secure: false,
       },
     },
   },

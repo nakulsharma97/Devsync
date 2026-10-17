@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.nio.charset.StandardCharsets;
@@ -28,6 +29,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
+@TestPropertySource(properties = {
+        "spring.security.oauth2.client.registration.github.client-id=test-github-client",
+        "spring.security.oauth2.client.registration.github.client-secret=test-github-secret",
+        "spring.security.oauth2.client.registration.github.scope=user:email,read:user",
+        "spring.security.oauth2.client.registration.google.client-id=test-google-client",
+        "spring.security.oauth2.client.registration.google.client-secret=test-google-secret",
+        "spring.security.oauth2.client.registration.google.scope=email,profile"
+})
 class SecurityIntegrationTest {
 
     @Autowired private MockMvc mockMvc;
@@ -65,6 +74,19 @@ class SecurityIntegrationTest {
 
     private String bearer(String token) {
         return "Bearer " + token;
+    }
+
+    @Test
+    void oauthAuthorizationEndpoints_shouldRedirectToConfiguredProviders() throws Exception {
+        mockMvc.perform(get("/oauth2/authorization/github"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(result -> assertThat(result.getResponse().getRedirectedUrl())
+                        .startsWith("https://github.com/login/oauth/authorize"));
+
+        mockMvc.perform(get("/oauth2/authorization/google"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(result -> assertThat(result.getResponse().getRedirectedUrl())
+                        .startsWith("https://accounts.google.com/o/oauth2/v2/auth"));
     }
 
     // ── Authentication: 401 ─────────────────────────────────

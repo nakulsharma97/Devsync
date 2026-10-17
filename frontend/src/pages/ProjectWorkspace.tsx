@@ -107,6 +107,7 @@ export default function ProjectWorkspace() {
     : "overview";
   const setTab = (next: TabId) => {
     const params = new URLSearchParams(searchParams);
+    params.delete("task");
     if (next === "overview") {
       params.delete("tab");
     } else {

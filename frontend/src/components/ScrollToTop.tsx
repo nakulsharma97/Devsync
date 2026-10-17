@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { useLocation } from "react-router";
+import { useLocation, useNavigationType } from "react-router";
 
 /**
  * Resets the browser scroll position to the top whenever the pathname changes.
@@ -15,10 +15,15 @@ import { useLocation } from "react-router";
  */
 export default function ScrollToTop() {
   const { pathname } = useLocation();
+  const navigationType = useNavigationType();
 
   useEffect(() => {
+    // Let the browser restore the saved scroll position for Back/Forward.
+    // PUSH and REPLACE navigations represent a new view and should start at
+    // the top instead of inheriting the previous page's position.
+    if (navigationType === "POP") return;
     window.scrollTo(0, 0);
-  }, [pathname]);
+  }, [navigationType, pathname]);
 
   return null;
 }

@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { useParams } from "react-router";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useParams, useSearchParams } from "react-router";
 import { useApi } from "@/hooks/useApi";
 import { boardService, type TaskDto } from "@/services/boardService";
 import { projectService } from "@/services/projectService";
@@ -838,9 +838,45 @@ export default function BoardPage() {
   const [view, setView] = useState<"board" | "calendar">("board");
   const [detailTask, setDetailTask] = useState<TaskDto | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const pendingTaskRef = useRef<TaskDto | null>(null);
 
   const members = (project?.members ?? []).map((m) => ({ id: m.userId, fullName: m.fullName }));
   const allTasks = (board?.columns ?? []).flatMap((col) => col.tasks);
+  const taskId = searchParams.get("task");
+  const taskIdRef = useRef(taskId);
+  taskIdRef.current = taskId;
+
+  useEffect(() => {
+    // Ignore an effect from the previous location when a task is opened before
+    // React flushes that render's effects.
+    if (taskIdRef.current !== taskId) return;
+    if (!taskId) {
+      setDetailTask(null);
+      return;
+    }
+    if (pendingTaskRef.current?.id === taskId) {
+      setDetailTask(pendingTaskRef.current);
+      pendingTaskRef.current = null;
+      return;
+    }
+    const matchingTask = allTasks.find((task) => task.id === taskId);
+    if (matchingTask) setDetailTask(matchingTask);
+  }, [allTasks, taskId]);
+
+  const openTask = (task: TaskDto) => {
+    const params = new URLSearchParams(searchParams);
+    params.set("task", task.id);
+    pendingTaskRef.current = task;
+    setSearchParams(params);
+  };
+
+  const closeTask = () => {
+    const params = new URLSearchParams(searchParams);
+    params.delete("task");
+    setSearchParams(params, { replace: true });
+    setDetailTask(null);
+  };
 
   // Compute summary statistics from real data
   const totalTasks = allTasks.length;
@@ -1015,7 +1051,7 @@ export default function BoardPage() {
 
       {/* Board / Calendar Content */}
       {view === "calendar" ? (
-        <CalendarView projectId={projectId!} refreshKey={refreshKey} onOpenTask={(t) => setDetailTask(t)} />
+        <CalendarView projectId={projectId!} refreshKey={refreshKey} onOpenTask={openTask} />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
           {board.columns.map((col) => {
@@ -1064,7 +1100,7 @@ export default function BoardPage() {
                         key={task.id}
                         task={task}
                         columnId={col.id}
-                        onClick={() => setDetailTask(task)}
+                        onClick={() => openTask(task)}
                       />
                     ))
                   )}
@@ -1126,7 +1162,7 @@ export default function BoardPage() {
           allTasks={allTasks}
           members={members}
           currentUserRole={project?.currentUserRole ?? null}
-          onClose={() => setDetailTask(null)}
+          onClose={closeTask}
           onSaved={() => {
             refetch();
             setRefreshKey((k) => k + 1);

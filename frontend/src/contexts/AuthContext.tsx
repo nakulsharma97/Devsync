@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useCallback, useEffect, useMemo, type ReactNode } from "react";
+import { useNavigate } from "react-router";
 import { authService, type AuthResponse } from "@/services/authService";
 import { wsService } from "@/services/websocketService";
 import { getErrorMessage } from "@/lib/utils";
@@ -42,6 +43,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const navigate = useNavigate();
   const [user, setUser] = useState<AuthResponse["user"] | null>(() => authService.getStoredUser());
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -123,6 +125,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => window.removeEventListener("auth:authorization-changed", handleAuthorizationChanged);
   }, [refreshUser]);
 
+  useEffect(() => {
+    const handleSessionExpired = () => {
+      authService.clearSession();
+      setUser(null);
+      wsService.disconnect();
+      if (window.location.pathname !== "/auth") {
+        navigate("/auth", { replace: true });
+      }
+    };
+    window.addEventListener("auth:session-expired", handleSessionExpired);
+    return () => window.removeEventListener("auth:session-expired", handleSessionExpired);
+  }, [navigate]);
+
   const login = useCallback(async (email: string, password: string) => {
     setError(null);
     setIsLoading(true);
@@ -194,8 +209,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     authService.clearSession();
     setUser(null);
     wsService.disconnect();
-    window.location.href = "/";
-  }, []);
+    navigate("/", { replace: true });
+  }, [navigate]);
 
   // Memoized so consumers only re-render when auth state actually changes
   // (the callback identities are stable via useCallback above).

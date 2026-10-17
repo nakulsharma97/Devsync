@@ -95,21 +95,3 @@ export const howItWorksSteps: HowItWorksStep[] = [
   { step: "02", icon: Users, title: "Invite your team", description: "Search for people by name or email and send invitations. Members accept right from their notifications and join your workspace.", gradient: "from-primary to-accent-hover" },
   { step: "03", icon: Rocket, title: "Collaborate and ship", description: "Plan on Kanban boards, chat in real time, share files, and link GitHub repositories — all from one project workspace.", gradient: "from-accent to-primary" },
 ];
-
-// ─── Footer Links ───────────────────────────────────────────────
-
-export interface FooterLink {
-  name: string;
-  href: string;
-}
-
-export interface FooterColumn {
-  title: string;
-  links: FooterLink[];
-}
-
-export const footerColumns: FooterColumn[] = [
-  { title: "Product", links: [{ name: "Features", href: "#features" }, { name: "Pricing", href: "#pricing" }, { name: "Documentation", href: "#docs" }, { name: "Changelog", href: "#" }, { name: "API Status", href: "#" }] },
-  { title: "Company", links: [{ name: "About", href: "#" }, { name: "Blog", href: "#" }, { name: "Careers", href: "#" }, { name: "Press Kit", href: "#" }, { name: "Contact", href: "#" }] },
-  { title: "Legal", links: [{ name: "Privacy Policy", href: "#" }, { name: "Terms of Service", href: "#" }, { name: "Security", href: "#" }, { name: "Cookies", href: "#" }, { name: "GDPR", href: "#" }] },
-];

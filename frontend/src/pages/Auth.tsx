@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useNavigate } from "react-router";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -32,8 +32,10 @@ const ACCENT_SPAN = "text-[#C9551E]";
 
 // ── OTP input ─────────────────────────────────────────────
 
-function OtpInput({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+export function OtpInput({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   const [focused, setFocused] = useState(true);
+  const inputRefs = useRef<Array<HTMLInputElement | null>>([]);
+  const focusInput = (index: number) => inputRefs.current[index]?.focus();
   const keyframesStyle = `
     @keyframes otp-blink {
       0%, 50% { border-color: #C9551E; }
@@ -47,14 +49,46 @@ function OtpInput({ value, onChange }: { value: string; onChange: (v: string) =>
         {[0, 1, 2, 3, 4, 5].map((i) => (
           <div key={i} className="relative">
             <input
+              ref={(input) => {
+                inputRefs.current[i] = input;
+              }}
               type="text"
               maxLength={1}
+              inputMode="numeric"
               value={value[i] || ""}
               onChange={(e) => {
                 const v = e.target.value;
                 if (v && /^\d$/.test(v)) {
                   const next = value.substring(0, i) + v + value.substring(i + 1);
                   onChange(next.substring(0, 6));
+                  focusInput(Math.min(i + 1, 5));
+                }
+              }}
+              onPaste={(e) => {
+                const pasted = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
+                if (!pasted) return;
+                e.preventDefault();
+                const next = value.split("");
+                pasted.split("").forEach((digit, offset) => {
+                  if (i + offset < 6) next[i + offset] = digit;
+                });
+                onChange(next.join("").slice(0, 6));
+                focusInput(Math.min(i + pasted.length, 5));
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "ArrowLeft") {
+                  e.preventDefault();
+                  focusInput(Math.max(i - 1, 0));
+                } else if (e.key === "ArrowRight") {
+                  e.preventDefault();
+                  focusInput(Math.min(i + 1, 5));
+                } else if (e.key === "Backspace") {
+                  if (value[i]) {
+                    onChange(value.substring(0, i) + value.substring(i + 1));
+                  } else if (i > 0) {
+                    e.preventDefault();
+                    focusInput(i - 1);
+                  }
                 }
               }}
               onFocus={() => setFocused(true)}
@@ -199,20 +233,19 @@ export default function Auth() {
     if (isLoading) return;
     const params = new URLSearchParams(window.location.search);
     if (params.get("oauth") === "success") {
-      window.history.replaceState({}, "", "/auth");
-      window.location.href = "/dashboard";
+      navigate("/dashboard", { replace: true });
+      return;
     }
     const modeParam = params.get("mode");
     if (modeParam === "register") {
       setMode("register");
-      window.history.replaceState({}, "", "/auth");
+      navigate("/auth", { replace: true });
     }
     const hash = window.location.hash;
     if (hash && hash.includes("access_token=")) {
-      window.location.hash = "";
-      window.location.href = "/dashboard";
+      navigate("/dashboard", { replace: true });
     }
-  }, [isLoading]);
+  }, [isLoading, navigate]);
 
   useEffect(() => {
     if (!isLoading && isAuthenticated) {
@@ -248,7 +281,7 @@ export default function Auth() {
           mode === "register" && registrationStep === "verify" ? "registration" : "login";
         await verifyOtp(email, otpCode, purpose);
         await refreshUser();
-        navigate(isAdmin ? "/admin/dashboard" : "/dashboard");
+        navigate(isAdmin ? "/admin/dashboard" : "/dashboard", { replace: true });
         return;
       }
       if (mode === "login") {
@@ -399,14 +432,14 @@ export default function Auth() {
             {/* Social sign-in */}
             <div className="mt-7 grid grid-cols-2 gap-3">
               <a
-                href={`${import.meta.env.VITE_API_URL || "/api"}/../oauth2/authorization/github`}
+                href="/oauth2/authorization/github"
                 className="flex h-12 items-center justify-center gap-2.5 rounded-[12px] border border-[#DCE1E7] bg-white text-[14px] font-medium text-[#344054] transition-colors hover:border-[#C9D0D8] hover:bg-[#F8FAFC]"
               >
                 <Github className="h-5 w-5 shrink-0 text-[#111827]" />
                 <span>Continue with GitHub</span>
               </a>
               <a
-                href={`${import.meta.env.VITE_API_URL || "/api"}/../oauth2/authorization/google`}
+                href="/oauth2/authorization/google"
                 className="flex h-12 items-center justify-center gap-2.5 rounded-[12px] border border-[#DCE1E7] bg-white text-[14px] font-medium text-[#344054] transition-colors hover:border-[#C9D0D8] hover:bg-[#F8FAFC]"
               >
                 <svg className="h-5 w-5 shrink-0" viewBox="0 0 24 24">

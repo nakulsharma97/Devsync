@@ -137,9 +137,11 @@ api.interceptors.response.use(
         }
         return api(originalRequest);
       } catch {
-        // Refresh failed — clean up and redirect to login.
+        // Refresh failed — let AuthProvider clear state and perform a
+        // client-side replace so the browser Back button cannot restore a
+        // protected screen through a full-page reload.
         localStorage.removeItem("user");
-        window.location.href = "/auth";
+        window.dispatchEvent(new Event("auth:session-expired"));
       }
     }
 

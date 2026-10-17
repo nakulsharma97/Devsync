@@ -72,6 +72,8 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        boolean oauthEnabled = clientRegistrationRepository.getIfAvailable() != null;
+
         http
             // CSRF protection is enabled because authentication now uses HttpOnly cookies.
             // CookieCsrfTokenRepository stores the token in XSRF-TOKEN cookie; the
@@ -104,7 +106,12 @@ public class SecurityConfig {
             .addFilterAfter(csrfConfig.csrfCookieFilter(),
                     org.springframework.security.web.csrf.CsrfFilter.class)
             .cors(cors -> {})
-            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            // OAuth2 authorization requests need a short-lived session between
+            // the provider redirect and callback. The API remains stateless when
+            // OAuth is not configured, and JWT authentication remains the
+            // authorization mechanism for API requests in either mode.
+            .sessionManagement(session -> session.sessionCreationPolicy(
+                    oauthEnabled ? SessionCreationPolicy.IF_REQUIRED : SessionCreationPolicy.STATELESS))
             .headers(headers -> {
                 // Defense-in-depth for the JSON API: X-Content-Type-Options
                 // (nosniff) is on by default; framing and referrer leakage are
@@ -155,7 +162,7 @@ public class SecurityConfig {
         // client registrations are configured (e.g. application-oauth.yml).
         // Without them the app still boots and /oauth2/authorization endpoints
         // simply return 404 instead of failing the whole context at startup.
-        if (clientRegistrationRepository.getIfAvailable() != null) {
+        if (oauthEnabled) {
             http.oauth2Login(oauth2 -> oauth2
                 .userInfoEndpoint(userInfo -> userInfo
                     .userService(oAuth2Config.oAuth2UserService())
