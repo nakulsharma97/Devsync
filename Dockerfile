@@ -64,8 +64,10 @@ COPY --from=frontend-build /app/dist/ /usr/share/nginx/html/
 COPY deploy/nginx.conf /etc/nginx/nginx.conf.template
 COPY deploy/start.sh /app/start.sh
 
-RUN mkdir -p /app/uploads /app/certs /tmp/client_temp /tmp/proxy_temp \
-    && chown -R app:app /app /usr/share/nginx/html \
+RUN mkdir -p /app/uploads /app/certs \
+    /tmp/client_temp /tmp/proxy_temp /tmp/fastcgi_temp /tmp/uwsgi_temp /tmp/scgi_temp \
+    /tmp/logs /var/lib/nginx/logs /var/lib/nginx/tmp /var/log/nginx \
+    && chown -R app:app /app /usr/share/nginx/html /tmp/logs /tmp/client_temp /tmp/proxy_temp /tmp/fastcgi_temp /tmp/uwsgi_temp /tmp/scgi_temp /var/lib/nginx /var/log/nginx \
     && chmod +x /app/start.sh
 
 USER app

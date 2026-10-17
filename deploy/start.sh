@@ -69,7 +69,7 @@ fi
 sed -e "s/__PORT__/${PORT}/g" -e "s/__BACKEND_PORT__/${BACKEND_PORT}/g" \
     /etc/nginx/nginx.conf.template > /tmp/nginx.conf
 
-if ! nginx -t -c /tmp/nginx.conf; then
+if ! nginx -t -c /tmp/nginx.conf -e /dev/stderr; then
     log "ERROR: nginx configuration test failed"
     exit 1
 fi
@@ -83,7 +83,7 @@ java ${JAVA_OPTS} -Dserver.port="${BACKEND_PORT}" -jar /app/app.jar &
 JAVA_PID=$!
 
 # ── 4. Start nginx in the foreground of its own process ─────────
-nginx -c /tmp/nginx.conf -g 'daemon off;' &
+nginx -c /tmp/nginx.conf -e /dev/stderr -g 'daemon off;' &
 NGINX_PID=$!
 
 STOP_REQUESTED=0
