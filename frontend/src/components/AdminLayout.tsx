@@ -263,17 +263,10 @@ export default function AdminLayout() {
               />
             ))}
           </div>
-
-          {/* Link back to normal app */}
-          <SectionLabel>Switch</SectionLabel>
-          <div className="space-y-1">
-            <SidebarLink
-              to="/dashboard"
-              icon={FolderKanban}
-              label="Open User App"
-              onNavigate={closeSidebar}
-            />
-          </div>
+          {/* Admin accounts are deliberately confined to the Admin Panel: the
+              USER-only app is guarded on the route (UserRoute) and on the API
+              (SecurityConfig), so a "switch to user app" link would only bounce
+              back here. */}
         </nav>
 
         {/* User card */}

@@ -84,9 +84,13 @@ describe("AdminLayout", () => {
     expect(screen.getByRole("link", { name: "My Profile" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Settings" })).toBeInTheDocument();
 
-    // Switch section
-    expect(screen.getByText("Switch")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Open User App" })).toBeInTheDocument();
+    // There is no "switch to the user app" affordance: admins stay in the panel.
+    expect(screen.queryByText("Switch")).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Open User App" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Dashboard" })).toHaveAttribute(
+      "href",
+      "/admin/dashboard"
+    );
   });
 
   it("renders the current page title in the header", () => {

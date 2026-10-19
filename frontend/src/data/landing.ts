@@ -32,7 +32,11 @@ export interface Feature {
 export const features: Feature[] = [
   { icon: FolderGit2, title: "Project Management", description: "Create public or private projects, invite your team, and manage the full project lifecycle — active, completed or archived.", iconBg: "from-primary to-primary" },
   { icon: Kanban, title: "Kanban Boards", description: "Plan work on boards with columns, priorities, labels and due dates. Drag tasks through your workflow and track completion.", iconBg: "from-blue-500 to-cyan-600" },
-  { icon: MessageCircle, title: "Team Chat", description: "Real-time project rooms and direct messages with typing indicators and presence — one WebSocket connection for everything.", iconBg: "from-accent" },
+  // Light theme: `--accent` is the near-white hover surface (#f2f2f0), so the old
+  // `from-accent` tile was a white→transparent gradient under a white glyph —
+  // invisible. Use the solid primary (copper) tile like the other icon cards and
+  // keep the existing dark-theme charcoal gradient untouched via `dark:` overrides.
+  { icon: MessageCircle, title: "Team Chat", description: "Real-time project rooms and direct messages with typing indicators and presence — one WebSocket connection for everything.", iconBg: "from-primary to-primary dark:from-accent dark:to-transparent" },
   { icon: GitBranch, title: "GitHub Integration", description: "Connect your GitHub account, link a repository to a project, and follow commits, issues and pull requests from DevSync.", iconBg: "from-accent to-primary" },
   { icon: Paperclip, title: "File Sharing", description: "Share files in conversations with server-side validation of size, type and content. Downloads stay private to authorized members.", iconBg: "from-violet-500 to-fuchsia-600" },
   { icon: Bell, title: "Notifications", description: "Get notified about invitations, member events, task assignments and messages — with unread counts that stay in sync.", iconBg: "from-red-500 to-rose-600" },

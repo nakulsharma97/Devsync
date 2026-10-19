@@ -17,8 +17,13 @@ import { cn } from "@/lib/utils";
  * default is the bare avatar used by the admin shell.
  */
 export function UserMenu({ showName = false }: { showName?: boolean } = {}) {
-  const { user, logout } = useAuth();
+  const { user, logout, isAdmin } = useAuth();
   const navigate = useNavigate();
+
+  // The admin shell reuses this menu, but /profile and /settings are USER-only
+  // routes (admins would be redirected away). Admin keeps its own copies under
+  // /admin — the same pages rendered inside the Admin Panel shell.
+  const accountBase = isAdmin ? "/admin" : "";
 
   const initials =
     user?.fullName
@@ -82,10 +87,10 @@ export function UserMenu({ showName = false }: { showName?: boolean } = {}) {
           <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={() => navigate("/profile")}>
+        <DropdownMenuItem onClick={() => navigate(`${accountBase}/profile`)}>
           <User /> Profile
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => navigate("/settings")}>
+        <DropdownMenuItem onClick={() => navigate(`${accountBase}/settings`)}>
           <Settings /> Settings
         </DropdownMenuItem>
         <DropdownMenuSeparator />

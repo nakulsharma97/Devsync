@@ -26,7 +26,9 @@ function FeatureCard({ feature, index }: { feature: Feature; index: number }) {
   };
 
   return (
-    <ScrollReveal delay={index * 0.06} className="h-full">
+    // 40 ms per card: the ninth card starts at ~320 ms (capped at 300 ms by
+    // ScrollReveal) instead of after half a second.
+    <ScrollReveal delay={index * 0.04} className="h-full">
       <div
         ref={ref}
         onMouseMove={handleMouseMove}
@@ -76,7 +78,7 @@ export default function FeaturesSection() {
           </p>
         </ScrollReveal>
 
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 md:gap-6">
           {features.map((feature, index) => (
             <FeatureCard key={feature.title} feature={feature} index={index} />
           ))}

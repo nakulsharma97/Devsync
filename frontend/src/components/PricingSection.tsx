@@ -1,9 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 import { Button } from "@/components/ui/button";
 import { ScrollReveal } from "@/components/ScrollReveal";
-import { Check, Loader2 } from "lucide-react";
-import { billingService, type Plan } from "@/services/billingService";
+import { Check } from "lucide-react";
+import { type Plan } from "@/services/billingService";
+import { landingService } from "@/services/landingService";
 
 function formatBytes(bytes: number): string {
   if (bytes <= 0) return "0 MB";
@@ -27,18 +28,52 @@ function featuresFor(plan: Plan): string[] {
   return f;
 }
 
+/**
+ * Skeletons mirror the real card layout (same grid, same card padding and
+ * roughly the same height) so swapping placeholders for plans does not move
+ * the section — that swap was the main source of layout shift on the landing
+ * page.
+ */
+function PricingSkeleton() {
+  return (
+    <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto items-stretch" aria-hidden="true">
+      {[0, 1, 2].map((i) => (
+        <div
+          key={i}
+          className="h-full rounded-2xl border border-border/40 bg-card/70 p-8"
+        >
+          <div className="h-5 w-24 rounded bg-muted/50 animate-pulse" />
+          <div className="mt-3 h-3 w-full rounded bg-muted/30 animate-pulse" />
+          <div className="mt-6 h-10 w-28 rounded bg-muted/40 animate-pulse" />
+          <div className="mt-8 space-y-3">
+            {[0, 1, 2, 3, 4, 5].map((j) => (
+              <div key={j} className="h-3 w-full rounded bg-muted/30 animate-pulse" />
+            ))}
+          </div>
+          <div className="mt-8 h-11 w-full rounded-md bg-muted/40 animate-pulse" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function PricingSection() {
   const navigate = useNavigate();
-  const [plans, setPlans] = useState<Plan[]>([]);
-  const [loading, setLoading] = useState(true);
+  // The plan catalogue is static and public — paint the cached copy instantly
+  // on a remount instead of flashing a spinner.
+  const [plans, setPlans] = useState<Plan[]>(() => landingService.peekPlans() ?? []);
+  const [loading, setLoading] = useState(() => (landingService.peekPlans() ?? []).length === 0);
   const [error, setError] = useState(false);
 
   useEffect(() => {
     let active = true;
-    billingService
+    landingService
       .getPlans()
       .then((data) => {
-        if (active) setPlans(data);
+        if (active && data.length > 0) {
+          setPlans(data);
+          setError(false);
+        }
       })
       .catch(() => {
         if (active) setError(true);
@@ -50,6 +85,12 @@ export default function PricingSection() {
       active = false;
     };
   }, []);
+
+  // One derived list per plan set rather than rebuilding it for every render.
+  const planFeatures = useMemo(
+    () => plans.map((plan) => ({ plan, features: featuresFor(plan) })),
+    [plans]
+  );
 
   return (
     <section
@@ -70,19 +111,17 @@ export default function PricingSection() {
         </ScrollReveal>
 
         {loading ? (
-          <div className="flex items-center justify-center py-16">
-            <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-          </div>
-        ) : error ? (
-          <p className="text-center text-muted-foreground py-12">
+          <PricingSkeleton />
+        ) : error && planFeatures.length === 0 ? (
+          <p className="text-center text-muted-foreground py-12 min-h-[240px] flex items-center justify-center">
             Pricing could not be loaded right now. Try again shortly.
           </p>
         ) : (
           <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto items-stretch">
-            {plans.map((plan, i) => {
+            {planFeatures.map(({ plan, features }, i) => {
               const popular = plan.code === "PRO";
               return (
-                <ScrollReveal key={plan.code} delay={i * 0.1} className="h-full">
+                <ScrollReveal key={plan.code} delay={i * 0.08} className="h-full">
                   <div
                     // The Pro card must NOT clip its content: the "Most Popular" pill
                     // straddles the top border from `-top-3`, so `overflow-hidden` here
@@ -105,7 +144,7 @@ export default function PricingSection() {
                       <h3 className="text-lg font-semibold mb-1">{plan.name}</h3>
                       <p className="text-sm text-muted-foreground mb-4">{plan.description}</p>
                       <div className="flex items-baseline gap-2">
-                        <span className="inline-block text-4xl font-bold animate-fade-in-up">
+                        <span className="inline-block text-4xl font-bold tabular-nums">
                           ₹{plan.priceInr}
                         </span>
                         <span className="text-sm text-muted-foreground">/month</span>
@@ -113,7 +152,7 @@ export default function PricingSection() {
                     </div>
 
                     <ul className="relative space-y-3 mb-8">
-                      {featuresFor(plan).map((f) => (
+                      {features.map((f) => (
                         <li key={f} className="flex items-start gap-2.5 text-sm">
                           <Check className="w-4 h-4 text-primary mt-0.5 shrink-0 transition-transform duration-200 group-hover:scale-110" />
                           <span>{f}</span>

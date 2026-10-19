@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from "react";
+import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 
 const codeLines = [
   'import { createWorkspace } from "./devsync";',
@@ -75,26 +76,54 @@ export default function GlassCodeEditor() {
     return () => observer.disconnect();
   }, []);
 
+  const reducedMotion = usePrefersReducedMotion();
+
+  // One timer chain owns the whole typing sequence.
+  //
+  // The previous version keyed this effect on [currentLine, currentChar], so
+  // every typed character tore the timer down and re-armed the 400 ms "start"
+  // delay: typing crawled at ~2 characters/second, and any parent re-render
+  // (stats arriving in the hero, a theme change, …) cancelled the pending
+  // character mid-stroke, which read as flicker/restart. The loop now keeps its
+  // cursor in local variables and only writes React state to paint.
   useEffect(() => {
-    let timeout: ReturnType<typeof setTimeout>;
+    if (reducedMotion) {
+      // Reduced motion: show the finished snippet, no typing at all.
+      setCurrentLine(codeLines.length);
+      setCurrentChar(0);
+      return;
+    }
+
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let line = 0;
+    let char = 0;
+
     const typeNext = () => {
-      if (currentLine >= codeLines.length) return;
-      const line = codeLines[currentLine];
-      if (currentChar < line.length) {
-        setCurrentChar((c) => c + 1);
-        timeout = setTimeout(typeNext, 18 + Math.random() * 25);
+      if (cancelled) return;
+      if (line >= codeLines.length) return;
+
+      const text = codeLines[line];
+      if (char < text.length) {
+        char += 1;
+        setCurrentLine(line);
+        setCurrentChar(char);
+        timer = setTimeout(typeNext, 18 + Math.random() * 25);
       } else {
+        line += 1;
+        char = 0;
+        setCurrentLine(line);
         setCurrentChar(0);
-        setCurrentLine((l) => l + 1);
-        timeout = setTimeout(typeNext, 180 + Math.random() * 120);
+        timer = setTimeout(typeNext, 180 + Math.random() * 120);
       }
     };
-    const startTimeout = setTimeout(typeNext, 400);
+
+    timer = setTimeout(typeNext, 400);
     return () => {
-      clearTimeout(timeout);
-      clearTimeout(startTimeout);
+      cancelled = true;
+      if (timer) clearTimeout(timer);
     };
-  }, [currentLine, currentChar]);
+  }, [reducedMotion]);
 
   const getLineContent = (index: number): string => {
     if (index < currentLine) return codeLines[index];

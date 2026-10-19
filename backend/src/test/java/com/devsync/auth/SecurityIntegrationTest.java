@@ -195,6 +195,35 @@ class SecurityIntegrationTest {
                 .andExpect(jsonPath("$.totalUsers").value(3));
     }
 
+    // ── USER-only application surface ────────────────────
+
+    @Test
+    void userAppEndpoint_shouldReturn200_ForUser() throws Exception {
+        String token = jwtTokenProvider.generateAccessToken(normalUserId, "normal@test.com");
+        mockMvc.perform(get("/api/projects")
+                        .header("Authorization", bearer(token)))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void userAppEndpoint_shouldReturn403_ForAdmin() throws Exception {
+        // ADMIN accounts are confined to /api/admin/**; the user app is USER-only.
+        String token = jwtTokenProvider.generateAccessToken(adminId, "admin@test.com");
+        mockMvc.perform(get("/api/projects")
+                        .header("Authorization", bearer(token)))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void sharedEndpoint_shouldStillWork_ForAdmin() throws Exception {
+        // /api/users/me backs the admin profile page and must stay reachable.
+        String token = jwtTokenProvider.generateAccessToken(adminId, "admin@test.com");
+        mockMvc.perform(get("/api/users/me")
+                        .header("Authorization", bearer(token)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(adminId));
+    }
+
     // ── IDOR ────────────────────────────────────────────────
 
     @Test

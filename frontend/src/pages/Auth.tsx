@@ -305,6 +305,17 @@ export default function Auth() {
     setOtpCode("");
   };
 
+  /** Toggles login ↔ register and keeps the URL in sync with the mode. */
+  const switchMode = () => {
+    const next = mode === "register" ? "login" : "register";
+    setMode(next);
+    setRegistrationStep("form");
+    setOtpCode("");
+    setUseOtp(false);
+    setError(null);
+    navigate(next === "register" ? "/auth?mode=register" : "/auth", { replace: true });
+  };
+
   const isValid = useOtp || (mode === "register" && registrationStep === "verify")
     ? otpCode.length === 6
     : mode === "login"
@@ -385,10 +396,15 @@ export default function Auth() {
           nothing is ever clipped the way `overflow-hidden` would clip it. */}
       <section className="auth-light flex w-full flex-col bg-white lg:min-h-screen lg:w-[44%]">
         <div className="flex shrink-0 items-center justify-end gap-3 px-6 pt-7 sm:px-8 lg:px-10">
-          <span className="text-[14px] text-[#6B7280]">New here?</span>
+          {/* Signup: "Already have an account? Sign in" — Login: "New to DevSync? Create account".
+              Both switch to the existing /auth route (mode=register for signup) so the
+              URL stays shareable/reloadable. */}
+          <span className="text-[14px] text-[#6B7280]">
+            {mode === "register" ? "Already have an account?" : "New to DevSync?"}
+          </span>
           <button
             type="button"
-            onClick={() => setMode(mode === "register" ? "login" : "register")}
+            onClick={switchMode}
             className={cn("text-[14px] font-medium transition-colors", ACCENT_TEXT)}
           >
             {mode === "register" ? "Sign in" : "Create account"}

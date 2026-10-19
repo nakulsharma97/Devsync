@@ -21,6 +21,7 @@ if (import.meta.env.VITE_SENTRY_DSN) {
 
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { UserRoute } from "@/components/UserRoute";
 import { AdminRoute } from "@/components/AdminRoute";
 import PageTransition from "@/components/PageTransition";
 import { RouteSkeleton } from "@/components/Skeletons";
@@ -88,13 +89,15 @@ function App() {
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/verify-email" element={<VerifyEmail />} />
+            {/* USER-only application. ADMIN accounts are redirected to the
+                Admin Dashboard instead of being able to open the user shell. */}
             <Route
               element={
-                <ProtectedRoute>
+                <UserRoute>
                   <SubscriptionProvider>
                     <DashboardLayout />
                   </SubscriptionProvider>
-                </ProtectedRoute>
+                </UserRoute>
               }
             >
               <Route path="/dashboard" element={<Dashboard />} />

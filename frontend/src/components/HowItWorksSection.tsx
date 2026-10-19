@@ -30,7 +30,7 @@ export default function HowItWorksSection() {
           />
 
           {howItWorksSteps.map((step, i) => (
-            <ScrollReveal key={step.step} delay={i * 0.15} className="relative">
+            <ScrollReveal key={step.step} delay={i * 0.08} className="relative h-full">
               <div className="bg-card border border-border/50 rounded-2xl p-8 hover:border-primary/30 hover:shadow-xl hover:shadow-primary/5 hover:-translate-y-1 transition-all duration-300 group h-full">
                 <div className="flex items-center gap-4 mb-6">
                   <span className="text-4xl font-black bg-gradient-to-br from-primary to-accent-hover bg-clip-text text-transparent transition-transform duration-300 group-hover:scale-105 origin-left">

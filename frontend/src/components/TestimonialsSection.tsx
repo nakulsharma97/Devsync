@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { Star, Quote, MessageSquarePlus } from "lucide-react";
 import { useNavigate } from "react-router";
 import { ScrollReveal } from "@/components/ScrollReveal";
@@ -52,10 +53,13 @@ export default function TestimonialsSection({
   // without data we fall through to the honest empty state instead of leaving
   // placeholder cards pulsing forever.
   const loading = reviews === null && !settled;
-  const all = reviews ? [...reviews.featured, ...reviews.reviews] : [];
-  const deduped = all.filter(
-    (review, index) => all.findIndex((r) => r.id === review.id) === index
-  );
+  // Featured reviews are also part of `reviews`, so de-duplicate once per
+  // payload instead of on every render (the O(n²) scan used to run for each
+  // parent re-render, e.g. whenever stats arrived).
+  const deduped = useMemo(() => {
+    const all = reviews ? [...reviews.featured, ...reviews.reviews] : [];
+    return all.filter((review, index) => all.findIndex((r) => r.id === review.id) === index);
+  }, [reviews]);
   const hasReviews = deduped.length > 0;
   const summary = reviews?.summary;
 
@@ -134,7 +138,7 @@ export default function TestimonialsSection({
               {deduped.map((review, index) => (
                 <ScrollReveal
                   key={review.id}
-                  delay={index * 0.1}
+                  delay={Math.min(index * 0.06, 0.24)}
                   className="h-full"
                 >
                   <div className="relative h-full bg-card/70 backdrop-blur-sm border border-border/40 rounded-2xl p-6 md:p-8 transition-all duration-300 hover:border-primary/30 hover:shadow-xl hover:shadow-primary/10 hover:-translate-y-1 group">

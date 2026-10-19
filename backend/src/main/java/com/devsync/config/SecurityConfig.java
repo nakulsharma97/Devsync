@@ -32,6 +32,33 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @RequiredArgsConstructor
 public class SecurityConfig {
 
+    /**
+     * REST namespaces that belong exclusively to the USER application.
+     *
+     * ADMIN accounts operate through the dedicated /api/admin/** tree (the
+     * Admin Panel calls nothing else), so these endpoints require the USER role.
+     * Shared surfaces an admin still needs — /api/auth/**, /api/users/**
+     * (admin profile), /api/notifications/** (admin shell), /api/github/** and
+     * /api/attachments/** (moderation/downloads) — are deliberately NOT listed
+     * here and keep the plain "authenticated" rule.
+     */
+    private static final String[] USER_APP_ENDPOINTS = {
+            "/api/projects/**",
+            "/api/boards/**",
+            "/api/messages/**",
+            "/api/rooms/**",
+            "/api/bookmarks/**",
+            "/api/connections/**",
+            "/api/posts/**",
+            "/api/reviews/**",
+            "/api/feedback/**",
+            "/api/support/tickets/**",
+            "/api/reports/**",
+            "/api/analytics/**",
+            "/api/presence/**",
+            "/api/search/**"
+    };
+
     private final RateLimitingFilter rateLimitingFilter;
     private final JwtTokenProvider jwtTokenProvider;
     private final UserDetailsService userDetailsService;
@@ -150,6 +177,10 @@ public class SecurityConfig {
                 .requestMatchers("/actuator/health").permitAll()
                 .requestMatchers("/oauth2/**", "/login/**").permitAll()
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                // The USER app is USER-only on the server as well as in the
+                // router: hiding the "Open User App" button is not authorization.
+                // Unauthenticated callers get 401, ADMIN accounts get 403.
+                .requestMatchers(USER_APP_ENDPOINTS).hasRole("USER")
                 .anyRequest().authenticated()
             )
             .addFilterBefore(rateLimitingFilter, UsernamePasswordAuthenticationFilter.class)

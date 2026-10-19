@@ -19,12 +19,19 @@ import {
 } from "@/services/landingService";
 
 export default function Landing() {
-  const [stats, setStats] = useState<PublicStats | null>(null);
+  // Seed from the service cache so returning to "/" (Back/Forward, or after a
+  // visit to /auth) paints the real numbers immediately instead of replaying
+  // the skeleton → content swap. The cache also de-duplicates in-flight calls.
+  const [stats, setStats] = useState<PublicStats | null>(() => landingService.peekStats());
   // Distinguishes "still loading" from "loaded and unavailable" so stats
   // placeholders can stop animating once the request settles either way.
-  const [statsSettled, setStatsSettled] = useState(false);
-  const [reviews, setReviews] = useState<PublicReviewsResponse | null>(null);
-  const [reviewsSettled, setReviewsSettled] = useState(false);
+  const [statsSettled, setStatsSettled] = useState(() => landingService.peekStats() !== null);
+  const [reviews, setReviews] = useState<PublicReviewsResponse | null>(() =>
+    landingService.peekReviews()
+  );
+  const [reviewsSettled, setReviewsSettled] = useState(
+    () => landingService.peekReviews() !== null
+  );
 
   // Real, server-computed aggregates — never hardcoded. A failed fetch simply
   // leaves the sections in their honest empty state.

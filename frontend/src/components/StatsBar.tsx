@@ -37,7 +37,20 @@ function AnimatedNumber({ value }: { value: number }) {
       { threshold: 0.4 }
     );
     observer.observe(el);
-    return () => observer.disconnect();
+
+    // Safety net: if the observer callback never arrives (throttled frames,
+    // embedded webview) the counter must not render 0 forever. Count up as soon
+    // as the numbers are actually on screen.
+    const fallback = window.setTimeout(() => {
+      const rect = el.getBoundingClientRect();
+      const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
+      if (rect.top < viewportHeight && rect.bottom > 0) setInView(true);
+    }, 1200);
+
+    return () => {
+      observer.disconnect();
+      window.clearTimeout(fallback);
+    };
   }, []);
 
   const display = useCountUp(value, { enabled: inView });
@@ -103,7 +116,7 @@ export default function StatsBar({ stats, settled }: { stats: PublicStats | null
               <div
                 key={stat.label}
                 className="text-center group animate-fade-in-up"
-                style={{ animationDelay: `${0.1 + i * 0.1}s` }}
+                style={{ animationDelay: `${0.05 + i * 0.06}s` }}
               >
                 <span className="inline-block text-3xl md:text-4xl lg:text-5xl font-bold bg-gradient-to-br from-foreground to-foreground/60 bg-clip-text text-transparent transition-transform duration-300 group-hover:scale-105">
                   <AnimatedNumber value={stat.value} />

@@ -20,10 +20,16 @@ export default function HeroSection({ stats }: { stats: PublicStats | null }) {
   useEffect(() => {
     if (prefersReducedMotion) return;
     const handleMouse = (e: MouseEvent) => {
+      const el = sectionRef.current;
+      if (!el) return;
       const nx = e.clientX / window.innerWidth - 0.5; // -0.5..0.5
       const ny = e.clientY / window.innerHeight - 0.5;
-      document.documentElement.style.setProperty("--hero-mx", `${nx * 6}px`);
-      document.documentElement.style.setProperty("--hero-my", `${ny * 6}px`);
+      // Scope the parallax variables to the hero instead of <html>. Writing
+      // custom properties on the root invalidates inherited style for the whole
+      // document on every mousemove, repainting every card and the fixed
+      // particle canvas — the opposite of the subtle effect intended.
+      el.style.setProperty("--hero-mx", `${nx * 6}px`);
+      el.style.setProperty("--hero-my", `${ny * 6}px`);
     };
     window.addEventListener("mousemove", handleMouse, { passive: true });
     return () => window.removeEventListener("mousemove", handleMouse);
